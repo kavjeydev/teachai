@@ -2,6 +2,7 @@
 
 import { Input, Textarea } from "@nextui-org/input";
 import { useState } from "react";
+import InputMock, { SearchIcon } from "../../components/text-input-mock";
 
 export default function Dashboard() {
   const [query, setQuery] = useState("");
@@ -10,7 +11,8 @@ export default function Dashboard() {
   };
   return (
     <div className="h-screen w-screen flex items-center justify-center">
-      <Textarea className="w-80" placeholder="enter questions here" />
+      {/* <Textarea className="w-80" placeholder="enter questions here" /> */}
+      <InputMock />
     </div>
   );
 }
