@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@hypermode/modus-sdk-as": "^0.15.0",
-    "json-as": "^0.9.26"
+    "json-as": "^0.9.26",
+    "pdfjs-dist": "^4.9.155"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

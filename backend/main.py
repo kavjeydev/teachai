@@ -27,21 +27,48 @@ def main():
 
 
     response = openai.chat.completions.create(
-        model="gpt-4",  # You can also use other models like "gpt-3.5-turbo"
+        model="gpt-4o",  # You can also use other models like "gpt-3.5-turbo"
         messages=[
-            {"role": "system", "content": "You convert your inputs into schemas that can be used for neo4j"},
+            {"role": "system", "content": """From the given input file, extract any entities and relationships you deem important \
+             Your output should look like this: \
+             {
+                "entities": [
+                    {id: uuidv4 generated, attr1: "entity1", attr11: "something else", ...},
+                    {id: uuidv4 generated, attr2: "entity2", attr22: "something else", ...},
+                    ...
+                ],
+                "relationships: [
+                    "id1|RELATIONSHIP|id2",
+             ]
+
+             }
+             You get to decide the number of attributes and what the attributes are and what the relationships are, \
+             please make wise decisions based on the file read. \
+
+             After making those attributes, generate queries to insert them into a neo4j database with proper syntax.\
+             Respond with only the queries.\
+
+             Relationship queries should be in this format:\
+                MATCH (a:TYPE {id: any}), (b:TYPE {id: any}) CREATE (a)-[:RELATIONSHIP]->(b)
+
+             """},
             {"role": "user", "content": prompt},
         ],
-        max_tokens=150,      # Adjust the response length
-        temperature=0.7,     # Adjust creativity: 0 (less creative) to 1 (more creative)
+        max_tokens=8192,      # Adjust the response length
+        temperature=0,     # Adjust creativity: 0 (less creative) to 1 (more creative)
         n=1,                 # Number of responses to generate
         stop=None            # Define stopping criteria if needed
     )
 
     # Extract and print the assistant's reply
     assistant_reply = response.choices[0].message.content
-    print("Assistant's Response:")
-    print(assistant_reply)
+
+    def filter(arr):
+        return [x for x in arr if x]
+
+    as_array = filter(assistant_reply.split("\n"))
+    print(as_array)
+    print("done")
 
 
 
