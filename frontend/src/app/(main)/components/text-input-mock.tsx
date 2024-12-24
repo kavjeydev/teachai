@@ -1,68 +1,178 @@
-import { Input } from "@nextui-org/input";
+import { Textarea } from "@nextui-org/input";
+import { Button } from "@nextui-org/button";
+import React, { useState } from "react";
 
-export const SearchIcon = (props: any) => {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      height="1em"
-      role="presentation"
-      viewBox="0 0 24 24"
-      width="1em"
-      {...props}
-    >
-      <path
-        d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-      <path
-        d="M22 22L20 20"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-};
+// Placeholder icons (swap with your own)
+const UploadIcon = () => (
+  <svg
+    width="1em"
+    height="1em"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
 
-export default function InputMock() {
+const SendIcon = () => (
+  <svg
+    width="1em"
+    height="1em"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+
+interface InputMockProps {
+  onClear?: () => void;
+  placeholder?: string;
+  label?: string;
+}
+
+export default function InputMock({
+  onClear,
+  placeholder = "Type your message...",
+  label = "",
+}: InputMockProps) {
+  const [result, setResult] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // GraphQL query types
+  interface SayHelloResponse {
+    data: {
+      sayHello: string;
+    };
+    errors?: { message: string }[];
+  }
+
+  interface SayHelloVariables {
+    name: string;
+  }
+
+  async function fetchSayHello(variables: SayHelloVariables): Promise<string> {
+    const query = `query SayHello($name: String!) {
+      sayHello(name: $name)
+    }`;
+
+    const response = await fetch("http://localhost:8686/graphql", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const json = (await response.json()) as SayHelloResponse;
+
+    // If the server returns GraphQL errors:
+    if (json.errors && json.errors.length > 0) {
+      throw new Error(json.errors[0].message);
+    }
+
+    return json.data.sayHello;
+  }
+
+  // Fetch data from the server and update local state
+  const fetchData = async (userName: string) => {
+    setLoading(true);
+    setError(null);
+    setResult("");
+    try {
+      const greeting = await fetchSayHello({ name: userName });
+      setResult(greeting);
+    } catch (err) {
+      console.error("API error:", err);
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Triggered by the "Send" button
+  const handleClick = async () => {
+    if (!name.trim()) {
+      setError("Name cannot be empty.");
+      return;
+    }
+    await fetchData(name);
+  };
+
+  // Clear out all states
+  const handleClear = () => {
+    setName("");
+    setResult("");
+    setError(null);
+  };
+
   return (
-    <div className="w-[340px] h-[240px] px-8 rounded-2xl flex justify-center items-center bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg">
-      <Input
-        isClearable
-        classNames={{
-          label: "text-black/50 dark:text-white/90",
-          input: [
-            "bg-transparent",
-            "text-black/90 dark:text-white/90",
-            "placeholder:text-default-700/50 dark:placeholder:text-white/60",
-          ],
-          innerWrapper: "bg-transparent",
-          inputWrapper: [
-            "shadow-xl",
-            "bg-default-200/50",
-            "dark:bg-default/60",
-            "backdrop-blur-xl",
-            "backdrop-saturate-200",
-            "hover:bg-default-200/70",
-            "dark:hover:bg-default/70",
-            "group-data-[focus=true]:bg-default-200/50",
-            "dark:group-data-[focus=true]:bg-default/60",
-            "!cursor-text",
-          ],
-        }}
-        label="Search"
-        placeholder="Type to search..."
-        radius="lg"
-        startContent={
-          <SearchIcon className="text-black/50 mb-0.5 dark:text-white/90 text-slate-400 pointer-events-none flex-shrink-0" />
-        }
-      />
+    <div className="w-[95vw] p-2 rounded-2xl flex flex-col justify-between bg-gradient-to-tr from-purple-200/30 to-slate-500 text-white shadow-lg">
+      {/* Display "You typed..." if there's a result */}
+
+      <div className="flex-grow mb-2 text-white">
+        <Textarea
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onClear={onClear}
+          style={{ color: "white" }}
+          classNames={{
+            label: "text-white/50 dark:text-white/90 mb-2",
+            input:
+              "bg-transparent placeholder:text-white/50 dark:placeholder:text-white/60",
+            innerWrapper: "bg-transparent",
+            inputWrapper:
+              "shadow-xl bg-black/50 dark:bg-black/60 backdrop-blur-xl backdrop-saturate-200 hover:bg-default-200/70 dark:hover:bg-black/70 group-data-[focus=true]:bg-black/50 dark:group-data-[focus=true]:bg-black/60 !cursor-text",
+          }}
+          label={label}
+          placeholder={placeholder}
+          radius="lg"
+          minRows={5}
+        />
+      </div>
+
+      <div className="flex items-center justify-end space-x-2">
+        <Button
+          variant="solid"
+          color="primary"
+          startContent={<UploadIcon />}
+          className="bg-white text-black hover:bg-gray-100"
+          // Add an onClick if you want an upload function:
+          // onClick={handleUpload}
+        />
+        <Button
+          variant="solid"
+          color="primary"
+          startContent={<SendIcon />}
+          className="bg-white text-black hover:bg-gray-100"
+          // The onClick is used instead of form submit
+          onClick={handleClick}
+        >
+          {loading ? "Loading..." : "Send"}
+        </Button>
+      </div>
+
+      <div className="w-full max-w-sm mt-2">
+        {/* Show errors if any */}
+        {error && <p className="text-red-500 mb-2">Error: {error}</p>}
+        {/* Show successful result below */}
+        {result && <p className="text-green-500">Result: {result}</p>}
+      </div>
     </div>
   );
 }

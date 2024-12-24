@@ -52,11 +52,12 @@ export default function Home() {
     <div className="flex flex-col justify-center text-center">
       <div className="flex flex-col gap-8 justify-center items-center h-screen">
         <div className="flex flex-col gap-2">
-          <h1 className="font-recursive leading-[1] tracking-tight font-normal text-2xl w-[48rem] text-textmaincolor/60">
+          <h1 className="font-recursive leading-[1] tracking-tight font-normal text-xl w-[48rem] text-textmaincolor/60">
             The AI expert for your specialized use case 🚀
           </h1>
-          <h1 className="font-recursive leading-[1] tracking-tight font-normal text-5xl w-[48rem] text-textmaincolor">
-            Hi TeachAI, {typedResponse}
+          <h1 className="font-literata leading-[1] tracking-tight font-normal text-5xl w-[48rem] text-textmaincolor">
+            <span className="text-purple-200">Hi TeachAI, </span>
+            {typedResponse}
             <span className="animate-blink p-1">|</span>
           </h1>
         </div>
@@ -66,7 +67,7 @@ export default function Home() {
             <SignInButton mode="modal">
               <Button
                 variant="shadow"
-                className="hover:bg-purple-200 bg-amber-400 shadow-black/10"
+                className="hover:bg-purple-200 bg-buttoncolor shadow-black/10"
               >
                 Get Started
               </Button>
@@ -74,14 +75,14 @@ export default function Home() {
           </SignedOut>
           <SignedIn>
             <Button
-              variant="shadow"
+              variant="faded"
               className="hover:bg-purple-200"
               onClick={() => router.push("/dashboard")}
             >
               Dashboard
             </Button>
           </SignedIn>
-          <Button variant="shadow" className="hover:bg-purple-200">
+          <Button variant="faded" className="hover:bg-purple-200">
             Watch Demo <span className="mt-0.5">▶</span>
           </Button>
         </div>

@@ -1,4 +1,4 @@
-import {nextui} from '@nextui-org/theme';
+import { nextui } from "@nextui-org/theme";
 import type { Config } from "tailwindcss";
 
 export default {
@@ -6,20 +6,22 @@ export default {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./node_modules/@nextui-org/theme/dist/components/(button|input|ripple|spinner|form).js"
+    "./node_modules/@nextui-org/theme/dist/components/(button|input|ripple|spinner|form).js",
   ],
   theme: {
     extend: {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        lightmaincolor: "#200061",
+        lightmaincolor: "#1F2430",
         darkmaincolor: "#000000",
-        textmaincolor: "#B18AFF",
+        textmaincolor: "#DAE2DF",
         textnormal: "#FFFFFF",
+        buttoncolor: "#FFE66D",
       },
       fontFamily: {
         recursive: ["Recursive", "sans-serif"],
+        literata: ["Literata", "serif"],
       },
       keyframes: {
         blink: {

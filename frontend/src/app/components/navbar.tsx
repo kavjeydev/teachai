@@ -17,7 +17,7 @@ export default function Navbar() {
         font-recursive px-4 w-screen"
     >
       <img
-        src="/teachai.png"
+        src="/teachai_n.png"
         height={120}
         width={120}
         className="bg-blend-difference -z-20 cursor-pointer"
@@ -28,13 +28,16 @@ export default function Navbar() {
           <SignUpButton mode="modal">
             <Button
               variant="solid"
-              className="hover:bg-purple-200 bg-amber-400"
+              className="hover:bg-purple-200 bg-buttoncolor"
             >
               Sign Up
             </Button>
           </SignUpButton>
           <SignInButton mode="modal">
-            <Button variant="solid" className="hover:bg-purple-200">
+            <Button
+              variant="solid"
+              className="hover:bg-slate-800 bg-slate-900 text-white"
+            >
               Sign In
             </Button>
           </SignInButton>
@@ -42,7 +45,7 @@ export default function Navbar() {
         <SignedIn>
           <Button
             variant="solid"
-            className="hover:bg-purple-200 bg-amber-400"
+            className="hover:bg-purple-200 bg-buttoncolor"
             onClick={() => router.push("/dashboard")}
           >
             Dashboard
