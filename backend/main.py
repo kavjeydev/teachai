@@ -33,8 +33,8 @@ def main():
              Your output should look like this: \
              {
                 "entities": [
-                    {id: uuidv4 generated, attr1: "entity1", attr11: "something else", ...},
-                    {id: uuidv4 generated, attr2: "entity2", attr22: "something else", ...},
+                    {id: 1 generated, attr1: "entity1", attr11: "something else", ...},
+                    {id: 2 generated, attr2: "entity2", attr22: "something else", ...},
                     ...
                 ],
                 "relationships: [
