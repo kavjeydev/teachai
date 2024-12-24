@@ -31,7 +31,7 @@ jobs:
         run: |
           MODUS_JSON=$(find . -type f -name 'modus.json' -print -quit)
           if [ -n "$MODUS_JSON" ]; then
-            MODUS_DIR=$(dirname "$MODUS_JSON")
+            MODUS_DIR=modus/api
             echo "MODUS_DIR=$MODUS_DIR" >> $GITHUB_ENV
           else
             echo "modus.json not found"
