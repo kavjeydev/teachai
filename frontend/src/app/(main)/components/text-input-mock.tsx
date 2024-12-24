@@ -1,8 +1,9 @@
+"use client";
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import React, { useState } from "react";
 
-// Placeholder icons (swap with your own)
+// Placeholder icons
 const UploadIcon = () => (
   <svg
     width="1em"
@@ -37,12 +38,15 @@ const SendIcon = () => (
 );
 
 interface InputMockProps {
+  // 1) Add a callback prop
+  onFetchComplete?: (greeting: string) => void;
   onClear?: () => void;
   placeholder?: string;
   label?: string;
 }
 
 export default function InputMock({
+  onFetchComplete,
   onClear,
   placeholder = "Type your message...",
   label = "",
@@ -89,14 +93,17 @@ export default function InputMock({
     return json.data.sayHello;
   }
 
-  // Fetch data from the server and update local state
   const fetchData = async (userName: string) => {
     setLoading(true);
     setError(null);
     setResult("");
+
     try {
       const greeting = await fetchSayHello({ name: userName });
       setResult(greeting);
+
+      // 2) Notify the parent with the result
+      onFetchComplete?.(greeting);
     } catch (err) {
       console.error("API error:", err);
       setError((err as Error).message);
@@ -105,7 +112,6 @@ export default function InputMock({
     }
   };
 
-  // Triggered by the "Send" button
   const handleClick = async () => {
     if (!name.trim()) {
       setError("Name cannot be empty.");
@@ -114,7 +120,6 @@ export default function InputMock({
     await fetchData(name);
   };
 
-  // Clear out all states
   const handleClear = () => {
     setName("");
     setResult("");
@@ -122,9 +127,7 @@ export default function InputMock({
   };
 
   return (
-    <div className="w-[95vw] p-2 rounded-2xl flex flex-col justify-between bg-gradient-to-tr from-purple-200/30 to-slate-500 text-white shadow-lg">
-      {/* Display "You typed..." if there's a result */}
-
+    <div className="w-[95vw] p-2 rounded-2xl flex flex-col justify-between bg-black/40 text-white shadow-lg">
       <div className="flex-grow mb-2 text-white">
         <Textarea
           value={name}
@@ -152,15 +155,12 @@ export default function InputMock({
           color="primary"
           startContent={<UploadIcon />}
           className="bg-white text-black hover:bg-gray-100"
-          // Add an onClick if you want an upload function:
-          // onClick={handleUpload}
         />
         <Button
           variant="solid"
           color="primary"
           startContent={<SendIcon />}
           className="bg-white text-black hover:bg-gray-100"
-          // The onClick is used instead of form submit
           onClick={handleClick}
         >
           {loading ? "Loading..." : "Send"}
@@ -168,9 +168,7 @@ export default function InputMock({
       </div>
 
       <div className="w-full max-w-sm mt-2">
-        {/* Show errors if any */}
         {error && <p className="text-red-500 mb-2">Error: {error}</p>}
-        {/* Show successful result below */}
         {result && <p className="text-green-500">Result: {result}</p>}
       </div>
     </div>

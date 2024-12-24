@@ -93,10 +93,10 @@ function f32ArrayToF64Array(arr: f32[]): Float64Array {
 /**
  * Create Cypher queries (list of strings) from the AI output (for entities & relationships).
  */
-function interpretFile(): string[] {
+function interpretFile(data: string): string[] {
   // Read raw text from an endpoint
-  const response = http.fetch("http://0.0.0.0:8000/pdf");
-  const data: string = response.json<string>();
+  // const response = http.fetch("http://0.0.0.0:8000/extract-pdf-text");
+  // const data: string = response.json<string>();
 
   // Instruction to the AI
   const instruction = `
@@ -226,11 +226,10 @@ class ChunkScore {
 // -----------------------
 
 /**
- * Creates nodes from the PDF file using the interpretFile() approach.
  * Also returns the queries that were executed.
  */
-export function createNodesWithFile(): string[] {
-  const queriesToExecute = interpretFile();
+export function createNodesWithFile(data: string): string[] {
+  const queriesToExecute = interpretFile(data);
 
   const hostName: string = "my-neo4j";
   for (let i = 1; i < queriesToExecute.length - 1; i++) {
@@ -249,13 +248,15 @@ export function createNodesWithFile(): string[] {
 /**
  * Creates nodes from interpretFile() + also creates :Chunk nodes with embeddings.
  */
-export function createNodesAndEmbeddings(): void {
+export function createNodesAndEmbeddings(pdfText: string): void {
+  console.log("Creating nodes and embeddings...");
+  console.log(pdfText)
   // 1. Create the graph nodes/relationships from interpretFile.
-  createNodesWithFile();
+  createNodesWithFile(pdfText);
 
   // 2. Also store embeddings as :Chunk nodes for semantic search
-  const response = http.fetch("http://0.0.0.0:8000/pdf");
-  const pdfText: string = response.json<string>();
+  // const response = http.fetch("http://0.0.0.0:8000/extract-pdf-text");
+  // const pdfText: string = response.json<string>();
 
   createChunkEmbeddingsInNeo4j("my-neo4j", pdfText);
 }

@@ -56,7 +56,7 @@ export default function Home() {
             The AI expert for your specialized use case 🚀
           </h1>
           <h1 className="font-literata leading-[1] tracking-tight font-normal text-5xl w-[48rem] text-textmaincolor">
-            <span className="text-purple-200">Hi TeachAI, </span>
+            <span className="text-purple-200">Hi Trainley, </span>
             {typedResponse}
             <span className="animate-blink p-1">|</span>
           </h1>
