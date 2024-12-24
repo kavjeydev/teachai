@@ -26,6 +26,7 @@ def main():
     prompt = read_pdf("test.pdf")
 
 
+
     response = openai.chat.completions.create(
         model="gpt-4o",  # You can also use other models like "gpt-3.5-turbo"
         messages=[
