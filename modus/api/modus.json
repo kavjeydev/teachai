@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.hypermode.com/modus.json",
+  "endpoints": {
+    "default": {
+      "type": "graphql",
+      "path": "/graphql",
+      "auth": "bearer-token"
+    }
+  },
+  "models": {
+    "text-generator": {
+      "sourceModel": "gpt-4o",
+      "connection": "openai",
+      "path": "v1/chat/completions"
+    },
+    "openai-embeddings": {
+      "sourceModel": "text-embedding-3-small",
+      "connection": "openai",
+      "path": "v1/embeddings"
+    }
+  },
+  "connections": {
+    "openai": {
+      "type": "http",
+      "baseUrl": "https://api.openai.com/",
+      "headers": {
+        "Authorization": "Bearer {{API_KEY}}"
+      }
+    },
+    "pdfreader": {
+      "type": "http",
+      "baseUrl": "http://0.0.0.0:8000/pdf"
+
+    },
+    "my-neo4j": {
+      "type": "neo4j",
+      "dbUri": "bolt://localhost:7687",
+      "username": "neo4j",
+      "password": "11205026"
+    }
+  }
+}
