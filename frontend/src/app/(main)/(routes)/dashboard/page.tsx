@@ -15,7 +15,7 @@ export default async function Dashboard() {
   }
 `;
 
-  const response = await fetch("https://<your-project>.hypermode.app/graphql", {
+  const response = await fetch("https://teachai.hypermode.app/graphql", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
