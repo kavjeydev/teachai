@@ -21,7 +21,7 @@ class ReadFiles:
 
 def main():
     read_files = ReadFiles()
-    text = read_files.extract_text_from_pdf("test.pdf")
+    text = read_files.extract_text_from_pdf("L01-welcome.pdf")
     print(text)
     print("done")
 
@@ -32,5 +32,5 @@ app = FastAPI()
 @app.get("/pdf")
 def send_file_content():
     read_files = ReadFiles()
-    text = read_files.extract_text_from_pdf("test.pdf")
+    text = read_files.extract_text_from_pdf("L01-welcome.pdf")
     return text
