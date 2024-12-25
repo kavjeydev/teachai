@@ -90,10 +90,10 @@ export default function Dashboard() {
       return;
     }
 
-    if (selectedFile.type !== "application/pdf") {
-      setError("Please select a valid PDF file.");
-      return;
-    }
+    // if (selectedFile.type !== "application/pdf") {
+    //   setError("Please select a valid PDF file.");
+    //   return;
+    // }
 
     setLoading(true);
     setError("");
@@ -147,6 +147,33 @@ export default function Dashboard() {
       console.log(err);
     }
   };
+
+  async function answerQuestion(question: string) {
+    const response = await fetch("http://localhost:8686/graphql", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `
+          query($question: String!) {
+            answerQuestion(question: $question)
+          }
+        `,
+        variables: { question },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const json = await response.json();
+
+    if (json.errors && json.errors.length > 0) {
+      throw new Error(json.errors[0].message);
+    }
+
+    return json.data.answerQuestion;
+  }
 
   // Example GraphQL fetch function (replace with your actual endpoint)
   async function fetchSayHello(name: string): Promise<string> {
@@ -203,7 +230,7 @@ export default function Dashboard() {
     // 2) Make the API call
     setLoading(true);
     try {
-      const botReply = await fetchSayHello(userMsg.text);
+      const botReply = await answerQuestion(userMsg.text);
 
       // 3) Once the fetch is done, add the bot’s message
       const botMsg: ChatMessage = {
@@ -257,8 +284,8 @@ export default function Dashboard() {
               <div
                 className={`${
                   msg.sender === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-black"
+                    ? "bg-[#333333]/40 text-white"
+                    : "bg-[#7A9CC6]/70 text-white"
                 } rounded-lg px-3 py-2 max-w-[70%] whitespace-pre-wrap`}
               >
                 {msg.text}

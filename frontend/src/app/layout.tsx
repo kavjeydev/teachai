@@ -48,7 +48,7 @@ export default function RootLayout({
     <html lang="en" className="bg-lightmaincolor">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${recursive.variable} ${literata.variable} antialiased bg-gradient-to-br
-          from-lightmaincolor to-gray-800`}
+          from-lightmaincolor to-gray-800/70`}
       >
         <ConvexClientProvider>
           <Navbar />

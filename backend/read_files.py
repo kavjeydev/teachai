@@ -1,9 +1,21 @@
-from pypdf import PdfReader
+#!/home/kavinjey/.virtualenvs/myvenv/bin/python
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
-from typing import List
-from fastapi.middleware.cors import CORSMiddleware  # Import CORSMiddleware
-import io
+from fastapi.middleware.cors import CORSMiddleware
+from pypdf import PdfReader
+import docx
+from bs4 import BeautifulSoup
+
+app = FastAPI()
+
+# Configure CORS middleware (adjust origins as needed for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this in production!
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class ReadFiles:
     def __init__(self):
@@ -13,46 +25,116 @@ class ReadFiles:
             ".cs", ".php", ".rb", ".sh", ".bat", ".ps1", ".psm1", ".psd1",
             ".ps1xml", ".pssc"
         ]
+        # Map file extensions to their respective extraction methods
+        self.extractors = {
+            ".pdf": self.extract_text_from_pdf,
+            ".docx": self.extract_text_from_docx,
+            ".txt": self.extract_text_from_text,
+            ".md": self.extract_text_from_text,
+            ".ts": self.extract_text_from_text,
+            ".csv": self.extract_text_from_text,
+            ".json": self.extract_text_from_text,
+            ".html": self.extract_text_from_html,
+            ".xml": self.extract_text_from_text,
+            ".yaml": self.extract_text_from_text,
+            ".yml": self.extract_text_from_text,
+            ".js": self.extract_text_from_text,
+            ".py": self.extract_text_from_text,
+            ".java": self.extract_text_from_text,
+            ".cpp": self.extract_text_from_text,
+            ".c": self.extract_text_from_text,
+            ".h": self.extract_text_from_text,
+            ".cs": self.extract_text_from_text,
+            ".php": self.extract_text_from_text,
+            ".rb": self.extract_text_from_text,
+            ".sh": self.extract_text_from_text,
+            ".bat": self.extract_text_from_text,
+            ".ps1": self.extract_text_from_text,
+            ".psm1": self.extract_text_from_text,
+            ".psd1": self.extract_text_from_text,
+            ".ps1xml": self.extract_text_from_text,
+            ".pssc": self.extract_text_from_text,
+        }
 
     def extract_text_from_pdf(self, file: UploadFile):
-        if not file.filename.lower().endswith(".pdf"):
-            raise HTTPException(status_code=400, detail="Invalid file type. Only PDF files are supported.")
-
         try:
-            # Ensure the file pointer is at the beginning
             file.file.seek(0)
-            # Pass the file-like object directly to PdfReader
             reader = PdfReader(file.file)
             text = ""
             for page in reader.pages:
                 extracted_text = page.extract_text()
                 if extracted_text:
-                    text += extracted_text
+                    text += extracted_text + "\n"
             return text
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error processing PDF file: {str(e)}")
         finally:
-            # It's good practice to close the file after processing
             file.file.close()
 
-app = FastAPI()
+    def extract_text_from_docx(self, file: UploadFile):
+        try:
+            file.file.seek(0)
+            doc = docx.Document(file.file)
+            text = "\n".join([para.text for para in doc.paragraphs])
+            return text
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error processing DOCX file: {str(e)}")
+        finally:
+            file.file.close()
+
+    def extract_text_from_html(self, file: UploadFile):
+        try:
+            file.file.seek(0)
+            content = file.file.read().decode('utf-8', errors='ignore')
+            soup = BeautifulSoup(content, "html.parser")
+            text = soup.get_text(separator='\n')
+            return text
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error processing HTML file: {str(e)}")
+        finally:
+            file.file.close()
+
+    def extract_text_from_text(self, file: UploadFile):
+        try:
+            file.file.seek(0)
+            # Attempt to detect encoding; default to utf-8
+            content = file.file.read().decode('utf-8', errors='ignore')
+            return content
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error processing text file: {str(e)}")
+        finally:
+            file.file.close()
+
+    def extract_text(self, file: UploadFile):
+        # Identify the file extension
+        filename = file.filename.lower()
+        matched_extension = None
+        for ext in self.supported_file_types:
+            if filename.endswith(ext):
+                matched_extension = ext
+                break
+
+        if not matched_extension:
+            raise HTTPException(status_code=400, detail="Unsupported file type.")
+
+        extractor = self.extractors.get(matched_extension)
+        if extractor:
+            return extractor(file)
+        else:
+            raise HTTPException(status_code=400, detail=f"No extractor available for file type: {matched_extension}")
+
 read_files = ReadFiles()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods
-    allow_headers=["*"],  # Allows all headers
-)
-
 @app.post("/extract-pdf-text")
-async def extract_pdf_text(file: UploadFile = File(...)):
+async def extract_text_endpoint(file: UploadFile = File(...)):
     """
-    Endpoint to upload a PDF file and extract its text.
+    Endpoint to upload a file and extract its text based on the file type.
     """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded.")
+
     try:
-        text = read_files.extract_text_from_pdf(file)
+        text = read_files.extract_text(file)
         return JSONResponse(content={"text": text})
     except HTTPException as http_exc:
         raise http_exc
