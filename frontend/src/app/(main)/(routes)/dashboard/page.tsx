@@ -3,6 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
+import Carousel from "../../components/carousel";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "../../components/sidebar";
+import { useTheme } from "next-themes";
+import { Paperclip, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Optional icons (swap with your own)
 
@@ -72,6 +78,8 @@ export default function Dashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState(null);
   const [text, setText] = useState("");
+
+  const { theme } = useTheme();
 
   // 1) Ref to the bottom of the messages list
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -255,117 +263,120 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col p-4">
-      {/*
+    <SidebarProvider>
+      <SidebarTrigger />
+
+      <AppSidebar />
+      <div className="h-screen w-screen flex flex-col p-4">
+        {/*
         1) Scrollable conversation area
            "flex-1" => takes up remaining screen height
            "overflow-y-auto w-full" => wide as screen, scrollbar on far right
       */}
-      <div className="flex-1 overflow-y-auto w-full">
-        {/*
+        <div className="flex h-full justify-center overflow-y-auto w-full">
+          {/*
           2) Inner container for the chat content
              "max-w-2xl mx-auto" => centers the chat content
              but doesn't affect the scrollbar position.
         */}
-        <div className="bg-transparent px-[24rem] rounded-md p-4 mt-2">
-          {messages.length === 0 && (
-            <p className="text-center text-gray-500">
-              No messages yet. Ask something!
-            </p>
-          )}
+          <div className="w-full max-w-2xl mx-autop-4 mt-4 rounded-2xl text-white">
+            {messages.length === 0 && (
+              <p className="text-center text-gray-500">
+                No messages yet. Ask something!
+              </p>
+            )}
 
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex mb-2 ${
-                msg.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+            {messages.map((msg, index) => (
               <div
-                className={`${
-                  msg.sender === "user"
-                    ? "bg-[#333333]/40 text-white"
-                    : "bg-[#7A9CC6]/70 text-white"
-                } rounded-lg px-3 py-2 max-w-[70%] whitespace-pre-wrap`}
+                key={index}
+                className={`flex mb-4 ${
+                  msg.sender === "user" ? "justify-end" : "justify-start"
+                }`}
               >
-                {msg.text}
+                <div
+                  className={`${
+                    msg.sender === "user"
+                      ? "dark:bg-[#333333]/40 bg-[#DDDDDD]/40 dark:text-white/90 text-black/90 max-w-[70%]"
+                      : "bg-[#7A9CC6]/0 dark:text-[#DDDDDD] text-[#222222]"
+                  } rounded-lg px-3 py-2  whitespace-pre-wrap`}
+                >
+                  {msg.text}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {/* Dummy div at the bottom for auto-scroll */}
-          <div ref={messagesEndRef} />
+            {/* Dummy div at the bottom for auto-scroll */}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
 
-      {/* Error message (if any) */}
-      {error && (
-        <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
-          Error: {error}
-        </div>
-      )}
+        {/* Error message (if any) */}
+        {error && (
+          <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
+            Error: {error}
+          </div>
+        )}
 
-      {/*
+        {/*
         3) Input area pinned at the bottom (outside scrollable div).
            "max-w-2xl mx-auto" => still centered.
       */}
-      <div className="w-full max-w-2xl mx-auto bg-black/40 p-4 mt-4 rounded-2xl text-white shadow-lg">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          style={{ color: "white" }}
-          classNames={{
-            label: "text-white/50 dark:text-white/90 mb-2",
-            input:
-              "bg-transparent placeholder:text-white/50 dark:placeholder:text-white/60",
-            innerWrapper: "bg-transparent",
-            inputWrapper:
-              "shadow-xl bg-black/50 dark:bg-black/20 backdrop-blur-xl backdrop-saturate-200 hover:bg-default-200/70 dark:hover:bg-default-900/70 group-data-[focus=true]:bg-black/50 dark:group-data-[focus=true]:bg-white/5 !cursor-text",
-          }}
-          placeholder="Type your message..."
-          radius="lg"
-          minRows={3}
-        />
-
-        <div className="flex items-center justify-between mt-2">
-          <Button
-            variant="ghost"
-            color="primary"
-            className="bg-transparent text-white hover:bg-gray-100 p-2"
-            onClick={triggerFileInput}
-            aria-label="Upload File"
-          >
-            <PaperclipIcon />
-          </Button>
-          {/* Hidden file input */}
-          <input
-            multiple
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileChange}
+        <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white ">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            style={{ color: cn(theme === "dark" ? "white" : "black") }}
+            className=""
+            classNames={{
+              label: "text-white/50 dark:text-white/90 mb-2",
+              input:
+                "bg-transparent placeholder:text-black/50 dark:placeholder:text-white/60",
+              innerWrapper: "bg-transparent",
+              inputWrapper:
+                "bg-white/80 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-200 hover:bg-white/100 dark:hover:bg-white/10 group-data-[focus=true]:bg-white/50 dark:group-data-[focus=true]:bg-white/5 !cursor-text",
+            }}
+            placeholder="Type your message..."
+            radius="lg"
+            minRows={3}
           />
-          <div className="flex gap-2">
-            <Button
-              variant="solid"
-              color="primary"
-              className="bg-white text-black hover:bg-gray-100"
-              onClick={handleSend}
-              startContent={<SendIcon />}
+
+          <div className="flex items-center justify-between mt-2">
+            <div
+              className="flex items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
+              rounded-lg transition-color duration-200"
+              onClick={triggerFileInput}
             >
-              {loading ? "Loading..." : "Send"}
-            </Button>
-            <Button
-              variant="ghost"
-              color="warning"
-              onClick={handleClear}
-              disabled={messages.length === 0}
-            >
-              Clear
-            </Button>
+              <Paperclip className="text-muted-foreground" />
+            </div>
+            {/* Hidden file input */}
+            <input
+              multiple
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <div className="flex">
+              <div
+                className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
+                text-black bg-transparent rounded-lg transition-color duration-200"
+                onClick={handleSend}
+              >
+                <Send className="h-5 w-5 text-muted-foreground" />
+                {loading ? "" : ""}
+              </div>
+              {/* <Button
+                variant="ghost"
+                color="warning"
+                onClick={handleClear}
+                disabled={messages.length === 0}
+              >
+                Clear
+              </Button> */}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

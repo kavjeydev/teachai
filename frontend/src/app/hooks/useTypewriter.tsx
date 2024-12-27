@@ -38,7 +38,7 @@ export default function Home() {
     <div className="flex justify-center">
       <div className="flex flex-col gap-2 justify-center items-center h-screen w-3/5">
         <h1 className="font-recursive leading-[1] tracking-tight font-normal text-5xl w-4/5 text-textmaincolor">
-          Hi Trainley, {typedResponse}
+          Hi Trainly, {typedResponse}
         </h1>
         <h1 className="font-recursive leading-[1] tracking-tight font-normal text-2xl w-4/5 text-textmaincolor">
           The AI expert for your personal use case

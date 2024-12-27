@@ -4,6 +4,7 @@ import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { Button } from "@nextui-org/button";
 import { useRouter } from "next/navigation";
 import React from "react";
+import Carousel from "./(main)/components/carousel";
 
 function useTypewriterEffect(text: string, speed = 100) {
   const [displayedText, setDisplayedText] = React.useState("");
@@ -52,11 +53,13 @@ export default function Home() {
     <div className="flex flex-col justify-center text-center">
       <div className="flex flex-col gap-8 justify-center items-center h-screen">
         <div className="flex flex-col gap-2">
-          <h1 className="font-recursive leading-[1] tracking-tight font-normal text-xl w-[48rem] text-textmaincolor/60">
+          <h1 className="font-recursive leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60">
             The AI expert for your specialized use case 🚀
           </h1>
-          <h1 className="font-literata leading-[1] tracking-tight font-normal text-5xl w-[48rem] text-textmaincolor">
-            <span className="text-purple-200">Hi Trainley, </span>
+          <h1 className="font-literata leading-[1] tracking-tight font-normal text-5xl w-[48rem] dark:text-textmaincolor text-[#292716]">
+            <span className="dark:text-blue-200 text-blue-800">
+              Hi Trainly,{" "}
+            </span>
             {typedResponse}
             <span className="animate-blink p-1">|</span>
           </h1>
@@ -67,7 +70,7 @@ export default function Home() {
             <SignInButton mode="modal">
               <Button
                 variant="shadow"
-                className="hover:bg-purple-200 bg-buttoncolor shadow-black/10"
+                className="hover:bg-buttoncolor/80 bg-buttoncolor shadow-black/10 text-white"
               >
                 Get Started
               </Button>
@@ -76,13 +79,13 @@ export default function Home() {
           <SignedIn>
             <Button
               variant="faded"
-              className="hover:bg-purple-200"
+              className="hover:bg-buttoncolor"
               onClick={() => router.push("/dashboard")}
             >
               Dashboard
             </Button>
           </SignedIn>
-          <Button variant="faded" className="hover:bg-purple-200">
+          <Button variant="faded" className="">
             Watch Demo <span className="mt-0.5">▶</span>
           </Button>
         </div>

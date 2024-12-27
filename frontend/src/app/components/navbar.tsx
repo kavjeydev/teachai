@@ -1,4 +1,5 @@
 "use client";
+import { ModeToggle } from "@/components/mode-toggle";
 import {
   SignedIn,
   SignedOut,
@@ -10,6 +11,7 @@ import {
 import { Button } from "@nextui-org/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@nextui-org/popover"; // <-- Make sure you import these
 import { useRouter } from "next/navigation";
+import ThemeSwitcher from "../(main)/components/theme-switcher";
 
 export default function Navbar() {
   const router = useRouter();
@@ -22,10 +24,10 @@ export default function Navbar() {
     >
       {/* Logo */}
       <h1
-        className="font-literata text-2xl cursor-pointer text-white"
+        className="font-literata text-2xl cursor-pointer dark:text-white text-black"
         onClick={() => router.push("/")}
       >
-        trainley
+        trainly
       </h1>
 
       <div className="flex gap-3">
@@ -34,21 +36,18 @@ export default function Navbar() {
           <SignUpButton mode="modal">
             <Button
               variant="solid"
-              className="hover:bg-purple-200 bg-buttoncolor"
+              className="hover:bg-buttoncolor/80 bg-buttoncolor text-white"
             >
               Sign Up
             </Button>
           </SignUpButton>
           <SignInButton mode="modal">
-            <Button
-              variant="solid"
-              className="hover:bg-slate-800 bg-slate-900 text-white"
-            >
+            <Button variant="bordered" className="">
               Sign In
             </Button>
           </SignInButton>
         </SignedOut>
-
+        <ThemeSwitcher />
         {/* If the user is signed in, show the Popover on user profile image */}
         <SignedIn>
           <Popover placement="bottom-end">
@@ -66,7 +65,7 @@ export default function Navbar() {
               <div className="flex flex-col p-4 gap-2">
                 <Button
                   variant="solid"
-                  className="bg-buttoncolor hover:bg-purple-200 w-full"
+                  className="bg-buttoncolor hover:bg-blue-200 w-full"
                   onPress={() => router.push("/dashboard")}
                 >
                   Dashboard
