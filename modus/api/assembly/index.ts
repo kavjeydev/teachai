@@ -11,7 +11,6 @@ import {
 } from "@hypermode/modus-sdk-as/models/openai/embeddings";
 import { http } from "@hypermode/modus-sdk-as";
 import { neo4j } from "@hypermode/modus-sdk-as";
-import { Variables } from "@hypermode/modus-sdk-as/assembly/graphql";
 
 @json
 class PersonInput {
@@ -26,9 +25,23 @@ class PersonInput {
   }
 }
 
+@json
+class AnswerWithContext {
+  answer: string = "";
+  context: ChunkScore[] = [];
+
+}
+
+
+
+
 // ----------------------
 // HELPER FUNCTIONS
 // ----------------------
+
+const uid = function(): string{
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
 export function sayHello(name: string | null = null): string {
   return `Hello, ${name || "World"}!`;
@@ -166,14 +179,18 @@ function cosineSimilarity(a: Float64Array, b: Float64Array): f64 {
 // ChunkScore CLASS for storing chunk+score objects
 // -----------------------------------------------------
 class ChunkScore {
+  chunkId: string;
   chunkText: string;
   score: f64;
 
-  constructor(chunkText: string, score: f64) {
+  constructor(chunkId: string, chunkText: string, score: f64) {
+    this.chunkId = chunkId;
     this.chunkText = chunkText;
     this.score = score;
   }
 }
+
+
 
 // -----------------------
 // MAIN EXPORTS
@@ -270,13 +287,9 @@ function createChunkEmbeddingsInNeo4j(
  */
 export function createNodesAndEmbeddings(pdfText: string): void {
   console.log("Creating nodes and embeddings...");
-  console.log(pdfText);
+  // console.log(pdfText);
 
-  // 1. (Optional) If you want to create nodes/relationships from interpretFile:
-  // createNodesWithFile(pdfText);
-
-  // 2. Create Document + chunk nodes (and relationships)
-  const pdfId = "my-document-123"; // or any unique identifier
+  const pdfId = uid(); // or any unique identifier
   createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText);
 }
 
@@ -284,59 +297,58 @@ export function createNodesAndEmbeddings(pdfText: string): void {
  * Given a user question, do an embedding-based semantic search over :Chunk nodes.
  * Then feed the top chunks as context to your Chat model.
  */
-export function answerQuestion(question: string): string {
-  // 1. Generate embedding for the question
+export function answerQuestion(question: string): AnswerWithContext {
+  // 1) Generate embedding for the question
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
 
-  // 2. Fetch all Chunk nodes from Neo4j
+  // 2) Fetch all Chunk nodes
   const hostName: string = "my-neo4j";
-  const query = `MATCH (c:Chunk) RETURN c.id AS id, c.text AS text, c.embedding AS embedding`;
+  const query = `
+    MATCH (c:Chunk)
+    RETURN c.id AS id, c.text AS text, c.embedding AS embedding
+  `;
   const results = neo4j.executeQuery(hostName, query);
 
-  // 3. Calculate similarity with each chunk
+  // 3) Calculate similarity
   const chunkScores = new Array<ChunkScore>();
   for (let i = 0; i < results.Records.length; i++) {
     const row = results.Records[i];
 
-    // row["embedding"] might be a string like "[0.0123,0.456]"
+    const chunkId = row.get("id") as string;
+    const chunkText = row.get("text") as string;
+
     const embeddingString = row.get("embedding") as string;
     const cleaned = embeddingString.replace("[", "").replace("]", "").split(",");
-
     const chunkEmbedding = new Float64Array(cleaned.length);
     for (let j = 0; j < cleaned.length; j++) {
       chunkEmbedding[j] = parseFloat(cleaned[j]);
     }
 
     const score = cosineSimilarity(questionEmbedding, chunkEmbedding);
-    const chunkText = row.get("text") as string;
-    chunkScores.push(new ChunkScore(chunkText, score));
+    chunkScores.push(new ChunkScore(chunkId, chunkText, score));
   }
 
-  // 4. Sort by descending similarity
+  // 4) Sort by descending similarity
   chunkScores.sort((a: ChunkScore, b: ChunkScore) => {
-    if (b.score > a.score) return 1;
-    else if (b.score < a.score) return -1;
-    return 0;
+    return b.score - a.score as i32;
   });
 
-  // 5. Take top 3 chunks as "context"
+  // 5) Take top 3 as context
   const topK = 3;
-  const topChunks = new Array<string>();
-  for (let i = 0; i < chunkScores.length && i < topK; i++) {
-    topChunks.push(chunkScores[i].chunkText);
-  }
+  const topChunks = chunkScores.slice(0, topK);
 
-  // 6. Provide those top chunks as context to the language model
+  // 6) Build system prompt using those chunks
   const systemPrompt = `
-You are a helpful assistant. You have the following context from the document:
+You are a helpful assistant. You have the following context:
 
-${topChunks.join("\n\n---\n\n")}
+${topChunks.map<string>(chunk => chunk.chunkText).join("\n\n---\n\n")}
 
-Answer the user's question based on the context. If the question is not answerable with the given context,
-answer to the best of your ability.
+Answer the user's question based on the context.
+If the question is not answerable with the given context, answer to the best of your ability.
 `.trim();
 
+  // 7) Invoke Chat model
   const chatModel = models.getModel<OpenAIChatModel>(modelNameChat);
   const input = chatModel.createInput([
     new SystemMessage(systemPrompt),
@@ -345,7 +357,11 @@ answer to the best of your ability.
   input.temperature = 0;
 
   const output = chatModel.invoke(input);
-  const answer = output.choices[0].message.content.trim();
+  const finalAnswer = output.choices[0].message.content.trim();
 
-  return answer;
+  // 8) Return both the answer and the chunk data
+  const response = new AnswerWithContext();
+  response.answer = finalAnswer;
+  response.context = topChunks;
+  return response;
 }

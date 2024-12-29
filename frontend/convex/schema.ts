@@ -8,7 +8,14 @@ export default defineSchema({
     title: v.string(),
     userId: v.string(),
     isArchived: v.boolean(),
-    content: v.optional(v.string()),
+    content: v.optional(
+      v.array(
+        v.object({
+          sender: v.string(),
+          text: v.string(),
+        }),
+      ),
+    ),
     // identity: v.optional(v.object())
   })
     .index("by_user", ["userId"])

@@ -16,6 +16,7 @@ import { AppSidebar } from "./(main)/components/sidebar";
 import { useEffect } from "react";
 import { ThemeProvider } from "next-themes";
 import ThemeSwitcher from "./(main)/components/theme-switcher";
+import Providers from "./(main)/components/Providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,23 +51,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark:bg-lightmaincolor">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${recursive.variable} ${literata.variable} antialiased dark:bg-lightmaincolor
           bg-white scrollbar-hide`}
       >
-        <ConvexClientProvider>
-          {/* <SidebarProvider> */}
-          <ThemeProvider attribute="class" defaultTheme="system">
+        <Providers>
+          <main>
             <Navbar />
 
             {/* <main> */}
             {/* <SidebarTrigger /> */}
             {children}
-          </ThemeProvider>
-          {/* </main> */}
-          {/* </SidebarProvider> */}
-        </ConvexClientProvider>
+          </main>
+        </Providers>
       </body>
     </html>
   );
