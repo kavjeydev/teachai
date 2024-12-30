@@ -14,6 +14,21 @@ import { AppSidebar } from "@/app/(main)/components/sidebar";
 import React from "react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+// Optional: For syntax highlighting
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { darcula } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import {
+  coy,
+  duotoneDark,
+  duotoneSpace,
+  materialDark,
+  materialLight,
+  oneDark,
+  oneLight,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
+import CodeBlock from "@/app/(main)/components/code-block";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -27,7 +42,16 @@ interface ChatMessage {
   text: string;
 }
 
+interface ChatContext {
+  filename: string;
+  fileId: string;
+}
+
 export default function Dashboard({ params }: ChatIdPageProps) {
+  const uid = function (): string {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  };
+
   const { user } = useUser();
   if (user === undefined) {
     return <div></div>;
@@ -36,7 +60,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     return null;
   }
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Removed the unused `messages` state
   const [progress, setProgress] = useState<number>(0);
   const [showProgress, setShowProgress] = useState<boolean>(false);
 
@@ -52,6 +76,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const { theme } = useTheme();
   const unwrappedParams = React.use(params);
   const chatId = unwrappedParams.chatId;
+
+  const showContext = useQuery(api.chats.getContext, {
+    id: chatId,
+  });
 
   const writeContent = useMutation(api.chats.writeContent);
 
@@ -69,21 +97,42 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     });
 
     toast.promise(promise, {
-      success: "success",
+      success: "Message sent successfully!",
+      error: "Failed to send message.",
+      loading: "Sending message...",
     });
   };
 
   // 1) Ref to the bottom of the messages list
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 2) Whenever "messages" changes, scroll to the bottom
+  const uploadContext = useMutation(api.chats.uploadContext);
+
+  const onUploadContext = (chatContext: ChatContext) => {
+    const promise = uploadContext({
+      id: chatId,
+      context: {
+        filename: chatContext.filename,
+        fileId: chatContext.fileId,
+      },
+    });
+
+    toast.promise(promise, {
+      success: "Message sent successfully!",
+      error: "Failed to send message.",
+      loading: "Sending message...",
+    });
+  };
+
+  // 2) Whenever "chatContent" changes, scroll to the bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [chatContent]);
 
   const handleFileChange = async (e: any) => {
     console.log("ENTER");
     const selectedFile = e.target.files[0];
+    const uniqueFileId = uid();
 
     if (!selectedFile) {
       setError("No file selected.");
@@ -121,25 +170,34 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       setText(data.text);
 
       console.log("EMBED", data.text);
+
       const modusResponse = await fetch("http://localhost:8686/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: `
-            mutation($pdfText: String!) {
-              createNodesAndEmbeddings(pdfText: $pdfText)
+            mutation($pdfText: String!, $pdfId: String!, $chatId: String!) {
+              createNodesAndEmbeddings(pdfText: $pdfText, pdfId: $pdfId, chatId: $chatId)
             }
           `,
-          variables: { pdfText: data.text },
+          variables: { pdfText: data.text, pdfId: uniqueFileId, chatId },
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!modusResponse.ok) {
+        const errorData = await modusResponse.json();
         throw new Error(errorData.detail || "Failed to write nodes to neo4j.");
       }
       setProgress(100);
       setShowProgress(false);
+
+      //TODO: CHANGE THIS
+      onUploadContext({
+        filename: selectedFile.name,
+        fileId: uniqueFileId,
+      });
+
+      console.log("HII", selectedFile.name, uniqueFileId);
     } catch (err: any) {
       setError(err.message || "An error occurred.");
     } finally {
@@ -152,31 +210,24 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     }
   };
 
-  if (user === undefined) {
-    return <div></div>;
-  }
-  if (!user) {
-    return null;
-  }
-
   async function answerQuestion(question: string) {
     const response = await fetch("http://localhost:8686/graphql", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: `
-          query($question: String!) {
-            answerQuestion(question: $question) {
-                answer
-                context {
+          query($question: String!, $chatId: String!) {
+            answerQuestion(question: $question, chatId: $chatId) {
+              answer
+              context {
                 chunkId
                 chunkText
                 score
-                }
+              }
             }
-        }
+          }
         `,
-        variables: { question },
+        variables: { question, chatId },
       }),
     });
 
@@ -241,7 +292,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       sender: "user",
       text: input.trim(),
     };
-    // setMessages((prev) => [...prev, userMsg]);
+    // Use mutation to write the message
     onWrite("user", input.trim());
     // Clear the input box
     setInput("");
@@ -256,7 +307,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         sender: "bot",
         text: botReply,
       };
-      //   setMessages((prev) => [...prev, botMsg]);
+      // Use mutation to write the bot's reply
       onWrite("bot", botReply);
     } catch (err) {
       console.error("API error:", err);
@@ -274,12 +325,20 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     // If Shift + Enter, do nothing and allow the default behavior
   };
 
+  console.log("showcontext", showContext);
+
   return (
     <SidebarProvider>
       <SidebarTrigger />
 
       <AppSidebar />
-      {showProgress && <div>{progress}</div>}
+      {showContext &&
+        showContext.map((item) => (
+          <div className="z-[999999] flex flex-col h-screen w-fit px-2 items-center justify-center bg-red-300">
+            {item.filename}
+          </div>
+        ))}
+      {showProgress && <div>{progress}%</div>}
       <div className="h-screen w-screen flex flex-col p-4">
         {/*
         1) Scrollable conversation area
@@ -292,7 +351,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
              "max-w-2xl mx-auto" => centers the chat content
              but doesn't affect the scrollbar position.
         */}
-          <div className="w-full max-w-2xl mx-autop-4 mt-4 rounded-2xl text-white">
+          <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
             {chatContent?.length === 0 && (
               <p className="text-center text-gray-500">
                 No messages yet. Ask something!
@@ -313,7 +372,33 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                       : "bg-[#7A9CC6]/0 dark:text-[#DDDDDD] text-[#222222]"
                   } rounded-lg px-3 py-2  whitespace-pre-wrap`}
                 >
-                  {msg.text}
+                  {msg.sender === "bot" ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      className="max-w-[39rem]"
+                      components={{
+                        code({ node, inline, className, children, ...props }) {
+                          const match = /language-(\w+)/.exec(className || "");
+                          const language = match ? match[1] : "";
+                          return !inline && language ? (
+                            <CodeBlock
+                              language={language}
+                              value={String(children).replace(/\n$/, "")}
+                              {...props}
+                            />
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.text
+                  )}
                 </div>
               </div>
             ))}
@@ -338,7 +423,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            style={{ color: cn(theme === "dark" ? "white" : "black") }}
+            style={{ color: theme === "dark" ? "white" : "black" }}
             className=""
             classNames={{
               label: "text-white/50 dark:text-white/90 mb-2",
@@ -357,7 +442,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           <div className="flex items-center justify-between mt-2">
             <div
               className="flex items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
-              rounded-lg transition-color duration-200"
+              rounded-lg transition-color duration-200 cursor-pointer"
               onClick={triggerFileInput}
             >
               <Paperclip className="text-muted-foreground" />
@@ -373,17 +458,19 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             <div className="flex">
               <div
                 className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
-                text-black bg-transparent rounded-lg transition-color duration-200"
+                text-black bg-transparent rounded-lg transition-color duration-200 cursor-pointer"
                 onClick={handleSend}
               >
                 <Send className="h-5 w-5 text-muted-foreground" />
-                {loading ? "" : ""}
+                {loading && (
+                  <span className="ml-2 text-sm text-gray-500">Sending...</span>
+                )}
               </div>
               {/* <Button
                 variant="ghost"
                 color="warning"
                 onClick={handleClear}
-                disabled={messages.length === 0}
+                disabled={chatContent.length === 0}
               >
                 Clear
               </Button> */}

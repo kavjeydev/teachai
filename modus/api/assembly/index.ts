@@ -39,9 +39,7 @@ class AnswerWithContext {
 // HELPER FUNCTIONS
 // ----------------------
 
-const uid = function(): string{
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
+
 
 export function sayHello(name: string | null = null): string {
   return `Hello, ${name || "World"}!`;
@@ -224,11 +222,13 @@ export function createNodesWithFile(data: string): string[] {
 function createChunkEmbeddingsInNeo4j(
   hostName: string,
   pdfId: string,
-  pdfText: string
+  pdfText: string,
+  chatId: string,
 ): void {
   // 1) Create the Document node (if it doesn't exist, or you can skip if it does)
   let query = `
     MERGE (d:Document {id: '${pdfId}'})
+    SET d.chatId = '${chatId}'
     RETURN d
   `;
   let result = neo4j.executeQuery(hostName, query);
@@ -256,9 +256,10 @@ function createChunkEmbeddingsInNeo4j(
     query = `
       MATCH (d:Document {id: '${pdfId}'})
       CREATE (c:Chunk {
-        id: ${i},
+        id: "${pdfId}-${i}",
         text: "${safeText}",
-        embedding: ${embeddingString}
+        embedding: ${embeddingString},
+        chatId: '${chatId}'
       })
       CREATE (d)-[:HAS_CHUNK {order: ${i}}]->(c)
     `;
@@ -272,7 +273,7 @@ function createChunkEmbeddingsInNeo4j(
   // so we can traverse them in the original order.
   for (let i = 0; i < chunks.length - 1; i++) {
     query = `
-      MATCH (c1:Chunk {id: ${i}}), (c2:Chunk {id: ${i + 1}})
+      MATCH (c1:Chunk {id: "${pdfId}-${i}"}), (c2:Chunk {id: "${pdfId}-${i + 1}"})
       CREATE (c1)-[:NEXT]->(c2)
     `;
     result = neo4j.executeQuery(hostName, query);
@@ -285,19 +286,18 @@ function createChunkEmbeddingsInNeo4j(
 /**
  * Creates nodes from interpretFile() + also creates :Document/:Chunk nodes with embeddings & relationships.
  */
-export function createNodesAndEmbeddings(pdfText: string): void {
+export function createNodesAndEmbeddings(pdfText: string, pdfId: string, chatId: string): void {
   console.log("Creating nodes and embeddings...");
   // console.log(pdfText);
 
-  const pdfId = uid(); // or any unique identifier
-  createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText);
+  createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText, chatId);
 }
 
 /**
  * Given a user question, do an embedding-based semantic search over :Chunk nodes.
  * Then feed the top chunks as context to your Chat model.
  */
-export function answerQuestion(question: string): AnswerWithContext {
+export function answerQuestion(question: string, chatId: string): AnswerWithContext {
   // 1) Generate embedding for the question
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
@@ -306,6 +306,7 @@ export function answerQuestion(question: string): AnswerWithContext {
   const hostName: string = "my-neo4j";
   const query = `
     MATCH (c:Chunk)
+    WHERE c.chatId = '${chatId}'
     RETURN c.id AS id, c.text AS text, c.embedding AS embedding
   `;
   const results = neo4j.executeQuery(hostName, query);
@@ -334,8 +335,7 @@ export function answerQuestion(question: string): AnswerWithContext {
     return b.score - a.score as i32;
   });
 
-  // 5) Take top 3 as context
-  const topK = 3;
+  const topK = 50;
   const topChunks = chunkScores.slice(0, topK);
 
   // 6) Build system prompt using those chunks
@@ -345,7 +345,9 @@ You are a helpful assistant. You have the following context:
 ${topChunks.map<string>(chunk => chunk.chunkText).join("\n\n---\n\n")}
 
 Answer the user's question based on the context.
-If the question is not answerable with the given context, answer to the best of your ability.
+If the question is not answerable with the given context, use any external knowledge you have.
+
+RESPOND IN MARKDOWN FORMAT
 `.trim();
 
   // 7) Invoke Chat model

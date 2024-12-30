@@ -16,8 +16,17 @@ export default defineSchema({
         }),
       ),
     ),
+    context: v.optional(
+      v.array(
+        v.object({
+          filename: v.string(),
+          fileId: v.string(),
+        }),
+      ),
+    ),
     // identity: v.optional(v.object())
   })
     .index("by_user", ["userId"])
-    .index("by_title", ["title"]),
+    .index("by_title", ["title"])
+    .index("by_fileId", ["context"]),
 });

@@ -48,6 +48,102 @@ export const createChat = mutation({
   },
 });
 
+export const uploadContext = mutation({
+  args: {
+    id: v.id("chats"),
+    context: v.object({
+      filename: v.string(),
+      fileId: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingDocument = await ctx.db.get(args.id);
+
+    if (!existingDocument) {
+      throw new Error("Not found");
+    }
+
+    if (existingDocument.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    let existingContext = existingDocument.context;
+
+    if (existingContext) {
+      existingContext.push(args.context);
+    } else {
+      existingContext = [args.context];
+    }
+
+    const document = await ctx.db.patch(args.id, {
+      context: existingContext,
+    });
+
+    return document;
+  },
+});
+
+export const eraseContext = mutation({
+  args: {
+    id: v.id("chats"),
+    fileId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingChat = await ctx.db.get(args.id);
+
+    const currentContext = existingChat?.context;
+
+    const filteredContext = currentContext?.filter(
+      (objs) => objs.fileId != args.fileId,
+    );
+
+    const chat = await ctx.db.patch(args.id, {
+      context: filteredContext,
+    });
+  },
+});
+
+export const getContext = query({
+  args: {
+    id: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+    const existingDocument = await ctx.db.get(args.id);
+
+    if (!existingDocument) {
+      throw new Error("Not found");
+    }
+
+    if (existingDocument.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    console.log(identity);
+
+    return existingDocument.context;
+  },
+});
+
 export const writeContent = mutation({
   args: {
     id: v.id("chats"),
