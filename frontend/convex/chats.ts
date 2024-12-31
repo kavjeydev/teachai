@@ -40,6 +40,9 @@ export const createChat = mutation({
       userId: userId,
       isArchived: false,
       content: [],
+      apiInfo: {
+        visibility: "protected",
+      },
     });
 
     console.log(identity);
@@ -182,6 +185,33 @@ export const writeContent = mutation({
   },
 });
 
+export const getChatById = query({
+  args: {
+    id: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+    const existingChat = await ctx.db.get(args.id);
+
+    if (!existingChat) {
+      throw new Error("Not found");
+    }
+
+    if (existingChat.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    console.log(identity);
+
+    return existingChat;
+  },
+});
+
 export const getChatContent = query({
   args: {
     id: v.id("chats"),
@@ -237,6 +267,40 @@ export const archive = mutation({
     });
 
     return document;
+  },
+});
+
+export const changeVisibility = mutation({
+  args: {
+    id: v.id("chats"),
+    visibility: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("User not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingChat = await ctx.db.get(args.id);
+
+    if (!existingChat) {
+      throw new Error("Document not found.");
+    }
+
+    if (existingChat.userId !== userId) {
+      throw new Error("Unauthorized to modify.");
+    }
+
+    const chat = await ctx.db.patch(args.id, {
+      apiInfo: {
+        visibility: args.visibility,
+      },
+    });
+
+    return chat;
   },
 });
 

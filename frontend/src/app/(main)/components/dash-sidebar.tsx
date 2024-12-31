@@ -100,7 +100,7 @@ interface SidebarParams {
   chatId: Id<"chats">;
 }
 
-export function AppSidebar({ chatId }: SidebarParams) {
+export function DashSidebar() {
   const router = useRouter();
   const { user } = useUser();
   const { theme } = useTheme();
@@ -109,14 +109,6 @@ export function AppSidebar({ chatId }: SidebarParams) {
 
   // Fetch chats
   const chats = useQuery(api.chats.getChats);
-
-  const currentChat = useQuery(api.chats.getChatById, {
-    id: chatId,
-  });
-
-  const showContext = useQuery(api.chats.getContext, {
-    id: chatId,
-  });
 
   // Mutations
   const addChat = useMutation(api.chats.createChat);
@@ -296,135 +288,6 @@ export function AppSidebar({ chatId }: SidebarParams) {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <Drawer>
-                          <DrawerTrigger asChild>
-                            <SidebarMenuButton>
-                              <div className="flex justify-between items-center cursor-pointer w-full">
-                                <div className="flex gap-2 cursor-pointer items-center">
-                                  <span className="font-semibold">My API</span>
-                                </div>
-                              </div>
-                            </SidebarMenuButton>
-                          </DrawerTrigger>
-                          <DrawerContent className="">
-                            <div className="flex flex-col px-20 py-8 w-full">
-                              <div className="flex w-full items-center justify-center">
-                                <DrawerHeader className="flex flex-col items-center">
-                                  <DrawerTitle className="text-4xl">
-                                    API Settings
-                                  </DrawerTitle>
-                                  <DrawerDescription>
-                                    Manage your API properties.
-                                  </DrawerDescription>
-                                </DrawerHeader>
-                              </div>
-                              <div className="flex mx-auto w-full gap-10">
-                                <Command className="rounded-lg border shadow-md md:min-w-[350px] w-20 h-80">
-                                  <CommandInput placeholder="Search for a file..." />
-                                  <CommandList>
-                                    <CommandEmpty>
-                                      No results found.
-                                    </CommandEmpty>
-                                    <CommandGroup heading="Context List">
-                                      {showContext?.map((item) => (
-                                        <CommandItem key={item.fileId}>
-                                          <div className="flex justify-between items-center w-full">
-                                            <div className="flex items-center gap-2">
-                                              <File size={20} color="#777777" />
-                                              <span>{item.filename}</span>
-                                            </div>
-                                            <Button
-                                              className="x-[9999999] rounded-full hover:bg-darkmaincolor"
-                                              onClick={() => {
-                                                handleErase(
-                                                  chatId,
-                                                  item.fileId,
-                                                );
-                                                console.log("erased");
-                                              }}
-                                              size="icon"
-                                              variant="ghost"
-                                            >
-                                              <X
-                                                size={12}
-                                                color="#E53E3E"
-                                                className="cursor-pointer hover:opacity-75"
-                                              />
-                                            </Button>
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-
-                                <Tabs
-                                  defaultValue="protected"
-                                  className="w-[300px]"
-                                >
-                                  <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger
-                                      value="protected"
-                                      className="flex items-center gap-2 justify-center"
-                                    >
-                                      Protected{" "}
-                                      <Lock className="h-3 w-3 text-red-500" />
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                      value="public"
-                                      className="flex items-center gap-2 justify-center"
-                                    >
-                                      Public{" "}
-                                      <Unlock className="h-3 w-3 text-green-500" />
-                                    </TabsTrigger>
-                                  </TabsList>
-                                  <TabsContent
-                                    value="public"
-                                    className=" text-muted-foreground text-sm ml-1"
-                                  >
-                                    <h1>
-                                      Your chat,{" "}
-                                      <span className="font-semibold">
-                                        {currentChat?.title}
-                                      </span>
-                                      ,{" "}
-                                      <span className="text-white">
-                                        can be accessed
-                                      </span>{" "}
-                                      via API with your API Key.
-                                    </h1>
-                                    <APIKeyInput apiKey="k-kjbfeirubfieurfb" />
-                                  </TabsContent>
-                                  <TabsContent
-                                    value="protected"
-                                    className=" text-muted-foreground text-sm ml-1"
-                                  >
-                                    <h1>
-                                      Your chat,{" "}
-                                      <span className="font-semibold">
-                                        {currentChat?.title}
-                                      </span>
-                                      ,{" "}
-                                      <span className="text-white">
-                                        can not be accessed
-                                      </span>{" "}
-                                      via API with your API Key.
-                                    </h1>
-                                  </TabsContent>
-                                </Tabs>
-
-                                <DrawerFooter className="-mb-3">
-                                  <Button>
-                                    Add Context
-                                    <Paperclip />
-                                  </Button>
-                                </DrawerFooter>
-                              </div>
-                            </div>
-                          </DrawerContent>
-                        </Drawer>
-                      </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuButton>
                           <div className="flex justify-between items-center cursor-pointer w-full">

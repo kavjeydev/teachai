@@ -24,6 +24,11 @@ export default defineSchema({
         }),
       ),
     ),
+    apiInfo: v.optional(
+      v.object({
+        visibility: v.string(),
+      }),
+    ),
     // identity: v.optional(v.object())
   })
     .index("by_user", ["userId"])

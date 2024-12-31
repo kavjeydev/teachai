@@ -5,7 +5,7 @@ import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
-import { Paperclip, Send } from "lucide-react";
+import { Paperclip, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { Id } from "../../../../../../convex/_generated/dataModel";
@@ -29,6 +29,8 @@ import {
   oneLight,
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import CodeBlock from "@/app/(main)/components/code-block";
+import { ContextList } from "@/app/(main)/components/context-list";
+import { APISettings } from "@/app/(main)/components/api-settings";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -331,13 +333,21 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     <SidebarProvider>
       <SidebarTrigger />
 
-      <AppSidebar />
-      {showContext &&
+      <AppSidebar chatId={chatId} />
+      {/* {showContext &&
         showContext.map((item) => (
           <div className="z-[999999] flex flex-col h-screen w-fit px-2 items-center justify-center bg-red-300">
-            {item.filename}
+            <div className="flex justify-between">
+              {item.filename}
+              <X
+                className="h-4 w-4"
+                onClick={() => {
+                  handleErase(chatId, item.fileId);
+                }}
+              />
+            </div>
           </div>
-        ))}
+        ))} */}
       {showProgress && <div>{progress}%</div>}
       <div className="h-screen w-screen flex flex-col p-4">
         {/*
@@ -419,6 +429,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         3) Input area pinned at the bottom (outside scrollable div).
            "max-w-2xl mx-auto" => still centered.
       */}
+        <ContextList context={showContext} chatId={chatId} />
+
         <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white ">
           <Textarea
             value={input}
@@ -441,11 +453,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
           <div className="flex items-center justify-between mt-2">
             <div
-              className="flex items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
+              className="flex gap-2 items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
               rounded-lg transition-color duration-200 cursor-pointer"
               onClick={triggerFileInput}
             >
-              <Paperclip className="text-muted-foreground" />
+              <Paperclip className="text-muted-foreground h-5 w-5" />
+              <h1 className="text-muted-foreground text-sm">Embed Context</h1>
             </div>
             {/* Hidden file input */}
             <input

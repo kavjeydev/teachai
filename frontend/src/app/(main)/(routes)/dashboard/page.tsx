@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { PlusCircle } from "lucide-react";
+import { DashSidebar } from "../../components/dash-sidebar";
 
 export default function NoChat() {
   const { user } = useUser();
@@ -28,7 +29,7 @@ export default function NoChat() {
     <SidebarProvider>
       <SidebarTrigger />
 
-      <AppSidebar />
+      <DashSidebar />
       <div className="h-screen w-full flex items-center justify-center">
         <div className="flex flex-col gap-6 items-center">
           <div>

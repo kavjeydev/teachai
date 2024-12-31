@@ -293,6 +293,24 @@ export function createNodesAndEmbeddings(pdfText: string, pdfId: string, chatId:
   createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText, chatId);
 }
 
+export function removeContext(fileId: string): void{
+
+  const hostName: string = "my-neo4j";
+
+
+  let query = `
+  MATCH (d:Document {id: '${fileId}'})-[r:HAS_CHUNK]->(c:Chunk)
+  DETACH DELETE d, c
+`;
+
+let result = neo4j.executeQuery(hostName, query);
+  if (!result) {
+    throw new Error("Failed to delete Document node in Neo4j");
+  }
+
+
+}
+
 /**
  * Given a user question, do an embedding-based semantic search over :Chunk nodes.
  * Then feed the top chunks as context to your Chat model.
