@@ -26,20 +26,60 @@ class PersonInput {
 }
 
 @json
+class ChunkScore {
+  chunkId: string;
+  chunkText: string;
+  score: f64;
+
+  constructor(chunkId: string, chunkText: string, score: f64) {
+    this.chunkId = chunkId;
+    this.chunkText = chunkText;
+    this.score = score;
+  }
+}
+
+@json
 class AnswerWithContext {
   answer: string = "";
   context: ChunkScore[] = [];
-
 }
-
-
-
 
 // ----------------------
 // HELPER FUNCTIONS
 // ----------------------
 
+// A robust sanitization function for storing text in Neo4j as a string property
+function sanitizeForNeo4j(original: string): string {
+  let safeText = original;
 
+  // Replace backslashes first (otherwise we might double-escape them)
+  while (safeText.includes("\\")) {
+    safeText = safeText.replace("\\", "\\\\");
+  }
+
+  // Replace double quotes
+  while (safeText.includes("\"")) {
+    safeText = safeText.replace("\"", "\\\"");
+  }
+
+  // Replace newlines
+  while (safeText.includes("\n")) {
+    safeText = safeText.replace("\n", "\\n");
+  }
+
+  // Replace carriage returns
+  while (safeText.includes("\r")) {
+    safeText = safeText.replace("\r", "\\r");
+  }
+
+  // Optionally replace single quotes if you use single-quoted strings
+  // in your query. For safety, let's do it anyway:
+  while (safeText.includes("'")) {
+    safeText = safeText.replace("'", "\\'");
+  }
+
+  return safeText;
+}
 
 export function sayHello(name: string | null = null): string {
   return `Hello, ${name || "World"}!`;
@@ -173,23 +213,6 @@ function cosineSimilarity(a: Float64Array, b: Float64Array): f64 {
   return dot / (Math.sqrt(magA) * Math.sqrt(magB));
 }
 
-// -----------------------------------------------------
-// ChunkScore CLASS for storing chunk+score objects
-// -----------------------------------------------------
-class ChunkScore {
-  chunkId: string;
-  chunkText: string;
-  score: f64;
-
-  constructor(chunkId: string, chunkText: string, score: f64) {
-    this.chunkId = chunkId;
-    this.chunkText = chunkText;
-    this.score = score;
-  }
-}
-
-
-
 // -----------------------
 // MAIN EXPORTS
 // -----------------------
@@ -201,12 +224,14 @@ export function createNodesWithFile(data: string): string[] {
   const queriesToExecute = interpretFile(data);
 
   const hostName: string = "my-neo4j";
+  // We'll run each query except the first & last or some custom logic?
   for (let i = 1; i < queriesToExecute.length - 1; i++) {
     const query = queriesToExecute[i];
     console.log("START " + query);
 
     const result = neo4j.executeQuery(hostName, query);
     if (!result) {
+      console.log("Failed query: " + query);
       throw new Error("Failed to create nodes");
     }
   }
@@ -233,6 +258,7 @@ function createChunkEmbeddingsInNeo4j(
   `;
   let result = neo4j.executeQuery(hostName, query);
   if (!result) {
+    console.log("Failed query: " + query);
     throw new Error("Failed to create Document node in Neo4j");
   }
 
@@ -241,18 +267,15 @@ function createChunkEmbeddingsInNeo4j(
 
   // 3) For each chunk, create the Chunk node + relationship to Document
   for (let i = 0; i < chunks.length; i++) {
-    // returns f32[][], so we take the first item
-    const embeddingF32 = getEmbedding(chunks[i])[0];
+    const chunk = chunks[i];
+    // Sanitize the chunk text before building the query
+    const safeText = sanitizeForNeo4j(chunk);
 
+    // returns f32[][], so we take the first item
+    const embeddingF32 = getEmbedding(chunk)[0];
     // Convert that single f32[] into a string for DB
     const embeddingString = "[" + embeddingF32.join(",") + "]";
 
-    let safeText = chunks[i];
-    while (safeText.includes('"')) {
-      safeText = safeText.replace('"', '\\"');
-    }
-
-    // Create the Chunk node
     query = `
       MATCH (d:Document {id: '${pdfId}'})
       CREATE (c:Chunk {
@@ -265,6 +288,7 @@ function createChunkEmbeddingsInNeo4j(
     `;
     result = neo4j.executeQuery(hostName, query);
     if (!result) {
+      console.log("Failed query: " + query);
       throw new Error("Failed to create chunk embedding in Neo4j");
     }
   }
@@ -278,6 +302,7 @@ function createChunkEmbeddingsInNeo4j(
     `;
     result = neo4j.executeQuery(hostName, query);
     if (!result) {
+      console.log("Failed query: " + query);
       throw new Error("Failed to create NEXT relationship between chunks");
     }
   }
@@ -288,27 +313,22 @@ function createChunkEmbeddingsInNeo4j(
  */
 export function createNodesAndEmbeddings(pdfText: string, pdfId: string, chatId: string): void {
   console.log("Creating nodes and embeddings...");
-  // console.log(pdfText);
-
   createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText, chatId);
 }
 
-export function removeContext(fileId: string): void{
-
+export function removeContext(fileId: string): void {
   const hostName: string = "my-neo4j";
 
-
   let query = `
-  MATCH (d:Document {id: '${fileId}'})-[r:HAS_CHUNK]->(c:Chunk)
-  DETACH DELETE d, c
-`;
+    MATCH (d:Document {id: '${fileId}'})-[r:HAS_CHUNK]->(c:Chunk)
+    DETACH DELETE d, c
+  `;
 
-let result = neo4j.executeQuery(hostName, query);
+  let result = neo4j.executeQuery(hostName, query);
   if (!result) {
+    console.log("Failed query: " + query);
     throw new Error("Failed to delete Document node in Neo4j");
   }
-
-
 }
 
 /**
@@ -336,14 +356,16 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
 
     const chunkId = row.get("id") as string;
     const chunkText = row.get("text") as string;
-
     const embeddingString = row.get("embedding") as string;
+
+    // Convert the embedding string back to a Float64Array
     const cleaned = embeddingString.replace("[", "").replace("]", "").split(",");
     const chunkEmbedding = new Float64Array(cleaned.length);
     for (let j = 0; j < cleaned.length; j++) {
       chunkEmbedding[j] = parseFloat(cleaned[j]);
     }
 
+    // Compare similarity
     const score = cosineSimilarity(questionEmbedding, chunkEmbedding);
     chunkScores.push(new ChunkScore(chunkId, chunkText, score));
   }
@@ -360,7 +382,7 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
   const systemPrompt = `
 You are a helpful assistant. You have the following context:
 
-${topChunks.map<string>(chunk => chunk.chunkText).join("\n\n---\n\n")}
+${topChunks.map<string>((chunk) => chunk.chunkText).join("\n\n---\n\n")}
 
 Answer the user's question based on the context.
 If the question is not answerable with the given context, use any external knowledge you have.

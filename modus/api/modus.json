@@ -34,9 +34,9 @@
     },
     "my-neo4j": {
       "type": "neo4j",
-      "dbUri": "bolt://localhost:7687",
+      "dbUri": "neo4j+s://892ede14.databases.neo4j.io",
       "username": "neo4j",
-      "password": "11205026"
+      "password": "zkmiCp26y1pkjVFnNrud5xTtpd-fm2xvhmri4fca32s"
     }
   }
 }
