@@ -17,6 +17,7 @@ import { useEffect } from "react";
 import { ThemeProvider } from "next-themes";
 import ThemeSwitcher from "./(main)/components/theme-switcher";
 import Providers from "./(main)/components/Providers";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,6 +65,7 @@ export default function RootLayout({
             {/* <SidebarTrigger /> */}
             {children}
           </main>
+          <Toaster />
         </Providers>
       </body>
     </html>

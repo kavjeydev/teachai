@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -12,10 +12,10 @@ import { Id } from "../../../../../../convex/_generated/dataModel";
 import { api } from "../../../../../../convex/_generated/api";
 import { AppSidebar } from "@/app/(main)/components/sidebar";
 import React from "react";
-import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Spinner } from "@nextui-org/spinner";
 // Optional: For syntax highlighting
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { darcula } from "react-syntax-highlighter/dist/cjs/styles/prism";
@@ -31,6 +31,7 @@ import {
 import CodeBlock from "@/app/(main)/components/code-block";
 import { ContextList } from "@/app/(main)/components/context-list";
 import { APISettings } from "@/app/(main)/components/api-settings";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -56,11 +57,16 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   const { user } = useUser();
   if (user === undefined) {
-    return <div></div>;
+    return (
+      <div className="flex items-center justify-center w-screen h-screen">
+        <Spinner />
+      </div>
+    );
   }
   if (!user) {
     return null;
   }
+  const { toast } = useToast();
 
   // Removed the unused `messages` state
   const [progress, setProgress] = useState<number>(0);
@@ -79,13 +85,25 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const unwrappedParams = React.use(params);
   const chatId = unwrappedParams.chatId;
 
-  const showContext = useQuery(api.chats.getContext, {
+  const writeContent = useMutation(api.chats.writeContent);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContent = useQuery(api.chats.getChatContent, {
     id: chatId,
   });
 
-  const writeContent = useMutation(api.chats.writeContent);
+  // useEffect(() => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // }, [chatContent]);
+  const scrollToBottom = useCallback(
+    (node: any) => {
+      if (node !== null) {
+        node.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    [chatContent],
+  );
 
-  const chatContent = useQuery(api.chats.getChatContent, {
+  const showContext = useQuery(api.chats.getContext, {
     id: chatId,
   });
 
@@ -97,16 +115,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         text: text,
       },
     });
-
-    toast.promise(promise, {
-      success: "Message sent successfully!",
-      error: "Failed to send message.",
-      loading: "Sending message...",
-    });
   };
 
   // 1) Ref to the bottom of the messages list
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const uploadContext = useMutation(api.chats.uploadContext);
 
@@ -119,17 +130,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       },
     });
 
-    toast.promise(promise, {
-      success: "Message sent successfully!",
-      error: "Failed to send message.",
-      loading: "Sending message...",
+    toast({
+      title: "File uploaded successfully!",
     });
   };
-
-  // 2) Whenever "chatContent" changes, scroll to the bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatContent]);
 
   const handleFileChange = async (e: any) => {
     console.log("ENTER");
@@ -414,7 +418,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             ))}
 
             {/* Dummy div at the bottom for auto-scroll */}
-            <div ref={messagesEndRef} />
+            <div ref={scrollToBottom} />
           </div>
         </div>
 

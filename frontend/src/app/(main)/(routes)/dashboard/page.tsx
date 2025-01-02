@@ -9,9 +9,11 @@ import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { PlusCircle } from "lucide-react";
 import { DashSidebar } from "../../components/dash-sidebar";
+import { useToast } from "@/hooks/use-toast";
 
 export default function NoChat() {
   const { user } = useUser();
+  const { toast } = useToast();
 
   const addChat = useMutation(api.chats.createChat);
 
@@ -20,7 +22,9 @@ export default function NoChat() {
 
     console.log("HERE");
 
-    toast.success("Created chat");
+    toast({
+      title: "Created chat!",
+    });
   };
   if (!user || user === undefined) {
     return <div></div>;

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pypdf import PdfReader
 import docx
 from bs4 import BeautifulSoup
+import io  # Import io for BytesIO
 
 app = FastAPI()
 
@@ -73,8 +74,14 @@ class ReadFiles:
 
     def extract_text_from_docx(self, file: UploadFile):
         try:
+            # Read the entire file into bytes
             file.file.seek(0)
-            doc = docx.Document(file.file)
+            data = file.file.read()
+
+            # Use BytesIO to create a file-like object
+            doc = docx.Document(io.BytesIO(data))
+
+            # Extract text from paragraphs
             text = "\n".join([para.text for para in doc.paragraphs])
             return text
         except Exception as e:

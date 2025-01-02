@@ -51,9 +51,10 @@ import {
   Paperclip,
   Lock,
   Unlock,
+  Save,
+  Circle,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
-import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
 import {
   Collapsible,
@@ -87,6 +88,8 @@ import {
 } from "@/components/ui/command";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import APIKeyInput from "./api-key-input";
+import { useToast } from "@/hooks/use-toast";
+import APICodeBlock from "./api-code-block";
 
 const items = [
   {
@@ -104,6 +107,7 @@ export function AppSidebar({ chatId }: SidebarParams) {
   const router = useRouter();
   const { user } = useUser();
   const { theme } = useTheme();
+  const { toast } = useToast();
 
   const [chatActive, setChatActive] = React.useState(false);
 
@@ -114,9 +118,15 @@ export function AppSidebar({ chatId }: SidebarParams) {
     id: chatId,
   });
 
+  const [currVisibility, setCurrVisibility] = React.useState<string>(
+    currentChat ? currentChat.apiInfo.visibility : "protected",
+  );
+
   const showContext = useQuery(api.chats.getContext, {
     id: chatId,
   });
+
+  const changeVisibility = useMutation(api.chats.changeVisibility);
 
   // Mutations
   const addChat = useMutation(api.chats.createChat);
@@ -135,17 +145,14 @@ export function AppSidebar({ chatId }: SidebarParams) {
   // Handler for creating a chat
   const onCreate = () => {
     const promise = addChat({ title: "untitled" });
-    toast.success("Created chat");
+    toast({ title: "Created chat", description: "something" });
+    console.log("remmved");
   };
 
   // Handler for archiving/deleting a chat
   const onDelete = (chatId: Id<"chats">) => {
     const promise = archiveChat({ id: chatId });
-    toast.promise(promise, {
-      success: "Archived chat",
-      loading: "Archiving...",
-      error: "Error archiving",
-    });
+    toast({ title: "Archived chat" });
   };
 
   // (C) Handlers for renaming a chat
@@ -155,32 +162,86 @@ export function AppSidebar({ chatId }: SidebarParams) {
     setEditingTitle(currentTitle);
   };
 
+  const sampleCode = `async function callQueryAI(question: string, chatid: string): Promise<any> {
+  const url = 'http://localhost:3000/api/queryai';
+  const apiKey = 'YOUR_API_KEY_HERE'; // Replace with your actual API key
+
+  const payload = {
+    question,
+    chatId,
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
+  }
+}`;
+
+  const pythonCode = `import requests # pip install requests
+from typing import Any
+
+def call_query_ai(question: str, chatid: str) -> Any:
+    url = 'http://localhost:3000/api/queryai'
+    api_key = 'YOUR_API_KEY'  # Replace with your actual API key
+
+    payload = {
+        'question': question,
+        'chatId': chatid,
+    }
+
+    headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': api_key,
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        data = response.json()
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f'API call failed: {e}')
+        raise
+
+# Example usage:
+response = call_query_ai("What is the capital of France?", "${chatId}")
+print(response)
+
+
+
+`;
+
   const finishEditing = (chatId: Id<"chats">) => {
-    renameChat({ id: chatId, title: editingTitle })
-      .then(() => {
-        toast.success("Chat renamed");
-      })
-      .catch(() => {
-        toast.error("Error renaming chat");
-      })
-      .finally(() => {
-        setEditingChatId(null);
-      });
+    renameChat({ id: chatId, title: editingTitle });
   };
 
   const eraseContent = useMutation(api.chats.eraseContext);
 
   const onErase = (id: Id<"chats">, fileId: string) => {
-    const promise = eraseContent({
+    eraseContent({
       id,
       fileId,
-    });
-
-    toast.promise(promise, {
-      success: "File removed successfully.",
-      error: "Failed to remove file.",
-      loading: "Removing file...",
-    });
+    })
+      .then(() => {
+        toast({ title: "Removed context!" });
+      })
+      .catch(() => {
+        toast({ title: "Failed to remove context" });
+      })
+      .finally(() => {
+        setEditingChatId(null);
+      });
   };
 
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
@@ -203,6 +264,22 @@ export function AppSidebar({ chatId }: SidebarParams) {
       const errorData = await modusResponse.json();
       throw new Error(errorData.detail || "Failed to write nodes to neo4j.");
     }
+  };
+
+  const handleSave = async (chatId: Id<"chats">, visibility: string) => {
+    changeVisibility({
+      id: chatId,
+      visibility: visibility,
+    })
+      .then(() => {
+        toast({ title: "Visibility changed!" });
+      })
+      .catch(() => {
+        toast({ title: "Failed to change visibility" });
+      })
+      .finally(() => {
+        setEditingChatId(null);
+      });
   };
 
   if (!user || user === undefined) {
@@ -310,8 +387,8 @@ export function AppSidebar({ chatId }: SidebarParams) {
                           <DrawerContent className="">
                             <div className="flex flex-col px-20 py-8 w-full">
                               <div className="flex w-full items-center justify-center">
-                                <DrawerHeader className="flex flex-col items-center">
-                                  <DrawerTitle className="text-4xl">
+                                <DrawerHeader className="flex flex-col items-center mb-10">
+                                  <DrawerTitle className="text-4xl ">
                                     API Settings
                                   </DrawerTitle>
                                   <DrawerDescription>
@@ -319,8 +396,8 @@ export function AppSidebar({ chatId }: SidebarParams) {
                                   </DrawerDescription>
                                 </DrawerHeader>
                               </div>
-                              <div className="flex mx-auto w-full gap-10">
-                                <Command className="rounded-lg border shadow-md md:min-w-[350px] w-20 h-80">
+                              <div className="flex mx-auto w-full justify-between">
+                                <Command className="rounded-lg border shadow-md md:min-w-[300px] w-20 h-96">
                                   <CommandInput placeholder="Search for a file..." />
                                   <CommandList>
                                     <CommandEmpty>
@@ -360,13 +437,16 @@ export function AppSidebar({ chatId }: SidebarParams) {
                                 </Command>
 
                                 <Tabs
-                                  defaultValue="protected"
-                                  className="w-[300px]"
+                                  defaultValue={currentChat?.apiInfo.visibility}
+                                  className="w-[300px] "
                                 >
                                   <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger
                                       value="protected"
                                       className="flex items-center gap-2 justify-center"
+                                      onClick={() =>
+                                        setCurrVisibility("protected")
+                                      }
                                     >
                                       Protected{" "}
                                       <Lock className="h-3 w-3 text-red-500" />
@@ -374,6 +454,9 @@ export function AppSidebar({ chatId }: SidebarParams) {
                                     <TabsTrigger
                                       value="public"
                                       className="flex items-center gap-2 justify-center"
+                                      onClick={() =>
+                                        setCurrVisibility("public")
+                                      }
                                     >
                                       Public{" "}
                                       <Unlock className="h-3 w-3 text-green-500" />
@@ -381,7 +464,7 @@ export function AppSidebar({ chatId }: SidebarParams) {
                                   </TabsList>
                                   <TabsContent
                                     value="public"
-                                    className=" text-muted-foreground text-sm ml-1"
+                                    className="text-muted-foreground text-sm ml-1"
                                   >
                                     <h1>
                                       Your chat,{" "}
@@ -389,12 +472,12 @@ export function AppSidebar({ chatId }: SidebarParams) {
                                         {currentChat?.title}
                                       </span>
                                       ,{" "}
-                                      <span className="text-white">
+                                      <span className="dark:text-white text-black">
                                         can be accessed
                                       </span>{" "}
                                       via API with your API Key.
                                     </h1>
-                                    <APIKeyInput apiKey="k-kjbfeirubfieurfb" />
+                                    <APIKeyInput chatId={chatId} />
                                   </TabsContent>
                                   <TabsContent
                                     value="protected"
@@ -406,7 +489,7 @@ export function AppSidebar({ chatId }: SidebarParams) {
                                         {currentChat?.title}
                                       </span>
                                       ,{" "}
-                                      <span className="text-white">
+                                      <span className="dark:text-white text-black">
                                         can not be accessed
                                       </span>{" "}
                                       via API with your API Key.
@@ -414,10 +497,50 @@ export function AppSidebar({ chatId }: SidebarParams) {
                                   </TabsContent>
                                 </Tabs>
 
-                                <DrawerFooter className="-mb-3">
-                                  <Button>
-                                    Add Context
-                                    <Paperclip />
+                                <Tabs
+                                  defaultValue="node"
+                                  className="w-[700px] "
+                                >
+                                  <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger
+                                      value="node"
+                                      className="flex items-center gap-2 justify-center"
+                                      onClick={() => {}}
+                                    >
+                                      Node{" "}
+                                      <Circle className="h-3 w-3 text-green-500" />
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                      value="python"
+                                      className="flex items-center gap-2 justify-center"
+                                      onClick={() => {}}
+                                    >
+                                      Python{" "}
+                                      <Paperclip className="h-3 w-3 text-green-500" />
+                                    </TabsTrigger>
+                                  </TabsList>
+                                  <TabsContent
+                                    value="node"
+                                    className="text-muted-foreground text-sm ml-1"
+                                  >
+                                    <APICodeBlock code={sampleCode} />
+                                  </TabsContent>
+                                  <TabsContent
+                                    value="python"
+                                    className=" text-muted-foreground text-sm ml-1"
+                                  >
+                                    <APICodeBlock code={pythonCode} />
+                                  </TabsContent>
+                                </Tabs>
+
+                                <DrawerFooter className="absolute top-0 right-0">
+                                  <Button
+                                    onClick={() => {
+                                      handleSave(chatId, currVisibility);
+                                    }}
+                                  >
+                                    Save
+                                    <Save className="h-4 w-4" />
                                   </Button>
                                 </DrawerFooter>
                               </div>

@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatContext {
   chatId: Id<"chats">;
@@ -30,6 +30,7 @@ interface ChatContext {
 
 export function ContextList({ context, chatId }: ChatContext) {
   const [open, setOpen] = React.useState(false);
+  const { toast } = useToast();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -51,10 +52,8 @@ export function ContextList({ context, chatId }: ChatContext) {
       fileId,
     });
 
-    toast.promise(promise, {
-      success: "File removed successfully.",
-      error: "Failed to remove file.",
-      loading: "Removing file...",
+    toast({
+      title: "File removed successfully.",
     });
   };
 
@@ -102,13 +101,13 @@ export function ContextList({ context, chatId }: ChatContext) {
           <CommandGroup heading="Context List">
             {context?.map((item) => (
               <CommandItem key={item.fileId}>
-                <div className="flex justify-between items-center w-full">
+                <div className="flex justify-between gap-4 items-center w-full">
                   <div className="flex items-center gap-2">
                     <File size={20} color="#777777" />
                     <span>{item.filename}</span>
                   </div>
                   <Button
-                    className="x-[9999999] rounded-full hover:bg-darkmaincolor"
+                    className="x-[9999999] rounded-full dark:hover:bg-darkmaincolor hover:bg-white"
                     onClick={() => {
                       handleErase(chatId, item.fileId);
                       console.log("erased");

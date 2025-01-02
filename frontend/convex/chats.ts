@@ -43,6 +43,8 @@ export const createChat = mutation({
       apiInfo: {
         visibility: "protected",
       },
+      apiKey: "undefined",
+      apiKeyDisabled: true,
     });
 
     console.log(identity);
@@ -298,6 +300,7 @@ export const changeVisibility = mutation({
       apiInfo: {
         visibility: args.visibility,
       },
+      apiKeyDisabled: args.visibility === "protected" ? true : false,
     });
 
     return chat;
@@ -333,5 +336,52 @@ export const rename = mutation({
     });
 
     return document;
+  },
+});
+
+export const setApiKey = mutation({
+  args: {
+    id: v.id("chats"),
+    newApiKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("User not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingChat = await ctx.db.get(args.id);
+
+    if (!existingChat) {
+      throw new Error("Document not found.");
+    }
+
+    if (existingChat.userId !== userId) {
+      throw new Error("Unauthorized to modify.");
+    }
+
+    const chat = await ctx.db.patch(args.id, {
+      apiKey: args.newApiKey,
+    });
+
+    return chat;
+  },
+});
+
+export const getChatByIdExposed = query({
+  args: {
+    id: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const existingChat = await ctx.db.get(args.id);
+
+    if (!existingChat) {
+      throw new Error("Not found");
+    }
+
+    return existingChat;
   },
 });

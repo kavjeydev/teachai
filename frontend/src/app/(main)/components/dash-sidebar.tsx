@@ -53,7 +53,6 @@ import {
   Unlock,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
-import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
 import {
   Collapsible,
@@ -87,6 +86,7 @@ import {
 } from "@/components/ui/command";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import APIKeyInput from "./api-key-input";
+import { useToast } from "@/hooks/use-toast";
 
 const items = [
   {
@@ -106,6 +106,7 @@ export function DashSidebar() {
   const { theme } = useTheme();
 
   const [chatActive, setChatActive] = React.useState(false);
+  const { toast } = useToast();
 
   // Fetch chats
   const chats = useQuery(api.chats.getChats);
@@ -127,16 +128,14 @@ export function DashSidebar() {
   // Handler for creating a chat
   const onCreate = () => {
     const promise = addChat({ title: "untitled" });
-    toast.success("Created chat");
+    toast({ title: "Created chat" });
   };
 
   // Handler for archiving/deleting a chat
   const onDelete = (chatId: Id<"chats">) => {
     const promise = archiveChat({ id: chatId });
-    toast.promise(promise, {
-      success: "Archived chat",
-      loading: "Archiving...",
-      error: "Error archiving",
+    toast({
+      title: "Archived chat",
     });
   };
 
@@ -150,10 +149,10 @@ export function DashSidebar() {
   const finishEditing = (chatId: Id<"chats">) => {
     renameChat({ id: chatId, title: editingTitle })
       .then(() => {
-        toast.success("Chat renamed");
+        toast({ title: "Chat renamed" });
       })
       .catch(() => {
-        toast.error("Error renaming chat");
+        toast({ title: "Error renaming chat" });
       })
       .finally(() => {
         setEditingChatId(null);
@@ -168,10 +167,8 @@ export function DashSidebar() {
       fileId,
     });
 
-    toast.promise(promise, {
-      success: "File removed successfully.",
-      error: "Failed to remove file.",
-      loading: "Removing file...",
+    toast({
+      title: "File removed successfully.",
     });
   };
 

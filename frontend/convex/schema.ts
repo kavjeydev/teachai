@@ -24,11 +24,11 @@ export default defineSchema({
         }),
       ),
     ),
-    apiInfo: v.optional(
-      v.object({
-        visibility: v.string(),
-      }),
-    ),
+    apiInfo: v.object({
+      visibility: v.string(),
+    }),
+    apiKey: v.string(),
+    apiKeyDisabled: v.boolean(),
     // identity: v.optional(v.object())
   })
     .index("by_user", ["userId"])

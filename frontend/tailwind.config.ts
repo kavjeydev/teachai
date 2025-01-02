@@ -7,7 +7,7 @@ export default {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./node_modules/@nextui-org/theme/dist/components/(button|input|popover|ripple|spinner|form).js",
+    "./node_modules/@nextui-org/theme/dist/components/(button|input|popover|spinner|ripple|form).js"
   ],
   theme: {
     extend: {
