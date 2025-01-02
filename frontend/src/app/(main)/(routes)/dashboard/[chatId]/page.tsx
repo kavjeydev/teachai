@@ -32,7 +32,6 @@ import CodeBlock from "@/app/(main)/components/code-block";
 import { ContextList } from "@/app/(main)/components/context-list";
 import { APISettings } from "@/app/(main)/components/api-settings";
 import { useToast } from "@/hooks/use-toast";
-import { HYPERMODE_API_KEY } from "@/app/(main)/info/constants";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -183,7 +182,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+          Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
         },
         body: JSON.stringify({
           query: `
@@ -226,7 +225,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
       },
 
       body: JSON.stringify({
@@ -245,6 +244,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         variables: { question, chatId },
       }),
     });
+
+    console.log("here", process.env.HYPERMODE_API_KEY!);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -266,7 +267,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
       },
       body: JSON.stringify({
         query: `

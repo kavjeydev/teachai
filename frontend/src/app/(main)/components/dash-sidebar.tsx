@@ -87,7 +87,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import APIKeyInput from "./api-key-input";
 import { useToast } from "@/hooks/use-toast";
-import { HYPERMODE_API_KEY } from "../info/constants";
 
 const items = [
   {
@@ -181,7 +180,7 @@ export function DashSidebar() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
       },
       body: JSON.stringify({
         query: `

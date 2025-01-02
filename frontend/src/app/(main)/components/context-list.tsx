@@ -16,7 +16,6 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useToast } from "@/hooks/use-toast";
-import { HYPERMODE_API_KEY } from "../info/constants";
 
 interface ChatContext {
   chatId: Id<"chats">;
@@ -70,7 +69,7 @@ export function ContextList({ context, chatId }: ChatContext) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
       },
       body: JSON.stringify({
         query: `

@@ -2,7 +2,6 @@
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import React, { useState } from "react";
-import { HYPERMODE_API_KEY } from "../info/constants";
 
 // Placeholder icons
 const UploadIcon = () => (
@@ -80,7 +79,7 @@ export default function InputMock({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
       },
       body: JSON.stringify({ query, variables }),
     });

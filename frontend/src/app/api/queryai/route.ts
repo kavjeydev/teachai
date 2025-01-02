@@ -1,7 +1,6 @@
 import { useQuery } from "convex/react";
 import { NextRequest, NextResponse } from "next/server";
 import { api } from "../../../../convex/_generated/api";
-import { HYPERMODE_API_KEY } from "@/app/(main)/info/constants";
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
@@ -66,7 +65,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
       },
       body: JSON.stringify({
         query: `
