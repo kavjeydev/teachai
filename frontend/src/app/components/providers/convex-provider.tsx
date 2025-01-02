@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export const ConvexClientProvider = ({ children }: { children: ReactNode }) => {
-  const router = useRouter();
   console.log("CONVEX INFO", process.env.NEXT_PUBLIC_CONVEX_URL!);
   return (
     <ClerkProvider
