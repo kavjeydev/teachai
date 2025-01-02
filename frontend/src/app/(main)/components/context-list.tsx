@@ -12,10 +12,11 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useToast } from "@/hooks/use-toast";
+import { HYPERMODE_API_KEY } from "../info/constants";
 
 interface ChatContext {
   chatId: Id<"chats">;
@@ -32,6 +33,8 @@ export function ContextList({ context, chatId }: ChatContext) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
 
+  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -45,6 +48,9 @@ export function ContextList({ context, chatId }: ChatContext) {
   }, []);
 
   const eraseContent = useMutation(api.chats.eraseContext);
+  const currentChat = useQuery(api.chats.getChatById, {
+    id: chatId,
+  });
 
   const onErase = (id: Id<"chats">, fileId: string) => {
     const promise = eraseContent({
@@ -60,9 +66,12 @@ export function ContextList({ context, chatId }: ChatContext) {
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch("http://localhost:8686/graphql", {
+    const modusResponse = await fetch(BASE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+      },
       body: JSON.stringify({
         query: `
               mutation($fileId: String!) {

@@ -2,6 +2,7 @@
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import React, { useState } from "react";
+import { HYPERMODE_API_KEY } from "../info/constants";
 
 // Placeholder icons
 const UploadIcon = () => (
@@ -69,13 +70,18 @@ export default function InputMock({
   }
 
   async function fetchSayHello(variables: SayHelloVariables): Promise<string> {
+    const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+
     const query = `query SayHello($name: String!) {
       sayHello(name: $name)
     }`;
 
-    const response = await fetch("http://localhost:8686/graphql", {
+    const response = await fetch(BASE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+      },
       body: JSON.stringify({ query, variables }),
     });
 

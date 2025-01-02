@@ -1,6 +1,7 @@
 import { useQuery } from "convex/react";
 import { NextRequest, NextResponse } from "next/server";
 import { api } from "../../../../convex/_generated/api";
+import { HYPERMODE_API_KEY } from "@/app/(main)/info/constants";
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
@@ -40,7 +41,13 @@ export async function POST(req: NextRequest) {
     const chatProtected = currentChat.value.apiKeyDisabled;
 
     if (chatProtected) {
-      return NextResponse.json({ error: "Chat is protected" }, { status: 401 });
+      return NextResponse.json(
+        {
+          error:
+            "Chat is protected, if you are the owner, make it public in the API settings to access this endpoint",
+        },
+        { status: 401 },
+      );
     }
 
     if (!currentChat) {
@@ -53,10 +60,14 @@ export async function POST(req: NextRequest) {
     if (!apiKey || apiKey !== chatAPIKey) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
 
-    const response = await fetch("http://localhost:8686/graphql", {
+    const response = await fetch(BASE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+      },
       body: JSON.stringify({
         query: `
             query($question: String!, $chatId: String!) {

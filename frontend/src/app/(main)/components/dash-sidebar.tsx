@@ -87,6 +87,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import APIKeyInput from "./api-key-input";
 import { useToast } from "@/hooks/use-toast";
+import { HYPERMODE_API_KEY } from "../info/constants";
 
 const items = [
   {
@@ -124,6 +125,7 @@ export function DashSidebar() {
     null,
   );
   const [editingTitle, setEditingTitle] = React.useState("");
+  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
 
   // Handler for creating a chat
   const onCreate = () => {
@@ -175,9 +177,12 @@ export function DashSidebar() {
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch("http://localhost:8686/graphql", {
+    const modusResponse = await fetch(BASE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+      },
       body: JSON.stringify({
         query: `
                 mutation($fileId: String!) {

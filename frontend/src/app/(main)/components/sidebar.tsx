@@ -90,6 +90,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import APIKeyInput from "./api-key-input";
 import { useToast } from "@/hooks/use-toast";
 import APICodeBlock from "./api-code-block";
+import { HYPERMODE_API_KEY } from "../info/constants";
 
 const items = [
   {
@@ -227,6 +228,7 @@ print(response)
   };
 
   const eraseContent = useMutation(api.chats.eraseContext);
+  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
 
   const onErase = (id: Id<"chats">, fileId: string) => {
     eraseContent({
@@ -247,9 +249,12 @@ print(response)
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch("http://localhost:8686/graphql", {
+    const modusResponse = await fetch(BASE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+      },
       body: JSON.stringify({
         query: `
                 mutation($fileId: String!) {
@@ -580,6 +585,8 @@ print(response)
               ) : (
                 chats.map((chat) => {
                   const isEditing = editingChatId === chat._id;
+                  const isActive = chatId === chat._id;
+
                   return (
                     <SidebarMenuItem
                       key={chat._id}
@@ -598,6 +605,7 @@ print(response)
                         <div
                           className={cn(
                             "flex w-full justify-between items-center",
+                            isActive && "bg-muted-foreground/10",
                           )}
                         >
                           {/* Show an input if we are editing this chat, otherwise show the title */}

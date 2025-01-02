@@ -1,5 +1,5 @@
 "use client";
-
+require("dotenv").config({ path: ".env.local" });
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
@@ -32,6 +32,7 @@ import CodeBlock from "@/app/(main)/components/code-block";
 import { ContextList } from "@/app/(main)/components/context-list";
 import { APISettings } from "@/app/(main)/components/api-settings";
 import { useToast } from "@/hooks/use-toast";
+import { HYPERMODE_API_KEY } from "@/app/(main)/info/constants";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -51,6 +52,7 @@ interface ChatContext {
 }
 
 export default function Dashboard({ params }: ChatIdPageProps) {
+  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
   const uid = function (): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   };
@@ -177,9 +179,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
       console.log("EMBED", data.text);
 
-      const modusResponse = await fetch("http://localhost:8686/graphql", {
+      const modusResponse = await fetch(BASE_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+        },
         body: JSON.stringify({
           query: `
             mutation($pdfText: String!, $pdfId: String!, $chatId: String!) {
@@ -217,9 +222,13 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   };
 
   async function answerQuestion(question: string) {
-    const response = await fetch("http://localhost:8686/graphql", {
+    const response = await fetch(BASE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+      },
+
       body: JSON.stringify({
         query: `
           query($question: String!, $chatId: String!) {
@@ -246,16 +255,19 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
-
+    console.log(json.data.answerQuestion.answer);
     return json.data.answerQuestion.answer;
     // return json.data.answerQuestion.context.chunkText;
   }
 
   // Example GraphQL fetch function (replace with your actual endpoint)
   async function fetchSayHello(name: string): Promise<string> {
-    const response = await fetch("http://localhost:8686/graphql", {
+    const response = await fetch(BASE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HYPERMODE_API_KEY}`,
+      },
       body: JSON.stringify({
         query: `
           query SayHello($name: String!) {
