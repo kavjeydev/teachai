@@ -182,7 +182,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
         },
         body: JSON.stringify({
           query: `
@@ -225,7 +225,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
       },
 
       body: JSON.stringify({
@@ -244,8 +244,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         variables: { question, chatId },
       }),
     });
-
-    console.log("here", process.env.HYPERMODE_API_KEY!);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -267,7 +265,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
       },
       body: JSON.stringify({
         query: `

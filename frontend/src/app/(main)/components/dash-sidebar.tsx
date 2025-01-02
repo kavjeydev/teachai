@@ -180,7 +180,7 @@ export function DashSidebar() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.HYPERMODE_API_KEY}`,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
       },
       body: JSON.stringify({
         query: `
