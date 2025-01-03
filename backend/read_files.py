@@ -6,8 +6,10 @@ from pypdf import PdfReader
 import docx
 from bs4 import BeautifulSoup
 import io  # Import io for BytesIO
+from mangum import Mangum
 
 app = FastAPI()
+handler = Mangum(app)
 
 # Configure CORS middleware (adjust origins as needed for production)
 app.add_middleware(

@@ -161,11 +161,14 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     formData.append("file", selectedFile);
     console.log("HERE");
     try {
-      const response = await fetch("http://0.0.0.0:8000/extract-pdf-text", {
-        // Adjust the URL if necessary
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        "https://egsd4t2mucpccehqhaldfzbsve0xynzo.lambda-url.us-west-1.on.aws/extract-pdf-text",
+        {
+          // Adjust the URL if necessary
+          method: "POST",
+          body: formData,
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
