@@ -261,7 +261,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
-    console.log(json.data.answerQuestion.answer);
+    // console.log(json.data.answerQuestion.answer);
     return json.data.answerQuestion.answer;
     // return json.data.answerQuestion.context.chunkText;
   }
