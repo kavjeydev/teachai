@@ -245,6 +245,13 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       }),
     });
 
+    console.log(
+      "RESPONSE",
+      question,
+      chatId,
+      process.env.NEXT_PUBLIC_HYPERMODE_API_KEY,
+    );
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
