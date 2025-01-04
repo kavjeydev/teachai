@@ -162,7 +162,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     console.log("HERE");
     try {
       const response = await fetch(
-        "https://egsd4t2mucpccehqhaldfzbsve0xynzo.lambda-url.us-west-1.on.aws/extract-pdf-text",
+        "https://api.trainlyai.com/extract-pdf-text",
         {
           // Adjust the URL if necessary
           method: "POST",
