@@ -38,12 +38,22 @@ export async function POST(req: NextRequest) {
 
     const chatAPIKey = currentChat.value.apiKey;
     const chatProtected = currentChat.value.apiKeyDisabled;
+    const chatArchived = currentChat.value.isArchived;
 
     if (chatProtected) {
       return NextResponse.json(
         {
           error:
-            "Chat is protected, if you are the owner, make it public in the API settings to access this endpoint",
+            "Chat is protected, if you are the owner, make it public in the API settings to access this endpoint.",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (chatArchived) {
+      return NextResponse.json(
+        {
+          error: "Chat is archived, restore the chat for API access.",
         },
         { status: 401 },
       );

@@ -385,3 +385,80 @@ export const getChatByIdExposed = query({
     return existingChat;
   },
 });
+
+export const remove = mutation({
+  args: {
+    id: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingChat = await ctx.db.get(args.id);
+
+    if (!existingChat) {
+      throw new Error("Document does not exist");
+    }
+    if (existingChat.userId !== userId) {
+      throw new Error("Not authorized");
+    }
+
+    const chat = await ctx.db.delete(args.id);
+    return chat;
+  },
+});
+
+export const getArchivedChats = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const chats = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("isArchived"), true))
+      .order("desc")
+      .collect();
+
+    return chats;
+  },
+});
+
+export const unArchive = mutation({
+  args: {
+    id: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("User not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingDocument = await ctx.db.get(args.id);
+
+    if (!existingDocument) {
+      throw new Error("Document not found.");
+    }
+
+    if (existingDocument.userId !== userId) {
+      throw new Error("Unauthorized to modify.");
+    }
+
+    const document = await ctx.db.patch(args.id, {
+      isArchived: false,
+    });
+
+    return document;
+  },
+});

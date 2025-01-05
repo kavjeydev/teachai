@@ -53,6 +53,7 @@ import {
   Unlock,
   Save,
   Circle,
+  Undo,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -90,6 +91,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import APIKeyInput from "./api-key-input";
 import { useToast } from "@/hooks/use-toast";
 import APICodeBlock from "./api-code-block";
+import { Dialog } from "@radix-ui/react-dialog";
+import {
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const items = [
   {
@@ -163,7 +178,7 @@ export function AppSidebar({ chatId }: SidebarParams) {
   };
 
   const sampleCode = `async function callQueryAI(question: string, chatid: string): Promise<any> {
-  const url = 'http://localhost:3000/api/queryai';
+  const url = 'https://www.trainlyai.com/api/queryai';
   const apiKey = 'YOUR_API_KEY_HERE'; // Replace with your actual API key
 
   const payload = {
@@ -193,12 +208,12 @@ export function AppSidebar({ chatId }: SidebarParams) {
 from typing import Any
 
 def call_query_ai(question: str, chatid: str) -> Any:
-    url = 'http://localhost:3000/api/queryai'
-    api_key = 'YOUR_API_KEY'  # Replace with your actual API key
+    url = 'https://www.trainlyai.com/api/queryai'
+    api_key = 'YOUR_API_KEY_HERE'  # Replace with your actual API key
 
     payload = {
-        'question': question,
-        'chatId': chatid,
+        "question": question,
+        "chatId": chatid,
     }
 
     headers = {
@@ -217,9 +232,6 @@ def call_query_ai(question: str, chatid: str) -> Any:
 # Example usage:
 response = call_query_ai("What is the capital of France?", "${chatId}")
 print(response)
-
-
-
 `;
 
   const finishEditing = (chatId: Id<"chats">) => {
@@ -286,6 +298,26 @@ print(response)
       });
   };
 
+  const archivedChats = useQuery(api.chats.getArchivedChats);
+  const restore = useMutation(api.chats.unArchive);
+
+  const deleteForever = useMutation(api.chats.remove);
+
+  const handleRestore = async (chatId: Id<"chats">) => {
+    restore({
+      id: chatId,
+    });
+    toast({
+      title: "Restored chat.",
+    });
+  };
+
+  const handleDelete = async (chatId: Id<"chats">) => {
+    deleteForever({
+      id: chatId,
+    });
+  };
+
   if (!user || user === undefined) {
     return <div>loading...</div>;
   }
@@ -346,14 +378,78 @@ print(response)
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              <SidebarMenuItem key="trash">
-                <SidebarMenuButton asChild>
-                  <div className="cursor-pointer">
-                    <Trash />
-                    <span>Trash</span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <Dialog>
+                <DialogTrigger>
+                  <SidebarMenuItem key="trash">
+                    <SidebarMenuButton asChild>
+                      <div className="cursor-pointer">
+                        <Trash />
+                        <span>Trash</span>
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </DialogTrigger>
+                <DialogContent className="p-0">
+                  <Command className="rounded-lg border shadow-md max-h-80">
+                    <CommandInput placeholder="Type a command or search..." />
+                    <CommandList>
+                      <CommandEmpty>No results found.</CommandEmpty>
+                      <CommandGroup heading="Archived Chats">
+                        {archivedChats?.map((chat) => (
+                          <CommandItem
+                            key={chat._id}
+                            className="flex justify-between"
+                          >
+                            <div className="flex gap-2">
+                              <File />
+                              <span>{chat.title}</span>
+                            </div>
+                            <div className="flex">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-4"
+                                      onClick={() => {
+                                        handleRestore(chat._id);
+                                      }}
+                                    >
+                                      <Undo />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Restore</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      className="h-3 w-3"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        handleDelete(chat._id);
+                                      }}
+                                    >
+                                      <X className="h-3 w-3 cursor-pointer" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete forever</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </DialogContent>
+              </Dialog>
 
               <Collapsible defaultOpen className="group/collapsible">
                 <SidebarMenuItem>
@@ -539,6 +635,10 @@ print(response)
 
                                 <DrawerFooter className="absolute top-0 right-0">
                                   <Button
+                                    disabled={
+                                      currentChat?.apiInfo.visibility ===
+                                      currVisibility
+                                    }
                                     onClick={() => {
                                       handleSave(chatId, currVisibility);
                                     }}
