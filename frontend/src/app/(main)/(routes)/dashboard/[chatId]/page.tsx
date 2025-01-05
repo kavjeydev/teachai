@@ -32,6 +32,7 @@ import CodeBlock from "@/app/(main)/components/code-block";
 import { ContextList } from "@/app/(main)/components/context-list";
 import { APISettings } from "@/app/(main)/components/api-settings";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -51,6 +52,32 @@ interface ChatContext {
 }
 
 export default function Dashboard({ params }: ChatIdPageProps) {
+  const skeletonData = [
+    {
+      sender: "user",
+      text: "        ",
+    },
+    {
+      sender: "bot",
+      text: "              ",
+    },
+    {
+      sender: "user",
+      text: "                    ",
+    },
+    {
+      sender: "bot",
+      text: "        ",
+    },
+    {
+      sender: "user",
+      text: "                                                     ",
+    },
+    {
+      sender: "bot",
+      text: "                                                                                                          ",
+    },
+  ];
   const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
   const uid = function (): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -222,6 +249,172 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       console.log(err);
     }
   };
+
+  if (!chatContent) {
+    return (
+      <SidebarProvider>
+        <SidebarTrigger />
+
+        <AppSidebar chatId={chatId} />
+        {/* {showContext &&
+        showContext.map((item) => (
+          <div className="z-[999999] flex flex-col h-screen w-fit px-2 items-center justify-center bg-red-300">
+            <div className="flex justify-between">
+              {item.filename}
+              <X
+                className="h-4 w-4"
+                onClick={() => {
+                  handleErase(chatId, item.fileId);
+                }}
+              />
+            </div>
+          </div>
+        ))} */}
+        <div className="h-screen w-screen flex flex-col p-4">
+          {/*
+        1) Scrollable conversation area
+           "flex-1" => takes up remaining screen height
+           "overflow-y-auto w-full" => wide as screen, scrollbar on far right
+      */}
+          <div className="flex h-full justify-center overflow-y-auto w-full">
+            {/*
+          2) Inner container for the chat content
+             "max-w-2xl mx-auto" => centers the chat content
+             but doesn't affect the scrollbar position.
+        */}
+            <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
+              {skeletonData?.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex mb-4 ${
+                    msg.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`${
+                      msg.sender === "user"
+                        ? "dark:bg-[#333333]/40 bg-[#DDDDDD]/40 dark:text-white/90 text-black/90 max-w-[70%]"
+                        : "bg-[#7A9CC6]/10 dark:text-[#DDDDDD] text-[#222222]"
+                    } rounded-lg px-3 py-2  whitespace-pre-wrap`}
+                  >
+                    {msg.sender === "bot" ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        className="max-w-[39rem]"
+                        components={{
+                          code({
+                            node,
+                            inline,
+                            className,
+                            children,
+                            ...props
+                          }) {
+                            const match = /language-(\w+)/.exec(
+                              className || "",
+                            );
+                            const language = match ? match[1] : "";
+                            return !inline && language ? (
+                              <CodeBlock
+                                language={language}
+                                value={String(children).replace(/\n$/, "")}
+                                {...props}
+                              />
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    ) : (
+                      msg.text
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Dummy div at the bottom for auto-scroll */}
+              <div ref={scrollToBottom} />
+            </div>
+          </div>
+
+          {/* Error message (if any) */}
+          {error && (
+            <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
+              Error: {error}
+            </div>
+          )}
+
+          {/*
+        3) Input area pinned at the bottom (outside scrollable div).
+           "max-w-2xl mx-auto" => still centered.
+      */}
+          <ContextList context={showContext} chatId={chatId} />
+
+          <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white ">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled
+              style={{ color: theme === "dark" ? "white" : "black" }}
+              className=""
+              classNames={{
+                label: "text-white/50 dark:text-white/90 mb-2",
+                input:
+                  "bg-transparent placeholder:text-black/50 dark:placeholder:text-white/60",
+                innerWrapper: "bg-transparent",
+                inputWrapper:
+                  "bg-white/80 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-200 hover:bg-white/100 dark:hover:bg-white/10 group-data-[focus=true]:bg-white/50 dark:group-data-[focus=true]:bg-white/5 !cursor-text",
+              }}
+              radius="lg"
+              minRows={3}
+            />
+
+            <div className="flex items-center justify-between mt-2">
+              <div
+                className="flex gap-2 items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
+              rounded-lg transition-color duration-200 cursor-pointer"
+              >
+                <Paperclip className="text-muted-foreground h-5 w-5" />
+                <h1 className="text-muted-foreground text-sm">Embed Context</h1>
+              </div>
+              {/* Hidden file input */}
+              <input
+                multiple
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+              />
+              <div className="flex">
+                <div
+                  className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
+                text-black bg-transparent rounded-lg transition-color duration-200 cursor-pointer"
+                >
+                  <Send className="h-5 w-5 text-muted-foreground" />
+                  {loading && (
+                    <span className="ml-2 text-sm text-gray-500">
+                      Sending...
+                    </span>
+                  )}
+                </div>
+                {/* <Button
+                variant="ghost"
+                color="warning"
+                onClick={handleClear}
+                disabled={chatContent.length === 0}
+              >
+                Clear
+              </Button> */}
+              </div>
+            </div>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
 
   async function answerQuestion(question: string) {
     const response = await fetch(BASE_URL, {

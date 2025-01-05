@@ -145,7 +145,7 @@ export function AppSidebar({ chatId }: SidebarParams) {
   // Handler for creating a chat
   const onCreate = () => {
     const promise = addChat({ title: "untitled" });
-    toast({ title: "Created chat", description: "something" });
+    toast({ title: "Created chat" });
     console.log("remmved");
   };
 
@@ -592,8 +592,8 @@ print(response)
                       // Only navigate on single click. Double-click is for editing.
                       onClick={() => {
                         if (!isEditing) {
-                          router.push("/dashboard/" + chat._id);
                           setChatActive(true);
+                          router.push("/dashboard/" + chat._id);
                         }
                       }}
                       onDoubleClick={() =>
@@ -603,7 +603,7 @@ print(response)
                       <SidebarMenuButton asChild>
                         <div
                           className={cn(
-                            "flex w-full justify-between items-center",
+                            "flex w-full justify-between items-center cursor-pointer",
                             isActive && "bg-muted-foreground/10",
                           )}
                         >
