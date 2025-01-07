@@ -108,6 +108,7 @@ class ReadFiles:
             file.file.seek(0)
             # Attempt to detect encoding; default to utf-8
             content = file.file.read().decode('utf-8', errors='ignore')
+            print("HERE", content)
             return content
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error processing text file: {str(e)}")

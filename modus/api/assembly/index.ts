@@ -49,37 +49,38 @@ class AnswerWithContext {
 // ----------------------
 
 // A robust sanitization function for storing text in Neo4j as a string property
+/**
+ * Escapes special characters for Neo4j queries.
+ * @param original The original string to sanitize.
+ * @returns The sanitized string safe for Neo4j.
+ */
+/**
+ * Sanitizes a string for safe use in Neo4j queries by escaping special characters.
+ * @param original The original string to sanitize.
+ * @returns The sanitized string safe for Neo4j.
+ */
 function sanitizeForNeo4j(original: string): string {
   let safeText = original;
 
-  // Replace backslashes first (otherwise we might double-escape them)
-  while (safeText.includes("\\")) {
-    safeText = safeText.replace("\\", "\\\\");
-  }
+  // Escape backslashes first to avoid double-escaping other characters
+  safeText = safeText.split('\\').join('\\\\');
 
-  // Replace double quotes
-  while (safeText.includes("\"")) {
-    safeText = safeText.replace("\"", "\\\"");
-  }
+  // Escape double quotes
+  safeText = safeText.split('"').join('\\"');
 
-  // Replace newlines
-  while (safeText.includes("\n")) {
-    safeText = safeText.replace("\n", "\\n");
-  }
+  // Escape single quotes
+  safeText = safeText.split("'").join("\\'");
 
-  // Replace carriage returns
-  while (safeText.includes("\r")) {
-    safeText = safeText.replace("\r", "\\r");
-  }
+  // Escape newlines
+  safeText = safeText.split('\n').join('\\n');
 
-  // Optionally replace single quotes if you use single-quoted strings
-  // in your query. For safety, let's do it anyway:
-  while (safeText.includes("'")) {
-    safeText = safeText.replace("'", "\\'");
-  }
+  // Escape carriage returns
+  safeText = safeText.split('\r').join('\\r');
 
   return safeText;
 }
+
+
 
 export function sayHello(name: string | null = null): string {
   return `Hello, ${name || "World"}!`;
@@ -265,16 +266,25 @@ function createChunkEmbeddingsInNeo4j(
   // 2) Chunk the text
   const chunks: string[] = chunkText(pdfText);
 
+  for (let i = 0; i < chunks.length; i++){
+    console.log(chunks[i])
+  }
+
   // 3) For each chunk, create the Chunk node + relationship to Document
   for (let i = 0; i < chunks.length; i++) {
+    console.log("in for")
     const chunk = chunks[i];
     // Sanitize the chunk text before building the query
     const safeText = sanitizeForNeo4j(chunk);
-
+    console.log("sanitized")
     // returns f32[][], so we take the first item
     const embeddingF32 = getEmbedding(chunk)[0];
+
+    console.log("got embedding")
     // Convert that single f32[] into a string for DB
     const embeddingString = "[" + embeddingF32.join(",") + "]";
+
+    console.log(embeddingString)
 
     query = `
       MATCH (d:Document {id: '${pdfId}'})

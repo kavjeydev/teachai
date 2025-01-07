@@ -163,90 +163,98 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     });
   };
 
-  const handleFileChange = async (e: any) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("ENTER");
-    const selectedFile = e.target.files[0];
-    const uniqueFileId = uid();
 
-    if (!selectedFile) {
-      setError("No file selected.");
+    // Retrieve the FileList from input
+    const files = e.target.files;
+    if (!files || files.length === 0) {
+      setError("No files selected.");
       return;
     }
+
+    // Show the user some loading/progress feedback
     setShowProgress(true);
-
-    // if (selectedFile.type !== "application/pdf") {
-    //   setError("Please select a valid PDF file.");
-    //   return;
-    // }
-
     setLoading(true);
     setError("");
     setText("");
 
-    const formData = new FormData();
-    console.log(selectedFile);
-    formData.append("file", selectedFile);
-    console.log("HERE");
     try {
-      const response = await fetch(
-        "https://api.trainlyai.com/extract-pdf-text",
-        {
-          // Adjust the URL if necessary
+      /**
+       * Iterate over each file in the folder (or multi-select).
+       * In each iteration:
+       *  1. Extract text via your PDF-extraction API.
+       *  2. Create embeddings via your GraphQL endpoint.
+       */
+      for (const file of files) {
+        // Generate a unique ID per file
+        const uniqueFileId = uid();
+
+        // Prepare FormData per file
+        const formData = new FormData();
+        formData.append("file", file);
+
+        console.log("Uploading file:", file.name);
+
+        // 1) Extract PDF text
+        const response = await fetch(
+          "https://api.trainlyai.com/extract-pdf-text",
+          {
+            method: "POST",
+            body: formData,
+          },
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Failed to extract text.");
+        }
+
+        const data = await response.json();
+        console.log("Extracted text:", data.text);
+
+        // 2) Create embeddings in your GraphQL / Neo4j
+        const modusResponse = await fetch(BASE_URL, {
           method: "POST",
-          body: formData,
-        },
-      );
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            query: `
+              mutation($pdfText: String!, $pdfId: String!, $chatId: String!) {
+                createNodesAndEmbeddings(pdfText: $pdfText, pdfId: $pdfId, chatId: $chatId)
+              }
+            `,
+            variables: { pdfText: data.text, pdfId: uniqueFileId, chatId },
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to extract text.");
+        if (!modusResponse.ok) {
+          const errorData = await modusResponse.json();
+          throw new Error(
+            errorData.detail || "Failed to write nodes to neo4j.",
+          );
+        }
+
+        // When both API calls succeed, call onUploadContext
+        onUploadContext({
+          filename: file.name,
+          fileId: uniqueFileId,
+        });
+
+        console.log("Finished processing", file.name, uniqueFileId);
+        // If you want a progress bar, you can increment it after each file or track partial progress
       }
-      setProgress(10);
 
-      const data = await response.json();
-      setText(data.text);
-
-      console.log("EMBED", data.text);
-
-      const modusResponse = await fetch(BASE_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          query: `
-            mutation($pdfText: String!, $pdfId: String!, $chatId: String!) {
-              createNodesAndEmbeddings(pdfText: $pdfText, pdfId: $pdfId, chatId: $chatId)
-            }
-          `,
-          variables: { pdfText: data.text, pdfId: uniqueFileId, chatId },
-        }),
-      });
-
-      if (!modusResponse.ok) {
-        const errorData = await modusResponse.json();
-        throw new Error(errorData.detail || "Failed to write nodes to neo4j.");
-      }
+      // All files done
       setProgress(100);
-      setShowProgress(false);
-
-      //TODO: CHANGE THIS
-      onUploadContext({
-        filename: selectedFile.name,
-        fileId: uniqueFileId,
-      });
-
-      console.log("HII", selectedFile.name, uniqueFileId);
     } catch (err: any) {
+      console.error(err);
       setError(err.message || "An error occurred.");
     } finally {
       setLoading(false);
-    }
-
-    try {
-    } catch (err) {
-      console.log(err);
+      setShowProgress(false);
     }
   };
 
@@ -383,11 +391,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               </div>
               {/* Hidden file input */}
               <input
-                multiple
                 ref={fileInputRef}
                 type="file"
-                className="hidden"
+                onChange={handleFileChange}
+                multiple
               />
+
               <div className="flex">
                 <div
                   className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
