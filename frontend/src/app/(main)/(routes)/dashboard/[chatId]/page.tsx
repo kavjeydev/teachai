@@ -33,6 +33,7 @@ import { ContextList } from "@/app/(main)/components/context-list";
 import { APISettings } from "@/app/(main)/components/api-settings";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import ProgressBar from "@/app/(main)/components/progress-bar";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -263,7 +264,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       <SidebarProvider>
         <SidebarTrigger />
 
-        <AppSidebar chatId={chatId} />
+        <AppSidebar chatId={chatId} fileProgress={progress} />
+
         {/* {showContext &&
         showContext.map((item) => (
           <div className="z-[999999] flex flex-col h-screen w-fit px-2 items-center justify-center bg-red-300">
@@ -290,6 +292,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
              "max-w-2xl mx-auto" => centers the chat content
              but doesn't affect the scrollbar position.
         */}
+
             <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
               {skeletonData?.map((msg, index) => (
                 <div
@@ -298,6 +301,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     msg.sender === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
+                  <ProgressBar />
                   <div
                     className={`${
                       msg.sender === "user"

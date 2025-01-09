@@ -105,6 +105,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import ProgressBar from "./progress-bar";
 
 const items = [
   {
@@ -116,9 +117,10 @@ const items = [
 
 interface SidebarParams {
   chatId: Id<"chats">;
+  fileProgress?: number;
 }
 
-export function AppSidebar({ chatId }: SidebarParams) {
+export function AppSidebar({ chatId, fileProgress }: SidebarParams) {
   const router = useRouter();
   const { user } = useUser();
   const { theme } = useTheme();
@@ -313,6 +315,36 @@ print(response)
   };
 
   const handleDelete = async (chatId: Id<"chats">) => {
+    router.push("/dashboard");
+
+    const contextLength = currentChat?.context?.length || 0;
+    if (currentChat?.context) {
+      for (let i = 0; i < contextLength; i++) {
+        const modusResponse = await fetch(BASE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            query: `
+                mutation($fileId: String!) {
+                  removeContext(fileId: $fileId)
+                }
+              `,
+            variables: { fileId: currentChat.context[i].fileId },
+          }),
+        });
+
+        if (!modusResponse.ok) {
+          const errorData = await modusResponse.json();
+          throw new Error(
+            errorData.detail || "Failed to write nodes to neo4j.",
+          );
+        }
+      }
+    }
+
     deleteForever({
       id: chatId,
     });
@@ -771,6 +803,7 @@ print(response)
       </SidebarContent>
 
       <SidebarFooter className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
+        {fileProgress && <ProgressBar />}
         <div className="flex items-center space-x-3 px-1 py-3">
           <Popover>
             <PopoverTrigger asChild>
