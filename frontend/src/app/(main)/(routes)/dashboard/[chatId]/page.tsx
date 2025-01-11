@@ -301,7 +301,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     msg.sender === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <ProgressBar />
                   <div
                     className={`${
                       msg.sender === "user"
@@ -564,7 +563,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     <SidebarProvider>
       <SidebarTrigger />
 
-      <AppSidebar chatId={chatId} />
+      <AppSidebar chatId={chatId} fileProgress={progress} />
       {/* {showContext &&
         showContext.map((item) => (
           <div className="z-[999999] flex flex-col h-screen w-fit px-2 items-center justify-center bg-red-300">
@@ -579,7 +578,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             </div>
           </div>
         ))} */}
-      {showProgress && <div>{progress}%</div>}
+      {/* {showProgress && <div>{progress}%</div>} */}
       <div className="h-screen w-screen flex flex-col p-4">
         {/*
         1) Scrollable conversation area
