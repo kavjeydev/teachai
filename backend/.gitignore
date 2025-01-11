@@ -3,3 +3,4 @@ test.pdf
 myenv
 dependencies
 aws_lambda_artifact.zip
+show_api.py

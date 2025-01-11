@@ -5,7 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
   const convexUrl =
-    "https://colorless-finch-681.convex.cloud/api/run/chats/getChatByIdExposed";
+    "https://agile-ermine-199.convex.cloud/api/run/chats/getChatByIdExposed";
 
   // try {
   const { question, chatId } = await req.json();
@@ -36,9 +36,21 @@ export async function POST(req: NextRequest) {
 
   const currentChat = await currentChatresponse.json();
 
-  const chatAPIKey = currentChat.value.apiKey;
-  const chatProtected = currentChat.value.apiKeyDisabled;
-  const chatArchived = currentChat.value.isArchived;
+  // if (!currentChat.value?.apiKey) {
+  //   return NextResponse.json(
+  //     {
+  //       error:
+  //         "Chat might be protected, if you are the owner, make it public in the API settings to access this endpoint.",
+  //     },
+  //     { status: 401 },
+  //   );
+  // }
+
+  const chatAPIKey = currentChat.value?.apiKey;
+  const chatProtected = currentChat.value?.apiKeyDisabled;
+  const chatArchived = currentChat.value?.isArchived;
+
+  console.log(currentChat);
 
   if (chatProtected) {
     return NextResponse.json(
