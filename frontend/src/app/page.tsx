@@ -5,6 +5,7 @@ import { Button } from "@nextui-org/button";
 import { useRouter } from "next/navigation";
 import React from "react";
 import Carousel from "./(main)/components/carousel";
+import VideoModal from "./(main)/components/video-modal";
 
 function useTypewriterEffect(text: string, speed = 100) {
   const [displayedText, setDisplayedText] = React.useState("");
@@ -85,9 +86,10 @@ export default function Home() {
               Dashboard
             </Button>
           </SignedIn>
-          <Button variant="faded" className="">
+          <VideoModal />
+          {/* <Button variant="faded" className="">
             Watch Demo <span className="mt-0.5">▶</span>
-          </Button>
+          </Button> */}
         </div>
       </div>
     </div>

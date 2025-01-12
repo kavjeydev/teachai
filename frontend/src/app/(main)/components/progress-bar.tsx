@@ -1,21 +1,26 @@
 import { Progress } from "@nextui-org/progress";
-export default function ProgressBar() {
+
+interface ProgressBarProps {
+  value: number;
+  label: string;
+}
+
+export default function ProgressBar({ value, label }: ProgressBarProps) {
   return (
     <div>
-      HGU
       <Progress
         classNames={{
           base: "max-w-md",
           track: "drop-shadow-md border border-default",
-          indicator: "bg-gradient-to-r from-pink-500 to-yellow-500",
+          indicator: "bg-gradient-to-r from-blue-200 to-buttoncolor",
           label: "tracking-wider font-medium text-default-600",
           value: "text-foreground/60",
         }}
-        aria-label="Loading..."
+        aria-label={`${label} ${value}%`}
         className="max-w-md text-sm"
-        label="Uploading files..."
+        label={`${label} ${value}%`}
         size="sm"
-        value={60}
+        value={value}
       />
     </div>
   );

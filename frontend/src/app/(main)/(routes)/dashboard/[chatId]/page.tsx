@@ -100,6 +100,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   // Removed the unused `messages` state
   const [progress, setProgress] = useState<number>(0);
   const [showProgress, setShowProgress] = useState<boolean>(false);
+  const [progressText, setProgressText] = useState<string>("");
 
   // The user’s current input
   const [input, setInput] = useState("");
@@ -180,6 +181,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     setError("");
     setText("");
 
+    //File received
+    setProgress(10);
+    setProgressText("File received...");
+
     try {
       /**
        * Iterate over each file in the folder (or multi-select).
@@ -214,6 +219,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         const data = await response.json();
         console.log("Extracted text:", data.text);
 
+        //Text extracted from file
+        setProgress(30);
+        setProgressText("Text extracted from file...");
+
         // 2) Create embeddings in your GraphQL / Neo4j
         const modusResponse = await fetch(BASE_URL, {
           method: "POST",
@@ -238,6 +247,11 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           );
         }
 
+        //Nodes created from file
+        setProgress(70);
+        setProgressText("Neo4j nodes created...");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         // When both API calls succeed, call onUploadContext
         onUploadContext({
           filename: file.name,
@@ -250,6 +264,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
       // All files done
       setProgress(100);
+      setProgressText("Uploaded!");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (err: any) {
       console.error(err);
       setError(err.message || "An error occurred.");
@@ -264,7 +280,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       <SidebarProvider>
         <SidebarTrigger />
 
-        <AppSidebar chatId={chatId} fileProgress={progress} />
+        <AppSidebar
+          chatId={chatId}
+          fileProgress={progress}
+          showProgress={showProgress}
+          progressText={progressText}
+        />
 
         {/* {showContext &&
         showContext.map((item) => (
@@ -563,7 +584,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     <SidebarProvider>
       <SidebarTrigger />
 
-      <AppSidebar chatId={chatId} fileProgress={progress} />
+      <AppSidebar
+        chatId={chatId}
+        fileProgress={progress}
+        showProgress={showProgress}
+        progressText={progressText}
+      />
       {/* {showContext &&
         showContext.map((item) => (
           <div className="z-[999999] flex flex-col h-screen w-fit px-2 items-center justify-center bg-red-300">

@@ -117,10 +117,17 @@ const items = [
 
 interface SidebarParams {
   chatId: Id<"chats">;
-  fileProgress?: number;
+  fileProgress: number;
+  showProgress: boolean | false;
+  progressText: string;
 }
 
-export function AppSidebar({ chatId, fileProgress }: SidebarParams) {
+export function AppSidebar({
+  chatId,
+  fileProgress,
+  showProgress,
+  progressText,
+}: SidebarParams) {
   const router = useRouter();
   const { user } = useUser();
   const { theme } = useTheme();
@@ -803,7 +810,9 @@ print(response)
       </SidebarContent>
 
       <SidebarFooter className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
-        {fileProgress && <ProgressBar />}
+        {showProgress && (
+          <ProgressBar value={fileProgress} label={progressText} />
+        )}
         <div className="flex items-center space-x-3 px-1 py-3">
           <Popover>
             <PopoverTrigger asChild>

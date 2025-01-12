@@ -2,8 +2,8 @@ import requests # pip install requests
 from typing import Any
 
 def call_query_ai(question: str, chatid: str) -> Any:
-    url = 'https://trainlyai.com/api/queryai'
-    api_key = '52cef9866fd45b6cd36795b9323a32c9d536e7b7d2f8fe12d6b73dd7be4ee753'  # Replace with your actual API key
+    url = 'https://www.trainlyai.com/api/queryai'
+    api_key = '6bf4ce72261efeed5fea61cd1a4ddf9b267c02dce96d8c5e1c042d52c9234ea2'  # Replace with your actual API key
 
     payload = {
         "question": question,
@@ -24,5 +24,5 @@ def call_query_ai(question: str, chatid: str) -> Any:
         raise
 
 # Example usage:
-response = call_query_ai("What is the capital of France?", "jd74dpab8z6fqt1bpkg721yphn783aq1")
+response = call_query_ai("Tell me about the python file", "j574f4bxgvvgc3hj9ev480r7ys78639d")
 print(response)
