@@ -294,6 +294,7 @@ function createChunkEmbeddingsInNeo4j(
         text: "${safeText}",
         embedding: ${embeddingString},
         chatId: '${chatId}'
+        filename: '${filename}'
       })
       CREATE (d)-[:HAS_CHUNK {order: ${i}}]->(c)
     `;
@@ -324,7 +325,7 @@ function createChunkEmbeddingsInNeo4j(
  */
 export function createNodesAndEmbeddings(pdfText: string, pdfId: string, chatId: string, filename: string): void {
   console.log("Creating nodes and embeddings...");
-  createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText, filename, chatId);
+  createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, filename, pdfText, chatId);
 }
 
 export function removeContext(fileId: string): void {
