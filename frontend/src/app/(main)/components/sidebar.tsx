@@ -550,6 +550,9 @@ print(response)
                                             <div className="flex items-center gap-2">
                                               <File size={20} color="#777777" />
                                               <span>{item.filename}</span>
+                                              <div className="fixed opacity-0 pointer-events-none">
+                                                {item.fileId}
+                                              </div>
                                             </div>
                                             <Button
                                               className="x-[9999999] rounded-full hover:bg-darkmaincolor"

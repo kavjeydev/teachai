@@ -109,10 +109,16 @@ export function ContextList({ context, chatId }: ChatContext) {
           <CommandGroup heading="Context List">
             {context?.map((item) => (
               <CommandItem key={item.fileId}>
-                <div className="flex justify-between gap-4 items-center w-full">
+                <div
+                  className="flex justify-between gap-4 items-center w-full"
+                  key={item.fileId}
+                >
                   <div className="flex items-center gap-2">
                     <File size={20} color="#777777" />
                     <span>{item.filename}</span>
+                    <div className="fixed pointer-events-none opacity-0">
+                      {item.fileId}
+                    </div>
                   </div>
                   <Button
                     className="x-[9999999] rounded-full dark:hover:bg-darkmaincolor hover:bg-white"
