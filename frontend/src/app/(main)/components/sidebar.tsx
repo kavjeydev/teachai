@@ -245,6 +245,7 @@ print(response)
 
   const finishEditing = (chatId: Id<"chats">) => {
     renameChat({ id: chatId, title: editingTitle });
+    setEditingChatId(null);
   };
 
   const eraseContent = useMutation(api.chats.eraseContext);
@@ -260,10 +261,10 @@ print(response)
       })
       .catch(() => {
         toast({ title: "Failed to remove context" });
-      })
-      .finally(() => {
-        setEditingChatId(null);
       });
+    // .finally(() => {
+    //   setEditingChatId(null);
+    // });
   };
 
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
@@ -301,10 +302,10 @@ print(response)
       })
       .catch(() => {
         toast({ title: "Failed to change visibility" });
-      })
-      .finally(() => {
-        setEditingChatId(null);
       });
+    // .finally(() => {
+    //   setEditingChatId(null);
+    // });
   };
 
   const archivedChats = useQuery(api.chats.getArchivedChats);
@@ -754,11 +755,14 @@ print(response)
                               onChange={(e) => setEditingTitle(e.target.value)}
                               onBlur={() => finishEditing(chat._id)}
                               onKeyDown={(e) => {
+                                console.log(e.key);
                                 if (e.key === "Enter") {
+                                  console.log("entered");
                                   finishEditing(chat._id);
                                 } else if (e.key === "Escape") {
                                   // Cancel editing
-                                  setEditingChatId(null);
+                                  finishEditing(chat._id);
+                                  // setIsEd
                                 }
                               }}
                               className="bg-muted-foreground/20 h-6 "
