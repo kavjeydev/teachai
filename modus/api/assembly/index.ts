@@ -293,7 +293,7 @@ function createChunkEmbeddingsInNeo4j(
         id: "${pdfId}-${i}",
         text: "${safeText}",
         embedding: ${embeddingString},
-        chatId: '${chatId}'
+        chatId: '${chatId}',
         filename: '${filename}'
       })
       CREATE (d)-[:HAS_CHUNK {order: ${i}}]->(c)

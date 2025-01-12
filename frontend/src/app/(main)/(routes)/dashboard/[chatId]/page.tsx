@@ -79,7 +79,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       text: "                                                                                                          ",
     },
   ];
-  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+  // const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+  const BASE_URL = "http://localhost:8686/graphql";
   const uid = function (): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   };
@@ -228,7 +229,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+            // Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
           },
           body: JSON.stringify({
             query: `
