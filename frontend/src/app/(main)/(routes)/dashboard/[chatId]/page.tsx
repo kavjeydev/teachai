@@ -232,11 +232,16 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           },
           body: JSON.stringify({
             query: `
-              mutation($pdfText: String!, $pdfId: String!, $chatId: String!) {
-                createNodesAndEmbeddings(pdfText: $pdfText, pdfId: $pdfId, chatId: $chatId)
+              mutation($pdfText: String!, $pdfId: String!, $chatId: String!, $filename: String!) {
+                createNodesAndEmbeddings(pdfText: $pdfText, pdfId: $pdfId, chatId: $chatId, filename: $filename)
               }
             `,
-            variables: { pdfText: data.text, pdfId: uniqueFileId, chatId },
+            variables: {
+              pdfText: data.text,
+              pdfId: uniqueFileId,
+              chatId,
+              filename: file.name,
+            },
           }),
         });
 

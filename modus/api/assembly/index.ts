@@ -248,6 +248,7 @@ export function createNodesWithFile(data: string): string[] {
 function createChunkEmbeddingsInNeo4j(
   hostName: string,
   pdfId: string,
+  filename: string,
   pdfText: string,
   chatId: string,
 ): void {
@@ -321,9 +322,9 @@ function createChunkEmbeddingsInNeo4j(
 /**
  * Creates nodes from interpretFile() + also creates :Document/:Chunk nodes with embeddings & relationships.
  */
-export function createNodesAndEmbeddings(pdfText: string, pdfId: string, chatId: string): void {
+export function createNodesAndEmbeddings(pdfText: string, pdfId: string, chatId: string, filename: string): void {
   console.log("Creating nodes and embeddings...");
-  createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText, chatId);
+  createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText, filename, chatId);
 }
 
 export function removeContext(fileId: string): void {
