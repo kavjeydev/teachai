@@ -20,6 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+MAX_FILE_SIZE = 5 * 1024 * 1024
+
 class ReadFiles:
     def __init__(self):
         self.supported_file_types = [
@@ -59,8 +61,18 @@ class ReadFiles:
             ".pssc": self.extract_text_from_text,
         }
 
+    def get_file_size(self, upload_file: UploadFile) -> int:
+        current_pos = upload_file.file.tell()
+        upload_file.file.seek(0, 2)   # Go to the end of the file
+        size = upload_file.file.tell()
+        upload_file.file.seek(current_pos)  # Go back to original position
+        return size
+
     def extract_text_from_pdf(self, file: UploadFile):
         try:
+            # file_size = self.get_file_size(file)
+            # if file_size > MAX_FILE_SIZE:
+            #     raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
             file.file.seek(0)
             reader = PdfReader(file.file)
             text = ""
@@ -76,6 +88,8 @@ class ReadFiles:
 
     def extract_text_from_docx(self, file: UploadFile):
         try:
+            # if file.size() > MAX_FILE_SIZE:
+            #     raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
             # Read the entire file into bytes
             file.file.seek(0)
             data = file.file.read()
@@ -93,6 +107,8 @@ class ReadFiles:
 
     def extract_text_from_html(self, file: UploadFile):
         try:
+            # if file.size() > MAX_FILE_SIZE:
+            #     raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
             file.file.seek(0)
             content = file.file.read().decode('utf-8', errors='ignore')
             soup = BeautifulSoup(content, "html.parser")
@@ -105,6 +121,8 @@ class ReadFiles:
 
     def extract_text_from_text(self, file: UploadFile):
         try:
+            # if file.size() > MAX_FILE_SIZE:
+            #     raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
             file.file.seek(0)
             # Attempt to detect encoding; default to utf-8
             content = file.file.read().decode('utf-8', errors='ignore')
@@ -117,6 +135,8 @@ class ReadFiles:
 
     def extract_text(self, file: UploadFile):
         # Identify the file extension
+        # if file.size() > MAX_FILE_SIZE:
+        #         raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
         filename = file.filename.lower()
         matched_extension = None
         for ext in self.supported_file_types:
@@ -140,6 +160,9 @@ async def extract_text_endpoint(file: UploadFile = File(...)):
     """
     Endpoint to upload a file and extract its text based on the file type.
     """
+    file_size = read_files.get_file_size(file)
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file uploaded.")
 

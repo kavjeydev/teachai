@@ -5,6 +5,7 @@ import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
+import { MentionsInput, Mention } from "react-mentions";
 import { Paperclip, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
@@ -97,6 +98,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     return null;
   }
   const { toast } = useToast();
+
+  const users = [
+    { id: "john", display: "John Doe" },
+    { id: "jane", display: "Jane Smith" },
+    // ...other options
+  ];
 
   // Removed the unused `messages` state
   const [progress, setProgress] = useState<number>(0);
@@ -206,6 +213,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         // 1) Extract PDF text
         const response = await fetch(
           "https://api.trainlyai.com/extract-pdf-text",
+          // "http://0.0.0.0:8000/extract-pdf-text",
           {
             method: "POST",
             body: formData,
@@ -712,6 +720,30 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             radius="lg"
             minRows={3}
           />
+          {/* <MentionsInput
+            value={input}
+            onChange={(e, newValue) => setInput(newValue)}
+            // onChange={(e) => setInput(e.target.value)}
+            className=""
+            classNames={{
+              label: "text-white/50 dark:text-white/90 mb-2",
+              input:
+                "bg-transparent placeholder:text-black/50 dark:placeholder:text-white/60",
+              innerWrapper: "bg-transparent",
+              inputWrapper:
+                "bg-white/80 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-200 hover:bg-white/100 dark:hover:bg-white/10 group-data-[focus=true]:bg-white/50 dark:group-data-[focus=true]:bg-white/5 !cursor-text",
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your message..."
+            // radius="lg"
+            // minRows={3}
+          >
+            <Mention
+              trigger="@"
+              data={users}
+              style={{ backgroundColor: "#daf4fa" }}
+            />
+          </MentionsInput> */}
 
           <div className="flex items-center justify-between mt-2">
             <div
