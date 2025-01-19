@@ -23,6 +23,16 @@ import { APISettings } from "@/app/(main)/components/api-settings";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProgressBar from "@/app/(main)/components/progress-bar";
+import "../../../components/styles.scss";
+
+import CharacterCount from "@tiptap/extension-character-count";
+import Document from "@tiptap/extension-document";
+import Mention from "@tiptap/extension-mention";
+import Paragraph from "@tiptap/extension-paragraph";
+import Text from "@tiptap/extension-text";
+import { EditorContent, useEditor } from "@tiptap/react";
+
+import suggestion from "../../../components/suggestion";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -135,6 +145,34 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       },
     });
   };
+
+  const limit = 280;
+
+  const editor = useEditor({
+    extensions: [
+      Document,
+      Paragraph,
+      Text,
+      CharacterCount.configure({
+        limit,
+      }),
+      Mention.configure({
+        HTMLAttributes: {
+          class: "mention",
+        },
+        suggestion,
+      }),
+    ],
+    content: `
+      <p>
+        What do you all think about the new <span data-type="mention" data-id="Winona Ryder"></span> movie?
+      </p>
+    `,
+  });
+
+  const percentage = editor
+    ? Math.round((100 / limit) * editor.storage.characterCount.characters())
+    : 0;
 
   // Upload context
   const uploadContext = useMutation(api.chats.uploadContext);
@@ -665,7 +703,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
         {/* Wrap Textarea and mention dropdown in a relative container */}
         <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white relative">
-          <Textarea
+          {/* <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e: any) => {
@@ -684,7 +722,31 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             placeholder="Type your message (use @ to mention)..."
             radius="lg"
             minRows={3}
-          />
+          /> */}
+
+          <EditorContent editor={editor} />
+
+          {/* {editor && (
+            <div
+              className={`character-count ${editor.storage.characterCount.characters() === limit ? "character-count--warning" : ""}`}
+            >
+              <svg height="20" width="20" viewBox="0 0 20 20">
+                <circle r="10" cx="10" cy="10" fill="#e9ecef" />
+                <circle
+                  r="5"
+                  cx="10"
+                  cy="10"
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  strokeDasharray={`calc(${percentage} * 31.4 / 100) 31.4`}
+                  transform="rotate(-90) translate(-20)"
+                />
+                <circle r="6" cx="10" cy="10" fill="white" />
+              </svg>
+              {editor.storage.characterCount.characters()} / {limit} characters
+            </div>
+          )} */}
           {/* Mentions dropdown */}
           {isMentioning && filteredMentionables.length > 0 && (
             <div className="absolute left-0 bottom-[100%] mb-2 w-[80%] bg-white text-black border border-gray-200 rounded shadow-lg z-10">
