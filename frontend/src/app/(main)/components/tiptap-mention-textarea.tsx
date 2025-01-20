@@ -1,4 +1,3 @@
-import "./MentionList.scss";
 import { IconBrandPython, IconBrandReact } from "@tabler/icons-react";
 
 import React, {
@@ -64,13 +63,14 @@ export const MentionList = forwardRef((props: MentionListProps, ref) => {
 
   return (
     <div
-      className="flex flex-col gap-0.5 bg-white border-1 border-[#dddddd] rounded-lg shadow-md
+      className="flex flex-col gap-0.5 bg-white dark:bg-black border-1 border-[#dddddd] dark:border-[#222222] rounded-lg shadow-md
     p-2 max-h-[200px] overflow-scroll"
     >
       {props.items.length ? (
         props.items.map((item, index) => (
           <button
-            className="flex items-center bg-transparent gap-1 text-left w-full p-2 rounded-lg hover:bg-gray-100 focus:bg-gray-200"
+            className="flex items-center bg-transparent gap-1 text-left w-full p-2 rounded-lg hover:bg-gray-100 focus:bg-gray-200
+            dark:hover:bg-default-100 dark:focus:bg-default-200"
             key={index}
             onClick={() => selectItem(index)}
           >

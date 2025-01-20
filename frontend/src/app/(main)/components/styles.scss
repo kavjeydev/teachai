@@ -1,20 +1,28 @@
-/* Basic editor styles */
-.editor [class*="ProseMirror"] {
-  -webkit-box-shadow: none;
-  -moz-box-shadow: none;
-  box-shadow: none;
+:focus {
+  outline: none;
 }
+
 .tiptap {
   :first-child {
-    margin-top: 0;
-    color: black;
+    border-color: black;
+  }
+  .tiptap:focus-within {
+    outline: none;
+  }
+  p:first-child:empty {
+    content: attr(
+      data-placeholder
+    ); /* Use the data-placeholder attribute from the parent */
+    color: #999;
+    pointer-events: none;
+    opacity: 0.5;
   }
 
   .mention {
-    background-color: rgb(102, 0, 255, 0.05);
+    background-color: rgba(0, 128, 255, 0.1);
     border-radius: 0.4rem;
     box-decoration-break: clone;
-    color: rgb(102, 0, 255);
+    color: rgb(57, 130, 255);
     padding: 0.1rem 0.3rem;
   }
 }

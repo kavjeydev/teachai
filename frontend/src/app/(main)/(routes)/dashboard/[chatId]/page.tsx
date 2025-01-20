@@ -21,17 +21,13 @@ import CodeBlock from "@/app/(main)/components/code-block";
 import { ContextList } from "@/app/(main)/components/context-list";
 import { APISettings } from "@/app/(main)/components/api-settings";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
-import ProgressBar from "@/app/(main)/components/progress-bar";
 import "../../../components/styles.scss";
-
-import CharacterCount from "@tiptap/extension-character-count";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
 import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
-
+import Placeholder from "@tiptap/extension-placeholder";
 import suggestion from "../../../components/suggestion";
 
 interface ChatIdPageProps {
@@ -146,33 +142,27 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     });
   };
 
-  const limit = 280;
-
   const editor = useEditor({
     extensions: [
       Document,
       Paragraph,
       Text,
-      CharacterCount.configure({
-        limit,
-      }),
       Mention.configure({
         HTMLAttributes: {
           class: "mention",
         },
         suggestion,
       }),
+      Placeholder.configure({
+        placeholder: "Type your message here...",
+      }),
     ],
-    content: `
-      <p>
-        What do you all think about the new <span data-type="mention" data-id="Winona Ryder"></span> movie?
-      </p>
-    `,
   });
 
-  const percentage = editor
-    ? Math.round((100 / limit) * editor.storage.characterCount.characters())
-    : 0;
+  useEffect(() => {
+    console.log(editor?.getText());
+    setInput(editor?.getText() || "");
+  }, [editor?.getText()]);
 
   // Upload context
   const uploadContext = useMutation(api.chats.uploadContext);
@@ -395,7 +385,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white ">
             <Textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
               disabled
               style={{ color: theme === "dark" ? "white" : "black" }}
               classNames={{
@@ -445,40 +434,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       </SidebarProvider>
     );
   }
-
-  // Detect "@" in the input, track mention substring
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const currentValue = e.target.value;
-    const cursorPosition = e.target.selectionStart;
-    setInput(currentValue);
-
-    // Find the most recent "@"
-    const lastAtPosition = currentValue.lastIndexOf("@", cursorPosition - 1);
-    if (lastAtPosition !== -1) {
-      // Grab the substring after "@", up to the current cursor
-      const mentionText = currentValue.slice(
-        lastAtPosition + 1,
-        cursorPosition,
-      );
-
-      // If mentionText has no spaces or punctuation, we might be in mention mode
-      if (/^[^\s@]*$/.test(mentionText)) {
-        setIsMentioning(true);
-        setMentionStartIndex(lastAtPosition);
-        setMentionQuery(mentionText);
-      } else {
-        // The user typed space/punctuation => end mention mode
-        setIsMentioning(false);
-        setMentionQuery("");
-        setMentionStartIndex(null);
-      }
-    } else {
-      // No "@" found
-      setIsMentioning(false);
-      setMentionQuery("");
-      setMentionStartIndex(null);
-    }
-  };
 
   function highlightMentions(text: string): string {
     // This regex finds `@` followed by non-whitespace characters until the next space/punctuation.
@@ -622,7 +577,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+      editor?.commands.clearContent();
     }
+    if (e.key === "Enter" && e.shiftKey) {
+      editor?.chain().focus().insertContent("\n").run();
+    }
+
     // If shift+enter, allow newline
   };
 
@@ -724,7 +684,19 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             minRows={3}
           /> */}
 
-          <EditorContent editor={editor} />
+          <EditorContent
+            editor={editor}
+            className="shadow-none text-black dark:text-white p-2"
+            placeholder="h"
+            value={input}
+            onKeyDown={handleKeyDown}
+            data-placeholder="Type your message here..."
+          />
+          {editor?.getHTML() === "<p></p>" && (
+            <div className="absolute text-default-600 top-6 left-6 pointer-events-none">
+              Message Trainly...
+            </div>
+          )}
 
           {/* {editor && (
             <div
