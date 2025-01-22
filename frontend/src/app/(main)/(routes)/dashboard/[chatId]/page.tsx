@@ -587,118 +587,106 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   };
 
   return (
-    <SidebarProvider>
-      <SidebarTrigger />
+    <div className="h-screen w-screen bg-darkmaincolor">
+      <SidebarProvider className="h-full w-full dark:bg-[#0E0E0E] bg-white rounded-lg">
+        <SidebarTrigger />
 
-      <AppSidebar
-        chatId={chatId}
-        fileProgress={progress}
-        showProgress={showProgress}
-        progressText={progressText}
-      />
+        <AppSidebar
+          chatId={chatId}
+          fileProgress={progress}
+          showProgress={showProgress}
+          progressText={progressText}
+        />
 
-      <div className="h-screen w-screen flex flex-col p-4">
-        <div className="flex h-full justify-center overflow-y-auto w-full">
-          <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
-            {chatContent?.length === 0 && (
-              <p className="text-center text-gray-500">
-                No messages yet. Ask something!
-              </p>
-            )}
-            {chatContent?.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex mb-4 ${
-                  msg.sender === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+        <div className="h-screen w-screen flex flex-col">
+          <div className="flex h-full justify-center overflow-y-auto w-full">
+            <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
+              {chatContent?.length === 0 && (
+                <p className="text-center text-gray-500">
+                  No messages yet. Ask something!
+                </p>
+              )}
+              {chatContent?.map((msg, index) => (
                 <div
-                  className={`${
-                    msg.sender === "user"
-                      ? "dark:bg-[#333333]/40 bg-[#DDDDDD]/40 dark:text-white/90 text-black/90 max-w-[70%]"
-                      : "bg-[#7A9CC6]/0 dark:text-[#DDDDDD] text-[#222222]"
-                  } rounded-lg px-3 py-2 whitespace-pre-wrap`}
+                  key={index}
+                  className={`flex mb-4 ${
+                    msg.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
                 >
-                  {msg.sender === "bot" ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      className="max-w-[39rem]"
-                      components={{
-                        code({ node, inline, className, children, ...props }) {
-                          const match = /language-(\w+)/.exec(className || "");
-                          const language = match ? match[1] : "";
-                          return !inline && language ? (
-                            <CodeBlock
-                              language={language}
-                              value={String(children).replace(/\n$/, "")}
-                              {...props}
-                            />
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        },
-                      }}
-                    >
-                      {msg.text}
-                    </ReactMarkdown>
-                  ) : (
-                    msg.text
-                  )}
+                  <div
+                    className={`${
+                      msg.sender === "user"
+                        ? "dark:bg-[#333333]/40 bg-[#DDDDDD]/40 dark:text-white/90 text-black/90 max-w-[70%]"
+                        : "bg-[#7A9CC6]/0 dark:text-[#DDDDDD] text-[#222222]"
+                    } rounded-lg px-3 py-2 whitespace-pre-wrap`}
+                  >
+                    {msg.sender === "bot" ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        className="max-w-[39rem]"
+                        components={{
+                          code({
+                            node,
+                            inline,
+                            className,
+                            children,
+                            ...props
+                          }) {
+                            const match = /language-(\w+)/.exec(
+                              className || "",
+                            );
+                            const language = match ? match[1] : "";
+                            return !inline && language ? (
+                              <CodeBlock
+                                language={language}
+                                value={String(children).replace(/\n$/, "")}
+                                {...props}
+                              />
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    ) : (
+                      msg.text
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <div ref={scrollToBottom} />
+              ))}
+              <div ref={scrollToBottom} />
+            </div>
           </div>
-        </div>
 
-        {error && (
-          <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
-            Error: {error}
-          </div>
-        )}
-
-        <ContextList context={showContext} chatId={chatId} />
-
-        {/* Wrap Textarea and mention dropdown in a relative container */}
-        <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white relative">
-          {/* <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e: any) => {
-              handleInputChange(e);
-            }}
-            onKeyDown={handleKeyDown}
-            style={{ color: theme === "dark" ? "white" : "black" }}
-            classNames={{
-              label: "text-white/50 dark:text-white/90 mb-2",
-              input:
-                "bg-transparent placeholder:text-black/50 dark:placeholder:text-white/60",
-              innerWrapper: "bg-transparent",
-              inputWrapper:
-                "bg-white/80 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-200 hover:bg-white/100 dark:hover:bg-white/10 group-data-[focus=true]:bg-white/50 dark:group-data-[focus=true]:bg-white/5 !cursor-text",
-            }}
-            placeholder="Type your message (use @ to mention)..."
-            radius="lg"
-            minRows={3}
-          /> */}
-
-          <EditorContent
-            editor={editor}
-            className="shadow-none text-black dark:text-white p-2"
-            placeholder="h"
-            value={input}
-            onKeyDown={handleKeyDown}
-            data-placeholder="Type your message here..."
-          />
-          {editor?.getHTML() === "<p></p>" && (
-            <div className="absolute text-default-600 top-6 left-6 pointer-events-none">
-              Message Trainly...
+          {error && (
+            <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
+              Error: {error}
             </div>
           )}
 
-          {/* {editor && (
+          <ContextList context={showContext} chatId={chatId} />
+
+          {/* Wrap Textarea and mention dropdown in a relative container */}
+          <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white relative">
+            <EditorContent
+              editor={editor}
+              className="shadow-none text-black dark:text-white p-2"
+              placeholder="h"
+              value={input}
+              onKeyDown={handleKeyDown}
+              data-placeholder="Type your message here..."
+            />
+            {editor?.getHTML() === "<p></p>" && (
+              <div className="absolute text-default-600 top-6 left-6 pointer-events-none">
+                Message Trainly...
+              </div>
+            )}
+
+            {/* {editor && (
             <div
               className={`character-count ${editor.storage.characterCount.characters() === limit ? "character-count--warning" : ""}`}
             >
@@ -719,54 +707,57 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               {editor.storage.characterCount.characters()} / {limit} characters
             </div>
           )} */}
-          {/* Mentions dropdown */}
-          {isMentioning && filteredMentionables.length > 0 && (
-            <div className="absolute left-0 bottom-[100%] mb-2 w-[80%] bg-white text-black border border-gray-200 rounded shadow-lg z-10">
-              {filteredMentionables.map((item) => (
-                <div
-                  key={item.id}
-                  className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => handleSelectMention(item.display)}
-                >
-                  {item.display}
-                </div>
-              ))}
-            </div>
-          )}
+            {/* Mentions dropdown */}
+            {isMentioning && filteredMentionables.length > 0 && (
+              <div className="absolute left-0 bottom-[100%] mb-2 w-[80%] bg-white text-black border border-gray-200 rounded shadow-lg z-10">
+                {filteredMentionables.map((item) => (
+                  <div
+                    key={item.id}
+                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleSelectMention(item.display)}
+                  >
+                    {item.display}
+                  </div>
+                ))}
+              </div>
+            )}
 
-          <div className="flex items-center justify-between mt-2">
-            <div
-              className="flex gap-2 items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
-              rounded-lg transition-color duration-200 cursor-pointer"
-              onClick={triggerFileInput}
-            >
-              <Paperclip className="text-muted-foreground h-5 w-5" />
-              <h1 className="text-muted-foreground text-sm">Embed Context</h1>
-            </div>
-            {/* Hidden file input */}
-            <input
-              multiple
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-
-            <div className="flex">
+            <div className="flex items-center justify-between mt-2">
               <div
-                className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
-                text-black bg-transparent rounded-lg transition-color duration-200 cursor-pointer"
-                onClick={handleSend}
+                className="flex gap-2 items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
+              rounded-lg transition-color duration-200 cursor-pointer"
+                onClick={triggerFileInput}
               >
-                <Send className="h-5 w-5 text-muted-foreground" />
-                {loading && (
-                  <span className="ml-2 text-sm text-gray-500">Sending...</span>
-                )}
+                <Paperclip className="text-muted-foreground h-5 w-5" />
+                <h1 className="text-muted-foreground text-sm">Embed Context</h1>
+              </div>
+              {/* Hidden file input */}
+              <input
+                multiple
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+
+              <div className="flex">
+                <div
+                  className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
+                text-black bg-transparent rounded-lg transition-color duration-200 cursor-pointer"
+                  onClick={handleSend}
+                >
+                  <Send className="h-5 w-5 text-muted-foreground" />
+                  {loading && (
+                    <span className="ml-2 text-sm text-gray-500">
+                      Sending...
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </div>
   );
 }

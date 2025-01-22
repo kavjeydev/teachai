@@ -7,7 +7,7 @@ export default {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./node_modules/@nextui-org/theme/dist/components/(button|input|modal|popover|progress|spinner|ripple|form).js"
+    "./node_modules/@nextui-org/theme/dist/components/(button|input|modal|popover|progress|spinner|ripple|form).js",
   ],
   theme: {
     extend: {
@@ -15,7 +15,7 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         lightmaincolor: "#181818",
-        darkmaincolor: "#121212",
+        darkmaincolor: "#090909",
         textmaincolor: "#DAE2DF",
         textnormal: "#FFFFFF",
         buttoncolor: "#277AFF",
