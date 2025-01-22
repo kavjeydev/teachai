@@ -1,11 +1,11 @@
 "use client";
+
 require("dotenv").config({ path: ".env.local" });
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
-import { MentionsInput, Mention } from "react-mentions";
 import { Paperclip, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
@@ -17,24 +17,18 @@ import { useUser } from "@clerk/clerk-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Spinner } from "@nextui-org/spinner";
-// Optional: For syntax highlighting
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { darcula } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import {
-  coy,
-  duotoneDark,
-  duotoneSpace,
-  materialDark,
-  materialLight,
-  oneDark,
-  oneLight,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
 import CodeBlock from "@/app/(main)/components/code-block";
 import { ContextList } from "@/app/(main)/components/context-list";
 import { APISettings } from "@/app/(main)/components/api-settings";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
-import ProgressBar from "@/app/(main)/components/progress-bar";
+import "../../../components/styles.scss";
+import Document from "@tiptap/extension-document";
+import Mention from "@tiptap/extension-mention";
+import Paragraph from "@tiptap/extension-paragraph";
+import Text from "@tiptap/extension-text";
+import { EditorContent, useEditor } from "@tiptap/react";
+import Placeholder from "@tiptap/extension-placeholder";
+import suggestion from "../../../components/suggestion";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -80,8 +74,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       text: "                                                                                                          ",
     },
   ];
+
   const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
   // const BASE_URL = "http://localhost:8686/graphql";
+
   const uid = function (): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   };
@@ -97,15 +93,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   if (!user) {
     return null;
   }
+
   const { toast } = useToast();
 
-  const users = [
-    { id: "john", display: "John Doe" },
-    { id: "jane", display: "Jane Smith" },
-    // ...other options
-  ];
-
-  // Removed the unused `messages` state
   const [progress, setProgress] = useState<number>(0);
   const [showProgress, setShowProgress] = useState<boolean>(false);
   const [progressText, setProgressText] = useState<string>("");
@@ -116,7 +106,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
 
   const { theme } = useTheme();
@@ -129,9 +119,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     id: chatId,
   });
 
-  // useEffect(() => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  // }, [chatContent]);
   const scrollToBottom = useCallback(
     (node: any) => {
       if (node !== null) {
@@ -146,7 +133,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   });
 
   const onWrite = (sender: string, text: string) => {
-    const promise = writeContent({
+    writeContent({
       id: chatId,
       chat: {
         sender: sender,
@@ -155,12 +142,33 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     });
   };
 
-  // 1) Ref to the bottom of the messages list
+  const editor = useEditor({
+    extensions: [
+      Document,
+      Paragraph,
+      Text,
+      Mention.configure({
+        HTMLAttributes: {
+          class: "mention",
+        },
+        suggestion,
+      }),
+      Placeholder.configure({
+        placeholder: "Type your message here...",
+      }),
+    ],
+  });
 
+  useEffect(() => {
+    console.log(editor?.getText());
+    setInput(editor?.getText() || "");
+  }, [editor?.getText()]);
+
+  // Upload context
   const uploadContext = useMutation(api.chats.uploadContext);
 
   const onUploadContext = (chatContext: ChatContext) => {
-    const promise = uploadContext({
+    uploadContext({
       id: chatId,
       context: {
         filename: chatContext.filename,
@@ -194,12 +202,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     setProgressText("File received...");
 
     try {
-      /**
-       * Iterate over each file in the folder (or multi-select).
-       * In each iteration:
-       *  1. Extract text via your PDF-extraction API.
-       *  2. Create embeddings via your GraphQL endpoint.
-       */
       for (const file of files) {
         // Generate a unique ID per file
         const uniqueFileId = uid();
@@ -208,12 +210,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         const formData = new FormData();
         formData.append("file", file);
 
-        console.log("Uploading file:", file.name);
-
         // 1) Extract PDF text
         const response = await fetch(
           "https://api.trainlyai.com/extract-pdf-text",
-          // "http://0.0.0.0:8000/extract-pdf-text",
           {
             method: "POST",
             body: formData,
@@ -226,13 +225,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         }
 
         const data = await response.json();
-        console.log("Extracted text:", data.text);
 
         //Text extracted from file
         setProgress(30);
         setProgressText("Text extracted from file...");
 
-        // 2) Create embeddings in your GraphQL / Neo4j
+        // 2) Create embeddings
         const modusResponse = await fetch(BASE_URL, {
           method: "POST",
           headers: {
@@ -261,7 +259,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           );
         }
 
-        //Nodes created from file
         setProgress(70);
         setProgressText("Neo4j nodes created...");
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -273,7 +270,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         });
 
         console.log("Finished processing", file.name, uniqueFileId);
-        // If you want a progress bar, you can increment it after each file or track partial progress
       }
 
       // All files done
@@ -289,6 +285,26 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     }
   };
 
+  const mentionableItems = [
+    { id: "john", display: "John Doe" },
+    { id: "jane", display: "Jane Smith" },
+    { id: "steve", display: "Steve Jobs" },
+    { id: "bill", display: "Bill Gates" },
+  ];
+
+  const [isMentioning, setIsMentioning] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(
+    null,
+  );
+
+  // Filter mentionable items
+  const filteredMentionables = mentionableItems.filter((item) =>
+    item.display.toLowerCase().includes(mentionQuery.toLowerCase()),
+  );
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   if (!chatContent) {
     return (
       <SidebarProvider>
@@ -301,33 +317,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           progressText={progressText}
         />
 
-        {/* {showContext &&
-        showContext.map((item) => (
-          <div className="z-[999999] flex flex-col h-screen w-fit px-2 items-center justify-center bg-red-300">
-            <div className="flex justify-between">
-              {item.filename}
-              <X
-                className="h-4 w-4"
-                onClick={() => {
-                  handleErase(chatId, item.fileId);
-                }}
-              />
-            </div>
-          </div>
-        ))} */}
         <div className="h-screen w-screen flex flex-col p-4">
-          {/*
-        1) Scrollable conversation area
-           "flex-1" => takes up remaining screen height
-           "overflow-y-auto w-full" => wide as screen, scrollbar on far right
-      */}
           <div className="flex h-full justify-center overflow-y-auto w-full">
-            {/*
-          2) Inner container for the chat content
-             "max-w-2xl mx-auto" => centers the chat content
-             but doesn't affect the scrollbar position.
-        */}
-
             <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
               {skeletonData?.map((msg, index) => (
                 <div
@@ -382,31 +373,20 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                 </div>
               ))}
 
-              {/* Dummy div at the bottom for auto-scroll */}
               <div ref={scrollToBottom} />
             </div>
           </div>
-
-          {/* Error message (if any) */}
           {error && (
             <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
               Error: {error}
             </div>
           )}
-
-          {/*
-        3) Input area pinned at the bottom (outside scrollable div).
-           "max-w-2xl mx-auto" => still centered.
-      */}
           <ContextList context={showContext} chatId={chatId} />
-
           <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white ">
             <Textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
               disabled
               style={{ color: theme === "dark" ? "white" : "black" }}
-              className=""
               classNames={{
                 label: "text-white/50 dark:text-white/90 mb-2",
                 input:
@@ -447,14 +427,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     </span>
                   )}
                 </div>
-                {/* <Button
-                variant="ghost"
-                color="warning"
-                onClick={handleClear}
-                disabled={chatContent.length === 0}
-              >
-                Clear
-              </Button> */}
               </div>
             </div>
           </div>
@@ -463,6 +435,40 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     );
   }
 
+  function highlightMentions(text: string): string {
+    // This regex finds `@` followed by non-whitespace characters until the next space/punctuation.
+    // Customize as needed if your mentions can contain spaces or punctuation.
+    return text.replace(/@(\S+)/g, (match, p1) => {
+      // Wrap in a <span> with a background color or any style you like
+      return `<span style="background-color: yellow; color: black;">@${p1}</span>`;
+    });
+  }
+
+  // Insert mention text (e.g., John Doe) into the input string
+  const handleSelectMention = (selected: string) => {
+    if (mentionStartIndex === null || !textareaRef.current) return;
+
+    const before = input.slice(0, mentionStartIndex);
+    // +1 to skip the "@"
+    const after = input.slice(mentionStartIndex + 1 + mentionQuery.length);
+    const newValue = `${before}@${selected} ${after}`;
+
+    setInput(newValue);
+    setIsMentioning(false);
+    setMentionQuery("");
+    setMentionStartIndex(null);
+
+    // Place the cursor right after the inserted mention
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      const newCursorPosition = before.length + 1 + selected.length + 1;
+      textareaRef.current?.setSelectionRange(
+        newCursorPosition,
+        newCursorPosition,
+      );
+    });
+  };
+
   async function answerQuestion(question: string) {
     const response = await fetch(BASE_URL, {
       method: "POST",
@@ -470,7 +476,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
       },
-
       body: JSON.stringify({
         query: `
           query($question: String!, $chatId: String!) {
@@ -488,28 +493,18 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       }),
     });
 
-    console.log(
-      "RESPONSE",
-      question,
-      chatId,
-      process.env.NEXT_PUBLIC_HYPERMODE_API_KEY,
-    );
-
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const json = await response.json();
-
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
-    // console.log(json.data.answerQuestion.answer);
+
     return json.data.answerQuestion.answer;
-    // return json.data.answerQuestion.context.chunkText;
   }
 
-  // Example GraphQL fetch function (replace with your actual endpoint)
   async function fetchSayHello(name: string): Promise<string> {
     const response = await fetch(BASE_URL, {
       method: "POST",
@@ -532,7 +527,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     }
 
     const json = await response.json();
-
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
@@ -544,24 +538,20 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     fileInputRef.current?.click();
   };
 
-  // Handle “Send” button
   const handleSend = async () => {
     if (!input.trim()) {
       setError("Message cannot be empty.");
       return;
     }
 
-    // Clear previous error
     setError(null);
 
-    // 1) Add the user’s message
+    // 1) Add user’s message
     const userMsg: ChatMessage = {
       sender: "user",
       text: input.trim(),
     };
-    // Use mutation to write the message
     onWrite("user", input.trim());
-    // Clear the input box
     setInput("");
 
     // 2) Make the API call
@@ -569,12 +559,11 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     try {
       const botReply = await answerQuestion(userMsg.text);
 
-      // 3) Once the fetch is done, add the bot’s message
+      // 3) Add the bot’s message
       const botMsg: ChatMessage = {
         sender: "bot",
         text: botReply,
       };
-      // Use mutation to write the bot's reply
       onWrite("bot", botReply);
     } catch (err) {
       console.error("API error:", err);
@@ -586,205 +575,189 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   const handleKeyDown = (e: any) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault(); // Prevents the default newline insertion
-      handleSend(); // Trigger the submit action
+      e.preventDefault();
+      handleSend();
+      editor?.commands.clearContent();
     }
-    // If Shift + Enter, do nothing and allow the default behavior
+    if (e.key === "Enter" && e.shiftKey) {
+      editor?.chain().focus().insertContent("\n").run();
+    }
+
+    // If shift+enter, allow newline
   };
 
-  console.log("showcontext", showContext);
-
   return (
-    <SidebarProvider>
-      <SidebarTrigger />
+    <div className="h-screen w-screen bg-darkmaincolor">
+      <SidebarProvider className="h-full w-full dark:bg-[#0E0E0E] bg-white rounded-lg">
+        <SidebarTrigger />
 
-      <AppSidebar
-        chatId={chatId}
-        fileProgress={progress}
-        showProgress={showProgress}
-        progressText={progressText}
-      />
-      {/* {showContext &&
-        showContext.map((item) => (
-          <div className="z-[999999] flex flex-col h-screen w-fit px-2 items-center justify-center bg-red-300">
-            <div className="flex justify-between">
-              {item.filename}
-              <X
-                className="h-4 w-4"
-                onClick={() => {
-                  handleErase(chatId, item.fileId);
-                }}
-              />
+        <AppSidebar
+          chatId={chatId}
+          fileProgress={progress}
+          showProgress={showProgress}
+          progressText={progressText}
+        />
+
+        <div className="h-screen w-screen flex flex-col">
+          <div className="flex h-full justify-center overflow-y-auto w-full">
+            <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
+              {chatContent?.length === 0 && (
+                <p className="text-center text-gray-500">
+                  No messages yet. Ask something!
+                </p>
+              )}
+              {chatContent?.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex mb-4 ${
+                    msg.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`${
+                      msg.sender === "user"
+                        ? "dark:bg-[#333333]/40 bg-[#DDDDDD]/40 dark:text-white/90 text-black/90 max-w-[70%]"
+                        : "bg-[#7A9CC6]/0 dark:text-[#DDDDDD] text-[#222222]"
+                    } rounded-lg px-3 py-2 whitespace-pre-wrap`}
+                  >
+                    {msg.sender === "bot" ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        className="max-w-[39rem]"
+                        components={{
+                          code({
+                            node,
+                            inline,
+                            className,
+                            children,
+                            ...props
+                          }) {
+                            const match = /language-(\w+)/.exec(
+                              className || "",
+                            );
+                            const language = match ? match[1] : "";
+                            return !inline && language ? (
+                              <CodeBlock
+                                language={language}
+                                value={String(children).replace(/\n$/, "")}
+                                {...props}
+                              />
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    ) : (
+                      msg.text
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div ref={scrollToBottom} />
             </div>
           </div>
-        ))} */}
-      {/* {showProgress && <div>{progress}%</div>} */}
-      <div className="h-screen w-screen flex flex-col p-4">
-        {/*
-        1) Scrollable conversation area
-           "flex-1" => takes up remaining screen height
-           "overflow-y-auto w-full" => wide as screen, scrollbar on far right
-      */}
-        <div className="flex h-full justify-center overflow-y-auto w-full">
-          {/*
-          2) Inner container for the chat content
-             "max-w-2xl mx-auto" => centers the chat content
-             but doesn't affect the scrollbar position.
-        */}
-          <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
-            {chatContent?.length === 0 && (
-              <p className="text-center text-gray-500">
-                No messages yet. Ask something!
-              </p>
+
+          {error && (
+            <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
+              Error: {error}
+            </div>
+          )}
+
+          <ContextList context={showContext} chatId={chatId} />
+
+          {/* Wrap Textarea and mention dropdown in a relative container */}
+          <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white relative">
+            <EditorContent
+              editor={editor}
+              className="shadow-none text-black dark:text-white p-2"
+              placeholder="h"
+              value={input}
+              onKeyDown={handleKeyDown}
+              data-placeholder="Type your message here..."
+            />
+            {editor?.getHTML() === "<p></p>" && (
+              <div className="absolute text-default-600 top-6 left-6 pointer-events-none">
+                Message Trainly...
+              </div>
             )}
 
-            {chatContent?.map((msg, index) => (
+            {/* {editor && (
+            <div
+              className={`character-count ${editor.storage.characterCount.characters() === limit ? "character-count--warning" : ""}`}
+            >
+              <svg height="20" width="20" viewBox="0 0 20 20">
+                <circle r="10" cx="10" cy="10" fill="#e9ecef" />
+                <circle
+                  r="5"
+                  cx="10"
+                  cy="10"
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  strokeDasharray={`calc(${percentage} * 31.4 / 100) 31.4`}
+                  transform="rotate(-90) translate(-20)"
+                />
+                <circle r="6" cx="10" cy="10" fill="white" />
+              </svg>
+              {editor.storage.characterCount.characters()} / {limit} characters
+            </div>
+          )} */}
+            {/* Mentions dropdown */}
+            {isMentioning && filteredMentionables.length > 0 && (
+              <div className="absolute left-0 bottom-[100%] mb-2 w-[80%] bg-white text-black border border-gray-200 rounded shadow-lg z-10">
+                {filteredMentionables.map((item) => (
+                  <div
+                    key={item.id}
+                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleSelectMention(item.display)}
+                  >
+                    {item.display}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-2">
               <div
-                key={index}
-                className={`flex mb-4 ${
-                  msg.sender === "user" ? "justify-end" : "justify-start"
-                }`}
+                className="flex gap-2 items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
+              rounded-lg transition-color duration-200 cursor-pointer"
+                onClick={triggerFileInput}
               >
+                <Paperclip className="text-muted-foreground h-5 w-5" />
+                <h1 className="text-muted-foreground text-sm">Embed Context</h1>
+              </div>
+              {/* Hidden file input */}
+              <input
+                multiple
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+
+              <div className="flex">
                 <div
-                  className={`${
-                    msg.sender === "user"
-                      ? "dark:bg-[#333333]/40 bg-[#DDDDDD]/40 dark:text-white/90 text-black/90 max-w-[70%]"
-                      : "bg-[#7A9CC6]/0 dark:text-[#DDDDDD] text-[#222222]"
-                  } rounded-lg px-3 py-2  whitespace-pre-wrap`}
+                  className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
+                text-black bg-transparent rounded-lg transition-color duration-200 cursor-pointer"
+                  onClick={handleSend}
                 >
-                  {msg.sender === "bot" ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      className="max-w-[39rem]"
-                      components={{
-                        code({ node, inline, className, children, ...props }) {
-                          const match = /language-(\w+)/.exec(className || "");
-                          const language = match ? match[1] : "";
-                          return !inline && language ? (
-                            <CodeBlock
-                              language={language}
-                              value={String(children).replace(/\n$/, "")}
-                              {...props}
-                            />
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        },
-                      }}
-                    >
-                      {msg.text}
-                    </ReactMarkdown>
-                  ) : (
-                    msg.text
+                  <Send className="h-5 w-5 text-muted-foreground" />
+                  {loading && (
+                    <span className="ml-2 text-sm text-gray-500">
+                      Sending...
+                    </span>
                   )}
                 </div>
               </div>
-            ))}
-
-            {/* Dummy div at the bottom for auto-scroll */}
-            <div ref={scrollToBottom} />
-          </div>
-        </div>
-
-        {/* Error message (if any) */}
-        {error && (
-          <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
-            Error: {error}
-          </div>
-        )}
-
-        {/*
-        3) Input area pinned at the bottom (outside scrollable div).
-           "max-w-2xl mx-auto" => still centered.
-      */}
-        <ContextList context={showContext} chatId={chatId} />
-
-        <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white ">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            style={{ color: theme === "dark" ? "white" : "black" }}
-            className=""
-            classNames={{
-              label: "text-white/50 dark:text-white/90 mb-2",
-              input:
-                "bg-transparent placeholder:text-black/50 dark:placeholder:text-white/60",
-              innerWrapper: "bg-transparent",
-              inputWrapper:
-                "bg-white/80 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-200 hover:bg-white/100 dark:hover:bg-white/10 group-data-[focus=true]:bg-white/50 dark:group-data-[focus=true]:bg-white/5 !cursor-text",
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
-            radius="lg"
-            minRows={3}
-          />
-          {/* <MentionsInput
-            value={input}
-            onChange={(e, newValue) => setInput(newValue)}
-            // onChange={(e) => setInput(e.target.value)}
-            className=""
-            classNames={{
-              label: "text-white/50 dark:text-white/90 mb-2",
-              input:
-                "bg-transparent placeholder:text-black/50 dark:placeholder:text-white/60",
-              innerWrapper: "bg-transparent",
-              inputWrapper:
-                "bg-white/80 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-200 hover:bg-white/100 dark:hover:bg-white/10 group-data-[focus=true]:bg-white/50 dark:group-data-[focus=true]:bg-white/5 !cursor-text",
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
-            // radius="lg"
-            // minRows={3}
-          >
-            <Mention
-              trigger="@"
-              data={users}
-              style={{ backgroundColor: "#daf4fa" }}
-            />
-          </MentionsInput> */}
-
-          <div className="flex items-center justify-between mt-2">
-            <div
-              className="flex gap-2 items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
-              rounded-lg transition-color duration-200 cursor-pointer"
-              onClick={triggerFileInput}
-            >
-              <Paperclip className="text-muted-foreground h-5 w-5" />
-              <h1 className="text-muted-foreground text-sm">Embed Context</h1>
-            </div>
-            {/* Hidden file input */}
-            <input
-              multiple
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <div className="flex">
-              <div
-                className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
-                text-black bg-transparent rounded-lg transition-color duration-200 cursor-pointer"
-                onClick={handleSend}
-              >
-                <Send className="h-5 w-5 text-muted-foreground" />
-                {loading && (
-                  <span className="ml-2 text-sm text-gray-500">Sending...</span>
-                )}
-              </div>
-              {/* <Button
-                variant="ghost"
-                color="warning"
-                onClick={handleClear}
-                disabled={chatContent.length === 0}
-              >
-                Clear
-              </Button> */}
             </div>
           </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </div>
   );
 }
