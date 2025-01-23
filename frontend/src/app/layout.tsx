@@ -55,7 +55,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${recursive.variable} ${literata.variable} antialiased dark:bg-lightmaincolor
-          bg-white scrollbar-hide`}
+          bg-white scrollbar-hide overscroll-none`}
       >
         <Providers>
           <main>

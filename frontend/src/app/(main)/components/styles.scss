@@ -2,6 +2,14 @@
   outline: none;
 }
 
+.mention {
+  background-color: rgba(0, 128, 255, 0.1);
+  border-radius: 0.4rem;
+  box-decoration-break: clone;
+  color: rgb(57, 130, 255);
+  padding: 0.1rem 0.3rem;
+}
+
 .tiptap {
   :first-child {
     border-color: black;
