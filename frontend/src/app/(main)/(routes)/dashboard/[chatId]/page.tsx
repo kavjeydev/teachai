@@ -160,9 +160,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   });
 
   useEffect(() => {
-    console.log(editor?.getText());
-    setInput(editor?.getText() || "");
-  }, [editor?.getText()]);
+    console.log(editor?.getHTML());
+    setInput(editor?.getHTML() || "");
+  }, [editor?.getHTML()]);
 
   // Upload context
   const uploadContext = useMutation(api.chats.uploadContext);
@@ -284,24 +284,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       setShowProgress(false);
     }
   };
-
-  const mentionableItems = [
-    { id: "john", display: "John Doe" },
-    { id: "jane", display: "Jane Smith" },
-    { id: "steve", display: "Steve Jobs" },
-    { id: "bill", display: "Bill Gates" },
-  ];
-
-  const [isMentioning, setIsMentioning] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState("");
-  const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(
-    null,
-  );
-
-  // Filter mentionable items
-  const filteredMentionables = mentionableItems.filter((item) =>
-    item.display.toLowerCase().includes(mentionQuery.toLowerCase()),
-  );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -435,40 +417,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     );
   }
 
-  function highlightMentions(text: string): string {
-    // This regex finds `@` followed by non-whitespace characters until the next space/punctuation.
-    // Customize as needed if your mentions can contain spaces or punctuation.
-    return text.replace(/@(\S+)/g, (match, p1) => {
-      // Wrap in a <span> with a background color or any style you like
-      return `<span style="background-color: yellow; color: black;">@${p1}</span>`;
-    });
-  }
-
-  // Insert mention text (e.g., John Doe) into the input string
-  const handleSelectMention = (selected: string) => {
-    if (mentionStartIndex === null || !textareaRef.current) return;
-
-    const before = input.slice(0, mentionStartIndex);
-    // +1 to skip the "@"
-    const after = input.slice(mentionStartIndex + 1 + mentionQuery.length);
-    const newValue = `${before}@${selected} ${after}`;
-
-    setInput(newValue);
-    setIsMentioning(false);
-    setMentionQuery("");
-    setMentionStartIndex(null);
-
-    // Place the cursor right after the inserted mention
-    requestAnimationFrame(() => {
-      textareaRef.current?.focus();
-      const newCursorPosition = before.length + 1 + selected.length + 1;
-      textareaRef.current?.setSelectionRange(
-        newCursorPosition,
-        newCursorPosition,
-      );
-    });
-  };
-
   async function answerQuestion(question: string) {
     const response = await fetch(BASE_URL, {
       method: "POST",
@@ -598,7 +546,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           progressText={progressText}
         />
 
-        <div className="h-screen w-screen flex flex-col">
+        <div className="h-screen w-screen flex flex-col pb-8">
           <div className="flex h-full justify-center overflow-y-auto w-full">
             <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
               {chatContent?.length === 0 && (
@@ -653,7 +601,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                         {msg.text}
                       </ReactMarkdown>
                     ) : (
-                      msg.text
+                      <div dangerouslySetInnerHTML={{ __html: msg.text }} />
                     )}
                   </div>
                 </div>
@@ -707,20 +655,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               {editor.storage.characterCount.characters()} / {limit} characters
             </div>
           )} */}
-            {/* Mentions dropdown */}
-            {isMentioning && filteredMentionables.length > 0 && (
-              <div className="absolute left-0 bottom-[100%] mb-2 w-[80%] bg-white text-black border border-gray-200 rounded shadow-lg z-10">
-                {filteredMentionables.map((item) => (
-                  <div
-                    key={item.id}
-                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => handleSelectMention(item.display)}
-                  >
-                    {item.display}
-                  </div>
-                ))}
-              </div>
-            )}
 
             <div className="flex items-center justify-between mt-2">
               <div
