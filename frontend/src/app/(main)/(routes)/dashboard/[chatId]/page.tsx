@@ -29,6 +29,7 @@ import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
 import suggestion from "../../../components/suggestion";
+import { sanitizeHTML } from "@/app/(main)/components/sanitizeHtml";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -601,7 +602,11 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                         {msg.text}
                       </ReactMarkdown>
                     ) : (
-                      <div dangerouslySetInnerHTML={{ __html: msg.text }} />
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHTML(msg.text),
+                        }}
+                      />
                     )}
                   </div>
                 </div>
