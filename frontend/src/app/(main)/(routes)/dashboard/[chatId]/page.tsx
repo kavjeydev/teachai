@@ -101,6 +101,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const [showProgress, setShowProgress] = useState<boolean>(false);
   const [progressText, setProgressText] = useState<string>("");
 
+  const [fileKey, setFileKey] = useState<Date>(new Date());
+
   // The user’s current input
   const [input, setInput] = useState("");
   // For loading / error states
@@ -179,12 +181,14 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
     toast({
       title: "File uploaded successfully!",
+      variant: "success",
+      popover: "auto",
     });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("ENTER");
-
+    setFileKey(new Date());
     // Retrieve the FileList from input
     const files = e.target.files;
     if (!files || files.length === 0) {
@@ -302,7 +306,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
         <div className="h-screen w-screen flex flex-col p-4">
           <div className="flex h-full justify-center overflow-y-auto w-full">
-            <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
+            <div className="w-full max-w-2xl mx-auto p-4 mt-4 text-white">
               {skeletonData?.map((msg, index) => (
                 <div
                   key={index}
@@ -372,6 +376,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               style={{ color: theme === "dark" ? "white" : "black" }}
               classNames={{
                 label: "text-white/50 dark:text-white/90 mb-2",
+
                 input:
                   "bg-transparent placeholder:text-black/50 dark:placeholder:text-white/60",
                 innerWrapper: "bg-transparent",
@@ -387,8 +392,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                 className="flex gap-2 items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
               rounded-lg transition-color duration-200 cursor-pointer"
               >
-                <Paperclip className="text-muted-foreground h-5 w-5" />
-                <h1 className="text-muted-foreground text-sm">Embed Context</h1>
+                <Paperclip className="text-black dark:text-white h-5 w-5" />
+                <h1 className="text-black dark:text-white text-sm">
+                  Embed Context
+                </h1>
               </div>
               {/* Hidden file input */}
               <input
@@ -488,6 +495,13 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   };
 
   const handleSend = async () => {
+    if (input === "<p></p>") {
+      toast({
+        title: "Message cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!input.trim()) {
       setError("Message cannot be empty.");
       return;
@@ -548,8 +562,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         />
 
         <div className="h-screen w-screen flex flex-col pb-8">
-          <div className="flex h-full justify-center overflow-y-auto w-full">
-            <div className="w-full max-w-2xl mx-auto p-4 mt-4 rounded-2xl text-white">
+          <div className="flex h-full justify-center overflow-y-auto  w-full">
+            <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white ">
               {chatContent?.length === 0 && (
                 <p className="text-center text-gray-500">
                   No messages yet. Ask something!
@@ -632,54 +646,30 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                 </div>
               ))}
               <div ref={scrollToBottom} />
+              <div className="relative h-4"></div>
             </div>
           </div>
-
-          {error && (
-            <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
-              Error: {error}
-            </div>
-          )}
 
           <ContextList context={showContext} chatId={chatId} />
 
           {/* Wrap Textarea and mention dropdown in a relative container */}
-          <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white relative">
+          <div
+            className="w-full max-w-3xl mx-auto bg-white dark:bg-[#151515] border border-black/10 dark:border-white/20 shadow-md shadow-black/5
+             p-2 rounded-2xl text-white relative"
+          >
             <EditorContent
               editor={editor}
-              className="shadow-none text-black dark:text-white p-2"
+              className="shadow-none text-black text-sm dark:text-white p-2"
               placeholder="h"
               value={input}
               onKeyDown={handleKeyDown}
               data-placeholder="Type your message here..."
             />
             {editor?.getHTML() === "<p></p>" && (
-              <div className="absolute text-default-600 top-6 left-6 pointer-events-none">
+              <div className="absolute text-muted-foreground text-sm top-[1.1rem] left-4 pointer-events-none">
                 Message Trainly...
               </div>
             )}
-
-            {/* {editor && (
-            <div
-              className={`character-count ${editor.storage.characterCount.characters() === limit ? "character-count--warning" : ""}`}
-            >
-              <svg height="20" width="20" viewBox="0 0 20 20">
-                <circle r="10" cx="10" cy="10" fill="#e9ecef" />
-                <circle
-                  r="5"
-                  cx="10"
-                  cy="10"
-                  fill="transparent"
-                  stroke="currentColor"
-                  strokeWidth="10"
-                  strokeDasharray={`calc(${percentage} * 31.4 / 100) 31.4`}
-                  transform="rotate(-90) translate(-20)"
-                />
-                <circle r="6" cx="10" cy="10" fill="white" />
-              </svg>
-              {editor.storage.characterCount.characters()} / {limit} characters
-            </div>
-          )} */}
 
             <div className="flex items-center justify-between mt-2">
               <div
@@ -687,11 +677,11 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               rounded-lg transition-color duration-200 cursor-pointer"
                 onClick={triggerFileInput}
               >
-                <Paperclip className="text-muted-foreground h-5 w-5" />
-                <h1 className="text-muted-foreground text-sm">Embed Context</h1>
+                <Paperclip className="text-black dark:text-white h-4 w-4" />
               </div>
               {/* Hidden file input */}
               <input
+                key={fileKey.toString()}
                 multiple
                 ref={fileInputRef}
                 type="file"
@@ -701,16 +691,25 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
               <div className="flex">
                 <div
-                  className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
+                  className="flex items-center justify-center  px-2
                 text-black bg-transparent rounded-lg transition-color duration-200 cursor-pointer"
                   onClick={handleSend}
                 >
-                  <Send className="h-5 w-5 text-muted-foreground" />
-                  {loading && (
-                    <span className="ml-2 text-sm text-gray-500">
-                      Sending...
-                    </span>
-                  )}
+                  <div
+                    className={cn(
+                      "p-2 border border-black/10 dark:border-white/10 rounded-lg\
+                  transition-all duration-150",
+                      input === "<p></p>"
+                        ? "text-muted-foreground cursor-default"
+                        : "text-black dark:text-white hover:bg-muted-foreground/10",
+                    )}
+                  >
+                    {input === "<p></p>" ? (
+                      <Send className="h-4 w-4 text-muted-foreground " />
+                    ) : (
+                      <Send className="h-4 w-4 text-black dark:text-white " />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
