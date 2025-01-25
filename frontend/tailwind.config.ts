@@ -71,6 +71,7 @@ export default {
       fontFamily: {
         recursive: ["Recursive", "sans-serif"],
         literata: ["Literata", "serif"],
+        geist: ["Geist", "sans-serif"],
       },
       keyframes: {
         blink: {

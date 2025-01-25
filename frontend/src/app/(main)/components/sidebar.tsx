@@ -363,7 +363,7 @@ print(response)
   }
 
   return (
-    <Sidebar className="z-99999 border-none">
+    <Sidebar className="z-99999 border-none" collapsible="icon">
       <SidebarHeader className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
         <div className="flex items-center space-x-1 px-1 py-3">
           <Popover>
@@ -750,29 +750,36 @@ print(response)
                             isActive && "bg-muted-foreground/10",
                           )}
                         >
+                          <File />
                           {/* Show an input if we are editing this chat, otherwise show the title */}
-                          {isEditing ? (
-                            <Input
-                              autoFocus
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
-                              onBlur={() => finishEditing(chat._id)}
-                              onKeyDown={(e) => {
-                                console.log(e.key);
-                                if (e.key === "Enter") {
-                                  console.log("entered");
-                                  finishEditing(chat._id);
-                                } else if (e.key === "Escape") {
-                                  // Cancel editing
-                                  finishEditing(chat._id);
-                                  // setIsEd
+                          <div className="flex w-full justify-between items-center cursor-pointer">
+                            {isEditing ? (
+                              <Input
+                                autoFocus
+                                value={editingTitle}
+                                onChange={(e) =>
+                                  setEditingTitle(e.target.value)
                                 }
-                              }}
-                              className="bg-muted-foreground/20 h-6 "
-                            />
-                          ) : (
-                            <span className="cursor-pointer">{chat.title}</span>
-                          )}
+                                onBlur={() => finishEditing(chat._id)}
+                                onKeyDown={(e) => {
+                                  console.log(e.key);
+                                  if (e.key === "Enter") {
+                                    console.log("entered");
+                                    finishEditing(chat._id);
+                                  } else if (e.key === "Escape") {
+                                    // Cancel editing
+                                    finishEditing(chat._id);
+                                    // setIsEd
+                                  }
+                                }}
+                                className="bg-muted-foreground/20 h-6 "
+                              />
+                            ) : (
+                              <span className="cursor-pointer">
+                                {chat.title}
+                              </span>
+                            )}
+                          </div>
 
                           {/* Archive/Delete popover */}
                           <div
