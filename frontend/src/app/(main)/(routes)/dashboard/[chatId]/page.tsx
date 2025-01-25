@@ -536,7 +536,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   };
 
   return (
-    <div className="h-screen w-screen bg-darkmaincolor">
+    <div className="h-screen w-screen bg-darkmaincolor font-geist">
       <SidebarProvider className="h-full w-full dark:bg-[#0E0E0E] bg-white rounded-lg">
         <SidebarTrigger />
 
@@ -558,16 +558,31 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               {chatContent?.map((msg, index) => (
                 <div
                   key={index}
-                  className={`flex mb-4 ${
+                  className={`flex mb-4 gap-2 items-center ${
                     msg.sender === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
+                  {msg.sender === "bot" && (
+                    <div>
+                      {theme === "dark" ? (
+                        <img
+                          src="/trainly_white.png"
+                          className="h-8 w-8 rounded-full"
+                        />
+                      ) : (
+                        <img
+                          src="/trainly.png"
+                          className="h-8 w-8 rounded-full"
+                        />
+                      )}
+                    </div>
+                  )}
                   <div
                     className={`${
                       msg.sender === "user"
-                        ? "dark:bg-[#333333]/40 bg-[#DDDDDD]/40 dark:text-white/90 text-black/90 max-w-[70%]"
+                        ? "dark:bg-[#333333]/40 bg-[#DEDEDE]/40 dark:text-white/90 text-black/90 max-w-[70%]"
                         : "bg-[#7A9CC6]/0 dark:text-[#DDDDDD] text-[#222222]"
-                    } rounded-lg px-3 py-2 whitespace-pre-wrap`}
+                    } rounded-lg px-3 py-2 whitespace-pre-wrap text-sm leading-relaxed`}
                   >
                     {msg.sender === "bot" ? (
                       <ReactMarkdown
@@ -602,13 +617,18 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                         {msg.text}
                       </ReactMarkdown>
                     ) : (
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: sanitizeHTML(msg.text),
-                        }}
-                      />
+                      <div className="flex gap-4 items-center">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHTML(msg.text),
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
+                  {msg.sender === "user" && (
+                    <img src={user.imageUrl} className="h-8 w-8 rounded-full" />
+                  )}
                 </div>
               ))}
               <div ref={scrollToBottom} />
