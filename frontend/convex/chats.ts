@@ -45,6 +45,7 @@ export const createChat = mutation({
       },
       apiKey: "undefined",
       apiKeyDisabled: true,
+      visibility: "private",
     });
 
     console.log(identity);
@@ -457,6 +458,38 @@ export const unArchive = mutation({
 
     const document = await ctx.db.patch(args.id, {
       isArchived: false,
+    });
+
+    return document;
+  },
+});
+
+export const changeChatVisibility = mutation({
+  args: {
+    id: v.id("chats"),
+    visibility: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("User not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingDocument = await ctx.db.get(args.id);
+
+    if (!existingDocument) {
+      throw new Error("Document not found.");
+    }
+
+    if (existingDocument.userId !== userId) {
+      throw new Error("Unauthorized to modify.");
+    }
+
+    const document = await ctx.db.patch(args.id, {
+      visibility: args.visibility,
     });
 
     return document;
