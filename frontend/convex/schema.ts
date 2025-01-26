@@ -29,6 +29,7 @@ export default defineSchema({
     }),
     apiKey: v.string(),
     apiKeyDisabled: v.boolean(),
+    visibility: v.string(),
     // identity: v.optional(v.object())
   })
     .index("by_user", ["userId"])

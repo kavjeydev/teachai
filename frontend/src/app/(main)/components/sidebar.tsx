@@ -442,7 +442,12 @@ print(response)
                           >
                             <div className="flex gap-2">
                               <File />
-                              <span>{chat.title}</span>
+                              <span>
+                                {chat.title}{" "}
+                                <div className="fixed opacity-0 pointer-events-none">
+                                  {chat._id}
+                                </div>
+                              </span>
                             </div>
                             <div className="flex">
                               <TooltipProvider>

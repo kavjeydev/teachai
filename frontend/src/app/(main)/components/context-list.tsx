@@ -94,12 +94,12 @@ export function ContextList({ context, chatId }: ChatContext) {
           onClick={() => {
             setOpen(!open);
           }}
-          className="group fixed left-[16.8rem] top-2"
-          variant="link"
+          className="group absolute right-2 top-3.5"
+          variant="default"
         >
-          <h1 className="flex items-center underline decoration-buttoncolor/30 group-hover:decoration-buttoncolor text-buttoncolor">
-            Manage Context Files
-          </h1>
+          {/* <h1 className="flex items-center underline decoration-buttoncolor/30 group-hover:decoration-buttoncolor text-buttoncolor"> */}
+          Manage Context Files
+          {/* </h1> */}
         </Button>
       </div>
       <CommandDialog open={open} onOpenChange={setOpen}>

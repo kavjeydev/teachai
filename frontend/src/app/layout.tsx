@@ -60,12 +60,12 @@ export default function RootLayout({
         <Providers>
           <main>
             <Navbar />
+            <Toaster />
 
             {/* <main> */}
             {/* <SidebarTrigger /> */}
             {children}
           </main>
-          <Toaster />
         </Providers>
       </body>
     </html>
