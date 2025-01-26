@@ -624,7 +624,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                         defaultValue={currentChat?.title}
                         value={editingTitle}
                         onChange={(e) => setEditingTitle(e.target.value)}
-                        onBlur={() => finishEditing(chatId)}
                         onKeyDown={(e) => {
                           console.log(e.key);
                           if (e.key === "Enter") {
@@ -637,7 +636,14 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button type="submit" size="sm">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      onClick={() => {
+                        finishEditing(chatId);
+                        toast.success("Chat renamed successfully!");
+                      }}
+                    >
                       Save changes
                     </Button>
                     <DialogClose asChild>
