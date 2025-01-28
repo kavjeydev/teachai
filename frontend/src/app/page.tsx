@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import Carousel from "./(main)/components/carousel";
 import VideoModal from "./(main)/components/video-modal";
+import Navbar from "./components/navbar";
+import { Spinner } from "@nextui-org/spinner";
 
 function useTypewriterEffect(text: string, speed = 100) {
   const [displayedText, setDisplayedText] = React.useState("");
@@ -34,6 +36,7 @@ function useTypewriterEffect(text: string, speed = 100) {
 
 export default function Home() {
   const router = useRouter();
+  const { user } = useUser();
   const responses = [
     "teach me about black holes.",
     "what does this codebase do?",
@@ -52,6 +55,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col justify-center text-center">
+      <Navbar />
       <div className="flex flex-col gap-8 justify-center items-center h-screen">
         <div className="flex flex-col gap-2">
           <h1 className="font-recursive leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60">
@@ -67,6 +71,11 @@ export default function Home() {
         </div>
 
         <div className="flex gap-4">
+          {user === undefined && (
+            <div className="">
+              <Spinner />
+            </div>
+          )}
           <SignedOut>
             <SignInButton mode="modal">
               <Button

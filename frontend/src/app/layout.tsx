@@ -8,14 +8,6 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/navbar";
-import { ClerkProvider } from "@clerk/clerk-react";
-import { ConvexClient } from "convex/browser";
-import { ConvexClientProvider } from "./components/providers/convex-provider";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "./(main)/components/sidebar";
-import { useEffect } from "react";
-import { ThemeProvider } from "next-themes";
-import ThemeSwitcher from "./(main)/components/theme-switcher";
 import Providers from "./(main)/components/Providers";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -59,7 +51,6 @@ export default function RootLayout({
       >
         <Providers>
           <main>
-            <Navbar />
             <Toaster />
 
             {/* <main> */}

@@ -12,6 +12,7 @@ import { Button } from "@nextui-org/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@nextui-org/popover"; // <-- Make sure you import these
 import { useRouter } from "next/navigation";
 import ThemeSwitcher from "../(main)/components/theme-switcher";
+import { Spinner } from "@nextui-org/spinner";
 
 export default function Navbar() {
   const router = useRouter();
@@ -31,7 +32,11 @@ export default function Navbar() {
       </h1>
 
       <div className="flex gap-3">
-        {/* If the user is signed out, show Sign In / Sign Up */}
+        {user === undefined && (
+          <div className="flex items-center gap-2">
+            <Spinner size="sm" />
+          </div>
+        )}
         <SignedOut>
           <SignUpButton mode="modal">
             <Button

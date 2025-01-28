@@ -6,7 +6,7 @@ import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
-import { File, Lock, Paperclip, Send, X } from "lucide-react";
+import { ChevronDown, File, Lock, Paperclip, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { Id } from "../../../../../../convex/_generated/dataModel";
@@ -53,6 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -97,6 +98,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       sender: "bot",
       text: "                                                                                                          ",
     },
+    {
+      sender: "user",
+      text: "                                                     ",
+    },
   ];
 
   const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
@@ -109,8 +114,32 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const { user } = useUser();
   if (user === undefined) {
     return (
-      <div className="flex items-center justify-center w-screen h-screen">
-        <Spinner />
+      <div className="flex flex-col justify-between w-screen h-screen">
+        <div className="flex flex-col gap-4 h-full w-1/6 dark:bg-[#090909] bg-white p-4">
+          <Skeleton className="h-16 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+          <div className="flex gap-2 flex-col mt-8">
+            <Skeleton className="h-4 w-1/3 dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+            <div className="flex justify-end w-full">
+              <Skeleton className="h-8 w-3/4 dark:bg-[#121212] bg-[#EFEFEF]" />
+            </div>
+          </div>
+
+          <div className="flex gap-2 flex-col mt-8">
+            <Skeleton className="h-4 w-1/3 dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+            <Skeleton className="h-8 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 items-end justify-end dark:bg-[#090909] bg-white h-full w-1/6 p-4">
+          <Skeleton className="h-16 w-full dark:bg-[#121212] bg-[#EFEFEF]" />
+        </div>
       </div>
     );
   }
@@ -191,7 +220,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   useEffect(() => {
     console.log(editor?.getHTML());
     setInput(editor?.getHTML() || "");
-  }, [editor?.getHTML()]);
+  }, [editor?.getHTML(), editor?.getText()]);
 
   // Upload context
   const uploadContext = useMutation(api.chats.uploadContext);
@@ -316,7 +345,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   if (!chatContent) {
     return (
-      <SidebarProvider>
+      <SidebarProvider className="font-geist">
         <SidebarTrigger />
 
         <AppSidebar
@@ -326,7 +355,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           progressText={progressText}
         />
 
-        <div className="h-screen w-screen flex flex-col p-4">
+        <div className="h-screen w-screen flex flex-col p-4 font-geist">
           <div className="flex h-full justify-center overflow-y-auto w-full">
             <div className="w-full max-w-2xl mx-auto p-4 mt-4 text-white">
               {skeletonData?.map((msg, index) => (
@@ -340,107 +369,37 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     className={`${
                       msg.sender === "user"
                         ? "dark:bg-[#333333]/40 bg-[#DDDDDD]/40 dark:text-white/90 text-black/90 max-w-[70%]"
-                        : "bg-[#7A9CC6]/10 dark:text-[#DDDDDD] text-[#222222]"
+                        : ""
                     } rounded-lg px-3 py-2  whitespace-pre-wrap`}
                   >
                     {msg.sender === "bot" ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        className="max-w-[39rem]"
-                        components={{
-                          code({
-                            node,
-                            inline,
-                            className,
-                            children,
-                            ...props
-                          }) {
-                            const match = /language-(\w+)/.exec(
-                              className || "",
-                            );
-                            const language = match ? match[1] : "";
-                            return !inline && language ? (
-                              <CodeBlock
-                                language={language}
-                                value={String(children).replace(/\n$/, "")}
-                                {...props}
-                              />
-                            ) : (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                        }}
-                      >
-                        {msg.text}
-                      </ReactMarkdown>
+                      <div className="max-w-[39rem]">
+                        <div className="flex items-center space-x-4">
+                          <Skeleton className="h-12 w-12 rounded-full" />
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-[250px]" />
+                            <Skeleton className="h-4 w-[200px]" />
+                          </div>
+                        </div>
+                      </div>
                     ) : (
-                      msg.text
+                      <div className="max-w-[39rem]">
+                        <div className="flex items-center space-x-4">
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-[250px]" />
+                            <Skeleton className="h-4 w-[200px]" />
+                          </div>
+                          <Skeleton className="h-12 w-12 rounded-full" />
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
               ))}
-
-              <div ref={scrollToBottom} />
             </div>
           </div>
-          {error && (
-            <div className="w-full max-w-2xl mx-auto text-center text-red-500 mt-2">
-              Error: {error}
-            </div>
-          )}
-          <ContextList context={showContext} chatId={chatId} />
-          <div className="w-full max-w-2xl mx-auto bg-black/10 dark:bg-black/40 p-4 mt-4 rounded-2xl text-white ">
-            <Textarea
-              value={input}
-              disabled
-              style={{ color: theme === "dark" ? "white" : "black" }}
-              classNames={{
-                label: "text-white/50 dark:text-white/90 mb-2",
-
-                input:
-                  "bg-transparent placeholder:text-black/50 dark:placeholder:text-white/60",
-                innerWrapper: "bg-transparent",
-                inputWrapper:
-                  "bg-white/80 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-200 hover:bg-white/100 dark:hover:bg-white/10 group-data-[focus=true]:bg-white/50 dark:group-data-[focus=true]:bg-white/5 !cursor-text",
-              }}
-              radius="lg"
-              minRows={3}
-            />
-
-            <div className="flex items-center justify-between mt-2">
-              <div
-                className="flex gap-2 items-center justify-center bg-transparent text-white hover:bg-muted-foreground/10 p-2
-              rounded-lg transition-color duration-200 cursor-pointer"
-              >
-                <Paperclip className="text-black dark:text-white h-5 w-5" />
-                <h1 className="text-black dark:text-white text-sm">
-                  Embed Context
-                </h1>
-              </div>
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileChange}
-                multiple
-              />
-
-              <div className="flex">
-                <div
-                  className="flex items-center justify-center hover:bg-muted-foreground/10 py-2 px-2
-                text-black bg-transparent rounded-lg transition-color duration-200 cursor-pointer"
-                >
-                  <Send className="h-5 w-5 text-muted-foreground" />
-                  {loading && (
-                    <span className="ml-2 text-sm text-gray-500">
-                      Sending...
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+          <div className="w-full max-w-2xl h-36 mx-auto bg-black/5 dark:bg-white/5 p-4 mt-4 rounded-2xl text-white ">
+            <div className="p-2"></div>
           </div>
         </div>
       </SidebarProvider>
@@ -567,7 +526,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       editor?.commands.clearContent();
     }
     if (e.key === "Enter" && e.shiftKey) {
-      editor?.chain().focus().insertContent("\n").run();
+      e.preventDefault();
+      editor?.chain().focus().insertContent("<p>\n</p>").run();
     }
 
     // If shift+enter, allow newline
@@ -733,7 +693,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                       ) : (
                         <img
                           src="/trainly.png"
-                          className="h-8 w-8 rounded-full mt-4"
+                          className="h-8 w-8 rounded-full mt-1"
                         />
                       )}
                     </div>
@@ -804,7 +764,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               rounded-2xl text-white relative"
           >
             {currentChat?.context?.length ? (
-              <div className="p-2 transition-all duration-500 flex gap-2 items-center dark:bg-[#121212] bg-[#fafafa] rounded-t-2xl overflow-x-scroll">
+              <div className="p-2 transition-all flex gap-2 items-center dark:bg-[#121212] bg-[#fafafa] rounded-t-2xl overflow-x-scroll scrollbar-hide">
                 <ContextList context={showContext} chatId={chatId} />
                 {currentChat?.context.map((context) => (
                   <div
@@ -825,7 +785,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                 ))}
               </div>
             ) : (
-              <div className=" h-0 transition-all duration-500 flex gap-2 items-center dark:bg-[#121212] bg-[#fafafa] rounded-t-2xl overflow-x-scroll"></div>
+              <div className=" h-0 transition-all flex gap-2 items-center dark:bg-[#121212] bg-[#fafafa] rounded-t-2xl overflow-x-scroll"></div>
             )}
             <div className="p-2">
               <EditorContent

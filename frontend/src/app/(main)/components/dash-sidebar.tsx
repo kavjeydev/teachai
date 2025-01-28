@@ -334,6 +334,7 @@ export function DashSidebar() {
                       onDoubleClick={() =>
                         handleDoubleClick(chat._id, chat.title)
                       }
+                      className="cursor-pointer"
                     >
                       <SidebarMenuButton asChild>
                         <div
