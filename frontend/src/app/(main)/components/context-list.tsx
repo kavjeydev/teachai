@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { File, X } from "lucide-react";
+import { File, Settings, X } from "lucide-react";
 
 import {
   CommandDialog,
@@ -16,6 +16,12 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ChatContext {
   chatId: Id<"chats">;
@@ -89,18 +95,26 @@ export function ContextList({ context, chatId }: ChatContext) {
 
   return (
     <>
-      <div>
-        <Button
-          onClick={() => {
-            setOpen(!open);
-          }}
-          className="group absolute right-2 top-3.5"
-          variant="default"
-        >
-          {/* <h1 className="flex items-center underline decoration-buttoncolor/30 group-hover:decoration-buttoncolor text-buttoncolor"> */}
-          Manage Context Files
-          {/* </h1> */}
-        </Button>
+      <div className="">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => {
+                  setOpen(!open);
+                }}
+                className="group absolute right-2 top-3.5 text-muted-foreground w-fit outline outline-muted-foreground/10 px-3 mr-1"
+                variant="secondary"
+                size="icon"
+              >
+                <Settings />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Manage Context Files</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Search for a file..." />
