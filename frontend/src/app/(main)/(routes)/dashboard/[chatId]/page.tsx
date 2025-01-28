@@ -196,6 +196,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       chat: {
         sender: sender,
         text: text,
+        user: user.id,
       },
     });
   };
@@ -545,6 +546,127 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         console.error("Failed to update visibility:", error);
         toast.error("Failed to update visibility.");
       });
+  }
+  if (currentChat?.visibility === "public" && currentChat.userId !== user.id) {
+    return (
+      <div className="h-screen w-screen bg-darkmaincolor font-geist">
+        <Toaster position="top-center" richColors />
+
+        <div className="h-screen w-screen flex flex-col pb-8">
+          <div className="flex h-full justify-center overflow-y-auto w-full">
+            <div className="absolute top-4 left-72 flex items-center gap-2"></div>
+            <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white">
+              {chatContent?.length === 0 && (
+                <p className="text-center text-gray-500">
+                  No messages yet. Ask something!
+                </p>
+              )}
+              {chatContent?.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex mb-4 gap-2 ${
+                    msg.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {msg.sender === "bot" && (
+                    <div>
+                      {theme === "dark" ? (
+                        <img
+                          src="/trainly_white.png"
+                          className="h-8 w-8 rounded-full mt-4"
+                        />
+                      ) : (
+                        <img
+                          src="/trainly.png"
+                          className="h-8 w-8 rounded-full mt-1"
+                        />
+                      )}
+                    </div>
+                  )}
+                  <div
+                    className={`${
+                      msg.sender === "user"
+                        ? "dark:bg-[#333333]/40 bg-[#DEDEDE]/40 dark:text-white/90 text-black/90 max-w-[70%]"
+                        : "bg-[#7A9CC6]/0 dark:text-[#DDDDDD] text-[#222222]"
+                    } rounded-lg px-3 py-2 whitespace-pre-wrap text-sm leading-relaxed`}
+                  >
+                    {msg.sender === "bot" ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        className="max-w-[39rem]"
+                        components={{
+                          code({
+                            node,
+                            inline,
+                            className,
+                            children,
+                            ...props
+                          }) {
+                            const match = /language-(\w+)/.exec(
+                              className || "",
+                            );
+                            const language = match ? match[1] : "";
+                            return !inline && language ? (
+                              <CodeBlock
+                                language={language}
+                                value={String(children).replace(/\n$/, "")}
+                                {...props}
+                              />
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    ) : (
+                      <div className="flex gap-4 items-center">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHTML(msg.text),
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {msg.sender === "user" && (
+                    <img src={user.imageUrl} className="h-8 w-8 rounded-full" />
+                  )}
+                </div>
+              ))}
+              <div ref={scrollToBottom} />
+              <div className="relative h-4"></div>
+            </div>
+          </div>
+
+          {/* Wrap Textarea and mention dropdown in a relative container */}
+
+          <div
+            className="w-full max-w-3xl mx-auto bg-white dark:bg-[#151515] border border-black/10 dark:border-white/20 shadow-md shadow-black/5
+              rounded-2xl text-white relative"
+          >
+            <div className="p-2">
+              <EditorContent
+                editor={editor}
+                className="shadow-none text-black text-sm dark:text-white p-2"
+                placeholder="h"
+                value={input}
+                onKeyDown={handleKeyDown}
+                data-placeholder="Type your message here..."
+              />
+              {editor?.getHTML() === "<p></p>" && (
+                <div className="relative text-muted-foreground text-sm bottom-[1.7rem] left-3 pointer-events-none">
+                  Message Trainly...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
   return (
     <div className="h-screen w-screen bg-darkmaincolor font-geist">

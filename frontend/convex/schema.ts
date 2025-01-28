@@ -11,6 +11,7 @@ export default defineSchema({
     content: v.optional(
       v.array(
         v.object({
+          user: v.string(),
           sender: v.string(),
           text: v.string(),
         }),
