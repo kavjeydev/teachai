@@ -140,7 +140,10 @@ export const getContext = query({
       throw new Error("Not found");
     }
 
-    if (existingDocument.userId !== userId) {
+    if (
+      existingDocument.userId !== userId &&
+      existingDocument.visibility === "private"
+    ) {
       throw new Error("Unauthorized");
     }
 
@@ -156,6 +159,7 @@ export const writeContent = mutation({
     chat: v.object({
       sender: v.string(),
       text: v.string(),
+      user: v.string(),
     }),
   },
   handler: async (ctx, args) => {
@@ -171,7 +175,10 @@ export const writeContent = mutation({
       throw new Error("Not found");
     }
 
-    if (existingDocument.userId !== userId) {
+    if (
+      existingDocument.userId !== userId &&
+      existingDocument.visibility === "private"
+    ) {
       throw new Error("Unauthorized");
     }
 
@@ -205,7 +212,10 @@ export const getChatById = query({
       throw new Error("Not found");
     }
 
-    if (existingChat.userId !== userId) {
+    if (
+      existingChat.userId !== userId &&
+      existingChat.visibility === "private"
+    ) {
       throw new Error("Unauthorized");
     }
 
@@ -217,28 +227,35 @@ export const getChatById = query({
 
 export const getChatContent = query({
   args: {
-    id: v.id("chats"),
+    id: v.id("chats"), // Chat ID
   },
   handler: async (ctx, args) => {
+    // 1. Authenticate the User
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated.");
     }
 
-    const userId = identity.subject;
-    const existingDocument = await ctx.db.get(args.id);
+    const userId = identity.subject; // Authenticated user's ID
 
-    if (!existingDocument) {
-      throw new Error("Not found");
-    }
+    const chatDocument = await ctx.db.get(args.id);
 
-    if (existingDocument.userId !== userId) {
+    if (
+      chatDocument?.userId !== userId &&
+      chatDocument?.visibility === "private"
+    ) {
       throw new Error("Unauthorized");
     }
 
-    console.log(identity);
+    if (!chatDocument) {
+      throw new Error("Chat not found.");
+    }
 
-    return existingDocument.content;
+    const userContent = chatDocument?.content?.filter(
+      (message) => message.user === userId,
+    );
+
+    return userContent;
   },
 });
 
