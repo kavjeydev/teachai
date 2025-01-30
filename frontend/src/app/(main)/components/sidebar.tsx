@@ -54,6 +54,8 @@ import {
   Save,
   Circle,
   Undo,
+  HomeIcon,
+  Globe,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -408,6 +410,18 @@ print(response)
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              <SidebarMenuItem key="commuunity">
+                <SidebarMenuButton
+                  asChild
+                  onClick={() => window.open("/community", "_blank")}
+                >
+                  <div className="cursor-pointer">
+                    <Globe />
+                    <span>Community</span>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
               <SidebarMenuItem key="addchat">
                 <SidebarMenuButton asChild onClick={onCreate}>

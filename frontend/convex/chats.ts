@@ -512,3 +512,14 @@ export const changeChatVisibility = mutation({
     return document;
   },
 });
+
+export const getPublicChats = query({
+  handler: async (ctx) => {
+    const chats = await ctx.db
+      .query("chats")
+      .filter((q) => q.eq(q.field("visibility"), "public"))
+      .collect();
+
+    return chats;
+  },
+});
