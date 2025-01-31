@@ -2,12 +2,14 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
+import { PublicNav } from "@/app/components/public-nav";
 
 export default function CommunityPage() {
   const publicChats = useQuery(api.chats.getPublicChats);
   const router = useRouter();
   return (
     <div className="flex gap-4 flex-wrap font-geist h-screen w-full p-12">
+      <PublicNav />
       {publicChats?.map((chat) => (
         <div className="flex flex-col gap-2">
           <div
