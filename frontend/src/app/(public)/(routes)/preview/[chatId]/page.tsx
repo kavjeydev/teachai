@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/tooltip";
 import { TooltipTrigger } from "@radix-ui/react-tooltip";
 import "../../../../(main)/components/styles.scss";
+import { PublicNav } from "@/app/components/public-nav";
+import ThemeSwitcher from "@/app/(main)/components/theme-switcher";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -367,13 +369,15 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   if (currentChat?.visibility === "public" && currentChat.userId !== user.id) {
     return (
-      <div className="h-screen w-screen bg-darkmaincolor font-geist">
-        <Toaster position="top-center" richColors />
+      <div>
 
-        <div className="h-screen w-screen flex flex-col pb-8">
+      <div className="h-screen w-screen dark:bg-darkmaincolor bg-white font-geist">
+        <Toaster position="top-center" richColors />
+        <div className="h-screen w-screen flex flex-col pb-8 dark:bg-darkmaincolor bg-white">
           <div className="flex h-full justify-center overflow-y-auto w-full">
             <div className="absolute top-4 left-72 flex items-center gap-2"></div>
             <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white">
+            <PublicNav />
               {chatContent?.length === 0 && (
                 <p className="text-center text-gray-500">
                   No messages yet. Ask something!
@@ -484,10 +488,11 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           </div>
         </div>
       </div>
+      </div>
     );
   }
   return (
-    <div className="h-screen w-screen bg-darkmaincolor font-geist">
+    <div className="h-screen w-screen dark:bg-darkmaincolor bg-white font-geist">
       <Toaster position="top-center" richColors />
 
       <div className="h-screen w-screen flex flex-col pb-8">
@@ -527,7 +532,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     {theme === "dark" ? (
                       <img
                         src="/trainly_white.png"
-                        className="h-8 w-8 rounded-full mt-4"
+                        className="h-8 w-8 rounded-full mt-1"
                       />
                     ) : (
                       <img
