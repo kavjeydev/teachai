@@ -54,6 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -682,8 +683,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         />
 
         <div className="h-screen w-screen flex flex-col pb-8">
+          <ChatNavbar chatId={chatId} />
           <div className="flex h-full justify-center overflow-y-auto w-full">
-            <div className="absolute top-4 left-72 flex items-center gap-2">
+            {/* <div className="absolute top-4 left-72 flex items-center gap-2">
               <Dialog>
                 <DialogTrigger>
                   <h1 className="hover:underline cursor-pointer">
@@ -791,7 +793,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </div>
+            </div> */}
             <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white">
               {chatContent?.length === 0 && (
                 <p className="text-center text-gray-500">
