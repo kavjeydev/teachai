@@ -37,15 +37,6 @@ import {
   ChevronsUpDown,
   Settings,
   ChevronRight,
-  AppleIcon,
-  Cloud,
-  Minus,
-  Plus,
-  Calendar,
-  Smile,
-  Calculator,
-  User,
-  CreditCard,
   File,
   X,
   Paperclip,
@@ -54,8 +45,9 @@ import {
   Save,
   Circle,
   Undo,
-  HomeIcon,
   Globe,
+  FoldHorizontal,
+  GalleryVertical,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -66,11 +58,8 @@ import {
 } from "@/components/ui/collapsible";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { getActiveResourcesInfo } from "node:process";
-import { ContextList } from "./context-list";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -78,7 +67,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Bar, BarChart, ResponsiveContainer } from "recharts";
 import {
   Command,
   CommandEmpty,
@@ -86,21 +74,13 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
-  CommandShortcut,
 } from "@/components/ui/command";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import APIKeyInput from "./api-key-input";
 import { useToast } from "@/hooks/use-toast";
 import APICodeBlock from "./api-code-block";
 import { Dialog } from "@radix-ui/react-dialog";
-import {
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -134,8 +114,6 @@ export function AppSidebar({
   const { user } = useUser();
   const { theme } = useTheme();
   const { toast } = useToast();
-
-  const [chatActive, setChatActive] = React.useState(false);
 
   // Fetch chats
   const chats = useQuery(api.chats.getChats);
@@ -264,9 +242,6 @@ print(response)
       .catch(() => {
         toast({ title: "Failed to remove context" });
       });
-    // .finally(() => {
-    //   setEditingChatId(null);
-    // });
   };
 
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
@@ -305,9 +280,6 @@ print(response)
       .catch(() => {
         toast({ title: "Failed to change visibility" });
       });
-    // .finally(() => {
-    //   setEditingChatId(null);
-    // });
   };
 
   const archivedChats = useQuery(api.chats.getArchivedChats);
@@ -365,33 +337,23 @@ print(response)
   }
 
   return (
-    <Sidebar className="z-99999 border-none" collapsible="icon">
+    <Sidebar className="z-99999" collapsible="icon">
       <SidebarHeader className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
-        <div className="flex items-center space-x-1 px-1 py-3">
-          <Popover>
-            <PopoverTrigger asChild>
-              <SidebarMenuButton className="h-12 transition-colors duration-200">
-                <Avatar>
-                  <AvatarImage
-                    src={`${theme === "dark" ? "/trainly_white.png" : "/trainly.png"}`}
-                    alt="User Avatar"
-                  />
-                  <AvatarFallback>TR</AvatarFallback>
-                </Avatar>
-                <div className="leading-tight truncate text-ellipsis">
-                  <div className="font-semibold">Trainly</div>
-                  <div className="text-sm text-muted-foreground">
-                    Contact Us
-                  </div>
-                </div>
-                <ChevronsUpDown className="ml-auto text-muted-foreground" />
-              </SidebarMenuButton>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popper-anchor-width]">
-              <Button className="w-full">kavin11205@gmail.com</Button>
-            </PopoverContent>
-          </Popover>
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <SidebarMenuButton className="h-12 transition-colors duration-200">
+              <GalleryVertical />
+              <div className="leading-tight truncate text-ellipsis">
+                <div className="font-semibold">Trainly</div>
+                <div className="text-sm text-muted-foreground">Contact Us</div>
+              </div>
+              <ChevronsUpDown className="ml-auto text-muted-foreground" />
+            </SidebarMenuButton>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popper-anchor-width]">
+            <Button className="w-full">kavin11205@gmail.com</Button>
+          </PopoverContent>
+        </Popover>
       </SidebarHeader>
       <SidebarContent className="dark:bg-darkmaincolor bg-opacity-90 border-r-0">
         <SidebarGroup>
@@ -754,7 +716,6 @@ print(response)
                       // Only navigate on single click. Double-click is for editing.
                       onClick={() => {
                         if (!isEditing) {
-                          setChatActive(true);
                           router.push("/dashboard/" + chat._id);
                         }
                       }}

@@ -301,10 +301,15 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   };
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [open, setOpen] = React.useState(false);
 
   if (!chatContent) {
     return (
-      <SidebarProvider className="font-geist">
+      <SidebarProvider
+        className="font-geist"
+        open={open}
+        onOpenChange={setOpen}
+      >
         <SidebarTrigger />
 
         <AppSidebar
