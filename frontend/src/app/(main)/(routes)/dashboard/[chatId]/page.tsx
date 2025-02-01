@@ -1,12 +1,10 @@
 "use client";
 
 require("dotenv").config({ path: ".env.local" });
-import { useState, useEffect, useRef, useCallback, FormEvent } from "react";
-import { Textarea } from "@nextui-org/input";
-import { Button } from "@nextui-org/button";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
-import { ChevronDown, File, Lock, Paperclip, Send, X } from "lucide-react";
+import { File, Paperclip, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { Id } from "../../../../../../convex/_generated/dataModel";
@@ -16,10 +14,8 @@ import React from "react";
 import { useUser } from "@clerk/clerk-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Spinner } from "@nextui-org/spinner";
 import CodeBlock from "@/app/(main)/components/code-block";
 import { ContextList } from "@/app/(main)/components/context-list";
-import { APISettings } from "@/app/(main)/components/api-settings";
 import "../../../components/styles.scss";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
@@ -29,30 +25,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
 import suggestion from "../../../components/suggestion";
 import { sanitizeHTML } from "@/app/(main)/components/sanitizeHtml";
-import { Badge } from "@/components/ui/badge";
 import { Toaster, toast } from "sonner";
-
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
 
@@ -153,31 +126,21 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const [progressText, setProgressText] = useState<string>("");
 
   const [fileKey, setFileKey] = useState<Date>(new Date());
-  const [editingTitle, setEditingTitle] = React.useState("");
   // The user’s current input
   const [input, setInput] = useState("");
   // For loading / error states
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [text, setText] = useState("");
-  const renameChat = useMutation(api.chats.rename);
   const { theme } = useTheme();
   const unwrappedParams = React.use(params);
   const chatId = unwrappedParams.chatId;
-  const updateVisibility = useMutation(api.chats.changeChatVisibility);
 
   const writeContent = useMutation(api.chats.writeContent);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContent = useQuery(api.chats.getChatContent, {
     id: chatId,
   });
   const currentChat = useQuery(api.chats.getChatById, {
     id: chatId,
   });
-  const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(
-    null,
-  );
   const scrollToBottom = useCallback(
     (node: any) => {
       if (node !== null) {
@@ -240,20 +203,16 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("ENTER");
     setFileKey(new Date());
     // Retrieve the FileList from input
     const files = e.target.files;
     if (!files || files.length === 0) {
-      setError("No files selected.");
+      toast.error("No files selected.");
       return;
     }
 
     // Show the user some loading/progress feedback
     setShowProgress(true);
-    setLoading(true);
-    setError("");
-    setText("");
 
     //File received
     setProgress(10);
@@ -335,10 +294,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       setProgressText("Uploaded!");
       await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "An error occurred.");
+      toast.error(err.message || "An error occurred.");
     } finally {
-      setLoading(false);
       setShowProgress(false);
     }
   };
@@ -444,35 +401,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     return json.data.answerQuestion.answer;
   }
 
-  async function fetchSayHello(name: string): Promise<string> {
-    const response = await fetch(BASE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        query: `
-          query SayHello($name: String!) {
-            sayHello(name: $name)
-          }
-        `,
-        variables: { name },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const json = await response.json();
-    if (json.errors && json.errors.length > 0) {
-      throw new Error(json.errors[0].message);
-    }
-
-    return json.data.sayHello;
-  }
-
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
@@ -483,11 +411,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
     if (!input.trim()) {
-      setError("Message cannot be empty.");
+      toast.error("Message cannot be empty.");
       return;
     }
-
-    setError(null);
 
     // 1) Add user’s message
     const userMsg: ChatMessage = {
@@ -498,7 +424,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     setInput("");
 
     // 2) Make the API call
-    setLoading(true);
     try {
       const botReply = await answerQuestion(userMsg.text);
 
@@ -509,16 +434,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       };
       onWrite("bot", botReply);
     } catch (err) {
-      console.error("API error:", err);
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
+      toast.error("API error:" + err);
     }
-  };
-
-  const finishEditing = (chatId: Id<"chats">) => {
-    renameChat({ id: chatId, title: editingTitle });
-    setEditingChatId(null);
   };
 
   const handleKeyDown = (e: any) => {
@@ -535,19 +452,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     // If shift+enter, allow newline
   };
 
-  function handleVisibilityChange(selectedValue: string): void {
-    updateVisibility({
-      id: chatId,
-      visibility: selectedValue,
-    })
-      .then(() => {
-        toast.success("Visibility updated successfully!");
-      })
-      .catch((error) => {
-        console.error("Failed to update visibility:", error);
-        toast.error("Failed to update visibility.");
-      });
-  }
   if (currentChat?.visibility === "public" && currentChat.userId !== user.id) {
     return (
       <div className="h-screen w-screen bg-darkmaincolor font-geist">
@@ -685,115 +589,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         <div className="h-screen w-screen flex flex-col pb-8">
           <ChatNavbar chatId={chatId} />
           <div className="flex h-full justify-center overflow-y-auto w-full">
-            {/* <div className="absolute top-4 left-72 flex items-center gap-2">
-              <Dialog>
-                <DialogTrigger>
-                  <h1 className="hover:underline cursor-pointer">
-                    {currentChat?.title}
-                  </h1>
-                </DialogTrigger>
-
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Rename Chat</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="name" className="text-right">
-                        Chat Name
-                      </Label>
-                      <Input
-                        className="min-w-[180px]"
-                        autoFocus
-                        defaultValue={currentChat?.title}
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          console.log(e.key);
-                          if (e.key === "Enter") {
-                            console.log("entered");
-                            finishEditing(chatId);
-                            toast.success("Chat renamed successfully!");
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      type="submit"
-                      size="sm"
-                      onClick={() => {
-                        finishEditing(chatId);
-                        toast.success("Chat renamed successfully!");
-                      }}
-                    >
-                      Save changes
-                    </Button>
-                    <DialogClose asChild>
-                      <Button variant="bordered" size="sm">
-                        Close
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              <Dialog>
-                <DialogTrigger>
-                  <Badge
-                    className=" dark:bg-transparent dark:text-white border dark:border-white/20
-                bg-white text-black border-black/10 rounded-full cursor-pointer shadow-none hover:bg-transparent"
-                  >
-                    <div className="flex gap-1 items-center">
-                      <Lock className="h-2.5 w-2.5" />
-                      <h1 className="text-xs font-medium">
-                        {currentChat?.visibility === "private" ? (
-                          <h1>Private</h1>
-                        ) : (
-                          <h1>Public</h1>
-                        )}
-                      </h1>
-                    </div>
-                  </Badge>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Edit visibility</DialogTitle>
-                    <DialogDescription>
-                      Make changes to who can see you chat here
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="name" className="text-right">
-                        Visibility
-                      </Label>
-                      <Select
-                        defaultValue={currentChat?.visibility}
-                        onValueChange={handleVisibilityChange}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select a visibility" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value="private">Private</SelectItem>
-                            <SelectItem value="public">Public</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button type="button" size="sm">
-                        Close
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div> */}
             <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white">
               {chatContent?.length === 0 && (
                 <p className="text-center text-gray-500">
