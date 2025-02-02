@@ -716,7 +716,7 @@ print(response)
                       // Only navigate on single click. Double-click is for editing.
                       onClick={() => {
                         if (!isEditing) {
-                          router.push("/dashboard/" + chat._id);
+                          window.open("/dashboard/" + chat._id, "_self");
                         }
                       }}
                       onDoubleClick={() =>
