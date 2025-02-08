@@ -8,6 +8,7 @@ import Carousel from "./(main)/components/carousel";
 import VideoModal from "./(main)/components/video-modal";
 import Navbar from "./components/navbar";
 import { Spinner } from "@nextui-org/spinner";
+import { DockDemo } from "./(main)/components/dock";
 
 function useTypewriterEffect(text: string, speed = 100) {
   const [displayedText, setDisplayedText] = React.useState("");
@@ -56,6 +57,7 @@ export default function Home() {
   return (
     <div className="flex flex-col justify-center text-center">
       <Navbar />
+      <DockDemo />
       <div className="flex flex-col gap-8 justify-center items-center h-screen">
         <div className="flex flex-col gap-2">
           <h1 className="font-recursive leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60">
