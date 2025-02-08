@@ -52,7 +52,7 @@ export default function Navbar() {
             </Button>
           </SignInButton>
         </SignedOut>
-        <ThemeSwitcher />
+        {/* <ThemeSwitcher /> */}
         {/* If the user is signed in, show the Popover on user profile image */}
         <SignedIn>
           <Popover placement="bottom-end">
