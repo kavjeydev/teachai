@@ -20,7 +20,7 @@ export default {
         textnormal: "#FFFFFF",
         buttoncolor: "#277AFF",
         darkbg: "#2C2A2E",
-        maincolor: "#A16BFF",
+        maincolor: "#277AFF",
         secondcolor: "#FFFFFF",
         thirdcolor: "#454ADE",
         darkdarkbg: "#211F22",
