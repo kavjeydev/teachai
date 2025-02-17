@@ -207,7 +207,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   if (!chatContent) {
     return (
       <div className="h-screen w-screen flex flex-col p-4 font-geist">
-        <div className="flex h-full justify-center overflow-y-auto w-full">
+        <div className="flex h-full justify-center overflow-y-auto w-full scrollbar-none">
           <div className="w-full max-w-2xl mx-auto p-4 mt-4 text-white">
             {skeletonData?.map((msg, index) => (
               <div
@@ -374,7 +374,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         <div className="h-screen w-screen dark:bg-darkmaincolor bg-white font-geist">
           <Toaster position="top-center" richColors />
           <div className="h-screen w-screen flex flex-col pb-8 dark:bg-darkmaincolor bg-white">
-            <div className="flex h-full justify-center overflow-y-auto w-full">
+            <div className="flex h-full justify-center overflow-y-auto w-full scrollbar-none">
               <div className="absolute top-4 left-72 flex items-center gap-2"></div>
               <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white">
                 <ChatNavbar chatId={chatId} />
@@ -500,7 +500,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       <Toaster position="top-center" richColors />
 
       <div className="h-screen w-screen flex flex-col pb-8">
-        <div className="flex h-full justify-center overflow-y-auto w-full">
+        <div className="flex h-full justify-center overflow-y-auto w-full scrollbar-none">
           <div className="absolute top-4 left-72 flex items-center gap-2">
             {/* <Badge
               className=" dark:bg-transparent dark:text-white border dark:border-white/20
