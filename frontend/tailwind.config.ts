@@ -1,6 +1,7 @@
 import { nextui } from "@nextui-org/theme";
 import type { Config } from "tailwindcss";
 
+const plugin = require("tailwindcss/plugin");
 export default {
   darkMode: "class",
   content: [
@@ -145,5 +146,18 @@ export default {
       },
     },
   },
-  plugins: [nextui(), require("tailwindcss-animate")],
+
+  plugins: [
+    nextui(),
+    require("tailwindcss-animate"),
+    plugin(function ({ addUtilities }: any) {
+      addUtilities({
+        ".scrollbar-none": {
+          "&::-webkit-scrollbar": {
+            display: "none",
+          },
+        },
+      });
+    }),
+  ],
 } satisfies Config;
