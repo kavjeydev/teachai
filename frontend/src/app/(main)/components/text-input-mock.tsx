@@ -69,7 +69,7 @@ export default function InputMock({
   }
 
   async function fetchSayHello(variables: SayHelloVariables): Promise<string> {
-    const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+    const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
     const query = `query SayHello($name: String!) {
       sayHello(name: $name)

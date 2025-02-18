@@ -78,7 +78,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     },
   ];
 
-  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
   // const BASE_URL = "http://localhost:8686/graphql";
 
   const uid = function (): string {

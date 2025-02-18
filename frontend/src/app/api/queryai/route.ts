@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey || apiKey !== chatAPIKey) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
   const response = await fetch(BASE_URL, {
     method: "POST",
