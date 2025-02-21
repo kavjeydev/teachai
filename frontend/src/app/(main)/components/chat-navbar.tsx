@@ -89,9 +89,7 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
                   value={editingTitle}
                   onChange={(e) => setEditingTitle(e.target.value)}
                   onKeyDown={(e) => {
-                    console.log(e.key);
                     if (e.key === "Enter") {
-                      console.log("entered");
                       finishEditing(chatId);
                       toast.success("Chat renamed successfully!");
                     }

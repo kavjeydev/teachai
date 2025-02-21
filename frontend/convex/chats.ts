@@ -48,8 +48,6 @@ export const createChat = mutation({
       visibility: "private",
     });
 
-    console.log(identity);
-
     return document;
   },
 });
@@ -147,8 +145,6 @@ export const getContext = query({
       throw new Error("Unauthorized");
     }
 
-    console.log(identity);
-
     return existingDocument.context;
   },
 });
@@ -189,8 +185,6 @@ export const writeContent = mutation({
       content: currContent,
     });
 
-    console.log("curr content", existingDocument);
-
     return document;
   },
 });
@@ -218,8 +212,6 @@ export const getChatById = query({
     ) {
       throw new Error("Unauthorized");
     }
-
-    console.log(identity);
 
     return existingChat;
   },

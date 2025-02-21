@@ -95,7 +95,7 @@ const DATA = {
 
 export function DockDemo() {
   return (
-    <div className="fixed bottom-4 left-[38%]">
+    <div className="fixed -top-2 left-[38%]">
       <TooltipProvider>
         <Dock direction="middle" className="dark:bg-[#222222] bg-white">
           {DATA.navbar.map((item) => (

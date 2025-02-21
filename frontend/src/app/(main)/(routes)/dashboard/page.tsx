@@ -20,8 +20,6 @@ export default function NoChat() {
   const onCreate = () => {
     const promise = addChat({ title: "untitled" });
 
-    console.log("HERE");
-
     toast({
       title: "Created chat!",
     });

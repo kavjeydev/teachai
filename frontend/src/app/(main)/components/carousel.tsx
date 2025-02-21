@@ -1,4 +1,4 @@
-"use client"; // Only necessary in Next.js App Router (13+) for client components.
+"use client";
 
 import React, { useRef, useState } from "react";
 

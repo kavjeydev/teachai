@@ -7,7 +7,6 @@ export async function POST(req: NextRequest) {
   const convexUrl =
     "https://agile-ermine-199.convex.cloud/api/run/chats/getChatByIdExposed";
 
-  // try {
   const { question, chatId } = await req.json();
 
   if (!question || !chatId) {
@@ -16,10 +15,6 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-
-  // const currentChat = useQuery(api.chats.getChatById, {
-  //   id: chatId,
-  // });
 
   const currentChatRequest = {
     args: { id: chatId },
@@ -36,21 +31,9 @@ export async function POST(req: NextRequest) {
 
   const currentChat = await currentChatresponse.json();
 
-  // if (!currentChat.value?.apiKey) {
-  //   return NextResponse.json(
-  //     {
-  //       error:
-  //         "Chat might be protected, if you are the owner, make it public in the API settings to access this endpoint.",
-  //     },
-  //     { status: 401 },
-  //   );
-  // }
-
   const chatAPIKey = currentChat.value?.apiKey;
   const chatProtected = currentChat.value?.apiKeyDisabled;
   const chatArchived = currentChat.value?.isArchived;
-
-  console.log(currentChat);
 
   if (chatProtected) {
     return NextResponse.json(
@@ -114,11 +97,4 @@ export async function POST(req: NextRequest) {
     },
     { status: 200 },
   );
-  // } catch (error) {
-  //   console.error(error);
-  //   return NextResponse.json(
-  //     { error: "Failed to process question" },
-  //     { status: 500 },
-  //   );
-  // }
 }

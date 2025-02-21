@@ -1,4 +1,3 @@
-import { fetch as httpFetch } from "@hypermode/modus-sdk-as/assembly/http";
 import { models } from "@hypermode/modus-sdk-as";
 import {
   OpenAIChatModel,
@@ -7,9 +6,7 @@ import {
 } from "@hypermode/modus-sdk-as/models/openai/chat";
 import {
   OpenAIEmbeddingsModel,
-  TypedEmbeddingsInput,
 } from "@hypermode/modus-sdk-as/models/openai/embeddings";
-import { http } from "@hypermode/modus-sdk-as";
 import { neo4j } from "@hypermode/modus-sdk-as";
 
 @json
@@ -228,11 +225,9 @@ export function createNodesWithFile(data: string): string[] {
   // We'll run each query except the first & last or some custom logic?
   for (let i = 1; i < queriesToExecute.length - 1; i++) {
     const query = queriesToExecute[i];
-    console.log("START " + query);
 
     const result = neo4j.executeQuery(hostName, query);
     if (!result) {
-      console.log("Failed query: " + query);
       throw new Error("Failed to create nodes");
     }
   }
@@ -260,32 +255,23 @@ function createChunkEmbeddingsInNeo4j(
   `;
   let result = neo4j.executeQuery(hostName, query);
   if (!result) {
-    console.log("Failed query: " + query);
     throw new Error("Failed to create Document node in Neo4j");
   }
 
   // 2) Chunk the text
   const chunks: string[] = chunkText(pdfText);
 
-  for (let i = 0; i < chunks.length; i++){
-    console.log(chunks[i])
-  }
-
   // 3) For each chunk, create the Chunk node + relationship to Document
   for (let i = 0; i < chunks.length; i++) {
-    console.log("in for")
     const chunk = chunks[i];
     // Sanitize the chunk text before building the query
     const safeText = sanitizeForNeo4j(chunk);
-    console.log("sanitized")
     // returns f32[][], so we take the first item
     const embeddingF32 = getEmbedding(chunk)[0];
 
-    console.log("got embedding")
     // Convert that single f32[] into a string for DB
     const embeddingString = "[" + embeddingF32.join(",") + "]";
 
-    console.log(embeddingString)
 
     query = `
       MATCH (d:Document {id: '${pdfId}'})
@@ -300,7 +286,6 @@ function createChunkEmbeddingsInNeo4j(
     `;
     result = neo4j.executeQuery(hostName, query);
     if (!result) {
-      console.log("Failed query: " + query);
       throw new Error("Failed to create chunk embedding in Neo4j");
     }
   }
@@ -314,7 +299,6 @@ function createChunkEmbeddingsInNeo4j(
     `;
     result = neo4j.executeQuery(hostName, query);
     if (!result) {
-      console.log("Failed query: " + query);
       throw new Error("Failed to create NEXT relationship between chunks");
     }
   }
@@ -324,7 +308,6 @@ function createChunkEmbeddingsInNeo4j(
  * Creates nodes from interpretFile() + also creates :Document/:Chunk nodes with embeddings & relationships.
  */
 export function createNodesAndEmbeddings(pdfText: string, pdfId: string, chatId: string, filename: string): void {
-  console.log("Creating nodes and embeddings...");
   createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, filename, pdfText, chatId);
 }
 
@@ -338,7 +321,6 @@ export function removeContext(fileId: string): void {
 
   let result = neo4j.executeQuery(hostName, query);
   if (!result) {
-    console.log("Failed query: " + query);
     throw new Error("Failed to delete Document node in Neo4j");
   }
 }

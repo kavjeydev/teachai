@@ -1,14 +1,14 @@
 // components/APIKeyInput.jsx
 
 import React, { useState } from "react";
-import { Input } from "@/components/ui/input"; // Adjust the import path based on your project structure
-import { Button } from "@/components/ui/button"; // Adjust the import path based on your project structure
-import { Copy, Check } from "lucide-react"; // Using lucide-react for icons
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Copy, Check } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"; // Adjust the import path
+} from "@/components/ui/tooltip";
 import { useUser } from "@clerk/clerk-react";
 import { Spinner } from "@nextui-org/spinner";
 import { api } from "../../../../convex/_generated/api";

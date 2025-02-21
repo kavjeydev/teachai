@@ -28,7 +28,6 @@ export default {
         textactive: "#FFD866",
         lightindark: "#403E41",
         lightinlight: "#FFFFFF",
-        // lightbg: "#FFFFFF",
         bordercolor: "#1D212E",
         lightbg: "#EDE7E5",
         lightlightbg: "#FAF4F2",
