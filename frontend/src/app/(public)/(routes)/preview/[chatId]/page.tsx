@@ -193,7 +193,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   });
 
   useEffect(() => {
-    console.log(editor?.getHTML());
     setInput(editor?.getHTML() || "");
   }, [editor?.getHTML(), editor?.getText()]);
 

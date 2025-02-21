@@ -138,7 +138,6 @@ export function ContextList({ context, chatId }: ChatContext) {
                     className="x-[9999999] rounded-full dark:hover:bg-darkmaincolor hover:bg-white"
                     onClick={() => {
                       handleErase(chatId, item.fileId);
-                      console.log("erased");
                     }}
                     size="icon"
                     variant="ghost"

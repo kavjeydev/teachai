@@ -8,7 +8,6 @@ const ThemeSwitcher = () => {
   useEffect(() => {
     setMount(true);
   }, []);
-  console.log(currentTheme);
   return mount ? (
     <div className=" right-5 z-[10000000000] max-lg:bottom-2.5 lg:top-1/3">
       <button

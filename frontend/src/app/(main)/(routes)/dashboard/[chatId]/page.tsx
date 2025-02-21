@@ -183,7 +183,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   });
 
   useEffect(() => {
-    console.log(editor?.getHTML());
     setInput(editor?.getHTML() || "");
   }, [editor?.getHTML(), editor?.getText()]);
 
@@ -285,8 +284,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           filename: file.name,
           fileId: uniqueFileId,
         });
-
-        console.log("Finished processing", file.name, uniqueFileId);
       }
 
       // All files done

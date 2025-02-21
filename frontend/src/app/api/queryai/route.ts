@@ -50,8 +50,6 @@ export async function POST(req: NextRequest) {
   const chatProtected = currentChat.value?.apiKeyDisabled;
   const chatArchived = currentChat.value?.isArchived;
 
-  console.log(currentChat);
-
   if (chatProtected) {
     return NextResponse.json(
       {

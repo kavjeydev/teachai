@@ -60,35 +60,35 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
     },
     // Customize specific token colors for light theme
     comment: {
-      color: "#6a9955", // Comments color
+      color: "#6a9955",
       fontStyle: "italic",
     },
     keyword: {
-      color: "#0000ff", // Keywords color (e.g., blue)
+      color: "#0000ff",
     },
     string: {
-      color: "#a31515", // Strings color (e.g., dark red)
+      color: "#a31515",
     },
     function: {
-      color: "#795e26", // Function names color (e.g., brown)
+      color: "#795e26",
     },
     number: {
-      color: "#098658", // Numbers color (e.g., green)
+      color: "#098658",
     },
     operator: {
-      color: "#000000", // Operators color (black)
+      color: "#000000",
     },
     boolean: {
-      color: "#0000ff", // Booleans color (e.g., blue)
+      color: "#0000ff",
     },
     punctuation: {
-      color: "#000000", // Punctuation color (black)
+      color: "#000000",
     },
     tag: {
-      color: "#800000", // HTML/XML tags color (e.g., maroon)
+      color: "#800000",
     },
     "attr-name": {
-      color: "#2b91af", // Attribute names color (e.g., teal)
+      color: "#2b91af",
     },
     interpolation: {
       color: "red",

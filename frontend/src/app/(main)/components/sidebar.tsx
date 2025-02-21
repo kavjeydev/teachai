@@ -150,7 +150,6 @@ export function AppSidebar({
   const onCreate = () => {
     const promise = addChat({ title: "untitled" });
     toast({ title: "Created chat" });
-    console.log("remmved");
   };
 
   // Handler for archiving/deleting a chat
@@ -542,7 +541,6 @@ print(response)
                                                   chatId,
                                                   item.fileId,
                                                 );
-                                                console.log("erased");
                                               }}
                                               size="icon"
                                               variant="ghost"
@@ -742,9 +740,7 @@ print(response)
                                 }
                                 onBlur={() => finishEditing(chat._id)}
                                 onKeyDown={(e) => {
-                                  console.log(e.key);
                                   if (e.key === "Enter") {
-                                    console.log("entered");
                                     finishEditing(chat._id);
                                   } else if (e.key === "Escape") {
                                     // Cancel editing
