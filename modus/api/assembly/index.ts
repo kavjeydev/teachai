@@ -1,4 +1,3 @@
-import { fetch as httpFetch } from "@hypermode/modus-sdk-as/assembly/http";
 import { models } from "@hypermode/modus-sdk-as";
 import {
   OpenAIChatModel,
@@ -7,9 +6,7 @@ import {
 } from "@hypermode/modus-sdk-as/models/openai/chat";
 import {
   OpenAIEmbeddingsModel,
-  TypedEmbeddingsInput,
 } from "@hypermode/modus-sdk-as/models/openai/embeddings";
-import { http } from "@hypermode/modus-sdk-as";
 import { neo4j } from "@hypermode/modus-sdk-as";
 
 @json
