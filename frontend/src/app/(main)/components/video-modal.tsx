@@ -15,7 +15,11 @@ export default function VideoModal() {
 
   return (
     <>
-      <Button onClick={onOpen} variant="faded" className="hover:bg-buttoncolor">
+      <Button
+        onClick={onOpen}
+        variant="faded"
+        className="hover:bg-white text-black dark:hover:bg-black dark:text-white"
+      >
         Watch a demo <span className="mt-[1px] text-lg">➤</span>
       </Button>
       <Modal
