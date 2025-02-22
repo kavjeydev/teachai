@@ -9,13 +9,13 @@ import VideoModal from "./(main)/components/video-modal";
 import Navbar from "./components/navbar";
 import { Spinner } from "@nextui-org/spinner";
 import { DockDemo } from "./(main)/components/dock";
-// import Spline from '@splinetool/react-spline/next';
 import dynamic from "next/dynamic";
+import { Warp } from "./(main)/components/warp";
 
-const SplineScene = dynamic(() => import("./(main)/components/spline-scene"), {
+const SplineScene = dynamic(() => import("../components/spline-scene"), {
   ssr: false,
   loading: () => (
-    <img className="fixed top-0 h-full w-full cursor-" src="/placeholder.jpg" />
+    <img className="relative top-0 h-full w-full -z-20" src="/placeholder.jpg" />
   ),
 });
 
@@ -42,43 +42,19 @@ function CyclingText({ responses, displayDuration = 3000 }: CyclingTextProps) {
   }, [currentIndex, responses, displayDuration]);
 
   return (
-    <span className=" overflow-hidden inline-block h-22 pt-8 pb-3 -mt-6">
+    <span className=" overflow-hidden inline-block h-24 pt-8 pb-4 -mt-6">
       <span
-        className={`inline-block transform transition-all duration-700 text-trainlymainlight ${
-          animate
-            ? "translate-y-0 opacity-100"
-            : "translate-y-[120%] opacity-100"
-        }`}
+        className={`inline-block transform transition-all duration-700 bg-gradient-to-t from-trainlymainlight to-[#a490ff]
+          bg-clip-text text-transparent ${
+            animate
+              ? "translate-y-0 opacity-100"
+              : "translate-y-[120%] opacity-100"
+          }`}
       >
         {responses[currentIndex]}
       </span>
     </span>
   );
-}
-
-function useTypewriterEffect(text: string, speed = 100) {
-  const [displayedText, setDisplayedText] = React.useState("");
-  const { user } = useUser();
-
-  React.useEffect(() => {
-    if (!text) return;
-
-    let currentIdx = 0;
-    setDisplayedText("");
-
-    const interval = setInterval(() => {
-      const char = text.charAt(currentIdx);
-      setDisplayedText((prev) => prev + char);
-      currentIdx++;
-      if (currentIdx >= text.length) {
-        clearInterval(interval);
-      }
-    }, speed);
-
-    return () => clearInterval(interval);
-  }, [text, speed]);
-
-  return displayedText;
 }
 
 export default function Home() {
@@ -106,13 +82,17 @@ export default function Home() {
   return (
     <div className="flex flex-col justify-center text-center">
       <Navbar />
+      <SplineScene />
       <DockDemo />
-      <div className="flex flex-col gap-8 justify-center items-center h-screen">
+      <div className="flex flex-col gap-8 justify-center items-center h-screen z-50">
         <div className="flex flex-col gap-2">
           <h1 className="font-geist leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60">
             Take control of your AI with fine-grained context control 🚀
           </h1>
-          <h1 className="font-literata leading-[1] tracking-tight font-normal text-6xl w-[48rem] dark:text-textmaincolor text-[#292716]">
+          <h1
+            className="font-geist font-medium
+           leading-[1] tracking-tight text-6xl w-[48rem] dark:text-textmaincolor text-[#292716]"
+          >
             The AI training platform for &nbsp;
             <CyclingText responses={responses} displayDuration={2700} />
           </h1>
@@ -137,7 +117,7 @@ export default function Home() {
           <SignedIn>
             <Button
               variant="faded"
-              className="hover:bg-buttoncolor"
+              className="hover:bg-trainlymainlight hover:text-white"
               onClick={() => router.push("/dashboard")}
             >
               Dashboard

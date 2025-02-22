@@ -95,7 +95,7 @@ const DATA = {
 
 export function DockDemo() {
   return (
-    <div className="fixed -top-2 left-[40%]">
+    <div className="fixed -top-2 left-[40%] z-50">
       <TooltipProvider>
         <Dock
           direction="middle"
