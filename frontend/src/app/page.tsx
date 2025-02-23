@@ -82,8 +82,10 @@ export default function Home() {
   return (
     <div className="flex flex-col justify-center text-center">
       <Navbar />
-      <SplineScene />
-      <DockDemo />
+      <div className="pointer-events-none absolute h-full w-full">
+      {/* <SplineScene /> */}
+      </div>
+      {/* <DockDemo /> */}
       <div className="flex flex-col gap-8 justify-center items-center h-screen z-50">
         <div className="flex flex-col gap-2">
           <h1 className="font-geist leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60">
