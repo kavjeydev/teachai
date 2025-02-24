@@ -21,7 +21,7 @@ export default {
         darkmaincolor: "#090909",
         textmaincolor: "#DAE2DF",
         textnormal: "#FFFFFF",
-        buttoncolor: "#277AFF",
+        buttoncolor: "#5522FF",
         darkbg: "#2C2A2E",
         maincolor: "#277AFF",
         secondcolor: "#FFFFFF",

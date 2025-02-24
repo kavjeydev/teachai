@@ -11,11 +11,18 @@ import { Spinner } from "@nextui-org/spinner";
 import { DockDemo } from "./(main)/components/dock";
 import dynamic from "next/dynamic";
 import { Warp } from "./(main)/components/warp";
+import { useTheme } from "next-themes";
 
 const SplineScene = dynamic(() => import("../components/spline-scene"), {
   ssr: false,
   loading: () => (
-    <img className="relative top-0 h-full w-full -z-20" src="/placeholder.jpg" />
+    <img className="absolute top-0 h-full w-full -z-20" src="/placeholder.jpg" />
+  ),
+});
+const SplineSceneDark = dynamic(() => import("../components/spline-scene-dark"), {
+  ssr: false,
+  loading: () => (
+    <img className="absolute top-0 h-full w-full -z-20" src="/placeholder.jpg" />
   ),
 });
 
@@ -74,26 +81,21 @@ export default function Home() {
     "AI enthusiasts",
   ];
 
-  // Choose the response once during the initial mount
-  const [selectedResponse] = React.useState(() => {
-    return responses[Math.floor(Math.random() * responses.length)];
-  });
+  const {theme} = useTheme();
 
   return (
-    <div className="flex flex-col justify-center text-center">
+    <div className="flex flex-col justify-center text-left">
       <Navbar />
-      <div className="pointer-events-none absolute h-full w-full">
-      {/* <SplineScene /> */}
-      </div>
+      {theme === 'dark' ? <SplineSceneDark /> : <SplineScene />}
       {/* <DockDemo /> */}
-      <div className="flex flex-col gap-8 justify-center items-center h-screen z-50">
+      <div className="flex flex-col gap-8 justify-center items-left px-40 h-screen">
         <div className="flex flex-col gap-2">
-          <h1 className="font-geist leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60">
+          <h1 className="font-geist leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60 z-50">
             Take control of your AI with fine-grained context control 🚀
           </h1>
           <h1
             className="font-geist font-medium
-           leading-[1] tracking-tight text-6xl w-[48rem] dark:text-textmaincolor text-[#292716]"
+           leading-[1] tracking-tight text-6xl w-[36rem] dark:text-textmaincolor text-[#292716] z-50"
           >
             The AI training platform for &nbsp;
             <CyclingText responses={responses} displayDuration={2700} />
@@ -110,7 +112,7 @@ export default function Home() {
             <SignInButton mode="modal">
               <Button
                 variant="shadow"
-                className="hover:bg-buttoncolor/80 bg-buttoncolor shadow-black/10 text-white"
+                className="hover:bg-trainlymainlight/80 bg-trainlymainlight shadow-black/10 text-white"
               >
                 Get Started
               </Button>

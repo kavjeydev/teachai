@@ -21,7 +21,7 @@ export default function Navbar() {
   return (
     <div
       className="fixed top-0 flex justify-between items-center h-16 bg-transparent text-black
-        font-recursive px-4 w-screen"
+        font-recursive px-4 w-screen z-50"
     >
       {/* Logo */}
       <h1
@@ -30,6 +30,32 @@ export default function Navbar() {
       >
         trainly
       </h1>
+
+      <div
+        className="flex items-center gap-4 font-medium px-4 py-2 rounded-full border border-black/20 dark:border-white/20
+       font-geist text-sm cursor-pointer dark:text-white text-muted-foreground"
+      >
+        <div className="bg-muted-foreground/15 px-5 py-1.5 rounded-full">
+          Home
+        </div>
+        <div
+          className="bg-muted-foreground/15 px-5 py-1.5 rounded-full"
+          onClick={() => {
+            router.push("/pricing");
+          }}
+        >
+          Pricing
+        </div>
+        {/* <div className="bg-muted-foreground/15 px-5 py-1.5 rounded-full">
+          GitHub
+        </div>
+        <div className="bg-muted-foreground/15 px-5 py-1.5 rounded-full">
+          LinkedIn
+        </div> */}
+        <div>
+          <ModeToggle />
+        </div>
+      </div>
 
       <div className="flex gap-3">
         {user === undefined && (
