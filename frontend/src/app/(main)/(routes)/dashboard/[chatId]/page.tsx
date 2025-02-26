@@ -368,7 +368,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   }
 
   async function answerQuestion(question: string) {
-    console.log("HERE", question);
     const response = await fetch(BASE_URL, {
       method: "POST",
       headers: {
@@ -391,8 +390,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         variables: { question, chatId },
       }),
     });
-
-    // console.log("HERE", response);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
