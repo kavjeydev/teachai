@@ -392,13 +392,14 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       }),
     });
 
-    console.log("HERE", response);
+    // console.log("HERE", response);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const json = await response.json();
+    console.log("HERE", json);
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
