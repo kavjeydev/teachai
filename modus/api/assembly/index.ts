@@ -87,10 +87,6 @@ export function sayHello(name: string | null = null): string {
 const modelNameChat: string = "text-generator";
 const modelNameEmbeddings: string = "openai-embeddings";
 
-/**
- * Splits a large text into an array of smaller chunks for embedding.
- * Customize chunk sizes as needed.
- */
 function chunkText(fullText: string, maxChars: i32 = 500): string[] {
   const chunks: string[] = [];
   let start = 0;
