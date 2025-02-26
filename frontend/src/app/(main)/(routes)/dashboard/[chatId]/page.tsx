@@ -78,7 +78,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     },
   ];
 
-  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
   // const BASE_URL = "http://localhost:8686/graphql";
 
   const uid = function (): string {
@@ -368,6 +368,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   }
 
   async function answerQuestion(question: string) {
+    console.log("HERE", question);
     const response = await fetch(BASE_URL, {
       method: "POST",
       headers: {
@@ -390,6 +391,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         variables: { question, chatId },
       }),
     });
+
+    console.log("HERE", response);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

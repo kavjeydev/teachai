@@ -38,7 +38,7 @@ export function ContextList({ context, chatId }: ChatContext) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
 
-  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {

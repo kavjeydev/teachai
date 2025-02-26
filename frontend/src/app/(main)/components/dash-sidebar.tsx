@@ -126,7 +126,7 @@ export function DashSidebar() {
     null,
   );
   const [editingTitle, setEditingTitle] = React.useState("");
-  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
   // Handler for creating a chat
   const onCreate = () => {

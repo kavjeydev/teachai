@@ -228,7 +228,7 @@ print(response)
   };
 
   const eraseContent = useMutation(api.chats.eraseContext);
-  const BASE_URL = "https://trainly-trainly.hypermode.app/graphql";
+  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
   const onErase = (id: Id<"chats">, fileId: string) => {
     eraseContent({
