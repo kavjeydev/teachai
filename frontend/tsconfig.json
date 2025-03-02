@@ -28,6 +28,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/components/magicui/dock.tsx"
-  ],
+, "src/app/components/vantaBg.jsx", "src/app/components/particles.jsx"  ],
   "exclude": ["node_modules"]
 }

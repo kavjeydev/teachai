@@ -17,6 +17,10 @@ import { TextReveal } from "@/components/magicui/text-reveal";
 import { GridPatternLinearGradientBottom } from "./components/grid-hero-bottom";
 import Lenis from "@studio-freight/lenis";
 
+const ParticlesBackground = dynamic(() => import("./components/particles"), {
+  ssr: false,
+});
+
 const SplineScene = dynamic(() => import("../components/spline-scene"), {
   ssr: false,
   loading: () => (
@@ -123,9 +127,11 @@ export default function Home() {
       <Navbar />
       {/* {theme === "dark" ? <SplineSceneDark /> : <SplineScene />} */}
       {/* <DockDemo /> */}
+      <ParticlesBackground />
       <GridPatternLinearGradient />
-      <div className="flex flex-col gap-8 justify-center items-center h-[93vh]">
-        <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-8 justify-center items-center h-[93vh] z-20">
+        <div className="flex flex-col gap-2 p-10">
+          <div className="absolute h-[16rem] w-[54rem] bg-white dark:bg-darkmaincolor blur-lg z-30"></div>
           <h1 className="font-darkerGrotesque leading-[1] tracking-tight font-normal text-2xl w-[53rem] text-[#292716]/60 dark:text-textmaincolor/60 z-50">
             Take control of your AI with granular context control
           </h1>
@@ -183,12 +189,13 @@ export default function Home() {
           <h1>And for anyone who's ever wanted a custom AI solution!</h1>
         </div>
       </div>
-      <div className="relative h-96 w-full">
+      <div className="relative h-96 w-ful">
+        <div className="absolute h-96 w-full bg-white z-10 blur-xl dark:bg-darkmaincolor"></div>
         <GridPatternLinearGradientBottom />
-        <div className="px-20 flex justify-between items-center bg-transparent">
+        <div className="px-20 flex justify-between items-center z-20">
           <div
             className="relative w-[20rem] flex flex-col border border-muted-foreground/30 rounded-lg
-           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
+           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor z-50"
           >
             <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
               100%
@@ -199,7 +206,7 @@ export default function Home() {
           </div>
           <div
             className="relative w-[20rem] flex flex-col border border-muted-foreground/30 rounded-lg
-           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
+           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor z-50"
           >
             <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
               3.5x
@@ -210,7 +217,7 @@ export default function Home() {
           </div>
           <div
             className="relative w-[20rem] flex flex-col border border-muted-foreground/30 rounded-lg
-           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
+           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor z-50"
           >
             <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
               12+
@@ -221,7 +228,7 @@ export default function Home() {
           </div>
           <div
             className="relative w-[20rem] flex flex-col border border-muted-foreground/30 rounded-lg
-           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
+           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor z-50"
           >
             <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
               128K+
@@ -233,7 +240,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="h-96 w-full flex justify-between px-20 gap-96 dark:bg-darkmaincolor">
+      <div className="h-96 w-full flex justify-between px-20 gap-96 dark:bg-darkmaincolor ">
         <div className="font-darkerGrotesque text-xl w-[30rem]">
           FULL CONTROL
         </div>
