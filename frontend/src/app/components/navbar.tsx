@@ -13,10 +13,12 @@ import { useRouter } from "next/navigation";
 import ThemeSwitcher from "../(main)/components/theme-switcher";
 import { Spinner } from "@nextui-org/spinner";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
 
 export default function Navbar() {
   const router = useRouter();
   const { user } = useUser();
+  const { theme } = useTheme();
 
   return (
     <div
@@ -28,7 +30,16 @@ export default function Navbar() {
         className="font-literata text-2xl cursor-pointer dark:text-white text-black"
         onClick={() => router.push("/")}
       >
-        trainly
+        <div className="flex gap-1 bg-white dark:bg-black">
+          <img
+            src="/trainly_icon_black.png"
+            height={30}
+            width={30}
+            className="mt-0.5 bg-white mix-blend-difference"
+          />
+
+          <h1>trainly</h1>
+        </div>
       </h1>
 
       <div
