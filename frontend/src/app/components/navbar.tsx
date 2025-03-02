@@ -60,6 +60,15 @@ export default function Navbar() {
           }}
           variant="link"
         >
+          DOCS
+        </Button>
+        <Button
+          className="cursor-pointer text-lg hover:text-trainlymainlight"
+          onClick={() => {
+            router.push("/pricing");
+          }}
+          variant="link"
+        >
           CONTACT
         </Button>
         {/* <div className="bg-muted-foreground/15 px-5 py-1.5 rounded-full">
