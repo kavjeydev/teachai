@@ -1,4 +1,5 @@
 import { nextui } from "@nextui-org/theme";
+import { dark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import type { Config } from "tailwindcss";
 
 const plugin = require("tailwindcss/plugin");
@@ -13,7 +14,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        trainlymainlight: "#5522FF",
+        trainlymainlight: "#F20089", // 00FFD2,
         trainlymaindark: "#5522FF",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -90,6 +91,7 @@ export default {
         recursive: ["Recursive", "sans-serif"],
         literata: ["Literata", "serif"],
         geist: ["Geist", "sans-serif"],
+        darkerGrotesque: ["Darker Grotesque", "sans-serif"],
       },
       keyframes: {
         blink: {
@@ -132,6 +134,11 @@ export default {
             height: "0",
           },
         },
+        gradient: {
+          to: {
+            backgroundPosition: "var(--bg-size, 300%) 0",
+          },
+        },
       },
       animation: {
         blink: "blink 1s step-start infinite",
@@ -139,6 +146,7 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "collapsible-down": "collapsible-down 0.2s ease-out",
         "collapsible-up": "collapsible-up 0.2s ease-out",
+        gradient: "gradient 8s linear infinite",
       },
       borderRadius: {
         lg: "var(--radius)",

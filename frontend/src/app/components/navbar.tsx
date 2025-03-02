@@ -8,11 +8,11 @@ import {
   SignUpButton,
   useUser,
 } from "@clerk/nextjs";
-import { Button } from "@nextui-org/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@nextui-org/popover"; // <-- Make sure you import these
 import { useRouter } from "next/navigation";
 import ThemeSwitcher from "../(main)/components/theme-switcher";
 import { Spinner } from "@nextui-org/spinner";
+import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   const router = useRouter();
@@ -20,8 +20,8 @@ export default function Navbar() {
 
   return (
     <div
-      className="fixed top-0 flex justify-between items-center h-16 bg-transparent text-black
-        font-recursive px-4 w-screen z-50"
+      className="absolute top-0 flex justify-between items-center h-16 bg-transparent text-black
+        font-recursive px-16 w-screen z-50"
     >
       {/* Logo */}
       <h1
@@ -32,20 +32,36 @@ export default function Navbar() {
       </h1>
 
       <div
-        className="flex items-center gap-4 font-medium px-4 py-2 rounded-full border border-black/20 dark:border-white/20
-       font-geist text-sm cursor-pointer dark:text-white text-muted-foreground"
+        className="flex items-center gap-4 font-medium px-4 py-2
+       font-darkerGrotesque text-lg cursor-pointer"
       >
-        <div className="bg-muted-foreground/15 px-5 py-1.5 rounded-full">
-          Home
-        </div>
-        <div
-          className="bg-muted-foreground/15 px-5 py-1.5 rounded-full"
+        <Button
+          className="cursor-pointer text-lg"
+          onClick={() => {
+            router.push("/");
+          }}
+          variant="link"
+        >
+          HOME
+        </Button>
+        <Button
+          className="cursor-pointer text-lg"
           onClick={() => {
             router.push("/pricing");
           }}
+          variant="link"
         >
-          Pricing
-        </div>
+          PRICING
+        </Button>
+        <Button
+          className="cursor-pointer text-lg"
+          onClick={() => {
+            router.push("/pricing");
+          }}
+          variant="link"
+        >
+          CONTACT
+        </Button>
         {/* <div className="bg-muted-foreground/15 px-5 py-1.5 rounded-full">
           GitHub
         </div>
@@ -66,14 +82,14 @@ export default function Navbar() {
         <SignedOut>
           <SignUpButton mode="modal">
             <Button
-              variant="solid"
+              // variant="solid"
               className="hover:bg-buttoncolor/80 bg-buttoncolor text-white"
             >
               Sign Up
             </Button>
           </SignUpButton>
           <SignInButton mode="modal">
-            <Button variant="bordered" className="">
+            <Button variant="outline" className="">
               Sign In
             </Button>
           </SignInButton>
@@ -95,16 +111,16 @@ export default function Navbar() {
             <PopoverContent>
               <div className="flex flex-col p-4 gap-2">
                 <Button
-                  variant="solid"
+                  // variant="solid"
                   className="bg-buttoncolor hover:bg-blue-200 w-full"
-                  onPress={() => router.push("/dashboard")}
+                  onClick={() => router.push("/dashboard")}
                 >
                   Dashboard
                 </Button>
 
                 <SignOutButton>
                   <Button
-                    variant="solid"
+                    // variant="s"
                     className="bg-black/60 text-white hover:bg-black w-full"
                   >
                     Sign Out

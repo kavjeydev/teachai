@@ -5,6 +5,7 @@ import {
   Recursive,
   Roboto,
   Literata,
+  Darker_Grotesque,
 } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/navbar";
@@ -27,6 +28,12 @@ const recursive = Roboto({
   weight: ["100", "300", "400", "500", "700", "900"],
 });
 
+const darkerGrotesque = Darker_Grotesque({
+  variable: "--font-darker-grotesque",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "700", "900"],
+});
+
 const literata = Literata({
   variable: "--font-literata",
   subsets: ["latin"],
@@ -46,7 +53,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${recursive.variable} ${literata.variable} antialiased dark:bg-lightmaincolor
+        className={`${geistSans.variable} ${geistMono.variable} ${recursive.variable} ${literata.variable} ${darkerGrotesque.variable}
+           antialiased dark:bg-lightmaincolor
           bg-white scrollbar-hide overscroll-none`}
       >
         <Providers>

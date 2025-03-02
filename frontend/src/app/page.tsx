@@ -12,19 +12,31 @@ import { DockDemo } from "./(main)/components/dock";
 import dynamic from "next/dynamic";
 import { Warp } from "./(main)/components/warp";
 import { useTheme } from "next-themes";
+import { GridPatternLinearGradient } from "./components/grid-hero";
+import { TextReveal } from "@/components/magicui/text-reveal";
+import { GridPatternLinearGradientBottom } from "./components/grid-hero-bottom";
 
 const SplineScene = dynamic(() => import("../components/spline-scene"), {
   ssr: false,
   loading: () => (
-    <img className="absolute top-0 h-full w-full -z-20" src="/placeholder.jpg" />
+    <img
+      className="absolute top-0 h-full w-full -z-20"
+      src="/placeholder.jpg"
+    />
   ),
 });
-const SplineSceneDark = dynamic(() => import("../components/spline-scene-dark"), {
-  ssr: false,
-  loading: () => (
-    <img className="absolute top-0 h-full w-full -z-20" src="/placeholder.jpg" />
-  ),
-});
+const SplineSceneDark = dynamic(
+  () => import("../components/spline-scene-dark"),
+  {
+    ssr: false,
+    loading: () => (
+      <img
+        className="absolute top-0 h-full w-full -z-20"
+        src="/placeholder.jpg"
+      />
+    ),
+  },
+);
 
 interface CyclingTextProps {
   responses: string[];
@@ -81,24 +93,28 @@ export default function Home() {
     "AI enthusiasts",
   ];
 
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
   return (
-    <div className="flex flex-col justify-center text-left">
+    <div className="flex flex-col justify-center text-center">
       <Navbar />
-      {theme === 'dark' ? <SplineSceneDark /> : <SplineScene />}
+      {/* {theme === "dark" ? <SplineSceneDark /> : <SplineScene />} */}
       {/* <DockDemo /> */}
-      <div className="flex flex-col gap-8 justify-center items-left px-40 h-screen">
+      <GridPatternLinearGradient />
+      <div className="flex flex-col gap-8 justify-center items-center h-[93vh]">
         <div className="flex flex-col gap-2">
-          <h1 className="font-geist leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60 z-50">
-            Take control of your AI with fine-grained context control 🚀
+          <h1 className="font-darkerGrotesque leading-[1] tracking-tight font-normal text-2xl w-[53rem] text-[#292716]/60 dark:text-textmaincolor/60 z-50">
+            Take control of your AI with granular context control
           </h1>
           <h1
-            className="font-geist font-medium
-           leading-[1] tracking-tight text-6xl w-[36rem] dark:text-textmaincolor text-[#292716] z-50"
+            className="font-darkerGrotesque font-[400]
+           leading-[0.8] text-7xl w-[53rem] text-muted-foreground z-50"
           >
-            The AI training platform for &nbsp;
-            <CyclingText responses={responses} displayDuration={2700} />
+            <span className="text-trainlymainlight">AI training</span> made
+            simple for{" "}
+            <span className="text-black dark:text-white">
+              developers, students, founders, enthusiasts, and educators*
+            </span>
           </h1>
         </div>
 
@@ -121,16 +137,66 @@ export default function Home() {
           <SignedIn>
             <Button
               variant="faded"
-              className="hover:bg-trainlymainlight hover:text-white"
+              className="hover:bg-trainlymainlight/10 hover:text-black border-1 dark:text-white text-black
+         font-darkerGrotesque font-medium bg-[#f9f9f9] dark:bg-[#222222]"
               onClick={() => router.push("/dashboard")}
             >
-              Dashboard
+              <h1 className="mb-0.5">DASHBOARD</h1>
             </Button>
           </SignedIn>
           <VideoModal />
           {/* <Button variant="faded" className="">
             Watch Demo <span className="mt-0.5">▶</span>
           </Button> */}
+        </div>
+      </div>
+      <div className="relative h-96 w-full">
+        <GridPatternLinearGradientBottom />
+        <div className="px-20 flex justify-between items-center bg-transparent">
+          <div
+            className="relative w-[20rem] flex flex-col border border-muted-foreground/30 rounded-lg
+           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
+          >
+            <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
+              96%
+            </h1>
+            <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
+              AVERAGE SECTOR COVERAGE
+            </h1>
+          </div>
+          <div
+            className="relative w-[20rem] flex flex-col border border-muted-foreground/30 rounded-lg
+           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
+          >
+            <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
+              11.5x
+            </h1>
+            <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
+              SOMETHING ELSE
+            </h1>
+          </div>
+          <div
+            className="relative w-[20rem] flex flex-col border border-muted-foreground/30 rounded-lg
+           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
+          >
+            <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
+              1,000+
+            </h1>
+            <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
+              ANOTHER THING
+            </h1>
+          </div>
+          <div
+            className="relative w-[20rem] flex flex-col border border-muted-foreground/30 rounded-lg
+           py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
+          >
+            <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
+              96%
+            </h1>
+            <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
+              AVERAGE SECTOR COVERAGE
+            </h1>
+          </div>
         </div>
       </div>
     </div>
