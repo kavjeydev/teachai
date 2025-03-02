@@ -19,7 +19,7 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         lightmaincolor: "#181818",
-        darkmaincolor: "#090909",
+        darkmaincolor: "#0A0A0A",
         textmaincolor: "#DAE2DF",
         textnormal: "#FFFFFF",
         buttoncolor: "#5522FF",

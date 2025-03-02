@@ -3,7 +3,7 @@
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { Button } from "@nextui-org/button";
 import { useRouter } from "next/navigation";
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import Carousel from "./(main)/components/carousel";
 import VideoModal from "./(main)/components/video-modal";
 import Navbar from "./components/navbar";
@@ -15,6 +15,7 @@ import { useTheme } from "next-themes";
 import { GridPatternLinearGradient } from "./components/grid-hero";
 import { TextReveal } from "@/components/magicui/text-reveal";
 import { GridPatternLinearGradientBottom } from "./components/grid-hero-bottom";
+import Lenis from "@studio-freight/lenis";
 
 const SplineScene = dynamic(() => import("../components/spline-scene"), {
   ssr: false,
@@ -95,6 +96,28 @@ export default function Home() {
 
   const { theme } = useTheme();
 
+  useEffect(() => {
+    // Initialize Lenis
+    const lenis = new Lenis({
+      duration: 1.5,
+      easing: (t: number) => t,
+      smoothWheel: true,
+      lerp: 0.1,
+    });
+
+    // Your animation loop
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    // Cleanup on unmount
+    return () => {
+      lenis.destroy();
+    };
+  }, []);
+
   return (
     <div className="flex flex-col justify-center text-center">
       <Navbar />
@@ -113,7 +136,8 @@ export default function Home() {
             <span className="text-trainlymainlight">AI training</span> made
             simple for{" "}
             <span className="text-black dark:text-white">
-              developers, students, founders, enthusiasts, and educators*
+              developers, students, founders, enthusiasts, and educators
+              <span className="text-trainlymainlight">*</span>
             </span>
           </h1>
         </div>
@@ -149,6 +173,15 @@ export default function Home() {
             Watch Demo <span className="mt-0.5">▶</span>
           </Button> */}
         </div>
+        <div
+          className="absolute flex bottom-20 w-80 text-left right-4 gap-2
+        font-darkerGrotesque text-2xl text-muted-foreground"
+        >
+          <h1 className="relative bottom-2 text-5xl text-trainlymainlight">
+            *
+          </h1>
+          <h1>And for anyone who's ever wanted a custom AI solution!</h1>
+        </div>
       </div>
       <div className="relative h-96 w-full">
         <GridPatternLinearGradientBottom />
@@ -158,10 +191,10 @@ export default function Home() {
            py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
           >
             <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
-              96%
+              100%
             </h1>
             <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
-              AVERAGE SECTOR COVERAGE
+              GRANULAR DATA CONTROL
             </h1>
           </div>
           <div
@@ -172,7 +205,7 @@ export default function Home() {
               11.5x
             </h1>
             <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
-              SOMETHING ELSE
+              DEVELOPMENT SPEEDUP
             </h1>
           </div>
           <div
@@ -180,10 +213,10 @@ export default function Home() {
            py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
           >
             <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
-              1,000+
+              12+
             </h1>
             <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
-              ANOTHER THING
+              AI MODELS AT YOUR DISPOSAL
             </h1>
           </div>
           <div
@@ -191,12 +224,23 @@ export default function Home() {
            py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
           >
             <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
-              96%
+              128K+
             </h1>
             <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
-              AVERAGE SECTOR COVERAGE
+              CONTEXT WINDOW
             </h1>
           </div>
+        </div>
+      </div>
+
+      <div className="h-96 w-full flex justify-between px-20 gap-96 dark:bg-darkmaincolor">
+        <div className="font-darkerGrotesque text-xl w-[30rem]">
+          FULL CONTROL
+        </div>
+        <div className="font-darkerGrotesque text-6xl text-left">
+          Our solution let's you get started with RAG in seconds with full,
+          granular control over your data, training process, and model
+          deployment.
         </div>
       </div>
     </div>

@@ -36,7 +36,7 @@ export default function Navbar() {
        font-darkerGrotesque text-lg cursor-pointer"
       >
         <Button
-          className="cursor-pointer text-lg"
+          className="cursor-pointer text-lg hover:text-trainlymainlight"
           onClick={() => {
             router.push("/");
           }}
@@ -45,7 +45,7 @@ export default function Navbar() {
           HOME
         </Button>
         <Button
-          className="cursor-pointer text-lg"
+          className="cursor-pointer text-lg hover:text-trainlymainlight"
           onClick={() => {
             router.push("/pricing");
           }}
@@ -54,7 +54,7 @@ export default function Navbar() {
           PRICING
         </Button>
         <Button
-          className="cursor-pointer text-lg"
+          className="cursor-pointer text-lg hover:text-trainlymainlight"
           onClick={() => {
             router.push("/pricing");
           }}
