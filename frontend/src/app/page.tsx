@@ -202,7 +202,7 @@ export default function Home() {
            py-6 px-5 gap-10 justify-center bg-white dark:bg-darkmaincolor"
           >
             <h1 className="  leading-none text-8xl text-left text-black dark:text-white font-darkerGrotesque">
-              3x
+              3.5x
             </h1>
             <h1 className="text-xl text-left text-muted-foreground font-darkerGrotesque font-normal">
               DEVELOPMENT SPEEDUP
