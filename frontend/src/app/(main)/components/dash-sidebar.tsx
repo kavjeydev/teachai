@@ -205,7 +205,7 @@ export function DashSidebar() {
   }
 
   return (
-    <Sidebar className="z-99999 border-none">
+    <Sidebar className="z-99999 border-none font-darkerGrotesque text-2xl">
       <SidebarHeader className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
         <div className="flex items-center space-x-1 px-1 py-3">
           <Popover>
@@ -220,7 +220,7 @@ export function DashSidebar() {
                 </Avatar>
                 <div className="leading-tight truncate text-ellipsis">
                   <div className="font-semibold">Trainly</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-md text-muted-foreground">
                     Contact Us
                   </div>
                 </div>
@@ -429,7 +429,7 @@ export function DashSidebar() {
                 </Avatar>
                 <div className="leading-tight truncate text-ellipsis">
                   <div className="font-semibold">{user?.firstName}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-md text-muted-foreground">
                     {user?.emailAddresses[0].emailAddress}
                   </div>
                 </div>

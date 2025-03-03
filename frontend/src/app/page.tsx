@@ -127,7 +127,7 @@ export default function Home() {
       <Navbar />
       {/* {theme === "dark" ? <SplineSceneDark /> : <SplineScene />} */}
       {/* <DockDemo /> */}
-      <ParticlesBackground />
+      {/* <ParticlesBackground /> */}
       <GridPatternLinearGradient />
       <div className="flex flex-col gap-8 justify-center items-center h-[93vh] z-20">
         <div className="flex flex-col gap-2 p-10">

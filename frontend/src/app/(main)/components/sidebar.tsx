@@ -336,15 +336,18 @@ print(response)
   }
 
   return (
-    <Sidebar className="z-99999" collapsible="icon">
+    <Sidebar
+      className="z-99999 font-darkerGrotesque text-2xl"
+      collapsible="icon"
+    >
       <SidebarHeader className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
         <Popover>
           <PopoverTrigger asChild>
-            <SidebarMenuButton className="h-12 transition-colors duration-200">
-              <GalleryVertical />
+            <SidebarMenuButton className="h-12 pt-2 transition-colors duration-200">
+              <div className="mb-1.5 text-lg font-bold">&#91; &#125;</div>
               <div className="leading-tight truncate text-ellipsis">
-                <div className="font-semibold">Trainly</div>
-                <div className="text-sm text-muted-foreground">Contact Us</div>
+                <div className="font-semibold text-xl mb-1">Trainly</div>
+                {/* <div className="text-lg text-muted-foreground">Contact Us</div> */}
               </div>
               <ChevronsUpDown className="ml-auto text-muted-foreground" />
             </SidebarMenuButton>
@@ -356,7 +359,7 @@ print(response)
       </SidebarHeader>
       <SidebarContent className="dark:bg-darkmaincolor bg-opacity-90 border-r-0">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground">
+          <SidebarGroupLabel className="text-muted-foreground text-lg">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -366,7 +369,9 @@ print(response)
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
                       <item.icon />
-                      <span className="cursor-pointer">{item.title}</span>
+                      <span className="cursor-pointer text-lg mb-1">
+                        {item.title}
+                      </span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -379,7 +384,9 @@ print(response)
                 >
                   <div className="cursor-pointer">
                     <Globe />
-                    <span>Community</span>
+                    <span className="cursor-pointer text-lg mb-1">
+                      Community
+                    </span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -388,7 +395,9 @@ print(response)
                 <SidebarMenuButton asChild onClick={onCreate}>
                   <div className="cursor-pointer">
                     <PlusCircle />
-                    <span>Add Chat</span>
+                    <span className="cursor-pointer text-lg mb-1">
+                      Add Chat
+                    </span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -399,7 +408,9 @@ print(response)
                     <SidebarMenuButton asChild>
                       <div className="cursor-pointer">
                         <Trash />
-                        <span>Trash</span>
+                        <span className="cursor-pointer text-lg mb-1">
+                          Trash
+                        </span>
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -480,7 +491,9 @@ print(response)
                       <div className="flex justify-between items-center cursor-pointer w-full">
                         <div className="flex gap-2 cursor-pointer items-center">
                           <Settings className="h-4 w-4" />
-                          <span>Settings</span>
+                          <span className="cursor-pointer text-lg mb-1">
+                            Settings
+                          </span>
                         </div>
                         <div>
                           <ChevronRight
@@ -499,7 +512,9 @@ print(response)
                             <SidebarMenuButton>
                               <div className="flex justify-between items-center cursor-pointer w-full">
                                 <div className="flex gap-2 cursor-pointer items-center">
-                                  <span className="font-semibold">My API</span>
+                                  <span className="font-semibold cursor-pointer text-lg mb-1">
+                                    My API
+                                  </span>
                                 </div>
                               </div>
                             </SidebarMenuButton>
@@ -678,7 +693,9 @@ print(response)
                         <SidebarMenuButton>
                           <div className="flex justify-between items-center cursor-pointer w-full">
                             <div className="flex gap-2 cursor-pointer items-center">
-                              <span>Limits</span>
+                              <span className="cursor-pointer text-lg mb-1">
+                                Limits
+                              </span>
                             </div>
                           </div>
                         </SidebarMenuButton>
@@ -692,13 +709,13 @@ print(response)
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground">
+          <SidebarGroupLabel className="text-muted-foreground cursor-pointer text-lg mb-1">
             Chats
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {!chats ? (
-                <div className="flex flex-col gap-2 px-2">
+                <div className="flex flex-col gap-2 px-2 ">
                   <Skeleton className="h-8" />
                   <Skeleton className="h-8" />
                   <Skeleton className="h-8" />
@@ -751,7 +768,7 @@ print(response)
                                 className="bg-muted-foreground/20 h-6 "
                               />
                             ) : (
-                              <span className="cursor-pointer">
+                              <span className="cursor-pointer text-lg mb-1">
                                 {chat.title}
                               </span>
                             )}
