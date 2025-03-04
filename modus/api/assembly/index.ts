@@ -325,10 +325,6 @@ export function removeContext(fileId: string): void {
   }
 }
 
-/**
- * Given a user question, do an embedding-based semantic search over :Chunk nodes.
- * Then feed the top chunks as context to your Chat model.
- */
 export function answerQuestion(question: string, chatId: string, filenames: Array<string>): AnswerWithContext {
   // 1) Generate embedding for the question
   const questionEmbeddingF32 = getEmbedding(question)[0];
