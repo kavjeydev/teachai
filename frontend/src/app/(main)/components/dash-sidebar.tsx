@@ -126,7 +126,6 @@ export function DashSidebar() {
     null,
   );
   const [editingTitle, setEditingTitle] = React.useState("");
-  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
   // Handler for creating a chat
   const onCreate = () => {
@@ -178,7 +177,7 @@ export function DashSidebar() {
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch(BASE_URL, {
+    const modusResponse = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -219,10 +218,7 @@ export function DashSidebar() {
                   <AvatarFallback>TR</AvatarFallback>
                 </Avatar>
                 <div className="leading-tight truncate text-ellipsis">
-                  <div className="font-semibold">Trainly</div>
-                  <div className="text-md text-muted-foreground">
-                    Contact Us
-                  </div>
+                  <div className="font-semibold text-xl mb-1">Trainly</div>
                 </div>
                 <ChevronsUpDown className="ml-auto text-muted-foreground" />
               </SidebarMenuButton>
@@ -235,7 +231,7 @@ export function DashSidebar() {
       </SidebarHeader>
       <SidebarContent className="dark:bg-darkmaincolor bg-opacity-90 border-r-0">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground">
+          <SidebarGroupLabel className="text-muted-foreground text-lg">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -245,7 +241,9 @@ export function DashSidebar() {
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
                       <item.icon />
-                      <span className="cursor-pointer">{item.title}</span>
+                      <span className="cursor-pointer text-lg">
+                        {item.title}
+                      </span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -257,7 +255,7 @@ export function DashSidebar() {
                 >
                   <div className="cursor-pointer">
                     <Globe />
-                    <span>Community</span>
+                    <span className="text-lg">Community</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -266,7 +264,7 @@ export function DashSidebar() {
                 <SidebarMenuButton asChild onClick={onCreate}>
                   <div className="cursor-pointer">
                     <PlusCircle />
-                    <span>Add Chat</span>
+                    <span className="text-lg">Add Chat</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -275,7 +273,7 @@ export function DashSidebar() {
                 <SidebarMenuButton asChild>
                   <div className="cursor-pointer">
                     <Trash />
-                    <span>Trash</span>
+                    <span className="text-lg">Trash</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -289,7 +287,7 @@ export function DashSidebar() {
                       <div className="flex justify-between items-center cursor-pointer w-full">
                         <div className="flex gap-2 cursor-pointer items-center">
                           <Settings className="h-4 w-4" />
-                          <span>Settings</span>
+                          <span className="text-lg">Settings</span>
                         </div>
                         <div>
                           <ChevronRight
@@ -306,7 +304,7 @@ export function DashSidebar() {
                         <SidebarMenuButton>
                           <div className="flex justify-between items-center cursor-pointer w-full">
                             <div className="flex gap-2 cursor-pointer items-center">
-                              <span>Limits</span>
+                              <span className="text-lg">Limits</span>
                             </div>
                           </div>
                         </SidebarMenuButton>
@@ -320,7 +318,7 @@ export function DashSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground">
+          <SidebarGroupLabel className="text-muted-foreground text-lg">
             Chats
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -373,7 +371,9 @@ export function DashSidebar() {
                               className="bg-muted-foreground/20 h-6 "
                             />
                           ) : (
-                            <span className="cursor-pointer">{chat.title}</span>
+                            <span className="cursor-pointer text-lg">
+                              {chat.title}
+                            </span>
                           )}
 
                           {/* Archive/Delete popover */}

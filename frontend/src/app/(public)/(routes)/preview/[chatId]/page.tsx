@@ -93,7 +93,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     },
   ];
 
-  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
   // const BASE_URL = "http://localhost:8686/graphql";
 
   const uid = function (): string {
@@ -256,7 +255,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   }
 
   async function answerQuestion(question: string) {
-    const response = await fetch(BASE_URL, {
+    const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -292,7 +291,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   }
 
   async function fetchSayHello(name: string): Promise<string> {
-    const response = await fetch(BASE_URL, {
+    const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

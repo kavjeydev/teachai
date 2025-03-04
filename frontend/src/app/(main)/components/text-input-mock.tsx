@@ -69,13 +69,12 @@ export default function InputMock({
   }
 
   async function fetchSayHello(variables: SayHelloVariables): Promise<string> {
-    const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
     const query = `query SayHello($name: String!) {
       sayHello(name: $name)
     }`;
 
-    const response = await fetch(BASE_URL, {
+    const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
