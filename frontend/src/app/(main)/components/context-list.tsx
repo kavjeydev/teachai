@@ -38,7 +38,6 @@ export function ContextList({ context, chatId }: ChatContext) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
 
-  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -71,7 +70,7 @@ export function ContextList({ context, chatId }: ChatContext) {
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch(BASE_URL, {
+    const modusResponse = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

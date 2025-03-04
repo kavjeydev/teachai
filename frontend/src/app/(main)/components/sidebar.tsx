@@ -228,7 +228,6 @@ print(response)
   };
 
   const eraseContent = useMutation(api.chats.eraseContext);
-  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
 
   const onErase = (id: Id<"chats">, fileId: string) => {
     eraseContent({
@@ -246,7 +245,7 @@ print(response)
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch(BASE_URL, {
+    const modusResponse = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -301,7 +300,7 @@ print(response)
     const contextLength = currentChat?.context?.length || 0;
     if (currentChat?.context) {
       for (let i = 0; i < contextLength; i++) {
-        const modusResponse = await fetch(BASE_URL, {
+        const modusResponse = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -359,7 +358,7 @@ print(response)
       </SidebarHeader>
       <SidebarContent className="dark:bg-darkmaincolor bg-opacity-90 border-r-0">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-lg">
+          <SidebarGroupLabel className="text-muted-foreground text-lg font-medium">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -369,7 +368,7 @@ print(response)
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
                       <item.icon />
-                      <span className="cursor-pointer text-lg mb-1">
+                      <span className="cursor-pointer text-lg font-medium mb-1">
                         {item.title}
                       </span>
                     </a>
@@ -384,7 +383,7 @@ print(response)
                 >
                   <div className="cursor-pointer">
                     <Globe />
-                    <span className="cursor-pointer text-lg mb-1">
+                    <span className="cursor-pointer text-lg font-medium mb-1">
                       Community
                     </span>
                   </div>
@@ -395,7 +394,7 @@ print(response)
                 <SidebarMenuButton asChild onClick={onCreate}>
                   <div className="cursor-pointer">
                     <PlusCircle />
-                    <span className="cursor-pointer text-lg mb-1">
+                    <span className="cursor-pointer text-lg font-medium mb-1">
                       Add Chat
                     </span>
                   </div>
@@ -408,7 +407,7 @@ print(response)
                     <SidebarMenuButton asChild>
                       <div className="cursor-pointer">
                         <Trash />
-                        <span className="cursor-pointer text-lg mb-1">
+                        <span className="cursor-pointer text-lg font-medium mb-1">
                           Trash
                         </span>
                       </div>
@@ -491,7 +490,7 @@ print(response)
                       <div className="flex justify-between items-center cursor-pointer w-full">
                         <div className="flex gap-2 cursor-pointer items-center">
                           <Settings className="h-4 w-4" />
-                          <span className="cursor-pointer text-lg mb-1">
+                          <span className="cursor-pointer text-lg font-medium mb-1">
                             Settings
                           </span>
                         </div>
@@ -693,7 +692,7 @@ print(response)
                         <SidebarMenuButton>
                           <div className="flex justify-between items-center cursor-pointer w-full">
                             <div className="flex gap-2 cursor-pointer items-center">
-                              <span className="cursor-pointer text-lg mb-1">
+                              <span className="cursor-pointer text-lg font-medium mb-1">
                                 Limits
                               </span>
                             </div>
@@ -709,7 +708,7 @@ print(response)
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground cursor-pointer text-lg mb-1">
+          <SidebarGroupLabel className="text-muted-foreground cursor-pointer text-lg font-medium mb-1">
             Chats
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -768,7 +767,7 @@ print(response)
                                 className="bg-muted-foreground/20 h-6 "
                               />
                             ) : (
-                              <span className="cursor-pointer text-lg mb-1">
+                              <span className="cursor-pointer text-lg font-medium mb-1">
                                 {chat.title}
                               </span>
                             )}
