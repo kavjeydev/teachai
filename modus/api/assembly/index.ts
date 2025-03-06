@@ -325,7 +325,7 @@ export function removeContext(fileId: string): void {
   }
 }
 
-export function answerQuestion(question: string, chatId: string, filenames: Array<string>): AnswerWithContext {
+export function answerQuestion(question: string, chatId: string): AnswerWithContext {
   // 1) Generate embedding for the question
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
