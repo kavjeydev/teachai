@@ -16,6 +16,7 @@ import { GridPatternLinearGradient } from "./components/grid-hero";
 import { TextReveal } from "@/components/magicui/text-reveal";
 import { GridPatternLinearGradientBottom } from "./components/grid-hero-bottom";
 import Lenis from "@studio-freight/lenis";
+import { AnimatedGradientText } from "@/components/magicui/animated-gradient-text";
 
 const ParticlesBackground = dynamic(() => import("./components/particles"), {
   ssr: false,
@@ -139,8 +140,10 @@ export default function Home() {
             className="font-darkerGrotesque font-[400]
            leading-[0.8] text-7xl w-[53rem] text-muted-foreground z-50"
           >
-            <span className="text-trainlymainlight">AI training</span> made
-            simple for{" "}
+            <AnimatedGradientText colorFrom="#5522FF" colorTo="#CA46FF">
+              AI Training
+            </AnimatedGradientText>{" "}
+            made simple for{" "}
             <span className="text-black dark:text-white">
               developers, students, founders, enthusiasts, and educators
               <span className="text-trainlymainlight">*</span>

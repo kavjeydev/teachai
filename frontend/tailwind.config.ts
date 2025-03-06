@@ -14,7 +14,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        trainlymainlight: "#F20089", // 00FFD2,
+        trainlymainlight: "#5522FF",
         trainlymaindark: "#5522FF",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

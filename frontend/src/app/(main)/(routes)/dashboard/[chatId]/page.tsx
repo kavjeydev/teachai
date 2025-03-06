@@ -378,8 +378,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       },
       body: JSON.stringify({
         query: `
-          query($question: String!, $chatId: String!, $filenames: [String!]!) {
-            answerQuestion(question: $question, chatId: $chatId, filenames: $filenames) {
+          query($question: String!, $chatId: String!) {
+            answerQuestion(question: $question, chatId: $chatId) {
               answer
               context {
                 chunkId
@@ -389,7 +389,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             }
           }
         `,
-        variables: { question, chatId, filenames: [] }, // TODO IMPLEMENT THIS
+        variables: { question, chatId }, // TODO IMPLEMENT THIS
       }),
     });
 

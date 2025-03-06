@@ -109,7 +109,10 @@ export default function Navbar() {
             </Button>
           </SignUpButton>
           <SignInButton mode="modal">
-            <Button variant="outline" className="">
+            <Button
+              // variant="outline"
+              className="hover:bg-buttoncolor/80 hover:text-white bg-muted-foreground/40 dark:text-white text-black"
+            >
               Sign In
             </Button>
           </SignInButton>
