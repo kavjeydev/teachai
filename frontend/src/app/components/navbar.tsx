@@ -102,7 +102,6 @@ export default function Navbar() {
         <SignedOut>
           <SignUpButton mode="modal">
             <Button
-              // variant="solid"
               className="hover:bg-buttoncolor/80 bg-buttoncolor text-white"
             >
               Sign Up
