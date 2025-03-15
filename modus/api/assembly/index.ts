@@ -134,10 +134,6 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
   return chunks;
 }
 
-/**
- * Generates an embedding (f32[][]) for a given piece of text using the OpenAI Embedding Model.
- * Typically you'll get one embedding per input text, but the result is still an array.
- */
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
 
