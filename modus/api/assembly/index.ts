@@ -114,6 +114,7 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
   const embInput = embeddingModel.createInput(inputText);
+  console.log("Embedding input:" + embInput.model);
 
   const embOutput = embeddingModel.invoke(embInput);
 
