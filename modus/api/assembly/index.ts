@@ -148,7 +148,9 @@ const embInput = embeddingModel.createInput(inputText);
 console.log("Input text length:" + inputText.length.toString());
 console.log("Model input created successfully");
 
-  const embOutput = embeddingModel.invoke(embInput);
+console.log("Starting model invocation...");
+const embOutput = embeddingModel.invoke(embInput);
+console.log("Model invocation completed");
 
   if (embOutput.data.length === 0) {
     throw new Error("No embeddings returned");
