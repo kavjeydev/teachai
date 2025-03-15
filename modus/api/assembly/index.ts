@@ -290,8 +290,6 @@ function createChunkEmbeddingsInNeo4j(
     }
   }
 
-  // 4) Optionally, link the chunks in a chain via a NEXT relationship
-  // so we can traverse them in the original order.
   for (let i = 0; i < chunks.length - 1; i++) {
     query = `
       MATCH (c1:Chunk {id: "${pdfId}-${i}"}), (c2:Chunk {id: "${pdfId}-${i + 1}"})
