@@ -140,17 +140,15 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
  */
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
-console.log("Embedding model name:" + modelNameEmbeddings);
-console.log("Model exists:" + (embeddingModel ? "true" : "false"));
 
-// Create input with error checking
-const embInput = embeddingModel.createInput(inputText);
-console.log("Input text length:" + inputText.length.toString());
-console.log("Model input created successfully");
+  // Create input with error checking
+  const embInput = embeddingModel.createInput(inputText);
 
-console.log("Starting model invocation...");
-const embOutput = embeddingModel.invoke(embInput);
-console.log("Model invocation completed");
+  console.log(JSON.stringify(process.env) + "ENVIRONMENT VARIABLES");
+
+  console.log("Starting model invocation...");
+  const embOutput = embeddingModel.invoke(embInput);
+  console.log("Model invocation completed");
 
   if (embOutput.data.length === 0) {
     throw new Error("No embeddings returned");
@@ -367,9 +365,6 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
   const response = new AnswerWithContext();
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
-
-  response.answer = "Not implemented";
-  return response;
 
 
   // 2) Fetch all Chunk nodes
