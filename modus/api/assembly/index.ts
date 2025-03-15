@@ -358,6 +358,7 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
   // 1) Generate embedding for the question
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
+  const response = new AnswerWithContext();
 
   // 2) Fetch all Chunk nodes
   const hostName: string = "my-neo4j";
@@ -386,6 +387,9 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
 
     // Compare similarity
     const score = cosineSimilarity(questionEmbedding, chunkEmbedding);
+
+    response.answer = score.toString();
+    return response;
     chunkScores.push(new ChunkScore(chunkId, chunkText, score));
   }
 
@@ -421,7 +425,6 @@ RESPOND IN MARKDOWN FORMAT
   const finalAnswer = output.choices[0].message.content.trim();
 
   // 8) Return both the answer and the chunk data
-  const response = new AnswerWithContext();
   response.answer = finalAnswer;
   response.context = topChunks;
   return response;
