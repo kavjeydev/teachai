@@ -357,10 +357,11 @@ export function removeContext(fileId: string): void {
 export function answerQuestion(question: string, chatId: string): AnswerWithContext {
   // 1) Generate embedding for the question
   const response = new AnswerWithContext();
-  response.answer = "Not implemented";
-  return response;
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
+
+  response.answer = "Not implemented";
+  return response;
 
 
   // 2) Fetch all Chunk nodes
