@@ -8,7 +8,6 @@ import {
   OpenAIEmbeddingsModel,
 } from "@hypermode/modus-sdk-as/models/openai/embeddings";
 import { neo4j } from "@hypermode/modus-sdk-as";
-import { JSON } from "json-as";
 
 @json
 class PersonInput {
@@ -33,32 +32,6 @@ class ChunkScore {
     this.chunkId = chunkId;
     this.chunkText = chunkText;
     this.score = score;
-  }
-}
-
-@json
-class OpenAIStatus {
-  embeddings: boolean;
-  chat: boolean;
-  error: string;
-
-  constructor() {
-    this.embeddings = false;
-    this.chat = false;
-    this.error = "";
-  }
-}
-
-@json
-class HealthCheckStatus {
-  openai: OpenAIStatus;
-  neo4j: boolean;
-  error: string;
-
-  constructor() {
-    this.openai = new OpenAIStatus();
-    this.neo4j = false;
-    this.error = "";
   }
 }
 
@@ -134,23 +107,15 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
   return chunks;
 }
 
+/**
+ * Generates an embedding (f32[][]) for a given piece of text using the OpenAI Embedding Model.
+ * Typically you'll get one embedding per input text, but the result is still an array.
+ */
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
-
-  // Create input with error checking
   const embInput = embeddingModel.createInput(inputText);
 
-  console.log(JSON.stringify(process.env) + "ENVIRONMENT VARIABLES");
-
-  console.log("Starting model invocation...");
-  let embOutput;
-  try {
-    embOutput = embeddingModel.invoke(embInput);
-  } catch (e: any) {
-    console.log("Error while invoking embeddings model:" + e.message || e.toString());
-    throw e;
-  }
-  console.log("Model invocation completed");
+  const embOutput = embeddingModel.invoke(embInput);
 
   if (embOutput.data.length === 0) {
     throw new Error("No embeddings returned");
@@ -325,6 +290,8 @@ function createChunkEmbeddingsInNeo4j(
     }
   }
 
+  // 4) Optionally, link the chunks in a chain via a NEXT relationship
+  // so we can traverse them in the original order.
   for (let i = 0; i < chunks.length - 1; i++) {
     query = `
       MATCH (c1:Chunk {id: "${pdfId}-${i}"}), (c2:Chunk {id: "${pdfId}-${i + 1}"})
@@ -364,10 +331,8 @@ export function removeContext(fileId: string): void {
  */
 export function answerQuestion(question: string, chatId: string): AnswerWithContext {
   // 1) Generate embedding for the question
-  const response = new AnswerWithContext();
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
-
 
   // 2) Fetch all Chunk nodes
   const hostName: string = "my-neo4j";
@@ -396,7 +361,6 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
 
     // Compare similarity
     const score = cosineSimilarity(questionEmbedding, chunkEmbedding);
-
     chunkScores.push(new ChunkScore(chunkId, chunkText, score));
   }
 
@@ -432,39 +396,8 @@ RESPOND IN MARKDOWN FORMAT
   const finalAnswer = output.choices[0].message.content.trim();
 
   // 8) Return both the answer and the chunk data
+  const response = new AnswerWithContext();
   response.answer = finalAnswer;
   response.context = topChunks;
   return response;
-}
-
-export function healthCheck(): string {
-  const status = new HealthCheckStatus();
-  status.openai = new OpenAIStatus();
-  status.openai.embeddings = false;
-  status.openai.chat = false;
-  status.openai.error = "";
-  status.neo4j = false;
-  status.error = "";
-
-  // Check OpenAI Embeddings
-  const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
-  if (!embeddingModel) {
-    status.openai.error += "Embedding model not found. ";
-  } else {
-    status.openai.embeddings = true;
-  }
-
-  // Check OpenAI Chat
-  const chatModel = models.getModel<OpenAIChatModel>(modelNameChat);
-  if (!chatModel) {
-    status.openai.error += "Chat model not found. ";
-  } else {
-    status.openai.chat = true;
-  }
-
-  // Check Neo4j
-  const neo4jResult = neo4j.executeQuery("my-neo4j", "RETURN 1");
-  status.neo4j = !!neo4jResult;
-
-  return JSON.stringify(status);
 }

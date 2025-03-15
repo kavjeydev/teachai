@@ -28,7 +28,6 @@ import { sanitizeHTML } from "@/app/(main)/components/sanitizeHtml";
 import { Toaster, toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
-import { useStore } from "../../../../zustand-store/globalVars";
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -78,6 +77,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       text: "                                                     ",
     },
   ];
+
+  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
+  // const BASE_URL = "http://localhost:8686/graphql";
 
   const uid = function (): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -245,29 +247,26 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         setProgressText("Text extracted from file...");
 
         // 2) Create embeddings
-        const modusResponse = await fetch(
-          process.env.NEXT_PUBLIC_BASE_URL as string,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
-            },
-            body: JSON.stringify({
-              query: `
+        const modusResponse = await fetch(BASE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            query: `
               mutation($pdfText: String!, $pdfId: String!, $chatId: String!, $filename: String!) {
                 createNodesAndEmbeddings(pdfText: $pdfText, pdfId: $pdfId, chatId: $chatId, filename: $filename)
               }
             `,
-              variables: {
-                pdfText: data.text,
-                pdfId: uniqueFileId,
-                chatId,
-                filename: file.name,
-              },
-            }),
-          },
-        );
+            variables: {
+              pdfText: data.text,
+              pdfId: uniqueFileId,
+              chatId,
+              filename: file.name,
+            },
+          }),
+        });
 
         if (!modusResponse.ok) {
           const errorData = await modusResponse.json();
@@ -369,7 +368,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   }
 
   async function answerQuestion(question: string) {
-    const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
+    const response = await fetch(BASE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -388,7 +387,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             }
           }
         `,
-        variables: { question, chatId }, // TODO IMPLEMENT THIS
+        variables: { question, chatId },
       }),
     });
 
@@ -397,11 +396,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     }
 
     const json = await response.json();
-
+    console.log("HERE", json);
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
-
     return json.data.answerQuestion.answer;
   }
 
@@ -452,6 +450,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       e.preventDefault();
       editor?.chain().focus().insertContent("<p>\n</p>").run();
     }
+
+    // If shift+enter, allow newline
   };
 
   if (currentChat?.visibility === "public" && currentChat.userId !== user.id) {
