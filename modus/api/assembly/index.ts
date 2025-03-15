@@ -37,6 +37,40 @@ class ChunkScore {
 }
 
 @json
+class OpenAIStatus {
+  embeddings: boolean;
+  chat: boolean;
+  error: string;
+
+  constructor() {
+    this.embeddings = false;
+    this.chat = false;
+    this.error = "";
+  }
+}
+
+@json
+class HealthCheckStatus {
+  openai: OpenAIStatus;
+  neo4j: boolean;
+  error: string;
+
+  constructor() {
+    this.openai = new OpenAIStatus();
+    this.neo4j = false;
+    this.error = "";
+  }
+}
+
+const status = {
+  openai: {
+    embeddings: false,
+    chat: false
+  },
+  neo4j: false
+};
+
+@json
 class AnswerWithContext {
   answer: string = "";
   context: ChunkScore[] = [];
@@ -402,26 +436,33 @@ RESPOND IN MARKDOWN FORMAT
 }
 
 export function healthCheck(): string {
-  const status = {
-    openai: {
-      embeddings: false,
-      chat: false
-    },
-    neo4j: false
-  };
+  const status = new HealthCheckStatus();
+  status.openai = new OpenAIStatus();
+  status.openai.embeddings = false;
+  status.openai.chat = false;
+  status.openai.error = "";
+  status.neo4j = false;
+  status.error = "";
 
-  try {
-    const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
-    status.openai.embeddings = !!embeddingModel;
-
-    const chatModel = models.getModel<OpenAIChatModel>(modelNameChat);
-    status.openai.chat = !!chatModel;
-
-    const neo4jResult = neo4j.executeQuery("my-neo4j", "RETURN 1");
-    status.neo4j = !!neo4jResult;
-  } catch (e) {
-    console.error("Health check failed:" + (e as Error).message);
+  // Check OpenAI Embeddings
+  const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
+  if (!embeddingModel) {
+    status.openai.error += "Embedding model not found. ";
+  } else {
+    status.openai.embeddings = true;
   }
+
+  // Check OpenAI Chat
+  const chatModel = models.getModel<OpenAIChatModel>(modelNameChat);
+  if (!chatModel) {
+    status.openai.error += "Chat model not found. ";
+  } else {
+    status.openai.chat = true;
+  }
+
+  // Check Neo4j
+  const neo4jResult = neo4j.executeQuery("my-neo4j", "RETURN 1");
+  status.neo4j = !!neo4jResult;
 
   return JSON.stringify(status);
 }
