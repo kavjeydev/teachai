@@ -42,6 +42,55 @@ class AnswerWithContext {
   context: ChunkScore[] = [];
 }
 
+@json
+class ModelsInfo {
+  embeddings: boolean;
+  chat: boolean;
+
+  constructor(embeddings: boolean, chat: boolean) {
+    this.embeddings = embeddings;
+    this.chat = chat;
+  }
+}
+
+@json
+class OpenAIKeyInfo {
+  exists: boolean;
+  length: i32;
+  prefix: string;
+
+  constructor(exists: boolean, length: i32, prefix: string) {
+    this.exists = exists;
+    this.length = length;
+    this.prefix = prefix;
+  }
+}
+
+@json
+class EnvironmentInfo {
+  openaiKey: OpenAIKeyInfo;
+  models: ModelsInfo;
+
+  constructor() {
+    const key = process.env.get("MODUS_OPENAI_API_KEY") || "";
+    this.openaiKey = new OpenAIKeyInfo(
+      key.length > 0,
+      key.length,
+      key.length > 7 ? key.substring(0, 7) : "none"
+    );
+
+    this.models = new ModelsInfo(
+      !!models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings),
+      !!models.getModel<OpenAIChatModel>(modelNameChat)
+    );
+  }
+}
+
+export function checkEnvironment(): string {
+  const envInfo = new EnvironmentInfo();
+  return JSON.stringify(envInfo);
+}
+
 // ----------------------
 // HELPER FUNCTIONS
 // ----------------------
@@ -401,20 +450,4 @@ RESPOND IN MARKDOWN FORMAT
   response.answer = finalAnswer;
   response.context = topChunks;
   return response;
-}
-
-export function checkEnvironment(): string {
-  const envInfo = {
-    openaiKey: {
-      exists: !!process.env.get("MODUS_OPENAI_API_KEY"),
-      length: process.env.get("MODUS_OPENAI_API_KEY") ? process.env.get("MODUS_OPENAI_API_KEY").length : 0,
-      prefix: process.env.get("MODUS_OPENAI_API_KEY") ? process.env.get("MODUS_OPENAI_API_KEY").substring(0, 7) : "none"
-    },
-    models: {
-      embeddings: !!models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings),
-      chat: !!models.getModel<OpenAIChatModel>(modelNameChat)
-    }
-  };
-
-  return JSON.stringify(envInfo);
 }
