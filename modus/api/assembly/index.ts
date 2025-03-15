@@ -141,7 +141,7 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
 console.log("Embedding model name:" + modelNameEmbeddings);
-console.log("Model exists:" + !!embeddingModel as string);
+console.log("Model exists:" + (embeddingModel ? "true" : "false"));
 
 // Create input with error checking
 const embInput = embeddingModel.createInput(inputText);
