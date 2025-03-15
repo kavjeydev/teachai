@@ -325,6 +325,10 @@ export function removeContext(fileId: string): void {
   }
 }
 
+/**
+ * Given a user question, do an embedding-based semantic search over :Chunk nodes.
+ * Then feed the top chunks as context to your Chat model.
+ */
 export function answerQuestion(question: string, chatId: string): AnswerWithContext {
   // 1) Generate embedding for the question
   const questionEmbeddingF32 = getEmbedding(question)[0];
@@ -332,19 +336,11 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
 
   // 2) Fetch all Chunk nodes
   const hostName: string = "my-neo4j";
-  let query = `
+  const query = `
     MATCH (c:Chunk)
     WHERE c.chatId = '${chatId}'
     RETURN c.id AS id, c.text AS text, c.embedding AS embedding
   `;
-  // if (filenames.length){
-  //   query = `
-  //   MATCH (c:Chunk)
-  //   WHERE c.chatId = '${chatId} AND c.filename IN ${filenames}'
-  //   RETURN c.id AS id, c.text AS text, c.embedding AS embedding
-  // `;
-  // }
-
   const results = neo4j.executeQuery(hostName, query);
 
   // 3) Calculate similarity
