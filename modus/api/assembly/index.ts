@@ -62,14 +62,6 @@ class HealthCheckStatus {
   }
 }
 
-const status = {
-  openai: {
-    embeddings: false,
-    chat: false
-  },
-  neo4j: false
-};
-
 @json
 class AnswerWithContext {
   answer: string = "";
