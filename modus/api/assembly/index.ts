@@ -140,12 +140,15 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
  */
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
+console.log("Embedding model name:" + modelNameEmbeddings);
+console.log("Model exists:" + !!embeddingModel);
 
-  const embInput = embeddingModel.createInput(inputText);
+// Create input with error checking
+const embInput = embeddingModel.createInput(inputText);
+console.log("Input text length:" + inputText.length);
+console.log("Model input created successfully");
 
   const embOutput = embeddingModel.invoke(embInput);
-
-  return [[1]];
 
   if (embOutput.data.length === 0) {
     throw new Error("No embeddings returned");
