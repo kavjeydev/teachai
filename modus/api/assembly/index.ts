@@ -8,6 +8,7 @@ import {
   OpenAIEmbeddingsModel,
 } from "@hypermode/modus-sdk-as/models/openai/embeddings";
 import { neo4j } from "@hypermode/modus-sdk-as";
+import { JSON } from "json-as";
 
 @json
 class PersonInput {
@@ -398,4 +399,29 @@ RESPOND IN MARKDOWN FORMAT
   response.answer = finalAnswer;
   response.context = topChunks;
   return response;
+}
+
+export function healthCheck(): string {
+  const status = {
+    openai: {
+      embeddings: false,
+      chat: false
+    },
+    neo4j: false
+  };
+
+  try {
+    const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
+    status.openai.embeddings = !!embeddingModel;
+
+    const chatModel = models.getModel<OpenAIChatModel>(modelNameChat);
+    status.openai.chat = !!chatModel;
+
+    const neo4jResult = neo4j.executeQuery("my-neo4j", "RETURN 1");
+    status.neo4j = !!neo4jResult;
+  } catch (e) {
+    console.error("Health check failed:" + (e as Error).message);
+  }
+
+  return JSON.stringify(status);
 }
