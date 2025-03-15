@@ -143,9 +143,9 @@ function getEmbedding(inputText: string): f32[][] {
 
   const embInput = embeddingModel.createInput(inputText);
 
-  return [[1]];
-
   const embOutput = embeddingModel.invoke(embInput);
+
+  return [[1]];
 
   if (embOutput.data.length === 0) {
     throw new Error("No embeddings returned");
