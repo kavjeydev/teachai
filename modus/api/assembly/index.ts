@@ -8,6 +8,7 @@ import {
   OpenAIEmbeddingsModel,
 } from "@hypermode/modus-sdk-as/models/openai/embeddings";
 import { neo4j } from "@hypermode/modus-sdk-as";
+import { JSON } from "json-as";
 
 @json
 class PersonInput {
@@ -114,7 +115,6 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
   const embInput = embeddingModel.createInput(inputText);
-  console.log("Embedding input:" + embInput.model);
 
   const embOutput = embeddingModel.invoke(embInput);
 
@@ -401,4 +401,20 @@ RESPOND IN MARKDOWN FORMAT
   response.answer = finalAnswer;
   response.context = topChunks;
   return response;
+}
+
+export function checkEnvironment(): string {
+  const envInfo = {
+    openaiKey: {
+      exists: !!process.env.get("MODUS_OPENAI_API_KEY"),
+      length: process.env.get("MODUS_OPENAI_API_KEY") ? process.env.get("MODUS_OPENAI_API_KEY").length : 0,
+      prefix: process.env.get("MODUS_OPENAI_API_KEY") ? process.env.get("MODUS_OPENAI_API_KEY").substring(0, 7) : "none"
+    },
+    models: {
+      embeddings: !!models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings),
+      chat: !!models.getModel<OpenAIChatModel>(modelNameChat)
+    }
+  };
+
+  return JSON.stringify(envInfo);
 }
