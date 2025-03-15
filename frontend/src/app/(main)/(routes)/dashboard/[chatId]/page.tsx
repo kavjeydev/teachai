@@ -124,7 +124,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const [progressText, setProgressText] = useState<string>("");
 
   const [fileKey, setFileKey] = useState<Date>(new Date());
-  const { globalState, resetGlobalState } = useStore();
   // The user’s current input
   const [input, setInput] = useState("");
   // For loading / error states
@@ -402,9 +401,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
-    console.log(globalState);
-    resetGlobalState();
-    console.log(globalState);
+
     return json.data.answerQuestion.answer;
   }
 
