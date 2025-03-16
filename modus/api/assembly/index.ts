@@ -37,76 +37,41 @@ class ChunkScore {
 }
 
 @json
+class OpenAIStatus {
+  embeddings: boolean;
+  chat: boolean;
+  error: string;
+
+  constructor() {
+    this.embeddings = false;
+    this.chat = false;
+    this.error = "";
+  }
+}
+
+@json
+class HealthCheckStatus {
+  openai: OpenAIStatus;
+  neo4j: boolean;
+  error: string;
+
+  constructor() {
+    this.openai = new OpenAIStatus();
+    this.neo4j = false;
+    this.error = "";
+  }
+}
+
+@json
 class AnswerWithContext {
   answer: string = "";
   context: ChunkScore[] = [];
-}
-
-@json
-class ModelsInfo {
-  embeddings: boolean;
-  chat: boolean;
-
-  constructor(embeddings: boolean, chat: boolean) {
-    this.embeddings = embeddings;
-    this.chat = chat;
-  }
-}
-
-@json
-class OpenAIKeyInfo {
-  exists: boolean;
-  length: i32;
-  prefix: string;
-
-  constructor(exists: boolean, length: i32, prefix: string) {
-    this.exists = exists;
-    this.length = length;
-    this.prefix = prefix;
-  }
-}
-
-@json
-class EnvironmentInfo {
-  openaiKey: OpenAIKeyInfo;
-  models: ModelsInfo;
-
-  constructor() {
-    const key = "";
-    this.openaiKey = new OpenAIKeyInfo(
-      key.length > 0,
-      key.length,
-      key.length > 7 ? key.substring(0, 7) : "none"
-    );
-
-    this.models = new ModelsInfo(
-      !!models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings),
-      !!models.getModel<OpenAIChatModel>(modelNameChat)
-    );
-  }
-}
-
-export function checkEnvironment(): string {
-  const envInfo = new EnvironmentInfo();
-  console.log(JSON.stringify(process.env) + "process.env");
-  return JSON.stringify(envInfo);
 }
 
 // ----------------------
 // HELPER FUNCTIONS
 // ----------------------
 
-// A robust sanitization function for storing text in Neo4j as a string property
-/**
- * Escapes special characters for Neo4j queries.
- * @param original The original string to sanitize.
- * @returns The sanitized string safe for Neo4j.
- */
-/**
- * Sanitizes a string for safe use in Neo4j queries by escaping special characters.
- * @param original The original string to sanitize.
- * @returns The sanitized string safe for Neo4j.
- */
 function sanitizeForNeo4j(original: string): string {
   let safeText = original;
 
@@ -158,15 +123,23 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
   return chunks;
 }
 
-/**
- * Generates an embedding (f32[][]) for a given piece of text using the OpenAI Embedding Model.
- * Typically you'll get one embedding per input text, but the result is still an array.
- */
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
+
+  // Create input with error checking
   const embInput = embeddingModel.createInput(inputText);
 
-  const embOutput = embeddingModel.invoke(embInput);
+  console.log(JSON.stringify(process.env) + "ENVIRONMENT VARIABLES");
+
+  console.log("Starting model invocation...");
+  let embOutput;
+  try {
+    embOutput = embeddingModel.invoke(embInput);
+  } catch (e: any) {
+    console.log("Error while invoking embeddings model:" + e.message || e.toString());
+    throw e;
+  }
+  console.log("Model invocation completed");
 
   if (embOutput.data.length === 0) {
     throw new Error("No embeddings returned");
@@ -341,8 +314,6 @@ function createChunkEmbeddingsInNeo4j(
     }
   }
 
-  // 4) Optionally, link the chunks in a chain via a NEXT relationship
-  // so we can traverse them in the original order.
   for (let i = 0; i < chunks.length - 1; i++) {
     query = `
       MATCH (c1:Chunk {id: "${pdfId}-${i}"}), (c2:Chunk {id: "${pdfId}-${i + 1}"})
@@ -382,8 +353,10 @@ export function removeContext(fileId: string): void {
  */
 export function answerQuestion(question: string, chatId: string): AnswerWithContext {
   // 1) Generate embedding for the question
+  const response = new AnswerWithContext();
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
+
 
   // 2) Fetch all Chunk nodes
   const hostName: string = "my-neo4j";
@@ -412,6 +385,7 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
 
     // Compare similarity
     const score = cosineSimilarity(questionEmbedding, chunkEmbedding);
+
     chunkScores.push(new ChunkScore(chunkId, chunkText, score));
   }
 
@@ -447,8 +421,39 @@ RESPOND IN MARKDOWN FORMAT
   const finalAnswer = output.choices[0].message.content.trim();
 
   // 8) Return both the answer and the chunk data
-  const response = new AnswerWithContext();
   response.answer = finalAnswer;
   response.context = topChunks;
   return response;
+}
+
+export function healthCheck(): string {
+  const status = new HealthCheckStatus();
+  status.openai = new OpenAIStatus();
+  status.openai.embeddings = false;
+  status.openai.chat = false;
+  status.openai.error = "";
+  status.neo4j = false;
+  status.error = "";
+
+  // Check OpenAI Embeddings
+  const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
+  if (!embeddingModel) {
+    status.openai.error += "Embedding model not found. ";
+  } else {
+    status.openai.embeddings = true;
+  }
+
+  // Check OpenAI Chat
+  const chatModel = models.getModel<OpenAIChatModel>(modelNameChat);
+  if (!chatModel) {
+    status.openai.error += "Chat model not found. ";
+  } else {
+    status.openai.chat = true;
+  }
+
+  // Check Neo4j
+  const neo4jResult = neo4j.executeQuery("my-neo4j", "RETURN 1");
+  status.neo4j = !!neo4jResult;
+
+  return JSON.stringify(status);
 }
