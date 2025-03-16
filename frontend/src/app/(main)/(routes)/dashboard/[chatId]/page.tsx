@@ -46,6 +46,13 @@ interface ChatContext {
   fileId: string;
 }
 
+interface EmbeddingsFormData {
+  pdf_text: string;
+  pdf_id: string;
+  chat_id: string;
+  filename: string;
+}
+
 export default function Dashboard({ params }: ChatIdPageProps) {
   const skeletonData = [
     {
@@ -78,7 +85,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     },
   ];
 
-  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
+  const BASE_URL = "http://127.0.0.1:8000/";
   // const BASE_URL = "http://localhost:8686/graphql";
 
   const uid = function (): string {
@@ -246,27 +253,28 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         setProgress(30);
         setProgressText("Text extracted from file...");
 
+        console.log("hitting endpoint");
+
         // 2) Create embeddings
-        const modusResponse = await fetch(BASE_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
-          },
-          body: JSON.stringify({
-            query: `
-              mutation($pdfText: String!, $pdfId: String!, $chatId: String!, $filename: String!) {
-                createNodesAndEmbeddings(pdfText: $pdfText, pdfId: $pdfId, chatId: $chatId, filename: $filename)
-              }
-            `,
-            variables: {
-              pdfText: data.text,
-              pdfId: uniqueFileId,
-              chatId,
-              filename: file.name,
+        const embeddingsFormData: EmbeddingsFormData = {
+          pdf_text: data.text,
+          pdf_id: uniqueFileId,
+          chat_id: chatId,
+          filename: file.name,
+        };
+
+        const modusResponse = await fetch(
+          BASE_URL + "create_nodes_and_embeddings",
+          {
+            method: "POST",
+            // TODO - Add auth for
+            headers: {
+              "Content-Type": "application/json",
+              // Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
             },
-          }),
-        });
+            body: JSON.stringify(embeddingsFormData),
+          },
+        );
 
         if (!modusResponse.ok) {
           const errorData = await modusResponse.json();
