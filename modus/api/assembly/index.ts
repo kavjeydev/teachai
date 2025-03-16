@@ -132,13 +132,8 @@ function getEmbedding(inputText: string): f32[][] {
   console.log(JSON.stringify(process.env) + "ENVIRONMENT VARIABLES");
 
   console.log("Starting model invocation...");
-  let embOutput;
-  try {
-    embOutput = embeddingModel.invoke(embInput);
-  } catch (e: any) {
-    console.log("Error while invoking embeddings model:" + e.message || e.toString());
-    throw e;
-  }
+  const embOutput = embeddingModel.invoke(embInput);
+
   console.log("Model invocation completed");
 
   if (embOutput.data.length === 0) {
