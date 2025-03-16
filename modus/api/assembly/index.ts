@@ -1,3 +1,4 @@
+import { fetch as httpFetch } from "@hypermode/modus-sdk-as/assembly/http";
 import { models } from "@hypermode/modus-sdk-as";
 import {
   OpenAIChatModel,
@@ -6,9 +7,10 @@ import {
 } from "@hypermode/modus-sdk-as/models/openai/chat";
 import {
   OpenAIEmbeddingsModel,
+  TypedEmbeddingsInput,
 } from "@hypermode/modus-sdk-as/models/openai/embeddings";
+import { http } from "@hypermode/modus-sdk-as";
 import { neo4j } from "@hypermode/modus-sdk-as";
-import { JSON } from "json-as";
 
 @json
 class PersonInput {
@@ -37,32 +39,6 @@ class ChunkScore {
 }
 
 @json
-class OpenAIStatus {
-  embeddings: boolean;
-  chat: boolean;
-  error: string;
-
-  constructor() {
-    this.embeddings = false;
-    this.chat = false;
-    this.error = "";
-  }
-}
-
-@json
-class HealthCheckStatus {
-  openai: OpenAIStatus;
-  neo4j: boolean;
-  error: string;
-
-  constructor() {
-    this.openai = new OpenAIStatus();
-    this.neo4j = false;
-    this.error = "";
-  }
-}
-
-@json
 class AnswerWithContext {
   answer: string = "";
   context: ChunkScore[] = [];
@@ -72,6 +48,17 @@ class AnswerWithContext {
 // HELPER FUNCTIONS
 // ----------------------
 
+// A robust sanitization function for storing text in Neo4j as a string property
+/**
+ * Escapes special characters for Neo4j queries.
+ * @param original The original string to sanitize.
+ * @returns The sanitized string safe for Neo4j.
+ */
+/**
+ * Sanitizes a string for safe use in Neo4j queries by escaping special characters.
+ * @param original The original string to sanitize.
+ * @returns The sanitized string safe for Neo4j.
+ */
 function sanitizeForNeo4j(original: string): string {
   let safeText = original;
 
@@ -123,18 +110,15 @@ function chunkText(fullText: string, maxChars: i32 = 500): string[] {
   return chunks;
 }
 
+/**
+ * Generates an embedding (f32[][]) for a given piece of text using the OpenAI Embedding Model.
+ * Typically you'll get one embedding per input text, but the result is still an array.
+ */
 function getEmbedding(inputText: string): f32[][] {
   const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
-
-  // Create input with error checking
   const embInput = embeddingModel.createInput(inputText);
 
-  console.log(JSON.stringify(process.env) + "ENVIRONMENT VARIABLES");
-
-  console.log("Starting model invocation...");
   const embOutput = embeddingModel.invoke(embInput);
-
-  console.log("Model invocation completed");
 
   if (embOutput.data.length === 0) {
     throw new Error("No embeddings returned");
@@ -244,9 +228,11 @@ export function createNodesWithFile(data: string): string[] {
   // We'll run each query except the first & last or some custom logic?
   for (let i = 1; i < queriesToExecute.length - 1; i++) {
     const query = queriesToExecute[i];
+    console.log("START " + query);
 
     const result = neo4j.executeQuery(hostName, query);
     if (!result) {
+      console.log("Failed query: " + query);
       throw new Error("Failed to create nodes");
     }
   }
@@ -274,23 +260,32 @@ function createChunkEmbeddingsInNeo4j(
   `;
   let result = neo4j.executeQuery(hostName, query);
   if (!result) {
+    console.log("Failed query: " + query);
     throw new Error("Failed to create Document node in Neo4j");
   }
 
   // 2) Chunk the text
   const chunks: string[] = chunkText(pdfText);
 
+  for (let i = 0; i < chunks.length; i++){
+    console.log(chunks[i])
+  }
+
   // 3) For each chunk, create the Chunk node + relationship to Document
   for (let i = 0; i < chunks.length; i++) {
+    console.log("in for")
     const chunk = chunks[i];
     // Sanitize the chunk text before building the query
     const safeText = sanitizeForNeo4j(chunk);
+    console.log("sanitized")
     // returns f32[][], so we take the first item
     const embeddingF32 = getEmbedding(chunk)[0];
 
+    console.log("got embedding")
     // Convert that single f32[] into a string for DB
     const embeddingString = "[" + embeddingF32.join(",") + "]";
 
+    console.log(embeddingString)
 
     query = `
       MATCH (d:Document {id: '${pdfId}'})
@@ -298,17 +293,19 @@ function createChunkEmbeddingsInNeo4j(
         id: "${pdfId}-${i}",
         text: "${safeText}",
         embedding: ${embeddingString},
-        chatId: '${chatId}',
-        filename: '${filename}'
+        chatId: '${chatId}'
       })
       CREATE (d)-[:HAS_CHUNK {order: ${i}}]->(c)
     `;
     result = neo4j.executeQuery(hostName, query);
     if (!result) {
+      console.log("Failed query: " + query);
       throw new Error("Failed to create chunk embedding in Neo4j");
     }
   }
 
+  // 4) Optionally, link the chunks in a chain via a NEXT relationship
+  // so we can traverse them in the original order.
   for (let i = 0; i < chunks.length - 1; i++) {
     query = `
       MATCH (c1:Chunk {id: "${pdfId}-${i}"}), (c2:Chunk {id: "${pdfId}-${i + 1}"})
@@ -316,6 +313,7 @@ function createChunkEmbeddingsInNeo4j(
     `;
     result = neo4j.executeQuery(hostName, query);
     if (!result) {
+      console.log("Failed query: " + query);
       throw new Error("Failed to create NEXT relationship between chunks");
     }
   }
@@ -325,7 +323,8 @@ function createChunkEmbeddingsInNeo4j(
  * Creates nodes from interpretFile() + also creates :Document/:Chunk nodes with embeddings & relationships.
  */
 export function createNodesAndEmbeddings(pdfText: string, pdfId: string, chatId: string, filename: string): void {
-  createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, filename, pdfText, chatId);
+  console.log("Creating nodes and embeddings...");
+  createChunkEmbeddingsInNeo4j("my-neo4j", pdfId, pdfText, filename, chatId);
 }
 
 export function removeContext(fileId: string): void {
@@ -338,6 +337,7 @@ export function removeContext(fileId: string): void {
 
   let result = neo4j.executeQuery(hostName, query);
   if (!result) {
+    console.log("Failed query: " + query);
     throw new Error("Failed to delete Document node in Neo4j");
   }
 }
@@ -348,10 +348,8 @@ export function removeContext(fileId: string): void {
  */
 export function answerQuestion(question: string, chatId: string): AnswerWithContext {
   // 1) Generate embedding for the question
-  const response = new AnswerWithContext();
   const questionEmbeddingF32 = getEmbedding(question)[0];
   const questionEmbedding = f32ArrayToF64Array(questionEmbeddingF32);
-
 
   // 2) Fetch all Chunk nodes
   const hostName: string = "my-neo4j";
@@ -380,7 +378,6 @@ export function answerQuestion(question: string, chatId: string): AnswerWithCont
 
     // Compare similarity
     const score = cosineSimilarity(questionEmbedding, chunkEmbedding);
-
     chunkScores.push(new ChunkScore(chunkId, chunkText, score));
   }
 
@@ -416,39 +413,8 @@ RESPOND IN MARKDOWN FORMAT
   const finalAnswer = output.choices[0].message.content.trim();
 
   // 8) Return both the answer and the chunk data
+  const response = new AnswerWithContext();
   response.answer = finalAnswer;
   response.context = topChunks;
   return response;
-}
-
-export function healthCheck(): string {
-  const status = new HealthCheckStatus();
-  status.openai = new OpenAIStatus();
-  status.openai.embeddings = false;
-  status.openai.chat = false;
-  status.openai.error = "";
-  status.neo4j = false;
-  status.error = "";
-
-  // Check OpenAI Embeddings
-  const embeddingModel = models.getModel<OpenAIEmbeddingsModel>(modelNameEmbeddings);
-  if (!embeddingModel) {
-    status.openai.error += "Embedding model not found. ";
-  } else {
-    status.openai.embeddings = true;
-  }
-
-  // Check OpenAI Chat
-  const chatModel = models.getModel<OpenAIChatModel>(modelNameChat);
-  if (!chatModel) {
-    status.openai.error += "Chat model not found. ";
-  } else {
-    status.openai.chat = true;
-  }
-
-  // Check Neo4j
-  const neo4jResult = neo4j.executeQuery("my-neo4j", "RETURN 1");
-  status.neo4j = !!neo4jResult;
-
-  return JSON.stringify(status);
 }
