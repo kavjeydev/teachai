@@ -147,12 +147,12 @@ async def answer_question(payload: QuestionRequest):
 
                 # Calculate similarities
                 chunk_scores = []
-                print("here 1")
                 for record in results:
+                    print(record, 'record')
                     chunk_id = record["id"]
                     chunk_text = record["text"]
-                    embedding_string = record["embedding"]
-                    chunk_embedding = np.array([float(x) for x in embedding_string[1:-1].split(",")])
+                    chunk_embedding = record["embedding"]
+                    # chunk_embedding = np.array([float(x) for x in embedding_string[1:-1].split(",")])
 
                     score = cosine_similarity(np.array(question_embedding), chunk_embedding)
                     chunk_scores.append(ChunkScore(
@@ -183,7 +183,7 @@ async def answer_question(payload: QuestionRequest):
                 print("here 3")
 
                 completion = openai.chat.completions.create(
-                    model="gpt-4",
+                    model="gpt-4o",
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": question}

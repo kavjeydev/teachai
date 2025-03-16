@@ -53,6 +53,11 @@ interface EmbeddingsFormData {
   filename: string;
 }
 
+interface AnswerQuestionPayload {
+  question: string;
+  chat_id: string;
+}
+
 export default function Dashboard({ params }: ChatIdPageProps) {
   const skeletonData = [
     {
@@ -85,7 +90,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     },
   ];
 
-  const BASE_URL = "http://127.0.0.1:8000/";
+  // const BASE_URL = "http://127.0.0.1:8000/";
   // const BASE_URL = "http://localhost:8686/graphql";
 
   const uid = function (): string {
@@ -264,7 +269,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         };
 
         const modusResponse = await fetch(
-          BASE_URL + "create_nodes_and_embeddings",
+          (process.env.NEXT_PUBLIC_BASE_URL as string) +
+            "create_nodes_and_embeddings",
           {
             method: "POST",
             // TODO - Add auth for
@@ -376,28 +382,24 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   }
 
   async function answerQuestion(question: string) {
-    const response = await fetch(BASE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+    const answerQuestionPayload: AnswerQuestionPayload = {
+      question: question,
+      chat_id: chatId as string,
+    };
+
+    console.log("Payload hitting endpoint answer_question");
+    const response = await fetch(
+      (process.env.NEXT_PUBLIC_BASE_URL as string) + "answer_question",
+      {
+        method: "POST",
+        headers: {
+          // TODO - add auth to this endpoint
+          "Content-Type": "application/json",
+          // Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+        },
+        body: JSON.stringify(answerQuestionPayload),
       },
-      body: JSON.stringify({
-        query: `
-          query($question: String!, $chatId: String!) {
-            answerQuestion(question: $question, chatId: $chatId) {
-              answer
-              context {
-                chunkId
-                chunkText
-                score
-              }
-            }
-          }
-        `,
-        variables: { question, chatId },
-      }),
-    });
+    );
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -408,7 +410,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
-    return json.data.answerQuestion.answer;
+    return json.answer;
   }
 
   const triggerFileInput = () => {
@@ -433,10 +435,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     onWrite("user", input.trim());
     setInput("");
 
+    console.log("we made it here");
+
     // 2) Make the API call
     try {
       const botReply = await answerQuestion(userMsg.text);
-
+      console.log(botReply, "botReply");
       // 3) Add the bot’s message
       const botMsg: ChatMessage = {
         sender: "bot",

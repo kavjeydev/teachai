@@ -24,11 +24,10 @@ export const MentionList = memo(
 
     const { globalState, updateGlobalState, resetGlobalState } = useStore();
 
-    const currentContext = useQuery(api.chats.getContext, { id: chatId });
-    props.items = currentContext || [];
+    const currentContext = useQuery(api.chats.getContext, { id: chatId }) || [];
 
     const selectItem = (index: any) => {
-      const item = props.items[index];
+      const item = currentContext[index];
       updateGlobalState(item);
 
       if (item) {
@@ -38,19 +37,19 @@ export const MentionList = memo(
 
     const upHandler = () => {
       setSelectedIndex(
-        (selectedIndex + props.items.length - 1) % props.items.length,
+        (selectedIndex + currentContext.length - 1) % currentContext.length,
       );
     };
 
     const downHandler = () => {
-      setSelectedIndex((selectedIndex + 1) % props.items.length);
+      setSelectedIndex((selectedIndex + 1) % currentContext.length);
     };
 
     const enterHandler = () => {
       selectItem(selectedIndex);
     };
 
-    useEffect(() => setSelectedIndex(0), [props.items]);
+    useEffect(() => setSelectedIndex(0), [currentContext]);
 
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }: any) => {
@@ -79,8 +78,8 @@ export const MentionList = memo(
         className="flex flex-col gap-0.5 bg-white dark:bg-black border-1 border-[#dddddd] dark:border-[#222222] rounded-lg shadow-md
     p-2 max-h-[200px] overflow-scroll"
       >
-        {props.items.length ? (
-          props.items.map((item, index) => (
+        {currentContext.length ? (
+          currentContext.map((item, index) => (
             <button
               className="flex items-center bg-transparent gap-1 text-left w-full p-2 rounded-lg hover:bg-gray-100 focus:bg-gray-200
             dark:hover:bg-default-100 dark:focus:bg-default-200"
