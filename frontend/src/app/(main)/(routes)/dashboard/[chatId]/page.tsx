@@ -78,8 +78,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     },
   ];
 
-  // const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
-  const BASE_URL = "http://localhost:8686/graphql";
+  const BASE_URL = "https://teachai-teachai.hypermode.app/graphql";
+  // const BASE_URL = "http://localhost:8686/graphql";
 
   const uid = function (): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);

@@ -72,7 +72,7 @@ class EnvironmentInfo {
   models: ModelsInfo;
 
   constructor() {
-    const key = process.env.get("MODUS_OPENAI_API_KEY") || "";
+    const key = "";
     this.openaiKey = new OpenAIKeyInfo(
       key.length > 0,
       key.length,
@@ -88,6 +88,7 @@ class EnvironmentInfo {
 
 export function checkEnvironment(): string {
   const envInfo = new EnvironmentInfo();
+  console.log(JSON.stringify(process.env) + "process.env");
   return JSON.stringify(envInfo);
 }
 
