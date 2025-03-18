@@ -55,10 +55,9 @@ interface ChatMessage {
   sender: "user" | "bot";
   text: string;
 }
-
-interface ChatContext {
-  filename: string;
-  fileId: string;
+interface AnswerQuestionPayload {
+  question: string;
+  chat_id: string;
 }
 
 export default function Dashboard({ params }: ChatIdPageProps) {
@@ -255,28 +254,24 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   }
 
   async function answerQuestion(question: string) {
-    const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+    const answerQuestionPayload: AnswerQuestionPayload = {
+      question: question,
+      chat_id: chatId as string,
+    };
+
+    console.log("Payload hitting endpoint answer_question");
+    const response = await fetch(
+      (process.env.NEXT_PUBLIC_BASE_URL as string) + "answer_question",
+      {
+        method: "POST",
+        headers: {
+          // TODO - add auth to this endpoint
+          "Content-Type": "application/json",
+          // Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+        },
+        body: JSON.stringify(answerQuestionPayload),
       },
-      body: JSON.stringify({
-        query: `
-          query($question: String!, $chatId: String!) {
-            answerQuestion(question: $question, chatId: $chatId) {
-              answer
-              context {
-                chunkId
-                chunkText
-                score
-              }
-            }
-          }
-        `,
-        variables: { question, chatId },
-      }),
-    });
+    );
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -286,37 +281,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }
-
-    return json.data.answerQuestion.answer;
-  }
-
-  async function fetchSayHello(name: string): Promise<string> {
-    const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        query: `
-          query SayHello($name: String!) {
-            sayHello(name: $name)
-          }
-        `,
-        variables: { name },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const json = await response.json();
-    if (json.errors && json.errors.length > 0) {
-      throw new Error(json.errors[0].message);
-    }
-
-    return json.data.sayHello;
+    return json.answer;
   }
 
   const handleSend = async () => {
