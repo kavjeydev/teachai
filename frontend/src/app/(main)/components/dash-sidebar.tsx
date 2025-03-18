@@ -177,20 +177,12 @@ export function DashSidebar() {
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
-      method: "POST",
+    const modusResponse = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string + `remove_context/${fileId}`, {
+      method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+        // Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
       },
-      body: JSON.stringify({
-        query: `
-                mutation($fileId: String!) {
-                  removeContext(fileId: $fileId)
-                }
-              `,
-        variables: { fileId },
-      }),
     });
 
     if (!modusResponse.ok) {

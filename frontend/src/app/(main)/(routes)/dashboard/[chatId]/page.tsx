@@ -406,7 +406,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     }
 
     const json = await response.json();
-    console.log("HERE", json);
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
     }

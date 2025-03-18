@@ -245,21 +245,16 @@ print(response)
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+    const modusResponse = await fetch(
+      (process.env.NEXT_PUBLIC_BASE_URL as string) + `remove_context/${fileId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          // Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+        },
       },
-      body: JSON.stringify({
-        query: `
-                mutation($fileId: String!) {
-                  removeContext(fileId: $fileId)
-                }
-              `,
-        variables: { fileId },
-      }),
-    });
+    );
 
     if (!modusResponse.ok) {
       const errorData = await modusResponse.json();
@@ -300,21 +295,24 @@ print(response)
     const contextLength = currentChat?.context?.length || 0;
     if (currentChat?.context) {
       for (let i = 0; i < contextLength; i++) {
-        const modusResponse = await fetch(process.env.NEXT_PUBLIC_BASE_URL as string, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
-          },
-          body: JSON.stringify({
-            query: `
+        const modusResponse = await fetch(
+          process.env.NEXT_PUBLIC_BASE_URL as string,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+            },
+            body: JSON.stringify({
+              query: `
                 mutation($fileId: String!) {
                   removeContext(fileId: $fileId)
                 }
               `,
-            variables: { fileId: currentChat.context[i].fileId },
-          }),
-        });
+              variables: { fileId: currentChat.context[i].fileId },
+            }),
+          },
+        );
 
         if (!modusResponse.ok) {
           const errorData = await modusResponse.json();

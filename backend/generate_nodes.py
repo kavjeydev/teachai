@@ -197,6 +197,40 @@ async def answer_question(payload: QuestionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/remove_context/{file_id}")
+async def remove_context(file_id: str): # TODO: add auth to this endpoint
+    try:
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # Delete Document and its Chunks
+                query = """
+                MATCH (d:Document {id: $file_id})-[r:HAS_CHUNK]->(c:Chunk)
+                DETACH DELETE d, c
+                """
+                result = session.run(query, file_id=file_id)
+
+                # Check if anything was deleted
+                summary = result.consume()
+                if summary.counters.nodes_deleted == 0:
+                    print(f"No nodes found for file_id: {file_id}")
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"No document found with id: {file_id}"
+                    )
+
+                return {
+                    "status": "success",
+                    "message": f"Document {file_id} and its chunks deleted",
+                    "nodes_deleted": summary.counters.nodes_deleted
+                }
+
+    except Exception as e:
+        print(f"Failed to delete document: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete Document node in Neo4j: {str(e)}"
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
