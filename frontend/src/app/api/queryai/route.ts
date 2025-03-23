@@ -1,6 +1,4 @@
-import { useQuery } from "convex/react";
 import { NextRequest, NextResponse } from "next/server";
-import { api } from "../../../../convex/_generated/api";
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
