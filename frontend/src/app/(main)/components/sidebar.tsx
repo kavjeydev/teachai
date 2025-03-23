@@ -130,35 +130,28 @@ export function AppSidebar({
 
   const changeVisibility = useMutation(api.chats.changeVisibility);
 
-  // Mutations
   const addChat = useMutation(api.chats.createChat);
   const archiveChat = useMutation(api.chats.archive);
-  // (A) Create your rename mutation hook
   const renameChat = useMutation(api.chats.rename);
 
   const [settingsOpen, setSettingsOpen] = React.useState(false);
 
-  // (B) Local state for inline editing
   const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(
     null,
   );
   const [editingTitle, setEditingTitle] = React.useState("");
 
-  // Handler for creating a chat
   const onCreate = () => {
     const promise = addChat({ title: "untitled" });
     toast({ title: "Created chat" });
   };
 
-  // Handler for archiving/deleting a chat
   const onDelete = (chatId: Id<"chats">) => {
     const promise = archiveChat({ id: chatId });
     toast({ title: "Archived chat" });
   };
 
-  // (C) Handlers for renaming a chat
   const handleDoubleClick = (chatId: Id<"chats">, currentTitle: string) => {
-    // Stop the default onClick (which pushes to /dashboard)
     setEditingChatId(chatId);
     setEditingTitle(currentTitle);
   };
