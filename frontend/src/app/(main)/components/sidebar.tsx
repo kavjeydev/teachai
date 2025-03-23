@@ -46,8 +46,6 @@ import {
   Circle,
   Undo,
   Globe,
-  FoldHorizontal,
-  GalleryVertical,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
