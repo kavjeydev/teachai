@@ -259,7 +259,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       chat_id: chatId as string,
     };
 
-    console.log("Payload hitting endpoint answer_question");
     const response = await fetch(
       (process.env.NEXT_PUBLIC_BASE_URL as string) + "answer_question",
       {

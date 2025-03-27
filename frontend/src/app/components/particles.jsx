@@ -5,13 +5,10 @@ import { loadSlim } from "tsparticles-slim";
 
 export default function ParticlesBackground() {
   const particlesInit = async (engine) => {
-    console.log("tsparticles slim engine initialized", engine);
-    // Load the slim version which supports links and other basic features
     await loadSlim(engine);
   };
 
   const particlesLoaded = (container) => {
-    console.log("Particles container loaded", container);
   };
 
   const { theme } = useTheme();

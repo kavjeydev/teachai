@@ -258,8 +258,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         setProgress(30);
         setProgressText("Text extracted from file...");
 
-        console.log("hitting endpoint");
-
         // 2) Create embeddings
         const embeddingsFormData: EmbeddingsFormData = {
           pdf_text: data.text,
@@ -387,7 +385,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       chat_id: chatId as string,
     };
 
-    console.log("Payload hitting endpoint answer_question");
     const response = await fetch(
       (process.env.NEXT_PUBLIC_BASE_URL as string) + "answer_question",
       {
@@ -434,12 +431,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     onWrite("user", input.trim());
     setInput("");
 
-    console.log("we made it here");
-
     // 2) Make the API call
     try {
       const botReply = await answerQuestion(userMsg.text);
-      console.log(botReply, "botReply");
       // 3) Add the bot’s message
       const botMsg: ChatMessage = {
         sender: "bot",
