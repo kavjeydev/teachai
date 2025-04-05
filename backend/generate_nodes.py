@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-# Load environment variables
 load_dotenv()
 
 app = FastAPI()
