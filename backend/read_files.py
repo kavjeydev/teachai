@@ -17,6 +17,26 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
+# Data Models
+class ChunkScore(BaseModel):
+    chunk_id: str
+    chunk_text: str
+    score: float
+
+class AnswerWithContext(BaseModel):
+    answer: str = ""
+    context: List[ChunkScore] = []
+
+class QuestionRequest(BaseModel):
+    question: str
+    chat_id: str
+
+class CreateNodesAndEmbeddingsRequest(BaseModel):
+    pdf_text: str
+    pdf_id: str
+    chat_id: str
+    filename: str
+
 app = FastAPI()
 handler = Mangum(app)
 
@@ -187,39 +207,10 @@ async def extract_text_endpoint(file: UploadFile = File(...)):
 # Load environment variables
 load_dotenv()
 
-app = FastAPI()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 neo4j_uri = os.getenv("NEO4J_URI")
 neo4j_user = os.getenv("NEO4J_USER")
 neo4j_password = os.getenv("NEO4J_PASSWORD")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
-)
-
-# Data Models
-class ChunkScore(BaseModel):
-    chunk_id: str
-    chunk_text: str
-    score: float
-
-class AnswerWithContext(BaseModel):
-    answer: str = ""
-    context: List[ChunkScore] = []
-
-class QuestionRequest(BaseModel):
-    question: str
-    chat_id: str
-
-class CreateNodesAndEmbeddingsRequest(BaseModel):
-    pdf_text: str
-    pdf_id: str
-    chat_id: str
-    filename: str
 
 # Helper Functions
 def sanitize_for_neo4j(text: str) -> str:
