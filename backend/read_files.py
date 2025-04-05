@@ -253,7 +253,6 @@ def get_embedding(text: str) -> List[float]:
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
-# FastAPI Routes
 @app.post("/create_nodes_and_embeddings")
 async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
     pdf_text = payload.pdf_text
