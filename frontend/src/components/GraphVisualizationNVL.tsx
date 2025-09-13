@@ -109,13 +109,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           minZoom: 0.1,
           renderer: "webgl", // Use WebGL for better performance
           relationshipThreshold: 0.5, // Hide relationships when zoomed out for performance
-          nodeThreshold: 0.3, // Hide node labels when zoomed out
-          enableNodeDragging: true,
-          enablePanning: true,
-          enableZooming: true,
-          // Performance optimizations
-          animationDuration: 200, // Faster animations
-          stabilizationIterations: 50, // Fewer layout iterations
         },
         {
           onError: (error: Error) => {
