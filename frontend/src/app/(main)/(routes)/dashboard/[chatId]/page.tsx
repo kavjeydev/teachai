@@ -509,16 +509,15 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                         components={{
                           code({
                             node,
-                            inline,
                             className,
                             children,
                             ...props
-                          }: any) {
+                          }) {
                             const match = /language-(\w+)/.exec(
                               className || "",
                             );
                             const language = match ? match[1] : "";
-                            return !inline && language ? (
+                            return language ? (
                               <CodeBlock
                                 language={language}
                                 value={String(children).replace(/\n$/, "")}
@@ -638,16 +637,15 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                         components={{
                           code({
                             node,
-                            inline,
                             className,
                             children,
                             ...props
-                          }: any) {
+                          }) {
                             const match = /language-(\w+)/.exec(
                               className || "",
                             );
                             const language = match ? match[1] : "";
-                            return !inline && language ? (
+                            return language ? (
                               <CodeBlock
                                 language={language}
                                 value={String(children).replace(/\n$/, "")}
