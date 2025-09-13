@@ -513,7 +513,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                             className,
                             children,
                             ...props
-                          }) {
+                          }: any) {
                             const match = /language-(\w+)/.exec(
                               className || "",
                             );
@@ -642,7 +642,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                             className,
                             children,
                             ...props
-                          }) {
+                          }: any) {
                             const match = /language-(\w+)/.exec(
                               className || "",
                             );
