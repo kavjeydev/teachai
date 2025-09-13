@@ -382,7 +382,6 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                           components={{
                             code({
                               node,
-                              inline,
                               className,
                               children,
                               ...props
@@ -391,7 +390,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                                 className || "",
                               );
                               const language = match ? match[1] : "";
-                              return !inline && language ? (
+                              return language ? (
                                 <CodeBlock
                                   language={language}
                                   value={String(children).replace(/\n$/, "")}
@@ -520,10 +519,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                       remarkPlugins={[remarkGfm]}
                       className="max-w-[39rem]"
                       components={{
-                        code({ node, inline, className, children, ...props }) {
+                        code({ node, className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || "");
                           const language = match ? match[1] : "";
-                          return !inline && language ? (
+                          return language ? (
                             <CodeBlock
                               language={language}
                               value={String(children).replace(/\n$/, "")}
