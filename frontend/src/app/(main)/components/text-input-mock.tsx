@@ -69,7 +69,6 @@ export default function InputMock({
   }
 
   async function fetchSayHello(variables: SayHelloVariables): Promise<string> {
-
     const query = `query SayHello($name: String!) {
       sayHello(name: $name)
     }`;

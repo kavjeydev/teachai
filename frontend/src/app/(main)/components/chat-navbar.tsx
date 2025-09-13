@@ -58,7 +58,6 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
         toast.success("Visibility updated successfully!");
       })
       .catch((error) => {
-        console.error("Failed to update visibility:", error);
         toast.error("Failed to update visibility.");
       });
   }

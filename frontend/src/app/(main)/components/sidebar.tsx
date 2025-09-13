@@ -46,6 +46,7 @@ import {
   Circle,
   Undo,
   Globe,
+  Network,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -374,6 +375,20 @@ print(response)
                     <Globe />
                     <span className="cursor-pointer text-lg font-medium mb-1">
                       Community
+                    </span>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem key="graph">
+                <SidebarMenuButton
+                  asChild
+                  onClick={() => router.push(`/dashboard/${chatId}/graph`)}
+                >
+                  <div className="cursor-pointer">
+                    <Network />
+                    <span className="cursor-pointer text-lg font-medium mb-1">
+                      Graph View
                     </span>
                   </div>
                 </SidebarMenuButton>
