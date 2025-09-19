@@ -388,11 +388,34 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     setIsLoading(true);
 
     try {
+      console.log(
+        "🔍 Loading graph data from:",
+        `${baseUrl}graph_data/${chatId}`,
+      );
+
+      if (!baseUrl) {
+        throw new Error(
+          "Backend URL not configured. Please set NEXT_PUBLIC_BASE_URL environment variable.",
+        );
+      }
+
       const response = await fetch(`${baseUrl}graph_data/${chatId}`);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ Backend error:", errorText);
+
+        if (response.status === 404) {
+          toast.error(
+            "Graph endpoint not found. Make sure the backend is running on " +
+              baseUrl,
+          );
+        } else if (response.status >= 500) {
+          toast.error("Backend server error. Check your Neo4j connection.");
+        } else {
+          toast.error(`Failed to load graph data: ${response.status}`);
+        }
+
         throw new Error(
           `Failed to load graph data: ${response.status} ${errorText}`,
         );
@@ -480,7 +503,22 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       toast.success("Graph data loaded successfully");
     } catch (error) {
       console.error("Error loading graph data:", error);
-      toast.error("Failed to load graph data");
+
+      if (error instanceof Error) {
+        if (error.message.includes("Backend URL not configured")) {
+          toast.error(
+            "Backend not configured. Please set up your environment variables.",
+          );
+        } else if (error.message.includes("Failed to fetch")) {
+          toast.error(
+            "Cannot connect to backend. Make sure it's running on " + baseUrl,
+          );
+        } else {
+          toast.error("Failed to load graph data: " + error.message);
+        }
+      } else {
+        toast.error("Failed to load graph data");
+      }
     } finally {
       setIsLoading(false);
     }

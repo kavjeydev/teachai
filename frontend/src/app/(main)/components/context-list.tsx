@@ -114,36 +114,42 @@ export function ContextList({ context, chatId }: ChatContext) {
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Context List">
-            {context?.map((item) => (
-              <CommandItem key={item.fileId}>
-                <div
-                  className="flex justify-between gap-4 items-center w-full"
-                  key={item.fileId}
-                >
-                  <div className="flex items-center gap-2">
-                    <File size={20} color="#777777" />
-                    <span>{item.filename}</span>
-                    <div className="fixed pointer-events-none opacity-0">
-                      {item.fileId}
-                    </div>
-                  </div>
-                  <Button
-                    className="x-[9999999] rounded-full dark:hover:bg-darkmaincolor hover:bg-white"
-                    onClick={() => {
-                      handleErase(chatId, item.fileId);
-                    }}
-                    size="icon"
-                    variant="ghost"
+            {Array.isArray(context) && context.length > 0 ? (
+              context.map((item) => (
+                <CommandItem key={item.fileId}>
+                  <div
+                    className="flex justify-between gap-4 items-center w-full"
+                    key={item.fileId}
                   >
-                    <X
-                      size={12}
-                      color="#E53E3E"
-                      className="cursor-pointer hover:opacity-75"
-                    />
-                  </Button>
-                </div>
+                    <div className="flex items-center gap-2">
+                      <File size={20} color="#777777" />
+                      <span>{item.filename}</span>
+                      <div className="fixed pointer-events-none opacity-0">
+                        {item.fileId}
+                      </div>
+                    </div>
+                    <Button
+                      className="x-[9999999] rounded-full dark:hover:bg-darkmaincolor hover:bg-white"
+                      onClick={() => {
+                        handleErase(chatId, item.fileId);
+                      }}
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <X
+                        size={12}
+                        color="#E53E3E"
+                        className="cursor-pointer hover:opacity-75"
+                      />
+                    </Button>
+                  </div>
+                </CommandItem>
+              ))
+            ) : (
+              <CommandItem disabled>
+                <span className="text-slate-500">No context files</span>
               </CommandItem>
-            ))}
+            )}
           </CommandGroup>
         </CommandList>
       </CommandDialog>

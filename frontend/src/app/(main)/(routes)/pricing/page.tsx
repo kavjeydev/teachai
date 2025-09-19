@@ -2,280 +2,383 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NextUIProvider } from "@nextui-org/react";
-import { Card, CardHeader, CardBody } from "@nextui-org/react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Check, X } from "lucide-react";
+import { Check, X, Zap, Code, Users } from "lucide-react";
 import Navbar from "@/app/components/navbar";
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(true);
 
   return (
-    <NextUIProvider className="dark:bg-darkdarkbg font-geist">
-      <div className="flex flex-col dark:bg-darkdarkbg bg-lightlightbg items-center min-h-screen overscroll-contain">
+    <NextUIProvider>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <Navbar />
-        <div className="mt-24 flex flex-col gap-10 items-center w-full px-4">
-          <div className="flex flex-col gap-0 max-w-3xl">
-            <div
-              className="flex flex-col gap-4 max-w-3xl text-md dark:text-maincolor text-third
-            items-center font-normal"
-            >
-              Pricing
-            </div>
-            <div className="flex flex-col gap-3 max-w-3xl">
-              <h1
-                className="text-[2.5rem] font-spaceg leading-[1.1] tracking-tighter
-              w-full text-center font-medium "
-              >
-                Get unlimited access.
+        <div className="pt-32 pb-20">
+          <div className="max-w-7xl mx-auto px-6">
+            {/* Header */}
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-trainlymainlight/20 bg-trainlymainlight/5 text-trainlymainlight text-sm font-medium mb-6">
+                <Zap className="w-4 h-4" />
+                <span>Developer-First Pricing</span>
+              </div>
+              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6">
+                <span className="bg-gradient-to-r from-trainlymainlight to-purple-600 bg-clip-text text-transparent">
+                  Start free,
+                </span>
+                <br />
+                <span className="text-slate-700 dark:text-slate-300">
+                  scale as you grow
+                </span>
               </h1>
-              <h2 className="text-center text-lg text-muted-foreground font-normal">
-                Explore our AI plans for your business growth and success.
-              </h2>
+              <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
+                From side projects to production apps. Transparent pricing that
+                grows with your needs, not against them.
+              </p>
             </div>
-          </div>
 
-          <div
-            className="flex h-10 w-[19.5rem] rounded-full dark:bg-white/10 bg-[#DDDDDD]
-          border dark:border-[#444444] border-[#BBBBBB] cursor-pointer mb-2"
-          >
-            <div
-              className={cn(
-                "flex dark:text-muted-foreground/80 text-[#555555] w-2/5 text-sm m-1 items-center justify-center rounded-full transition-all duration-300",
-                !annual
-                  ? "bg-white dark:bg-white/10 dark:text-white text-black"
-                  : "hover:bg-[#BBBBBB] dark:hover:bg-[#444444]",
-              )}
-              onClick={() => {
-                setAnnual(false);
-              }}
-            >
-              Pay Monthly
-            </div>
-            <div
-              className={cn(
-                "flex dark:text-muted-foreground/80 text-[#555555] w-3/5 items-center justify-center m-1 rounded-full",
-                annual
-                  ? "bg-white dark:bg-white/10 dark:text-white text-black"
-                  : "hover:bg-[#BBBBBB] dark:hover:bg-[#444444]",
-              )}
-              onClick={() => {
-                setAnnual(true);
-              }}
-            >
-              <div className="h-full w-full flex items-center justify-center gap-2 pr-3 text-sm font-geist">
-                <Badge
-                  className="dark:bg-maincolor/20 dark:text-blue-400
-                text-third bg-third/15 font-normal pointer-events-none rounded-full"
+            {/* Billing Toggle */}
+            <div className="flex justify-center mb-12">
+              <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <button
+                  className={cn(
+                    "px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200",
+                    !annual
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white",
+                  )}
+                  onClick={() => setAnnual(false)}
                 >
-                  Save 33%
-                </Badge>
-                Pay Yearly
+                  Monthly
+                </button>
+                <button
+                  className={cn(
+                    "px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-2",
+                    annual
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white",
+                  )}
+                  onClick={() => setAnnual(true)}
+                >
+                  <Badge className="bg-trainlymainlight/10 text-trainlymainlight text-xs px-2 py-1 rounded-md">
+                    Save 33%
+                  </Badge>
+                  Annual
+                </button>
               </div>
             </div>
-          </div>
-          <div className="flex gap-4">
-            {/* <div className="absolute mt-28 ml-40 h-80 w-56 bg-third/30 rounded-full rotate-45 blur-3xl dark:bg-maincolor/20"></div> */}
-            {/* <div className="absolute mt-8 ml-[30rem] h-80 w-56 bg-third/30 rounded-full -rotate-45 blur-3xl dark:bg-maincolor/20"></div> */}
-            <Card className="py-4 bg-white/50 dark:bg-darkbg/50 backdrop-blur-md w-[300px]">
-              <CardHeader className="flex gap-2 pb-0 pt-1 px-6 flex-col items-start">
-                <h1 className="font-medium text-2xl  ">Free</h1>
-                <p className="text-muted-foreground text-md">
-                  For starters and hobbyists that want to try out.
-                </p>
-                <Separator className="mt-4 bg-muted-foreground/40" />
-              </CardHeader>
-              <CardBody className="overflow-visible px-6 py-2">
-                <h1
-                  className="font-bold text-[2.5rem] text-transparent bg-clip-text
-                bg-gradient-to-br from-black to-slate-400 dark:from-white dark:to-to-slate-600"
-                >
-                  Free
-                </h1>
-                <div className="flex flex-col gap-2 mt-7">
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">
-                      Up to 500MB of context
-                    </p>
+
+            {/* Pricing Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20">
+              {/* Free Tier */}
+              <div className="relative p-8 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    Hobby
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-6">
+                    Perfect for side projects and learning
+                  </p>
+                  <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+                    $0
                   </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">
-                      Publish functionality
-                    </p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">50K tokens / month</p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <X className="text-muted-foreground h-4 w-4" />
-                    <p className="text-muted-foreground">API Access</p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <X className="text-muted-foreground h-4 w-4" />
-                    <p className="text-muted-foreground">
-                      No premium AI models
-                    </p>
-                  </div>
-                </div>
-                <div
-                  className=" flex items-center justify-center w-full mt-8 h-12 bg-third/15 text-third dark:bg-maincolor/10
-                dark:text-blue-400 rounded-xl cursor-pointer"
-                >
-                  Continue with free
-                </div>
-              </CardBody>
-            </Card>
-            {/* <PricingCard /> */}
-            <Card
-              className="py-4 bg-white/50 dark:bg-darkbg/50 backdrop-blur-md w-[300px]
-            border dark:border-maincolor border-third"
-            >
-              <CardHeader className="flex gap-2 pb-0 pt-1 px-6 flex-col items-start">
-                <div className="flex justify-between w-full items-center">
-                  <h1 className="font-medium text-2xl  ">Startup 🪄</h1>
-                  <Badge
-                    className="dark:bg-maincolor/20 dark:text-blue-400
-                text-third bg-third/15 font-normal pointer-events-none rounded-full"
-                  >
-                    Most Popular
-                  </Badge>
-                </div>
-                <p className="text-muted-foreground text-md">
-                  For individuals and small teams looking to learn quickly.
-                </p>
-                <Separator className="mt-4 bg-muted-foreground/40" />
-              </CardHeader>
-              <CardBody className="overflow-visible px-6 py-2">
-                <h1
-                  className="font-bold text-[2.5rem] text-transparent bg-clip-text
-                bg-gradient-to-br from-black to-slate-400 dark:from-white dark:to-to-slate-600"
-                >
-                  {annual ? (
-                    <div>
-                      $6{" "}
-                      <span className="text-sm text-muted-foreground font-normal">
-                        /per month
-                      </span>
-                    </div>
-                  ) : (
-                    <div>
-                      $9{" "}
-                      <span className="text-sm text-muted-foreground font-normal">
-                        /per month
-                      </span>
-                    </div>
-                  )}
-                </h1>
-                <div className="flex flex-col gap-2 mt-7">
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">
-                      1000 API Calls / month
-                    </p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">API Access</p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">2M tokens / month</p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">
-                      Up to 2 GB in context
-                    </p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <X className="text-muted-foreground h-4 w-4" />
-                    <p className="text-muted-foreground ">Premium AI models</p>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    Forever free
                   </div>
                 </div>
 
-                <div
-                  className=" flex items-center justify-center w-full mt-8 h-12 bg-third text-white dark:bg-maincolor
-                rounded-xl cursor-pointer hover:bg-third/80 dark:hover:bg-maincolor/80 transition-all duration-200"
-                >
-                  Get started
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      3 GraphRAG chats
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      10MB file uploads
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Graph visualization
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Source citations
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <X className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                    <span className="text-slate-400">API endpoints</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <X className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                    <span className="text-slate-400">Graph editing</span>
+                  </li>
+                </ul>
+
+                <button className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                  Start Free
+                </button>
+              </div>
+
+              {/* Pro Tier - Most Popular */}
+              <div className="relative p-8 bg-white dark:bg-slate-800 rounded-3xl border-2 border-trainlymainlight shadow-2xl hover:shadow-trainlymainlight/20 transition-all duration-300">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-trainlymainlight text-white px-4 py-2 rounded-full text-sm font-semibold">
+                    Most Popular
+                  </span>
                 </div>
-              </CardBody>
-            </Card>
-            {/* <PricingCard /> */}
-            <Card className="py-4 bg-white/50 dark:bg-darkbg/50 backdrop-blur-md w-[300px]">
-              <CardHeader className="flex gap-2 pb-0 pt-1 px-6 flex-col items-start">
-                <h1 className="font-medium text-2xl  ">Pro 🚀</h1>
-                <p className="text-muted-foreground text-md">
-                  For large teams looking to increase throughput.
+
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    Pro
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-6">
+                    For serious developers building apps
+                  </p>
+                  <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+                    ${annual ? "19" : "29"}
+                  </div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    per month{" "}
+                    {annual && (
+                      <span className="text-trainlymainlight font-medium">
+                        (save $120/year)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Unlimited GraphRAG chats
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      500MB file uploads
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Full graph editing
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      API endpoints per chat
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Priority processing
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Email support
+                    </span>
+                  </li>
+                </ul>
+
+                <button className="w-full py-3 px-4 bg-trainlymainlight text-white font-semibold rounded-xl hover:bg-trainlymainlight/90 transition-colors shadow-lg">
+                  Start Pro Trial
+                </button>
+              </div>
+
+              {/* Scale Tier */}
+              <div className="relative p-8 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    Scale
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-6">
+                    For teams and production workloads
+                  </p>
+                  <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+                    ${annual ? "49" : "69"}
+                  </div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    per month{" "}
+                    {annual && (
+                      <span className="text-trainlymainlight font-medium">
+                        (save $240/year)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Everything in Pro
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      5GB file uploads
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      100k API calls/month
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Premium AI models
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Graph export (Neo4j, JSON)
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-trainlymainlight flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Priority support
+                    </span>
+                  </li>
+                </ul>
+
+                <button className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                  Contact Sales
+                </button>
+              </div>
+            </div>
+
+            {/* Developer Benefits */}
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
+                Built for developers who ship fast
+              </h2>
+              <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
+                Stop wasting time debugging black-box AI. Get the transparency
+                and control you need.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+              <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="w-16 h-16 bg-trainlymainlight/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Zap className="w-8 h-8 text-trainlymainlight" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                  Ship in Minutes, Not Months
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Upload docs, chat to test, deploy as API. Perfect for
+                  hackathons and rapid prototyping.
                 </p>
-                <Separator className="mt-4 bg-muted-foreground/40" />
-              </CardHeader>
-              <CardBody className="overflow-visible px-6 py-2">
-                <h1
-                  className="font-bold text-[2.5rem] text-transparent bg-clip-text
-                bg-gradient-to-br from-black to-slate-400 dark:from-white dark:to-to-slate-600"
-                >
-                  {annual ? (
-                    <div>
-                      $66{" "}
-                      <span className="text-sm text-muted-foreground font-normal">
-                        /per month
-                      </span>
-                    </div>
-                  ) : (
-                    <div>
-                      $99{" "}
-                      <span className="text-sm text-muted-foreground font-normal">
-                        /per month
-                      </span>
-                    </div>
-                  )}
-                </h1>
-                <div className="flex flex-col gap-2 mt-7">
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">
-                      Everything in Startup
-                    </p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">Unlimited API Calls</p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">100M tokens / month</p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">
-                      o1 + Deepseek R1 Access
-                    </p>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Check className="dark:text-maincolor text-third h-4 w-4" />
-                    <p className="text-muted-foreground">Unlimited context</p>
-                  </div>
+              </div>
+
+              <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="w-16 h-16 bg-trainlymainlight/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Code className="w-8 h-8 text-trainlymainlight" />
                 </div>
-                <div
-                  className=" flex items-center justify-center w-full mt-8 h-12 bg-third/15 text-third dark:bg-maincolor/10
-                dark:text-blue-400 rounded-xl cursor-pointer"
-                >
-                  Contact us
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                  Debug Your AI Like Code
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Visual graph editing lets you see exactly how your AI thinks
+                  and fix issues instantly.
+                </p>
+              </div>
+
+              <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="w-16 h-16 bg-trainlymainlight/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Users className="w-8 h-8 text-trainlymainlight" />
                 </div>
-              </CardBody>
-            </Card>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                  Developer Experience First
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Clean APIs, comprehensive docs, and SDKs. Built by developers,
+                  for developers.
+                </p>
+              </div>
+            </div>
+
+            {/* FAQ */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-3xl p-12 mb-20">
+              <div className="text-center mb-12">
+                <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                  Frequently Asked Questions
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Everything you need to know about Trainly
+                </p>
+              </div>
+
+              <div className="max-w-3xl mx-auto space-y-6">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6">
+                  <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
+                    How is this different from ChatGPT or Claude?
+                  </h4>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Unlike ChatGPT, Trainly uses GraphRAG to eliminate
+                    hallucinations and provides complete transparency. You can
+                    see exactly which documents influenced each answer and edit
+                    the knowledge graph visually.
+                  </p>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6">
+                  <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
+                    Can I really turn chats into APIs?
+                  </h4>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Yes! Every chat gets its own API endpoint that you can use
+                    in your applications. Perfect for rapid prototyping or
+                    building AI features into existing apps.
+                  </p>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6">
+                  <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
+                    Is there a free tier?
+                  </h4>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Absolutely! The Hobby tier is free forever and includes 3
+                    chats, graph visualization, and source citations. Perfect
+                    for learning and side projects.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Final CTA */}
+            <div className="text-center">
+              <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                Ready to build AI you can trust?
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-2xl mx-auto">
+                Join hundreds of developers building the future with explainable
+                GraphRAG.
+              </p>
+              <button className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white px-8 py-3 rounded-xl font-semibold transition-colors">
+                Start Building Today
+              </button>
+            </div>
           </div>
-          <h1 className="mb-28 text-muted-foreground text-lg font-normal">
-            Explore startup discounts.{" "}
-            <span className="dark:text-white text-black underline underline-offset-4 cursor-pointer">
-              Contact us
-            </span>
-          </h1>
         </div>
       </div>
     </NextUIProvider>

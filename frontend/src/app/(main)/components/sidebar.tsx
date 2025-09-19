@@ -15,91 +15,43 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import {
-  Ellipsis,
   PlusCircle,
   Trash,
   Home,
-  ChevronsUpDown,
   Settings,
-  ChevronRight,
-  File,
-  X,
-  Paperclip,
-  Lock,
-  Unlock,
-  Save,
-  Circle,
-  Undo,
-  Globe,
+  MessageSquare,
+  Sparkles,
+  Code,
   Network,
+  Search,
+  Filter,
+  SortAsc,
+  SortDesc,
+  Calendar,
+  FolderPlus,
+  Folder,
+  MoreHorizontal,
+  Clock,
+  FileText,
+  Hash,
+  Star,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import APIKeyInput from "./api-key-input";
-import { useToast } from "@/hooks/use-toast";
-import APICodeBlock from "./api-code-block";
-import { Dialog } from "@radix-ui/react-dialog";
-import { DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import ProgressBar from "./progress-bar";
-
-const items = [
-  {
-    title: "Home",
-    url: "/",
-    icon: Home,
-  },
-];
+import { toast } from "sonner";
 
 interface SidebarParams {
   chatId: Id<"chats">;
   fileProgress: number;
-  showProgress: boolean | false;
+  showProgress: boolean;
   progressText: string;
 }
 
@@ -111,742 +63,443 @@ export function AppSidebar({
 }: SidebarParams) {
   const router = useRouter();
   const { user } = useUser();
-  const { theme } = useTheme();
-  const { toast } = useToast();
 
-  // Fetch chats
   const chats = useQuery(api.chats.getChats);
-
-  const currentChat = useQuery(api.chats.getChatById, {
-    id: chatId,
-  });
-
-  const [currVisibility, setCurrVisibility] = React.useState<string>(
-    currentChat ? currentChat.apiInfo.visibility : "protected",
-  );
-
-  const showContext = useQuery(api.chats.getContext, {
-    id: chatId,
-  });
-
-  const changeVisibility = useMutation(api.chats.changeVisibility);
+  const currentChat = useQuery(api.chats.getChatById, { id: chatId });
 
   const addChat = useMutation(api.chats.createChat);
   const archiveChat = useMutation(api.chats.archive);
   const renameChat = useMutation(api.chats.rename);
 
-  const [settingsOpen, setSettingsOpen] = React.useState(false);
-
+  // Enhanced state management
   const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(
     null,
   );
   const [editingTitle, setEditingTitle] = React.useState("");
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [sortBy, setSortBy] = React.useState<"date" | "name" | "activity">(
+    "date",
+  );
+  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
+  const [selectedFolder, setSelectedFolder] = React.useState<string>("all");
+  const [showFilters, setShowFilters] = React.useState(false);
+  const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
 
   const onCreate = () => {
     const promise = addChat({ title: "untitled" });
-    toast({ title: "Created chat" });
+    toast.success("Created new chat!");
   };
 
   const onDelete = (chatId: Id<"chats">) => {
-    const promise = archiveChat({ id: chatId });
-    toast({ title: "Archived chat" });
+    archiveChat({ id: chatId });
+    toast.success("Chat deleted");
+    router.push("/dashboard");
   };
 
-  const handleDoubleClick = (chatId: Id<"chats">, currentTitle: string) => {
-    setEditingChatId(chatId);
-    setEditingTitle(currentTitle);
+  const startEditing = (chat: any) => {
+    setEditingChatId(chat._id);
+    setEditingTitle(chat.title);
   };
-
-  const sampleCode = `async function callQueryAI(question: string, chatid: string): Promise<any> {
-  const url = 'https://www.trainlyai.com/api/queryai';
-  const apiKey = 'YOUR_API_KEY_HERE'; // Replace with your actual API key
-
-  const payload = {
-    question,
-    chatId,
-  };
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
-  }
-}`;
-
-  const pythonCode = `import requests # pip install requests
-from typing import Any
-
-def call_query_ai(question: str, chatid: str) -> Any:
-    url = 'https://www.trainlyai.com/api/queryai'
-    api_key = 'YOUR_API_KEY_HERE'  # Replace with your actual API key
-
-    payload = {
-        "question": question,
-        "chatId": chatid,
-    }
-
-    headers = {
-        'Content-Type': 'application/json',
-        'x-api-key': api_key,
-    }
-
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        data = response.json()
-        return data
-    except requests.exceptions.RequestException as e:
-        print(f'API call failed: {e}')
-        raise
-
-# Example usage:
-response = call_query_ai("What is the capital of France?", "${chatId}")
-print(response)
-`;
 
   const finishEditing = (chatId: Id<"chats">) => {
-    renameChat({ id: chatId, title: editingTitle });
+    if (editingTitle.trim()) {
+      renameChat({ id: chatId, title: editingTitle });
+      toast.success("Chat renamed!");
+    }
     setEditingChatId(null);
   };
 
-  const eraseContent = useMutation(api.chats.eraseContext);
+  // Enhanced filtering and sorting
+  const filteredAndSortedChats = React.useMemo(() => {
+    if (!chats) return [];
 
-  const onErase = (id: Id<"chats">, fileId: string) => {
-    eraseContent({
-      id,
-      fileId,
-    })
-      .then(() => {
-        toast({ title: "Removed context!" });
-      })
-      .catch(() => {
-        toast({ title: "Failed to remove context" });
-      });
-  };
-
-  const handleErase = async (chatId: Id<"chats">, fileId: string) => {
-    onErase(chatId, fileId);
-
-    const modusResponse = await fetch(
-      (process.env.NEXT_PUBLIC_BASE_URL as string) + `remove_context/${fileId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          // Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
-        },
-      },
-    );
-
-    if (!modusResponse.ok) {
-      const errorData = await modusResponse.json();
-      throw new Error(errorData.detail || "Failed to write nodes to neo4j.");
-    }
-  };
-
-  const handleSave = async (chatId: Id<"chats">, visibility: string) => {
-    changeVisibility({
-      id: chatId,
-      visibility: visibility,
-    })
-      .then(() => {
-        toast({ title: "Visibility changed!" });
-      })
-      .catch(() => {
-        toast({ title: "Failed to change visibility" });
-      });
-  };
-
-  const archivedChats = useQuery(api.chats.getArchivedChats);
-  const restore = useMutation(api.chats.unArchive);
-
-  const deleteForever = useMutation(api.chats.remove);
-
-  const handleRestore = async (chatId: Id<"chats">) => {
-    restore({
-      id: chatId,
+    let filtered = chats.filter((chat) => {
+      const matchesSearch = chat.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesFolder =
+        selectedFolder === "all" || (chat as any).folder === selectedFolder;
+      return matchesSearch && matchesFolder;
     });
-    toast({
-      title: "Restored chat.",
-    });
-  };
 
-  const handleDelete = async (chatId: Id<"chats">) => {
-    router.push("/dashboard");
+    return filtered.sort((a, b) => {
+      let comparison = 0;
 
-    const contextLength = currentChat?.context?.length || 0;
-    if (currentChat?.context) {
-      for (let i = 0; i < contextLength; i++) {
-        const modusResponse = await fetch(
-          process.env.NEXT_PUBLIC_BASE_URL as string,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
-            },
-            body: JSON.stringify({
-              query: `
-                mutation($fileId: String!) {
-                  removeContext(fileId: $fileId)
-                }
-              `,
-              variables: { fileId: currentChat.context[i].fileId },
-            }),
-          },
-        );
-
-        if (!modusResponse.ok) {
-          const errorData = await modusResponse.json();
-          throw new Error(
-            errorData.detail || "Failed to write nodes to neo4j.",
-          );
-        }
+      switch (sortBy) {
+        case "name":
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case "date":
+          comparison =
+            new Date(a._creationTime).getTime() -
+            new Date(b._creationTime).getTime();
+          break;
+        case "activity":
+          comparison =
+            new Date(a._creationTime).getTime() -
+            new Date(b._creationTime).getTime();
+          break;
       }
-    }
 
-    deleteForever({
-      id: chatId,
+      return sortOrder === "asc" ? comparison : -comparison;
     });
-  };
+  }, [chats, searchQuery, sortBy, sortOrder, selectedFolder]);
 
-  if (!user || user === undefined) {
-    return <div>loading...</div>;
-  }
+  const folders = React.useMemo(() => {
+    if (!chats) return [];
+    const folderSet = new Set(
+      chats.map((chat: any) => chat.folder || "general").filter(Boolean),
+    );
+    return Array.from(folderSet);
+  }, [chats]);
 
   return (
-    <Sidebar
-      className="z-99999 font-darkerGrotesque text-2xl"
-      collapsible="icon"
-    >
-      <SidebarHeader className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
-        <Popover>
-          <PopoverTrigger asChild>
-            <SidebarMenuButton className="h-12 pt-2 transition-colors duration-200">
-              <div className="mb-1.5 text-lg font-bold">&#91; &#125;</div>
-              <div className="leading-tight truncate text-ellipsis">
-                <div className="font-semibold text-xl mb-1">Trainly</div>
-                {/* <div className="text-lg text-muted-foreground">Contact Us</div> */}
-              </div>
-              <ChevronsUpDown className="ml-auto text-muted-foreground" />
-            </SidebarMenuButton>
-          </PopoverTrigger>
-          <PopoverContent className="w-[--radix-popper-anchor-width]">
-            <Button className="w-full">kavin11205@gmail.com</Button>
-          </PopoverContent>
-        </Popover>
+    <Sidebar className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-r border-slate-200/50 dark:border-slate-800/50">
+      <SidebarHeader className="p-6 border-b border-slate-200/50 dark:border-slate-800/50">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-sm">T</span>
+          </div>
+          <span className="text-xl font-bold text-slate-900 dark:text-white">
+            trainly
+          </span>
+        </div>
       </SidebarHeader>
-      <SidebarContent className="dark:bg-darkmaincolor bg-opacity-90 border-r-0">
+
+      <SidebarContent className="p-4">
+        {/* Create New Chat */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-lg font-medium">
-            Navigation
-          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span className="cursor-pointer text-lg font-medium mb-1">
-                        {item.title}
-                      </span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-
-              <SidebarMenuItem key="commuunity">
-                <SidebarMenuButton
-                  asChild
-                  onClick={() => window.open("/community", "_blank")}
-                >
-                  <div className="cursor-pointer">
-                    <Globe />
-                    <span className="cursor-pointer text-lg font-medium mb-1">
-                      Community
-                    </span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem key="graph">
-                <SidebarMenuButton
-                  asChild
-                  onClick={() => router.push(`/dashboard/${chatId}/graph`)}
-                >
-                  <div className="cursor-pointer">
-                    <Network />
-                    <span className="cursor-pointer text-lg font-medium mb-1">
-                      Graph View
-                    </span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem key="addchat">
-                <SidebarMenuButton asChild onClick={onCreate}>
-                  <div className="cursor-pointer">
-                    <PlusCircle />
-                    <span className="cursor-pointer text-lg font-medium mb-1">
-                      Add Chat
-                    </span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <Dialog>
-                <DialogTrigger>
-                  <SidebarMenuItem key="trash">
-                    <SidebarMenuButton asChild>
-                      <div className="cursor-pointer">
-                        <Trash />
-                        <span className="cursor-pointer text-lg font-medium mb-1">
-                          Trash
-                        </span>
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </DialogTrigger>
-                <DialogContent className="p-0">
-                  <Command className="rounded-lg border shadow-md max-h-80">
-                    <CommandInput placeholder="Type a command or search..." />
-                    <CommandList>
-                      <CommandEmpty>No results found.</CommandEmpty>
-                      <CommandGroup heading="Archived Chats">
-                        {archivedChats?.map((chat) => (
-                          <CommandItem
-                            key={chat._id}
-                            className="flex justify-between"
-                          >
-                            <div className="flex gap-2">
-                              <File />
-                              <span>
-                                {chat.title}{" "}
-                                <div className="fixed opacity-0 pointer-events-none">
-                                  {chat._id}
-                                </div>
-                              </span>
-                            </div>
-                            <div className="flex">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-4"
-                                      onClick={() => {
-                                        handleRestore(chat._id);
-                                      }}
-                                    >
-                                      <Undo />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Restore</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      className="h-3 w-3"
-                                      variant="ghost"
-                                      onClick={() => {
-                                        handleDelete(chat._id);
-                                      }}
-                                    >
-                                      <X className="h-3 w-3 cursor-pointer" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete forever</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </DialogContent>
-              </Dialog>
-
-              <Collapsible defaultOpen className="group/collapsible">
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      onClick={() => setSettingsOpen(!settingsOpen)}
-                    >
-                      <div className="flex justify-between items-center cursor-pointer w-full">
-                        <div className="flex gap-2 cursor-pointer items-center">
-                          <Settings className="h-4 w-4" />
-                          <span className="cursor-pointer text-lg font-medium mb-1">
-                            Settings
-                          </span>
-                        </div>
-                        <div>
-                          <ChevronRight
-                            className={`h-4 w-4 mt-0.5 ${settingsOpen ? "rotate-0" : "rotate-90"}
-                            transition-transform duration-200`}
-                          />
-                        </div>
-                      </div>
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <Drawer>
-                          <DrawerTrigger asChild>
-                            <SidebarMenuButton>
-                              <div className="flex justify-between items-center cursor-pointer w-full">
-                                <div className="flex gap-2 cursor-pointer items-center">
-                                  <span className="font-semibold cursor-pointer text-lg mb-1">
-                                    My API
-                                  </span>
-                                </div>
-                              </div>
-                            </SidebarMenuButton>
-                          </DrawerTrigger>
-                          <DrawerContent className="">
-                            <div className="flex flex-col px-20 py-8 w-full">
-                              <div className="flex w-full items-center justify-center">
-                                <DrawerHeader className="flex flex-col items-center mb-10">
-                                  <DrawerTitle className="text-4xl ">
-                                    API Settings
-                                  </DrawerTitle>
-                                  <DrawerDescription>
-                                    Manage your API properties.
-                                  </DrawerDescription>
-                                </DrawerHeader>
-                              </div>
-                              <div className="flex mx-auto w-full justify-between">
-                                <Command className="rounded-lg border shadow-md md:min-w-[300px] w-20 h-96">
-                                  <CommandInput placeholder="Search for a file..." />
-                                  <CommandList>
-                                    <CommandEmpty>
-                                      No results found.
-                                    </CommandEmpty>
-                                    <CommandGroup heading="Context List">
-                                      {showContext?.map((item) => (
-                                        <CommandItem key={item.fileId}>
-                                          <div className="flex justify-between items-center w-full">
-                                            <div className="flex items-center gap-2">
-                                              <File size={20} color="#777777" />
-                                              <span>{item.filename}</span>
-                                              <div className="fixed opacity-0 pointer-events-none">
-                                                {item.fileId}
-                                              </div>
-                                            </div>
-                                            <Button
-                                              className="x-[9999999] rounded-full hover:bg-darkmaincolor"
-                                              onClick={() => {
-                                                handleErase(
-                                                  chatId,
-                                                  item.fileId,
-                                                );
-                                              }}
-                                              size="icon"
-                                              variant="ghost"
-                                            >
-                                              <X
-                                                size={12}
-                                                color="#E53E3E"
-                                                className="cursor-pointer hover:opacity-75"
-                                              />
-                                            </Button>
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-
-                                <Tabs
-                                  defaultValue={currentChat?.apiInfo.visibility}
-                                  className="w-[300px] "
-                                >
-                                  <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger
-                                      value="protected"
-                                      className="flex items-center gap-2 justify-center"
-                                      onClick={() =>
-                                        setCurrVisibility("protected")
-                                      }
-                                    >
-                                      Protected{" "}
-                                      <Lock className="h-3 w-3 text-red-500" />
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                      value="public"
-                                      className="flex items-center gap-2 justify-center"
-                                      onClick={() =>
-                                        setCurrVisibility("public")
-                                      }
-                                    >
-                                      Public{" "}
-                                      <Unlock className="h-3 w-3 text-green-500" />
-                                    </TabsTrigger>
-                                  </TabsList>
-                                  <TabsContent
-                                    value="public"
-                                    className="text-muted-foreground text-sm ml-1"
-                                  >
-                                    <h1>
-                                      Your chat,{" "}
-                                      <span className="font-semibold">
-                                        {currentChat?.title}
-                                      </span>
-                                      ,{" "}
-                                      <span className="dark:text-white text-black">
-                                        can be accessed
-                                      </span>{" "}
-                                      via API with your API Key.
-                                    </h1>
-                                    <APIKeyInput chatId={chatId} />
-                                  </TabsContent>
-                                  <TabsContent
-                                    value="protected"
-                                    className=" text-muted-foreground text-sm ml-1"
-                                  >
-                                    <h1>
-                                      Your chat,{" "}
-                                      <span className="font-semibold">
-                                        {currentChat?.title}
-                                      </span>
-                                      ,{" "}
-                                      <span className="dark:text-white text-black">
-                                        can not be accessed
-                                      </span>{" "}
-                                      via API with your API Key.
-                                    </h1>
-                                  </TabsContent>
-                                </Tabs>
-
-                                <Tabs
-                                  defaultValue="node"
-                                  className="w-[700px] "
-                                >
-                                  <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger
-                                      value="node"
-                                      className="flex items-center gap-2 justify-center"
-                                      onClick={() => {}}
-                                    >
-                                      Node{" "}
-                                      <Circle className="h-3 w-3 text-green-500" />
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                      value="python"
-                                      className="flex items-center gap-2 justify-center"
-                                      onClick={() => {}}
-                                    >
-                                      Python{" "}
-                                      <Paperclip className="h-3 w-3 text-green-500" />
-                                    </TabsTrigger>
-                                  </TabsList>
-                                  <TabsContent
-                                    value="node"
-                                    className="text-muted-foreground text-sm ml-1"
-                                  >
-                                    <APICodeBlock code={sampleCode} />
-                                  </TabsContent>
-                                  <TabsContent
-                                    value="python"
-                                    className=" text-muted-foreground text-sm ml-1"
-                                  >
-                                    <APICodeBlock code={pythonCode} />
-                                  </TabsContent>
-                                </Tabs>
-
-                                <DrawerFooter className="absolute top-0 right-0">
-                                  <Button
-                                    disabled={
-                                      currentChat?.apiInfo.visibility ===
-                                      currVisibility
-                                    }
-                                    onClick={() => {
-                                      handleSave(chatId, currVisibility);
-                                    }}
-                                  >
-                                    Save
-                                    <Save className="h-4 w-4" />
-                                  </Button>
-                                </DrawerFooter>
-                              </div>
-                            </div>
-                          </DrawerContent>
-                        </Drawer>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuButton>
-                          <div className="flex justify-between items-center cursor-pointer w-full">
-                            <div className="flex gap-2 cursor-pointer items-center">
-                              <span className="cursor-pointer text-lg font-medium mb-1">
-                                Limits
-                              </span>
-                            </div>
-                          </div>
-                        </SidebarMenuButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            </SidebarMenu>
+            <Button
+              onClick={onCreate}
+              className="w-full bg-gradient-to-r from-trainlymainlight to-purple-600 hover:from-trainlymainlight/90 hover:to-purple-600/90 text-white rounded-xl shadow-lg hover:shadow-trainlymainlight/25 transition-all duration-200 flex items-center gap-2 mb-6"
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Chat
+            </Button>
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Enhanced Search and Filters */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground cursor-pointer text-lg font-medium mb-1">
-            Chats
+          <SidebarGroupContent>
+            {/* Search Bar */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search chats..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-trainlymainlight/50 rounded-xl"
+              />
+            </div>
+
+            {/* Sort and Filter Controls */}
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium",
+                  showFilters
+                    ? "bg-trainlymainlight/10 text-trainlymainlight"
+                    : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700",
+                )}
+              >
+                <Filter className="h-3 w-3" />
+                <span>Filters</span>
+              </button>
+
+              <button
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm"
+              >
+                {sortOrder === "asc" ? (
+                  <SortAsc className="h-3 w-3" />
+                ) : (
+                  <SortDesc className="h-3 w-3" />
+                )}
+              </button>
+            </div>
+
+            {/* Enhanced Filter Panel */}
+            {showFilters && (
+              <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-xl p-4 mb-4 space-y-4 border border-slate-200 dark:border-slate-700">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2 block">
+                    Sort By
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) =>
+                      setSortBy(e.target.value as "date" | "name" | "activity")
+                    }
+                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:border-trainlymainlight/50 transition-colors"
+                  >
+                    <option value="date">📅 Date Created</option>
+                    <option value="name">🔤 Name</option>
+                    <option value="activity">⚡ Last Activity</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2 block">
+                    Category
+                  </label>
+                  <select
+                    value={selectedFolder}
+                    onChange={(e) => setSelectedFolder(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:border-trainlymainlight/50 transition-colors"
+                  >
+                    <option value="all">📁 All Chats</option>
+                    <option value="general">💬 General</option>
+                    <option value="work">💼 Work</option>
+                    <option value="research">🔬 Research</option>
+                    <option value="personal">👤 Personal</option>
+                  </select>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-center p-2 bg-white dark:bg-slate-800 rounded-lg">
+                      <div className="font-bold text-trainlymainlight">
+                        {chats?.length || 0}
+                      </div>
+                      <div className="text-slate-500">Total</div>
+                    </div>
+                    <div className="text-center p-2 bg-white dark:bg-slate-800 rounded-lg">
+                      <div className="font-bold text-trainlymainlight">
+                        {filteredAndSortedChats.length}
+                      </div>
+                      <div className="text-slate-500">Filtered</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Enhanced Chat List */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="flex items-center justify-between text-slate-600 dark:text-slate-400 font-semibold mb-3">
+            <span>Your Chats ({filteredAndSortedChats.length})</span>
+            <div className="flex items-center gap-1">
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <span className="text-xs">Clear</span>
+                </button>
+              )}
+            </div>
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {!chats ? (
-                <div className="flex flex-col gap-2 px-2 ">
-                  <Skeleton className="h-8" />
-                  <Skeleton className="h-8" />
-                  <Skeleton className="h-8" />
+            <SidebarMenu className="space-y-2">
+              {filteredAndSortedChats.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    {searchQuery ? (
+                      <Search className="w-6 h-6 text-slate-400" />
+                    ) : (
+                      <MessageSquare className="w-6 h-6 text-slate-400" />
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                    {searchQuery ? "No chats found" : "No chats yet"}
+                  </p>
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="text-xs text-trainlymainlight hover:underline"
+                    >
+                      Clear search
+                    </button>
+                  )}
                 </div>
               ) : (
-                chats.map((chat) => {
-                  const isEditing = editingChatId === chat._id;
-                  const isActive = chatId === chat._id;
-
-                  return (
-                    <SidebarMenuItem
-                      key={chat._id}
-                      // Only navigate on single click. Double-click is for editing.
-                      onClick={() => {
-                        if (!isEditing) {
-                          window.open("/dashboard/" + chat._id, "_self");
-                        }
-                      }}
-                      onDoubleClick={() =>
-                        handleDoubleClick(chat._id, chat.title)
-                      }
+                filteredAndSortedChats.map((chat) => (
+                  <SidebarMenuItem key={chat._id}>
+                    <div
+                      className={cn(
+                        "group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 border hover:shadow-sm",
+                        chat._id === chatId
+                          ? "bg-gradient-to-r from-trainlymainlight/10 to-purple-50 dark:from-trainlymainlight/10 dark:to-slate-800 border-trainlymainlight/30 shadow-md"
+                          : "border-transparent hover:border-slate-200 dark:hover:border-slate-700",
+                      )}
                     >
-                      <SidebarMenuButton asChild>
+                      {/* Enhanced Chat Icon */}
+                      <div className="relative">
                         <div
                           className={cn(
-                            "flex w-full justify-between items-center cursor-pointer",
-                            isActive && "bg-muted-foreground/10",
+                            "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200",
+                            chat._id === chatId
+                              ? "bg-gradient-to-br from-trainlymainlight to-purple-600 shadow-lg"
+                              : "bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 group-hover:from-trainlymainlight/10 group-hover:to-purple-100 dark:group-hover:to-slate-700",
                           )}
                         >
-                          <File />
-                          {/* Show an input if we are editing this chat, otherwise show the title */}
-                          <div className="flex w-full justify-between items-center cursor-pointer">
-                            {isEditing ? (
-                              <Input
-                                autoFocus
-                                value={editingTitle}
-                                onChange={(e) =>
-                                  setEditingTitle(e.target.value)
-                                }
-                                onBlur={() => finishEditing(chat._id)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    finishEditing(chat._id);
-                                  } else if (e.key === "Escape") {
-                                    // Cancel editing
-                                    finishEditing(chat._id);
-                                    // setIsEd
-                                  }
-                                }}
-                                className="bg-muted-foreground/20 h-6 "
-                              />
-                            ) : (
-                              <span className="cursor-pointer text-lg font-medium mb-1">
-                                {chat.title}
-                              </span>
+                          <MessageSquare
+                            className={cn(
+                              "w-5 h-5 transition-colors",
+                              chat._id === chatId
+                                ? "text-white"
+                                : "text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight",
                             )}
-                          </div>
-
-                          {/* Archive/Delete popover */}
-                          <div
-                            className="p-1 hover:bg-muted-foreground/10 rounded-lg transition-colors duration-200"
-                            // Prevent clicking on the dots from also pushing to dashboard
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Popover>
-                              <PopoverTrigger className="flex items-center justify-center">
-                                <Ellipsis className="text-muted-foreground h-4 w-4" />
-                              </PopoverTrigger>
-                              <PopoverContent className="w-fit flex flex-col gap-2">
-                                <Button
-                                  onClick={() => {
-                                    onDelete(chat._id);
-                                  }}
-                                  size="sm"
-                                >
-                                  Archive
-                                </Button>
-
-                                <Button
-                                  onClick={() => {
-                                    handleDoubleClick(chat._id, chat.title);
-                                  }}
-                                  size="sm"
-                                >
-                                  Rename
-                                </Button>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
+                          />
                         </div>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })
+                        {/* Activity Indicator */}
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-slate-900 shadow-sm"></div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {editingChatId === chat._id ? (
+                          <Input
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") finishEditing(chat._id);
+                              if (e.key === "Escape") setEditingChatId(null);
+                            }}
+                            onBlur={() => finishEditing(chat._id)}
+                            className="h-8 text-sm border-slate-200 dark:border-slate-700 focus:border-trainlymainlight"
+                            autoFocus
+                          />
+                        ) : (
+                          <button
+                            onClick={() =>
+                              router.push(`/dashboard/${chat._id}`)
+                            }
+                            onDoubleClick={() => startEditing(chat)}
+                            className="text-left w-full"
+                          >
+                            <div
+                              className={cn(
+                                "font-medium text-sm truncate transition-colors mb-1",
+                                chat._id === chatId
+                                  ? "text-trainlymainlight"
+                                  : "text-slate-900 dark:text-white group-hover:text-trainlymainlight",
+                              )}
+                            >
+                              {chat.title}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                              <div className="flex items-center gap-1">
+                                <FileText className="w-3 h-3" />
+                                <span>{chat.context?.length || 0} docs</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>
+                                  {new Date(
+                                    chat._creationTime,
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Enhanced Chat Actions */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => startEditing(chat)}
+                          className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          title="Rename chat"
+                        >
+                          <Settings className="w-3 h-3 text-slate-500" />
+                        </button>
+                        <button
+                          onClick={() => onDelete(chat._id)}
+                          className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                          title="Delete chat"
+                        >
+                          <Trash className="w-3 h-3 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  </SidebarMenuItem>
+                ))
               )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-      </SidebarContent>
 
-      <SidebarFooter className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
-        {showProgress && (
-          <ProgressBar value={fileProgress} label={progressText} />
-        )}
-        <div className="flex items-center space-x-3 px-1 py-3">
-          <Popover>
-            <PopoverTrigger asChild>
-              <SidebarMenuButton className="h-12 transition-colors duration-200">
-                <Avatar>
-                  <AvatarImage src={user?.imageUrl} alt="User Avatar" />
-                  <AvatarFallback>SC</AvatarFallback>
-                </Avatar>
-                <div className="leading-tight truncate text-ellipsis">
-                  <div className="font-semibold">{user?.firstName}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {user?.emailAddresses[0].emailAddress}
+        {/* Quick Actions */}
+        <SidebarGroup className="mt-6">
+          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-semibold mb-3">
+            Quick Actions
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="space-y-2">
+              <button
+                onClick={() => router.push(`/dashboard/${chatId}/graph`)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+              >
+                <div className="w-8 h-8 bg-trainlymainlight/10 rounded-lg flex items-center justify-center">
+                  <Network className="w-4 h-4 text-trainlymainlight" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-medium text-sm text-slate-900 dark:text-white group-hover:text-trainlymainlight">
+                    Graph View
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Visualize knowledge
                   </div>
                 </div>
-                <ChevronsUpDown className="ml-auto text-muted-foreground" />
-              </SidebarMenuButton>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popper-anchor-width]">
-              <SignOutButton>
-                <Button className="w-full">Sign Out</Button>
-              </SignOutButton>
-              {/* <ContextList /> */}
-            </PopoverContent>
-          </Popover>
+              </button>
+
+              <button
+                onClick={() =>
+                  window.open("https://docs.trainlyai.com", "_blank")
+                }
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+              >
+                <div className="w-8 h-8 bg-trainlymainlight/10 rounded-lg flex items-center justify-center">
+                  <Code className="w-4 h-4 text-trainlymainlight" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-medium text-sm text-slate-900 dark:text-white group-hover:text-trainlymainlight">
+                    API Docs
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Integration guide
+                  </div>
+                </div>
+              </button>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user?.imageUrl} className="rounded-full" />
+            <AvatarFallback className="bg-trainlymainlight text-white text-sm">
+              {user?.firstName?.[0]}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
+              {user?.firstName} {user?.lastName}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {user?.primaryEmailAddress?.emailAddress}
+            </div>
+          </div>
+          <SignOutButton>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 rounded-lg"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </SignOutButton>
         </div>
       </SidebarFooter>
     </Sidebar>

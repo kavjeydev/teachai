@@ -18,7 +18,7 @@ import {
   SelectGroup,
   SelectItem,
 } from "@/components/ui/select";
-import { Lock } from "lucide-react";
+import { Lock, Globe, Edit3 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import ThemeSwitcher from "./theme-switcher";
+import { cn } from "@/lib/utils";
 
 interface ChatNavbarProps {
   chatId: Id<"chats">;
@@ -63,26 +64,34 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
   }
 
   return (
-    <div className="relative flex items-center gap-2 w-full h-20 justify-between pr-4 bg-transparent">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between w-full h-16 px-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
+      <div className="flex items-center gap-4">
         <Dialog>
           <DialogTrigger>
-            <h1 className="hover:underline cursor-pointer">
-              {currentChat?.title}
-            </h1>
+            <div className="flex items-center gap-2 group cursor-pointer">
+              <Edit3 className="w-4 h-4 text-slate-400 group-hover:text-trainlymainlight transition-colors" />
+              <h1 className="text-xl font-semibold text-slate-900 dark:text-white group-hover:text-trainlymainlight transition-colors">
+                {currentChat?.title}
+              </h1>
+            </div>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
             <DialogHeader>
-              <DialogTitle>Rename Chat</DialogTitle>
+              <DialogTitle className="text-slate-900 dark:text-white">
+                Rename Chat
+              </DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
+                <Label
+                  htmlFor="name"
+                  className="text-right text-slate-700 dark:text-slate-300"
+                >
                   Chat Name
                 </Label>
                 <Input
-                  className="min-w-[180px]"
+                  className="col-span-3 border-slate-200 dark:border-slate-700 focus:border-trainlymainlight dark:focus:border-trainlymainlight"
                   autoFocus
                   defaultValue={currentChat?.title}
                   value={editingTitle}
@@ -97,81 +106,67 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
               </div>
             </div>
             <DialogFooter>
-              <Button
-                type="submit"
-                size="sm"
-                onClick={() => {
-                  finishEditing(chatId);
-                  toast.success("Chat renamed successfully!");
-                }}
-              >
-                Save changes
-              </Button>
               <DialogClose asChild>
-                <Button variant="bordered" size="sm">
-                  Close
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Dialog>
-          <DialogTrigger>
-            <Badge
-              className=" dark:bg-transparent dark:text-white border dark:border-white/20
-                        bg-white text-black border-black/10 rounded-full cursor-pointer shadow-none hover:bg-transparent"
-            >
-              <div className="flex gap-1 items-center">
-                <Lock className="h-2.5 w-2.5" />
-                <h1 className="text-xs font-medium">
-                  {currentChat?.visibility === "private" ? (
-                    <h1>Private</h1>
-                  ) : (
-                    <h1>Public</h1>
-                  )}
-                </h1>
-              </div>
-            </Badge>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Edit visibility</DialogTitle>
-              <DialogDescription>
-                Make changes to who can see you chat here
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Visibility
-                </Label>
-                <Select
-                  defaultValue={currentChat?.visibility}
-                  onValueChange={handleVisibilityChange}
+                <Button
+                  className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white"
+                  onClick={() => {
+                    finishEditing(chatId);
+                    toast.success("Chat renamed successfully!");
+                  }}
                 >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select a visibility" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="private">Private</SelectItem>
-                      <SelectItem value="public">Public</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" size="sm">
-                  Close
+                  Save Changes
                 </Button>
               </DialogClose>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-      <div>
+
+      <div className="flex items-center gap-4">
+        <Select onValueChange={handleVisibilityChange}>
+          <SelectTrigger className="w-[140px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-trainlymainlight/50 transition-colors">
+            <SelectValue
+              placeholder={
+                currentChat?.visibility === "public" ? "Public" : "Private"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <SelectGroup>
+              <SelectItem
+                value="private"
+                className="hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-slate-500" />
+                  <span>Private</span>
+                </div>
+              </SelectItem>
+              <SelectItem
+                value="public"
+                className="hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-green-500" />
+                  <span>Public</span>
+                </div>
+              </SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
+        <Badge
+          className={cn(
+            "border font-medium",
+            currentChat?.visibility === "public"
+              ? "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400"
+              : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
+          )}
+          variant="outline"
+        >
+          {currentChat?.visibility}
+        </Badge>
+
         <ThemeSwitcher />
       </div>
     </div>
