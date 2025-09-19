@@ -366,7 +366,11 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       });
     }
 
-    return json.answer;
+    // Return both answer and context to avoid state timing issues
+    return {
+      answer: json.answer,
+      context: json.context,
+    };
   }
 
   const handleSendMessage = async () => {
@@ -386,10 +390,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
     // Call actual GraphRAG API
     try {
-      const botReply = await answerQuestion(userMessage);
+      const result = await answerQuestion(userMessage);
 
-      // Write bot response with reasoning context
-      onWrite("bot", botReply, latestReasoningContext);
+      // Write bot response with reasoning context directly from the result
+      onWrite("bot", result.answer, result.context);
     } catch (error) {
       console.error("GraphRAG API error:", error);
       toast.error(

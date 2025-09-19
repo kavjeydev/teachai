@@ -497,34 +497,63 @@ async def answer_question(payload: QuestionRequest):
         chat_id = payload.chat_id
         question_embedding = get_embedding(question)
 
-        # Fetch chunks from Neo4j
+        # Fetch chunks from Neo4j with document metadata for filename-based queries
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
+                # Enhanced query to include document filename for better context matching
                 query = f"""
-                MATCH (c:Chunk)
+                MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
                 WHERE c.chatId = '{chat_id}'
-                RETURN c.id AS id, c.text AS text, c.embedding AS embedding
+                RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
                 """
                 results = session.run(query)
 
-                # Calculate similarities
+
+                # Calculate similarities with filename boost
                 chunk_scores = []
+                question_lower = question.lower()
+
                 for record in results:
-                    print(record, 'record')
                     chunk_id = record["id"]
                     chunk_text = record["text"]
                     chunk_embedding = record["embedding"]
-                    # chunk_embedding = np.array([float(x) for x in embedding_string[1:-1].split(",")])
+                    filename = record["filename"] or ""
 
-                    score = cosine_similarity(np.array(question_embedding), chunk_embedding)
+                    # Calculate semantic similarity
+                    semantic_score = cosine_similarity(np.array(question_embedding), chunk_embedding)
+
+                    # Add filename relevance boost
+                    filename_boost = 0.0
+                    if filename:
+                        filename_lower = filename.lower()
+                        # Remove file extension for better matching
+                        filename_base = filename_lower.replace('.pdf', '').replace('.docx', '').replace('.txt', '')
+
+                        # Check for filename mentions in question
+                        filename_words = filename_base.replace('_', ' ').replace('-', ' ').split()
+                        question_words = question_lower.replace('_', ' ').replace('-', ' ').split()
+
+                        # Boost score if filename words appear in question
+                        for fname_word in filename_words:
+                            if len(fname_word) > 2:  # Skip very short words
+                                for q_word in question_words:
+                                    if fname_word in q_word or q_word in fname_word:
+                                        filename_boost += 0.1
+
+                        # Additional boost for exact filename matches
+                        if any(fname_word in question_lower for fname_word in filename_words if len(fname_word) > 3):
+                            filename_boost += 0.2
+
+                    # Combine semantic similarity with filename relevance
+                    final_score = semantic_score + filename_boost
+
                     chunk_scores.append(ChunkScore(
                         chunk_id=chunk_id,
                         chunk_text=chunk_text,
-                        score=float(score)
+                        score=float(final_score)
                     ))
 
                 # Sort and get top chunks
-                print("here 2")
                 chunk_scores.sort(key=lambda x: x.score, reverse=True)
                 top_k = 50
                 top_chunks = chunk_scores[:top_k]
@@ -533,31 +562,45 @@ async def answer_question(payload: QuestionRequest):
                 # Limit to top 10 chunks for cleaner citations
                 top_chunks_for_citations = top_chunks[:10]
 
+                # Get document information for each chunk to provide better context
+                chunk_document_info = {}
+                for chunk in top_chunks_for_citations:
+                    doc_query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk {{id: '{chunk.chunk_id}'}})
+                    RETURN d.filename AS filename
+                    """
+                    doc_result = session.run(doc_query)
+                    doc_record = doc_result.single()
+                    if doc_record:
+                        chunk_document_info[chunk.chunk_id] = doc_record['filename']
+
                 context_with_ids = "\n\n---\n\n".join([
-                    f"[CHUNK_{i}] {chunk.chunk_text}"
+                    f"[CHUNK_{i}] (from document: {chunk_document_info.get(chunk.chunk_id, 'Unknown')}) {chunk.chunk_text}"
                     for i, chunk in enumerate(top_chunks_for_citations)
                 ])
 
+                # Enhanced system prompt to prioritize using available context
                 system_prompt = f"""
                 You are a helpful assistant. You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
 
                 {context_with_ids}
 
-                Answer the user's question based on the context.
-                When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1}).
-
-                IMPORTANT: Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}.
+                IMPORTANT INSTRUCTIONS:
+                1. ALWAYS prioritize using the provided context to answer the user's question
+                2. If the context contains relevant information, you MUST use it and cite it properly
+                3. Pay attention to the document names shown in parentheses - if the user asks about a specific document by name, use the content from that document
+                4. When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
+                5. Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
+                6. If the user asks about a document by name (like "grant assignment", "ecology report", etc.), and you see content from a document with a similar name in the context, you MUST use that content
+                7. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
 
                 For example:
-                - "According to the document [^0], machine learning is..."
-                - "The research shows [^2] that neural networks..."
-
-                If the question is not answerable with the given context, use any external knowledge you have but don't add citations for external knowledge.
+                - "According to the Grant Assignment document [^0], ecology research involves..."
+                - "The document shows [^2] that species interactions..."
 
                 RESPOND IN MARKDOWN FORMAT WITH CITATIONS
                 """.strip()
 
-                print("here 3")
 
                 completion = openai.chat.completions.create(
                     model="gpt-4o",

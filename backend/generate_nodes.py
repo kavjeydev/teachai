@@ -89,7 +89,7 @@ async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
                 # Create Document node
                 query = f"""
                 MERGE (d:Document {{id: '{pdf_id}'}})
-                SET d.chatId = '{chat_id}'
+                SET d.chatId = '{chat_id}', d.filename = '{filename}'
                 RETURN d
                 """
                 session.run(query)
@@ -134,30 +134,60 @@ async def answer_question(payload: QuestionRequest):
         chat_id = payload.chat_id
         question_embedding = get_embedding(question)
 
-        # Fetch chunks from Neo4j
+        # Fetch chunks from Neo4j with document metadata for filename-based queries
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
+                # Enhanced query to include document filename for better context matching
                 query = f"""
-                MATCH (c:Chunk)
+                MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
                 WHERE c.chatId = '{chat_id}'
-                RETURN c.id AS id, c.text AS text, c.embedding AS embedding
+                RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
                 """
                 results = session.run(query)
 
-                # Calculate similarities
+                # Calculate similarities with filename boost
                 chunk_scores = []
+                question_lower = question.lower()
+
                 for record in results:
                     print(record, 'record')
                     chunk_id = record["id"]
                     chunk_text = record["text"]
                     chunk_embedding = record["embedding"]
-                    # chunk_embedding = np.array([float(x) for x in embedding_string[1:-1].split(",")])
+                    filename = record["filename"] or ""
 
-                    score = cosine_similarity(np.array(question_embedding), chunk_embedding)
+                    # Calculate semantic similarity
+                    semantic_score = cosine_similarity(np.array(question_embedding), chunk_embedding)
+
+                    # Add filename relevance boost
+                    filename_boost = 0.0
+                    if filename:
+                        filename_lower = filename.lower()
+                        # Remove file extension for better matching
+                        filename_base = filename_lower.replace('.pdf', '').replace('.docx', '').replace('.txt', '')
+
+                        # Check for filename mentions in question
+                        filename_words = filename_base.replace('_', ' ').replace('-', ' ').split()
+                        question_words = question_lower.replace('_', ' ').replace('-', ' ').split()
+
+                        # Boost score if filename words appear in question
+                        for fname_word in filename_words:
+                            if len(fname_word) > 2:  # Skip very short words
+                                for q_word in question_words:
+                                    if fname_word in q_word or q_word in fname_word:
+                                        filename_boost += 0.1
+
+                        # Additional boost for exact filename matches
+                        if any(fname_word in question_lower for fname_word in filename_words if len(fname_word) > 3):
+                            filename_boost += 0.2
+
+                    # Combine semantic similarity with filename relevance
+                    final_score = semantic_score + filename_boost
+
                     chunk_scores.append(ChunkScore(
                         chunk_id=chunk_id,
                         chunk_text=chunk_text,
-                        score=float(score)
+                        score=float(final_score)
                     ))
 
                 # Sort and get top chunks
@@ -166,15 +196,20 @@ async def answer_question(payload: QuestionRequest):
                 top_k = 50
                 top_chunks = chunk_scores[:top_k]
 
-                # Generate answer using GPT-4
+                # Generate answer using GPT-4 with enhanced context prioritization
                 context = "\n\n---\n\n".join([chunk.chunk_text for chunk in top_chunks])
                 system_prompt = f"""
                 You are a helpful assistant. You have the following context:
 
                 {context}
 
+                IMPORTANT INSTRUCTIONS:
+                1. ALWAYS prioritize using the provided context to answer the user's question
+                2. If the context contains relevant information, you MUST use it
+                3. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
+                4. If the question asks about a specific document or file, carefully check if the context contains information from that document
+
                 Answer the user's question based on the context.
-                If the question is not answerable with the given context, use any external knowledge you have.
 
                 RESPOND IN MARKDOWN FORMAT
                 """.strip()
