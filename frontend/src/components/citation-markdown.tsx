@@ -69,7 +69,9 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
       {contentParts.map((part) => {
         if (part.type === "citation") {
           const hasContext =
-            reasoningContext && reasoningContext[part.chunkIndex];
+            reasoningContext &&
+            part.chunkIndex !== undefined &&
+            reasoningContext[part.chunkIndex];
 
           console.log(
             `Citation ${part.chunkIndex}: hasContext=${hasContext}, reasoningContext.length=${reasoningContext?.length || 0}`,
@@ -118,7 +120,7 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
                     const text = chunk.chunk_text;
                     const words = text
                       .split(" ")
-                      .filter((word) => word.length > 3);
+                      .filter((word: string) => word.length > 3);
                     const preview = words.slice(0, 2).join(" ");
                     return preview.length > 0
                       ? `${preview}...`
