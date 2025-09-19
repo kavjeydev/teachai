@@ -156,6 +156,15 @@ export const writeContent = mutation({
       sender: v.string(),
       text: v.string(),
       user: v.string(),
+      reasoningContext: v.optional(
+        v.array(
+          v.object({
+            chunk_id: v.string(),
+            chunk_text: v.string(),
+            score: v.number(),
+          }),
+        ),
+      ),
     }),
   },
   handler: async (ctx, args) => {
@@ -513,5 +522,110 @@ export const getPublicChats = query({
       .collect();
 
     return chats;
+  },
+});
+
+// Folder management functions
+export const getFolders = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+    const folders = await ctx.db
+      .query("folders")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+
+    return folders;
+  },
+});
+
+export const createFolder = mutation({
+  args: {
+    name: v.string(),
+    color: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+    const folder = await ctx.db.insert("folders", {
+      name: args.name,
+      userId: userId,
+      color: args.color,
+      createdAt: Date.now(),
+    });
+
+    return folder;
+  },
+});
+
+export const moveToFolder = mutation({
+  args: {
+    chatId: v.id("chats"),
+    folderId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to move this chat.");
+    }
+
+    await ctx.db.patch(args.chatId, {
+      folderId: args.folderId,
+    });
+
+    return true;
+  },
+});
+
+export const deleteFolder = mutation({
+  args: {
+    folderId: v.id("folders"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const folder = await ctx.db.get(args.folderId);
+    if (!folder) {
+      throw new Error("Folder not found.");
+    }
+
+    if (folder.userId !== identity.subject) {
+      throw new Error("Not authorized to delete this folder.");
+    }
+
+    // Move all chats in this folder back to no folder
+    const chats = await ctx.db
+      .query("chats")
+      .withIndex("by_folder", (q) => q.eq("folderId", args.folderId))
+      .collect();
+
+    for (const chat of chats) {
+      await ctx.db.patch(chat._id, { folderId: undefined });
+    }
+
+    // Delete the folder
+    await ctx.db.delete(args.folderId);
+    return true;
   },
 });

@@ -48,11 +48,13 @@ interface GraphData {
 interface GraphVisualizationProps {
   chatId: string;
   baseUrl: string;
+  reasoningContext?: any[];
 }
 
 const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   chatId,
   baseUrl,
+  reasoningContext,
 }) => {
   const nvlRef = useRef<HTMLDivElement>(null);
   const nvlInstance = useRef<any>(null);
@@ -405,16 +407,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         const errorText = await response.text();
         console.error("❌ Backend error:", errorText);
 
-        if (response.status === 404) {
-          toast.error(
-            "Graph endpoint not found. Make sure the backend is running on " +
-              baseUrl,
-          );
-        } else if (response.status >= 500) {
-          toast.error("Backend server error. Check your Neo4j connection.");
-        } else {
-          toast.error(`Failed to load graph data: ${response.status}`);
-        }
+        // Silently handle errors - no toast spam
 
         throw new Error(
           `Failed to load graph data: ${response.status} ${errorText}`,
@@ -424,9 +417,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       const data: GraphData = await response.json();
 
       if (!data.nodes || data.nodes.length === 0) {
-        toast.warning(
-          "No graph data found for this chat. Upload a file first.",
-        );
+        // Silently handle empty data - no warning needed
         setGraphData({ nodes: [], relationships: [] });
         return;
       }
@@ -925,6 +916,160 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     loadGraphData();
   }, [chatId]);
 
+  // Highlight reasoning context nodes
+  const highlightReasoningNodes = () => {
+    if (
+      !reasoningContext ||
+      !nvlInstance.current ||
+      !backendIdToNvlId ||
+      !graphData.nodes
+    )
+      return;
+
+    try {
+      // Get the chunk IDs that were used in reasoning
+      const usedChunkIds = reasoningContext.map((ctx) => ctx.chunk_id);
+      console.log("🎯 Highlighting chunk IDs:", usedChunkIds);
+      console.log(
+        "📊 Available graph nodes:",
+        graphData.nodes.map((n) => n.id),
+      );
+      console.log("🔗 Backend to NVL mapping:", backendIdToNvlId);
+
+      // Check for exact matches
+      const exactMatches = usedChunkIds.filter((chunkId) =>
+        graphData.nodes.some((node) => node.id === chunkId),
+      );
+      console.log("✅ Exact ID matches found:", exactMatches);
+
+      // Check for partial matches (in case IDs are slightly different)
+      const partialMatches = usedChunkIds.map((chunkId) => {
+        const matchingNode = graphData.nodes.find(
+          (node) => node.id.includes(chunkId) || chunkId.includes(node.id),
+        );
+        return { chunkId, matchingNode: matchingNode?.id };
+      });
+      console.log("🔍 Partial matches:", partialMatches);
+
+      // Create updated nodes array with highlighting
+      const updatedNodes = graphData.nodes.map((node) => {
+        // Try multiple matching strategies
+        const isExactMatch = usedChunkIds.includes(node.id);
+        const isPartialMatch = usedChunkIds.some(
+          (chunkId) => node.id.includes(chunkId) || chunkId.includes(node.id),
+        );
+        const isReasoningNode = isExactMatch || isPartialMatch;
+
+        if (isReasoningNode) {
+          console.log(
+            `🎯 Highlighting node: ${node.id} (${getNodeDisplayLabel(node)}) - Match type: ${isExactMatch ? "exact" : "partial"}`,
+          );
+        }
+
+        const updatedNode = {
+          id: node.id,
+          captions: [{ value: getNodeDisplayLabel(node) }],
+          size: isReasoningNode
+            ? 150 // Make it even larger to be more visible
+            : node.labels.includes("Document")
+              ? 80
+              : 60,
+          color: isReasoningNode ? "#ff1493" : getNodeColor(node.labels[0]), // Bright pink for maximum visibility
+          properties: {
+            ...node.properties,
+            labels: node.labels.join(", "),
+            backendId: node.id,
+            isReasoning: isReasoningNode,
+          },
+        };
+
+        return updatedNode;
+      });
+
+      const highlightedCount = updatedNodes.filter(
+        (n) =>
+          usedChunkIds.includes(n.id) ||
+          usedChunkIds.some(
+            (chunkId) => n.id.includes(chunkId) || chunkId.includes(n.id),
+          ),
+      ).length;
+
+      console.log(
+        `📊 Total nodes: ${updatedNodes.length}, Actually highlighted: ${highlightedCount}`,
+      );
+
+      // Update the graph with highlighted nodes
+      const nvlRelationships = graphData.relationships.map((rel) => ({
+        id: rel.id,
+        from: rel.source,
+        to: rel.target,
+        captions: [{ value: rel.type }],
+        properties: {
+          ...rel.properties,
+          type: rel.type,
+        },
+      }));
+
+      console.log("🔄 Updating graph with highlighted nodes...");
+      nvlInstance.current.addAndUpdateElementsInGraph(
+        updatedNodes,
+        nvlRelationships,
+      );
+
+      // Force a visual refresh
+      if (nvlInstance.current.refresh) {
+        console.log("🔄 Forcing graph refresh...");
+        nvlInstance.current.refresh();
+      }
+
+      // Try alternative update methods
+      if (nvlInstance.current.render) {
+        console.log("🔄 Forcing graph render...");
+        nvlInstance.current.render();
+      }
+
+      // Focus on the highlighted nodes
+      if (usedChunkIds.length > 0) {
+        // Try to select the first highlighted node to make it more visible
+        const firstHighlightedNodeId = usedChunkIds[0];
+        console.log("Attempting to select/focus node:", firstHighlightedNodeId);
+
+        setTimeout(() => {
+          // Try different methods to focus on the node
+          if (nvlInstance.current.selectNode) {
+            nvlInstance.current.selectNode(firstHighlightedNodeId);
+          }
+          if (nvlInstance.current.focusOnNode) {
+            nvlInstance.current.focusOnNode(firstHighlightedNodeId);
+          }
+          if (nvlInstance.current.centerOnNode) {
+            nvlInstance.current.centerOnNode(firstHighlightedNodeId);
+          }
+        }, 500);
+      }
+
+      console.log(`Highlighted ${usedChunkIds.length} reasoning nodes`);
+    } catch (error) {
+      console.error("Error highlighting reasoning nodes:", error);
+    }
+  };
+
+  // Trigger highlighting when reasoning context changes
+  useEffect(() => {
+    if (reasoningContext && reasoningContext.length > 0) {
+      console.log(
+        "Triggering node highlighting for context:",
+        reasoningContext,
+      );
+      console.log("Backend to NVL ID mapping:", backendIdToNvlId);
+
+      // Add a small delay to ensure the graph is fully loaded
+      setTimeout(() => {
+        highlightReasoningNodes();
+      }, 1500);
+    }
+  }, [reasoningContext, backendIdToNvlId]);
+
   return (
     <div className="flex h-full w-full">
       {/* Main Graph Area */}
@@ -945,6 +1090,70 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             </Button>
             <Button onClick={handleCenter} size="sm" variant="outline">
               <Target className="h-4 w-4" />
+            </Button>
+            {/* Test highlighting button */}
+            <Button
+              onClick={() => {
+                console.log("🧪 Testing highlighting with first 3 nodes...");
+                if (graphData.nodes.length > 0) {
+                  const testContext = graphData.nodes
+                    .slice(0, 3)
+                    .map((node) => ({
+                      chunk_id: node.id,
+                      chunk_text: `Test chunk for ${node.id}`,
+                      score: 0.9,
+                    }));
+                  console.log("Test context:", testContext);
+
+                  // Manually trigger highlighting
+                  const testUpdatedNodes = graphData.nodes.map((node) => {
+                    const isTestNode = testContext.some(
+                      (ctx) => ctx.chunk_id === node.id,
+                    );
+                    return {
+                      id: node.id,
+                      captions: [{ value: getNodeDisplayLabel(node) }],
+                      size: isTestNode
+                        ? 200
+                        : node.labels.includes("Document")
+                          ? 80
+                          : 60,
+                      color: isTestNode
+                        ? "#00ff00"
+                        : getNodeColor(node.labels[0]), // Bright green for test
+                      properties: {
+                        ...node.properties,
+                        labels: node.labels.join(", "),
+                        backendId: node.id,
+                      },
+                    };
+                  });
+
+                  const testRelationships = graphData.relationships.map(
+                    (rel) => ({
+                      id: rel.id,
+                      from: rel.source,
+                      to: rel.target,
+                      captions: [{ value: rel.type }],
+                      properties: {
+                        ...rel.properties,
+                        type: rel.type,
+                      },
+                    }),
+                  );
+
+                  nvlInstance.current.addAndUpdateElementsInGraph(
+                    testUpdatedNodes,
+                    testRelationships,
+                  );
+                  console.log("🧪 Test highlighting applied!");
+                }
+              }}
+              size="sm"
+              variant="outline"
+              className="bg-green-100 hover:bg-green-200"
+            >
+              Test
             </Button>
           </div>
 

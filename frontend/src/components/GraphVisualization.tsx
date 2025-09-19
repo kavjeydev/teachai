@@ -330,7 +330,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         applyLayout();
       }
 
-      toast.success("Graph data loaded successfully");
+      // Silently load data - no toast needed
     } catch (error) {
       toast.error("Failed to load graph data");
     } finally {

@@ -49,9 +49,13 @@ export default function ChatManagementPage() {
   const router = useRouter();
 
   const chats = useQuery(api.chats.getChats);
+  const userFolders = useQuery(api.chats.getFolders);
   const addChat = useMutation(api.chats.createChat);
   const archiveChat = useMutation(api.chats.archive);
   const renameChat = useMutation(api.chats.rename);
+  const createFolder = useMutation(api.chats.createFolder);
+  const moveToFolder = useMutation(api.chats.moveToFolder);
+  const deleteFolder = useMutation(api.chats.deleteFolder);
 
   // UI State
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -65,6 +69,10 @@ export default function ChatManagementPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [editingChatId, setEditingChatId] = useState<Id<"chats"> | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [chatToMove, setChatToMove] = useState<string | null>(null);
 
   // Calculate folder counts
   const folderCounts = useMemo(() => {
@@ -76,57 +84,49 @@ export default function ChatManagementPage() {
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         return new Date(chat._creationTime) > weekAgo;
       }).length,
-      pinned: chats.filter(
-        (chat) =>
-          chat.title.toLowerCase().includes("important") ||
-          chat.title.toLowerCase().includes("project"),
-      ).length,
-      work: chats.filter(
-        (chat) =>
-          chat.title.toLowerCase().includes("work") ||
-          chat.title.toLowerCase().includes("project") ||
-          chat.title.toLowerCase().includes("business"),
-      ).length,
-      research: chats.filter(
-        (chat) =>
-          chat.title.toLowerCase().includes("research") ||
-          chat.title.toLowerCase().includes("study") ||
-          chat.title.toLowerCase().includes("learn"),
-      ).length,
-      personal: chats.filter(
-        (chat) =>
-          !chat.title.toLowerCase().includes("work") &&
-          !chat.title.toLowerCase().includes("research"),
-      ).length,
+      uncategorized: chats.filter((chat) => !chat.folderId).length,
     };
 
-    return counts;
-  }, [chats]);
+    // Add counts for user-created folders
+    if (userFolders) {
+      userFolders.forEach((folder) => {
+        counts[folder._id] = chats.filter(
+          (chat) => chat.folderId === folder._id,
+        ).length;
+      });
+    }
 
-  // Folder organization
-  const folders = [
-    {
-      id: "all",
-      name: "All Chats",
-      icon: MessageSquare,
-      color: "text-slate-600",
-    },
-    { id: "recent", name: "Recent", icon: Clock, color: "text-blue-600" },
-    { id: "pinned", name: "Starred", icon: Star, color: "text-yellow-600" },
-    {
-      id: "work",
-      name: "Work Projects",
-      icon: Folder,
-      color: "text-green-600",
-    },
-    {
-      id: "research",
-      name: "Research",
-      icon: Folder,
-      color: "text-purple-600",
-    },
-    { id: "personal", name: "Personal", icon: Folder, color: "text-pink-600" },
-  ];
+    return counts;
+  }, [chats, userFolders]);
+
+  // Folder organization - combine default and user folders
+  const allFolders = useMemo(() => {
+    const defaultFolders = [
+      {
+        id: "all",
+        name: "All Chats",
+        icon: MessageSquare,
+        color: "text-slate-600",
+      },
+      { id: "recent", name: "Recent", icon: Clock, color: "text-blue-600" },
+      {
+        id: "uncategorized",
+        name: "Uncategorized",
+        icon: Folder,
+        color: "text-gray-600",
+      },
+    ];
+
+    const customFolders =
+      userFolders?.map((folder) => ({
+        id: folder._id,
+        name: folder.name,
+        icon: Folder,
+        color: folder.color || "text-purple-600",
+      })) || [];
+
+    return [...defaultFolders, ...customFolders];
+  }, [userFolders]);
 
   // Filter and sort chats
   const filteredAndSortedChats = useMemo(() => {
@@ -219,6 +219,32 @@ export default function ChatManagementPage() {
       toast.success("Chat renamed!");
     }
     setEditingChatId(null);
+  };
+
+  const handleCreateFolder = async () => {
+    if (newFolderName.trim()) {
+      try {
+        await createFolder({ name: newFolderName.trim() });
+        toast.success("Folder created!");
+        setNewFolderName("");
+        setIsCreatingFolder(false);
+      } catch (error) {
+        toast.error("Failed to create folder");
+      }
+    }
+  };
+
+  const handleMoveToFolder = async (folderId: string | null) => {
+    if (chatToMove) {
+      try {
+        await moveToFolder({ chatId: chatToMove as Id<"chats">, folderId });
+        toast.success("Chat moved!");
+        setShowMoveModal(false);
+        setChatToMove(null);
+      } catch (error) {
+        toast.error("Failed to move chat");
+      }
+    }
   };
 
   const toggleChatSelection = (chatId: string) => {
@@ -378,7 +404,7 @@ export default function ChatManagementPage() {
               Folders
             </h3>
 
-            {folders.map((folder) => (
+            {allFolders.map((folder) => (
               <button
                 key={folder.id}
                 onClick={() => setSelectedFolder(folder.id)}

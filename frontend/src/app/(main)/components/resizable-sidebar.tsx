@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { startTransition } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
@@ -8,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   PlusCircle,
   Home,
@@ -186,20 +188,20 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
           <div
             className={cn(
               "border-b border-slate-200/50 dark:border-slate-800/50",
-              isCollapsed ? "p-2" : "p-4",
+              isCollapsed ? "p-2" : "p-3",
             )}
           >
             {!isCollapsed ? (
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <span className="text-white font-bold text-sm">T</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <span className="text-white font-bold text-xs">T</span>
                   </div>
                   <div>
-                    <h2 className="font-bold text-slate-900 dark:text-white">
+                    <h2 className="font-bold text-slate-900 dark:text-white text-sm">
                       trainly
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-none">
                       GraphRAG Platform
                     </p>
                   </div>
@@ -207,10 +209,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
                 <button
                   onClick={toggleCollapse}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   title="Collapse sidebar"
                 >
-                  <ChevronLeft className="h-4 w-4 text-slate-500" />
+                  <ChevronLeft className="h-3.5 w-3.5 text-slate-500" />
                 </button>
               </div>
             ) : (
@@ -290,9 +292,11 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         {pinnedChats.map((chat) => (
                           <div key={chat._id}>
                             <button
-                              onClick={() =>
-                                router.push(`/dashboard/${chat._id}`)
-                              }
+                              onClick={() => {
+                                startTransition(() => {
+                                  router.push(`/dashboard/${chat._id}`);
+                                });
+                              }}
                               className={cn(
                                 "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800",
                                 chat._id === chatId &&
@@ -336,49 +340,62 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       <span>Recent</span>
                     </div>
                     <div className="space-y-1">
-                      {recentChats.map((chat) => (
-                        <div key={chat._id}>
-                          <button
-                            onClick={() =>
-                              router.push(`/dashboard/${chat._id}`)
-                            }
-                            className={cn(
-                              "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800",
-                              chat._id === chatId &&
-                                "bg-trainlymainlight/10 border border-trainlymainlight/20",
-                            )}
-                          >
+                      {!chats
+                        ? // Loading skeletons
+                          Array.from({ length: 3 }).map((_, index) => (
                             <div
-                              className={cn(
-                                "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
-                                chat._id === chatId
-                                  ? "bg-trainlymainlight text-white"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
-                              )}
+                              key={index}
+                              className="flex items-center gap-3 p-2"
                             >
-                              <MessageSquare className="h-3 w-3" />
+                              <Skeleton className="w-6 h-6 rounded-lg" />
+                              <Skeleton className="h-4 flex-1" />
                             </div>
-                            <div className="flex-1 min-w-0 text-left">
-                              <div
+                          ))
+                        : recentChats.map((chat) => (
+                            <div key={chat._id}>
+                              <button
+                                onClick={() => {
+                                  startTransition(() => {
+                                    router.push(`/dashboard/${chat._id}`);
+                                  });
+                                }}
                                 className={cn(
-                                  "text-sm font-medium truncate",
-                                  chat._id === chatId
-                                    ? "text-trainlymainlight"
-                                    : "text-slate-900 dark:text-white",
+                                  "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800",
+                                  chat._id === chatId &&
+                                    "bg-trainlymainlight/10 border border-trainlymainlight/20",
                                 )}
                               >
-                                {chat.title}
-                              </div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                {chat.context?.length || 0} docs •{" "}
-                                {new Date(
-                                  chat._creationTime,
-                                ).toLocaleDateString()}
-                              </div>
+                                <div
+                                  className={cn(
+                                    "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
+                                    chat._id === chatId
+                                      ? "bg-trainlymainlight text-white"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+                                  )}
+                                >
+                                  <MessageSquare className="h-3 w-3" />
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                  <div
+                                    className={cn(
+                                      "text-sm font-medium truncate",
+                                      chat._id === chatId
+                                        ? "text-trainlymainlight"
+                                        : "text-slate-900 dark:text-white",
+                                    )}
+                                  >
+                                    {chat.title}
+                                  </div>
+                                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                    {chat.context?.length || 0} docs •{" "}
+                                    {new Date(
+                                      chat._creationTime,
+                                    ).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </button>
                             </div>
-                          </button>
-                        </div>
-                      ))}
+                          ))}
 
                       {/* See All Chats Link */}
                       <div>

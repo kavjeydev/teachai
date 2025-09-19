@@ -8,12 +8,22 @@ export default defineSchema({
     title: v.string(),
     userId: v.string(),
     isArchived: v.boolean(),
+    folderId: v.optional(v.string()),
     content: v.optional(
       v.array(
         v.object({
           user: v.string(),
           sender: v.string(),
           text: v.string(),
+          reasoningContext: v.optional(
+            v.array(
+              v.object({
+                chunk_id: v.string(),
+                chunk_text: v.string(),
+                score: v.number(),
+              }),
+            ),
+          ),
         }),
       ),
     ),
@@ -34,5 +44,13 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_title", ["title"])
-    .index("by_fileId", ["context"]),
+    .index("by_fileId", ["context"])
+    .index("by_folder", ["folderId"]),
+
+  folders: defineTable({
+    name: v.string(),
+    userId: v.string(),
+    color: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
 });

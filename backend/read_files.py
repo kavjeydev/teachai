@@ -529,17 +529,32 @@ async def answer_question(payload: QuestionRequest):
                 top_k = 50
                 top_chunks = chunk_scores[:top_k]
 
-                # Generate answer using GPT-4
-                context = "\n\n---\n\n".join([chunk.chunk_text for chunk in top_chunks])
-                system_prompt = f"""
-                You are a helpful assistant. You have the following context:
+                # Generate answer using GPT-4 with citations
+                # Limit to top 10 chunks for cleaner citations
+                top_chunks_for_citations = top_chunks[:10]
 
-                {context}
+                context_with_ids = "\n\n---\n\n".join([
+                    f"[CHUNK_{i}] {chunk.chunk_text}"
+                    for i, chunk in enumerate(top_chunks_for_citations)
+                ])
+
+                system_prompt = f"""
+                You are a helpful assistant. You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
+
+                {context_with_ids}
 
                 Answer the user's question based on the context.
-                If the question is not answerable with the given context, use any external knowledge you have.
+                When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1}).
 
-                RESPOND IN MARKDOWN FORMAT
+                IMPORTANT: Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}.
+
+                For example:
+                - "According to the document [^0], machine learning is..."
+                - "The research shows [^2] that neural networks..."
+
+                If the question is not answerable with the given context, use any external knowledge you have but don't add citations for external knowledge.
+
+                RESPOND IN MARKDOWN FORMAT WITH CITATIONS
                 """.strip()
 
                 print("here 3")
@@ -554,7 +569,7 @@ async def answer_question(payload: QuestionRequest):
                 )
 
                 answer = completion.choices[0].message.content.strip()
-                return AnswerWithContext(answer=answer, context=top_chunks)
+                return AnswerWithContext(answer=answer, context=top_chunks_for_citations)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
