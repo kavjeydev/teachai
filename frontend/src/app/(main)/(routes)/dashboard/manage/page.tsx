@@ -234,19 +234,6 @@ export default function ChatManagementPage() {
     }
   };
 
-  const handleMoveToFolder = async (folderId: string | null) => {
-    if (chatToMove) {
-      try {
-        await moveToFolder({ chatId: chatToMove as Id<"chats">, folderId });
-        toast.success("Chat moved!");
-        setShowMoveModal(false);
-        setChatToMove(null);
-      } catch (error) {
-        toast.error("Failed to move chat");
-      }
-    }
-  };
-
   const toggleChatSelection = (chatId: string) => {
     const newSelection = new Set(selectedChats);
     if (newSelection.has(chatId)) {
