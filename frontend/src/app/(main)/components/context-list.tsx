@@ -32,9 +32,14 @@ interface ChatContext {
       }[]
     | null
     | undefined;
+  onContextDeleted?: () => void; // Add callback for when context is deleted
 }
 
-export function ContextList({ context, chatId }: ChatContext) {
+export function ContextList({
+  context,
+  chatId,
+  onContextDeleted,
+}: ChatContext) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
 
@@ -67,8 +72,11 @@ export function ContextList({ context, chatId }: ChatContext) {
   };
 
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
+    console.log("🗑️ Starting context deletion for fileId:", fileId);
+
     onErase(chatId, fileId);
 
+    console.log("🌐 Calling backend to remove context from Neo4j...");
     const modusResponse = await fetch(
       (process.env.NEXT_PUBLIC_BASE_URL as string) + `remove_context/${fileId}`,
       {
@@ -82,7 +90,19 @@ export function ContextList({ context, chatId }: ChatContext) {
 
     if (!modusResponse.ok) {
       const errorData = await modusResponse.json();
+      console.error("❌ Failed to delete context from Neo4j:", errorData);
       throw new Error(errorData.detail || "Failed to write nodes to neo4j.");
+    }
+
+    const responseData = await modusResponse.json();
+    console.log("✅ Context deleted from Neo4j:", responseData);
+
+    // Trigger graph refresh after successful deletion
+    if (onContextDeleted) {
+      console.log("🔄 Triggering graph refresh after context deletion...");
+      onContextDeleted();
+    } else {
+      console.warn("⚠️ No onContextDeleted callback provided");
     }
   };
 

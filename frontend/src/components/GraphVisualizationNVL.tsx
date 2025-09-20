@@ -49,12 +49,14 @@ interface GraphVisualizationProps {
   chatId: string;
   baseUrl: string;
   reasoningContext?: any[];
+  refreshTrigger?: number; // Add refresh trigger prop
 }
 
 const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   chatId,
   baseUrl,
   reasoningContext,
+  refreshTrigger,
 }) => {
   const nvlRef = useRef<HTMLDivElement>(null);
   const nvlInstance = useRef<any>(null);
@@ -66,6 +68,8 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   const [selectedRelationship, setSelectedRelationship] =
     useState<GraphRelationship | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [editingNode, setEditingNode] = useState<GraphNode | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
 
@@ -98,6 +102,9 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   useEffect(() => {
     if (!nvlRef.current) return;
 
+    setIsInitializing(true);
+    setLoadingProgress(10);
+
     try {
       // Initialize NVL with performance-optimized configuration
       nvlInstance.current = new NVL(
@@ -116,9 +123,12 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           onError: (error: Error) => {
             console.error("NVL Error:", error);
             toast.error("Graph visualization error");
+            setIsInitializing(false);
           },
         },
       );
+
+      setLoadingProgress(50);
 
       // Set up interaction handlers
       const dragInteraction = new DragNodeInteraction(nvlInstance.current);
@@ -183,9 +193,12 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           }
         });
       }
+      setLoadingProgress(100);
+      setIsInitializing(false);
     } catch (error) {
       console.error("Error initializing NVL:", error);
       toast.error("Failed to initialize graph visualization");
+      setIsInitializing(false);
       return;
     }
 
@@ -388,6 +401,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   // Load graph data
   const loadGraphData = async () => {
     setIsLoading(true);
+    setLoadingProgress(0);
 
     try {
       console.log(
@@ -400,6 +414,8 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           "Backend URL not configured. Please set NEXT_PUBLIC_BASE_URL environment variable.",
         );
       }
+
+      setLoadingProgress(20);
 
       const response = await fetch(`${baseUrl}graph_data/${chatId}`);
 
@@ -414,14 +430,18 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         );
       }
 
+      setLoadingProgress(40);
+
       const data: GraphData = await response.json();
 
       if (!data.nodes || data.nodes.length === 0) {
         // Silently handle empty data - no warning needed
         setGraphData({ nodes: [], relationships: [] });
+        setLoadingProgress(100);
         return;
       }
 
+      setLoadingProgress(60);
       setGraphData(data);
 
       // Convert to NVL format with proper captions and properties
@@ -453,7 +473,37 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
       if (nvlInstance.current) {
         try {
-          // Use the correct NVL API method
+          setLoadingProgress(80);
+          // Clear existing graph data first to ensure deleted nodes are removed
+          console.log("🧹 Clearing existing graph data...");
+
+          // Get current nodes and relationships to remove them
+          try {
+            const currentNodes = nvlInstance.current.getNodes();
+            const currentRels = nvlInstance.current.getRelationships();
+
+            if (currentNodes && currentNodes.length > 0) {
+              const nodeIds = currentNodes.map((node: any) => node.id);
+              console.log("🗑️ Removing existing nodes:", nodeIds);
+              nvlInstance.current.removeNodesWithIds(nodeIds);
+            }
+
+            if (currentRels && currentRels.length > 0) {
+              const relIds = currentRels.map((rel: any) => rel.id);
+              console.log("🗑️ Removing existing relationships:", relIds);
+              nvlInstance.current.removeRelationshipsWithIds(relIds);
+            }
+          } catch (clearError) {
+            console.warn("⚠️ Error clearing existing graph data:", clearError);
+            console.log("🔄 Proceeding with data update anyway...");
+          }
+
+          setLoadingProgress(90);
+          // Add the fresh data from the backend
+          console.log("📊 Adding fresh graph data...", {
+            nodes: nvlNodes.length,
+            relationships: nvlRelationships.length,
+          });
           nvlInstance.current.addAndUpdateElementsInGraph(
             nvlNodes,
             nvlRelationships,
@@ -484,14 +534,31 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
             setNvlIdToBackendId(nvlToBackend);
             setBackendIdToNvlId(backendToNvl);
+            setLoadingProgress(100);
           }, 1000);
         } catch (renderError) {
           console.error("Error rendering NVL graph:", renderError);
-          toast.error("Failed to render graph data");
+          console.log("🔄 Trying fallback approach without clearing...");
+
+          // Fallback: just update the graph without clearing
+          try {
+            nvlInstance.current.addAndUpdateElementsInGraph(
+              nvlNodes,
+              nvlRelationships,
+            );
+            console.log("✅ Fallback graph update successful");
+          } catch (fallbackError) {
+            console.error("❌ Fallback also failed:", fallbackError);
+            toast.error("Failed to render graph data");
+          }
         }
       }
 
-      toast.success("Graph data loaded successfully");
+      // console.log("✅ Graph data loaded and rendered successfully");
+      // Only show success toast on manual refresh, not on automatic refresh
+      if (!refreshTrigger) {
+        // toast.success("Graph data loaded successfully");
+      }
     } catch (error) {
       console.error("Error loading graph data:", error);
 
@@ -512,6 +579,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       }
     } finally {
       setIsLoading(false);
+      setLoadingProgress(100);
     }
   };
 
@@ -1070,6 +1138,15 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     }
   }, [reasoningContext, backendIdToNvlId]);
 
+  // Trigger graph refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      console.log("🔄 Graph refresh triggered:", refreshTrigger);
+      console.log("🔄 Reloading graph data due to context deletion...");
+      loadGraphData();
+    }
+  }, [refreshTrigger]);
+
   return (
     <div className="flex h-full w-full">
       {/* Main Graph Area */}
@@ -1077,10 +1154,16 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         {/* Controls */}
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
           <div className="flex gap-2">
-            <Button onClick={loadGraphData} disabled={isLoading} size="sm">
+            <Button
+              onClick={loadGraphData}
+              disabled={isLoading}
+              size="sm"
+              title="Refresh graph data"
+            >
               <RefreshCw
                 className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
               />
+              {isLoading && <span className="ml-2 text-xs">Loading...</span>}
             </Button>
             <Button onClick={handleZoomIn} size="sm" variant="outline">
               <ZoomIn className="h-4 w-4" />
@@ -1198,7 +1281,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         {/* Graph Container */}
         <div
           ref={nvlRef}
-          className="w-full h-full bg-gray-50 dark:bg-gray-900"
+          className="w-full h-full bg-gray-50 dark:bg-gray-900 relative"
           style={{
             minHeight: "600px",
             height: "100%",
@@ -1210,6 +1293,29 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             backfaceVisibility: "hidden",
           }}
         >
+          {/* Loading Overlay */}
+          {(isInitializing || isLoading) && (
+            <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 mb-2">
+                  {isInitializing ? "Initializing graph..." : "Loading graph data..."}
+                </p>
+                <div className="w-48 bg-slate-200 dark:bg-slate-700 rounded-full h-2 mx-auto">
+                  <div
+                    className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${loadingProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  {loadingProgress}%
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Status Panel - Bottom Right */}
           <div className="absolute bottom-4 right-4 z-10">
             <Card className="w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border shadow-lg">

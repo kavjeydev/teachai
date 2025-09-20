@@ -598,6 +598,7 @@ export const moveToFolder = mutation({
 export const deleteFolder = mutation({
   args: {
     folderId: v.id("folders"),
+    deleteChats: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -614,18 +615,230 @@ export const deleteFolder = mutation({
       throw new Error("Not authorized to delete this folder.");
     }
 
-    // Move all chats in this folder back to no folder
+    // Get all chats in this folder
     const chats = await ctx.db
       .query("chats")
       .withIndex("by_folder", (q) => q.eq("folderId", args.folderId))
       .collect();
 
-    for (const chat of chats) {
-      await ctx.db.patch(chat._id, { folderId: undefined });
+    if (args.deleteChats) {
+      // Delete all chats in the folder (this will also remove their context)
+      for (const chat of chats) {
+        await ctx.db.delete(chat._id);
+      }
+    } else {
+      // Move all chats in this folder back to uncategorized
+      for (const chat of chats) {
+        await ctx.db.patch(chat._id, { folderId: undefined });
+      }
     }
 
     // Delete the folder
     await ctx.db.delete(args.folderId);
+    return { deletedChats: args.deleteChats ? chats.length : 0 };
+  },
+});
+
+export const getFolderChatCount = query({
+  args: {
+    folderId: v.id("folders"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chats = await ctx.db
+      .query("chats")
+      .withIndex("by_folder", (q) => q.eq("folderId", args.folderId))
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .collect();
+
+    return chats.length;
+  },
+});
+
+// Favoriting functionality
+export const toggleFavorite = mutation({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to favorite this chat.");
+    }
+
+    // Check current favorite count to enforce limit of 3
+    if (!chat.isFavorited) {
+      const favoriteCount = await ctx.db
+        .query("chats")
+        .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+        .filter((q) => q.eq(q.field("isFavorited"), true))
+        .collect();
+
+      if (favoriteCount.length >= 3) {
+        throw new Error(
+          "You can only favorite up to 3 chats. Please unfavorite another chat first.",
+        );
+      }
+    }
+
+    const newFavoriteStatus = !chat.isFavorited;
+    await ctx.db.patch(args.chatId, {
+      isFavorited: newFavoriteStatus,
+    });
+
+    return newFavoriteStatus;
+  },
+});
+
+export const getFavoriteChats = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+    const favoriteChats = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("isArchived"), false),
+          q.eq(q.field("isFavorited"), true),
+        ),
+      )
+      .order("desc")
+      .collect();
+
+    return favoriteChats;
+  },
+});
+
+// Update AI model for a chat
+export const updateChatModel = mutation({
+  args: {
+    chatId: v.id("chats"),
+    selectedModel: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to update this chat.");
+    }
+
+    await ctx.db.patch(args.chatId, {
+      selectedModel: args.selectedModel,
+    });
+
+    return true;
+  },
+});
+
+// Update custom prompt for a chat
+export const updateChatPrompt = mutation({
+  args: {
+    chatId: v.id("chats"),
+    customPrompt: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to update this chat.");
+    }
+
+    await ctx.db.patch(args.chatId, {
+      customPrompt: args.customPrompt,
+    });
+
+    return true;
+  },
+});
+
+// Update temperature for a chat
+export const updateChatTemperature = mutation({
+  args: {
+    chatId: v.id("chats"),
+    temperature: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to update this chat.");
+    }
+
+    await ctx.db.patch(args.chatId, {
+      temperature: args.temperature,
+    });
+
+    return true;
+  },
+});
+
+// Update max tokens for a chat
+export const updateChatMaxTokens = mutation({
+  args: {
+    chatId: v.id("chats"),
+    maxTokens: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to update this chat.");
+    }
+
+    await ctx.db.patch(args.chatId, {
+      maxTokens: args.maxTokens,
+    });
+
     return true;
   },
 });

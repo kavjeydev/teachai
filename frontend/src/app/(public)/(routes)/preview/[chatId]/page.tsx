@@ -58,6 +58,10 @@ interface ChatMessage {
 interface AnswerQuestionPayload {
   question: string;
   chat_id: string;
+  selected_model?: string;
+  custom_prompt?: string | null;
+  temperature?: number;
+  max_tokens?: number;
 }
 
 export default function Dashboard({ params }: ChatIdPageProps) {
@@ -257,6 +261,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     const answerQuestionPayload: AnswerQuestionPayload = {
       question: question,
       chat_id: chatId as string,
+      selected_model: "gpt-4o-mini", // Default model for public preview
+      custom_prompt: null, // No custom prompt for public preview
+      temperature: 0.7, // Default temperature for public preview
+      max_tokens: 1000, // Default max tokens for public preview
     };
 
     const response = await fetch(
@@ -380,12 +388,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                           remarkPlugins={[remarkGfm]}
                           className="max-w-[39rem]"
                           components={{
-                            code({
-                              node,
-                              className,
-                              children,
-                              ...props
-                            }) {
+                            code({ node, className, children, ...props }) {
                               const match = /language-(\w+)/.exec(
                                 className || "",
                               );

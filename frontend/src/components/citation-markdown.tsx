@@ -131,12 +131,60 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
           );
         }
 
-        // Render text parts as markdown
+        // Render text parts as markdown with improved styling
         return (
           <ReactMarkdown
             key={part.key}
             remarkPlugins={[remarkGfm]}
             components={{
+              p: ({ children }) => (
+                <p className="mb-2 last:mb-0 leading-relaxed first:mt-0">
+                  {children}
+                </p>
+              ),
+              h1: ({ children }) => (
+                <h1 className="text-lg font-bold mb-3 text-slate-900 dark:text-white font-inter">
+                  {children}
+                </h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="text-base font-bold mb-2 text-slate-900 dark:text-white font-inter">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="text-sm font-bold mb-2 text-slate-900 dark:text-white font-inter">
+                  {children}
+                </h3>
+              ),
+              ul: ({ children }) => (
+                <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-inside mb-3 space-y-1 ml-2">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => (
+                <li className="leading-relaxed">{children}</li>
+              ),
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-3 border-trainlymainlight/30 pl-4 py-2 mb-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-r-lg">
+                  {children}
+                </blockquote>
+              ),
+              strong: ({ children }) => (
+                <strong className="font-semibold text-slate-900 dark:text-white">
+                  {children}
+                </strong>
+              ),
+              em: ({ children }) => (
+                <em className="italic text-slate-700 dark:text-slate-300">
+                  {children}
+                </em>
+              ),
               code({ node, className, children, ...props }) {
                 const match = /language-(\w+)/.exec(className || "");
                 const language = match ? match[1] : "";
@@ -147,7 +195,10 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
                     {...props}
                   />
                 ) : (
-                  <code className={className} {...props}>
+                  <code
+                    className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-xs font-mono text-slate-800 dark:text-slate-200"
+                    {...props}
+                  >
                     {children}
                   </code>
                 );

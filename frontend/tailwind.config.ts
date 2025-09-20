@@ -92,6 +92,7 @@ export default {
         literata: ["Literata", "serif"],
         geist: ["Geist", "sans-serif"],
         darkerGrotesque: ["Darker Grotesque", "sans-serif"],
+        inter: ["Inter Variable", "Inter", "sans-serif"],
       },
       keyframes: {
         blink: {
@@ -159,6 +160,7 @@ export default {
   plugins: [
     nextui(),
     require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
     plugin(function ({ addUtilities }: any) {
       addUtilities({
         ".scrollbar-none": {

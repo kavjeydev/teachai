@@ -1,6 +1,6 @@
 #!/home/kavinjey/.virtualenvs/myvenv/bin/python
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pypdf import PdfReader
 import docx
@@ -9,13 +9,15 @@ import io  # Import io for BytesIO
 from mangum import Mangum
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional, Union
 import openai
 import numpy as np
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import json
+import asyncio
 
 # Data Models
 class ChunkScore(BaseModel):
@@ -30,6 +32,10 @@ class AnswerWithContext(BaseModel):
 class QuestionRequest(BaseModel):
     question: str
     chat_id: str
+    selected_model: str = "gpt-4o-mini"  # Default model
+    custom_prompt: Union[str, None] = None  # Optional custom system prompt
+    temperature: Optional[float] = 0.7  # Default temperature
+    max_tokens: Optional[int] = 1000  # Default max tokens
 
 class CreateNodesAndEmbeddingsRequest(BaseModel):
     pdf_text: str
@@ -492,9 +498,15 @@ async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
 @app.post("/answer_question", response_model=AnswerWithContext)
 async def answer_question(payload: QuestionRequest):
     try:
-        # Generate question embedding
+        # Extract parameters from payload
         question = payload.question
         chat_id = payload.chat_id
+        selected_model = payload.selected_model or "gpt-4o-mini"
+        custom_prompt = payload.custom_prompt
+        temperature = payload.temperature or 0.7
+        max_tokens = payload.max_tokens or 1000
+
+        # Generate question embedding
         question_embedding = get_embedding(question)
 
         # Fetch chunks from Neo4j with document metadata for filename-based queries
@@ -579,40 +591,242 @@ async def answer_question(payload: QuestionRequest):
                     for i, chunk in enumerate(top_chunks_for_citations)
                 ])
 
-                # Enhanced system prompt to prioritize using available context
-                system_prompt = f"""
-                You are a helpful assistant. You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
+                # Use custom prompt if provided, otherwise use default system prompt
+                if custom_prompt:
+                    # Use custom prompt but ensure context is included
+                    system_prompt = f"""
+                    {custom_prompt}
 
-                {context_with_ids}
+                    You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
 
-                IMPORTANT INSTRUCTIONS:
-                1. ALWAYS prioritize using the provided context to answer the user's question
-                2. If the context contains relevant information, you MUST use it and cite it properly
-                3. Pay attention to the document names shown in parentheses - if the user asks about a specific document by name, use the content from that document
-                4. When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
-                5. Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
-                6. If the user asks about a document by name (like "grant assignment", "ecology report", etc.), and you see content from a document with a similar name in the context, you MUST use that content
-                7. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
+                    {context_with_ids}
 
-                For example:
-                - "According to the Grant Assignment document [^0], ecology research involves..."
-                - "The document shows [^2] that species interactions..."
+                    When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
+                    Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
+                    """.strip()
+                else:
+                    # Default system prompt
+                    system_prompt = f"""
+                    You are a helpful assistant. You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
 
-                RESPOND IN MARKDOWN FORMAT WITH CITATIONS
-                """.strip()
+                    {context_with_ids}
 
+                    IMPORTANT INSTRUCTIONS:
+                    1. ALWAYS prioritize using the provided context to answer the user's question
+                    2. If the context contains relevant information, you MUST use it and cite it properly
+                    3. Pay attention to the document names shown in parentheses - if the user asks about a specific document by name, use the content from that document
+                    4. When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
+                    5. Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
+                    6. If the user asks about a document by name (like "grant assignment", "ecology report", etc.), and you see content from a document with a similar name in the context, you MUST use that content
+                    7. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
+
+                    For example:
+                    - "According to the Grant Assignment document [^0], ecology research involves..."
+                    - "The document shows [^2] that species interactions..."
+
+                    RESPOND IN MARKDOWN FORMAT WITH CITATIONS
+                    """.strip()
 
                 completion = openai.chat.completions.create(
-                    model="gpt-4o",
+                    model=selected_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": question}
                     ],
-                    temperature=0
+                    temperature=temperature,
+                    max_tokens=max_tokens
                 )
 
                 answer = completion.choices[0].message.content.strip()
                 return AnswerWithContext(answer=answer, context=top_chunks_for_citations)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/answer_question_stream")
+async def answer_question_stream(payload: QuestionRequest):
+    try:
+        # Extract parameters from payload
+        question = payload.question
+        chat_id = payload.chat_id
+        selected_model = payload.selected_model or "gpt-4o-mini"
+        custom_prompt = payload.custom_prompt
+        temperature = payload.temperature or 0.7
+        max_tokens = payload.max_tokens or 1000
+
+        # Generate question embedding
+        question_embedding = get_embedding(question)
+
+        # Fetch chunks from Neo4j with document metadata for filename-based queries
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # Enhanced query to include document filename for better context matching
+                query = f"""
+                MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                WHERE c.chatId = '{chat_id}'
+                RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
+                """
+                results = session.run(query)
+
+                # Calculate similarities with filename boost
+                chunk_scores = []
+                question_lower = question.lower()
+
+                for record in results:
+                    chunk_id = record["id"]
+                    chunk_text = record["text"]
+                    chunk_embedding = record["embedding"]
+                    filename = record["filename"] or ""
+
+                    # Calculate semantic similarity
+                    semantic_score = cosine_similarity(np.array(question_embedding), chunk_embedding)
+
+                    # Add filename relevance boost
+                    filename_boost = 0.0
+                    if filename:
+                        filename_lower = filename.lower()
+                        # Remove file extension for better matching
+                        filename_base = filename_lower.replace('.pdf', '').replace('.docx', '').replace('.txt', '')
+
+                        # Check for filename mentions in question
+                        filename_words = filename_base.replace('_', ' ').replace('-', ' ').split()
+                        question_words = question_lower.replace('_', ' ').replace('-', ' ').split()
+
+                        # Boost score if filename words appear in question
+                        for fname_word in filename_words:
+                            if len(fname_word) > 2:  # Skip very short words
+                                for q_word in question_words:
+                                    if fname_word in q_word or q_word in fname_word:
+                                        filename_boost += 0.1
+
+                        # Additional boost for exact filename matches
+                        if any(fname_word in question_lower for fname_word in filename_words if len(fname_word) > 3):
+                            filename_boost += 0.2
+
+                    # Combine semantic similarity with filename relevance
+                    final_score = semantic_score + filename_boost
+
+                    chunk_scores.append(ChunkScore(
+                        chunk_id=chunk_id,
+                        chunk_text=chunk_text,
+                        score=float(final_score)
+                    ))
+
+                # Sort and get top chunks
+                chunk_scores.sort(key=lambda x: x.score, reverse=True)
+                top_k = 50
+                top_chunks = chunk_scores[:top_k]
+
+                # Generate answer using GPT-4 with citations
+                # Limit to top 10 chunks for cleaner citations
+                top_chunks_for_citations = top_chunks[:10]
+
+                # Get document information for each chunk to provide better context
+                chunk_document_info = {}
+                for chunk in top_chunks_for_citations:
+                    doc_query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk {{id: '{chunk.chunk_id}'}})
+                    RETURN d.filename AS filename
+                    """
+                    doc_result = session.run(doc_query)
+                    doc_record = doc_result.single()
+                    if doc_record:
+                        chunk_document_info[chunk.chunk_id] = doc_record['filename']
+
+                context_with_ids = "\n\n---\n\n".join([
+                    f"[CHUNK_{i}] (from document: {chunk_document_info.get(chunk.chunk_id, 'Unknown')}) {chunk.chunk_text}"
+                    for i, chunk in enumerate(top_chunks_for_citations)
+                ])
+
+                # Use custom prompt if provided, otherwise use default system prompt
+                if custom_prompt:
+                    # Use custom prompt but ensure context is included
+                    system_prompt = f"""
+                    {custom_prompt}
+
+                    You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
+
+                    {context_with_ids}
+
+                    When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
+                    Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
+                    """.strip()
+                else:
+                    # Default system prompt
+                    system_prompt = f"""
+                    You are a helpful assistant. You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
+
+                    {context_with_ids}
+
+                    IMPORTANT INSTRUCTIONS:
+                    1. ALWAYS prioritize using the provided context to answer the user's question
+                    2. If the context contains relevant information, you MUST use it and cite it properly
+                    3. Pay attention to the document names shown in parentheses - if the user asks about a specific document by name, use the content from that document
+                    4. When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
+                    5. Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
+                    6. If the user asks about a document by name (like "grant assignment", "ecology report", etc.), and you see content from a document with a similar name in the context, you MUST use that content
+                    7. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
+
+                    For example:
+                    - "According to the Grant Assignment document [^0], ecology research involves..."
+                    - "The document shows [^2] that species interactions..."
+
+                    RESPOND IN MARKDOWN FORMAT WITH CITATIONS
+                    """.strip()
+
+                # Create streaming generator function
+                async def generate_stream():
+                    # First, send the context information
+                    context_data = {
+                        "type": "context",
+                        "data": [
+                            {
+                                "chunk_id": chunk.chunk_id,
+                                "chunk_text": chunk.chunk_text,
+                                "score": chunk.score
+                            }
+                            for chunk in top_chunks_for_citations
+                        ]
+                    }
+                    yield f"data: {json.dumps(context_data)}\n\n"
+
+                    # Then stream the AI response with selected model and settings
+                    stream = openai.chat.completions.create(
+                        model=selected_model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": question}
+                        ],
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        stream=True
+                    )
+
+                    for chunk in stream:
+                        if chunk.choices[0].delta.content is not None:
+                            content_data = {
+                                "type": "content",
+                                "data": chunk.choices[0].delta.content
+                            }
+                            print(f"🔥 Streaming chunk: {chunk.choices[0].delta.content}")
+                            yield f"data: {json.dumps(content_data)}\n\n"
+                            # Small delay to ensure chunks are processed individually
+                            await asyncio.sleep(0.01)
+
+                    # Send end signal
+                    yield f"data: {json.dumps({'type': 'end'})}\n\n"
+
+                return StreamingResponse(
+                    generate_stream(),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Headers": "*",
+                        "X-Accel-Buffering": "no",  # Disable nginx buffering
+                    }
+                )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

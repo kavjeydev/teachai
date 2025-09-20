@@ -104,26 +104,28 @@ export default function Home() {
           <div className="text-center max-w-5xl mx-auto">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-trainlymainlight/5 border border-trainlymainlight/20 text-trainlymainlight text-sm font-medium mb-8 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4" />
-              <span>GraphRAG for Developers</span>
+              <Zap className="w-4 h-4" />
+              <span>Ship AI in Minutes, Not Months</span>
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-6xl md:text-7xl font-bold tracking-tight text-slate-900 dark:text-white mb-8 leading-[0.9]">
+            <h1 className="text-6xl md:text-7xl font-bold tracking-tight text-slate-900 dark:text-white mb-8 leading-[0.9] font-inter">
               <span className="bg-gradient-to-r from-trainlymainlight via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Build AI that
+                AI you can see,
               </span>
               <br />
               <span className="text-slate-700 dark:text-slate-300">
-                never hallucinates
+                shape, and ship
               </span>
             </h1>
 
             {/* Subheadline */}
-            <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-              The first GraphRAG platform with visual knowledge editing. See
-              exactly how your AI makes decisions, edit knowledge graphs, and
-              turn conversations into APIs.
+            <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed font-inter">
+              Ship reliable AI in{" "}
+              <strong className="text-trainlymainlight">2 minutes</strong> with
+              visual GraphRAG debugging. See exactly how your AI thinks, fix
+              knowledge gaps instantly, and deploy production APIs with reduced
+              hallucinations.
             </p>
 
             {/* CTA Buttons */}
@@ -198,26 +200,26 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="group p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-trainlymainlight/30 transition-all duration-300 hover:shadow-xl hover:shadow-trainlymainlight/5">
               <div className="text-4xl font-bold bg-gradient-to-r from-trainlymainlight to-purple-600 bg-clip-text text-transparent mb-3">
-                0%
+                2 min
               </div>
               <div className="text-slate-600 dark:text-slate-400 font-medium text-sm">
-                Hallucinations with GraphRAG
+                From idea to production API
               </div>
             </div>
             <div className="group p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-trainlymainlight/30 transition-all duration-300 hover:shadow-xl hover:shadow-trainlymainlight/5">
               <div className="text-4xl font-bold bg-gradient-to-r from-trainlymainlight to-purple-600 bg-clip-text text-transparent mb-3">
-                API
+                DEBUG
               </div>
               <div className="text-slate-600 dark:text-slate-400 font-medium text-sm">
-                Every chat becomes an endpoint
+                Visual AI reasoning paths
               </div>
             </div>
             <div className="group p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-trainlymainlight/30 transition-all duration-300 hover:shadow-xl hover:shadow-trainlymainlight/5">
               <div className="text-4xl font-bold bg-gradient-to-r from-trainlymainlight to-purple-600 bg-clip-text text-transparent mb-3">
-                EDIT
+                90%
               </div>
               <div className="text-slate-600 dark:text-slate-400 font-medium text-sm">
-                Visual graph relationships
+                Fewer hallucinations with GraphRAG
               </div>
             </div>
             <div className="group p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-trainlymainlight/30 transition-all duration-300 hover:shadow-xl hover:shadow-trainlymainlight/5">
@@ -236,13 +238,21 @@ export default function Home() {
       <section className="py-24 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-slate-900 dark:text-white mb-6">
-              Everything you need to build trustworthy AI
+            <h2 className="text-5xl font-bold text-slate-900 dark:text-white mb-6 font-inter">
+              Ship AI faster than ever before
             </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-4xl mx-auto leading-relaxed">
-              Stop fighting black-box AI. With Trainly, you get complete
-              visibility into how your AI makes decisions, plus the tools to
-              build, edit, and deploy knowledge graphs as production APIs.
+            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-4xl mx-auto leading-relaxed font-inter">
+              Stop debugging black-box AI for weeks. With Trainly, you get{" "}
+              <strong className="text-trainlymainlight">
+                visual debugging tools
+              </strong>
+              ,
+              <strong className="text-trainlymainlight">
+                {" "}
+                instant API deployment
+              </strong>
+              , and complete transparency into your AI's reasoning—all in
+              minutes, not months.
             </p>
           </div>
 
@@ -252,64 +262,66 @@ export default function Home() {
               <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300">
                 <Shield className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                Zero Hallucination GraphRAG
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 font-inter">
+                Reliable GraphRAG
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed font-inter">
                 Knowledge graphs that understand relationships between concepts.
                 Get accurate answers with complete traceability to source
                 documents.
               </p>
               <div className="flex items-center gap-2 text-sm text-trainlymainlight font-semibold">
                 <CheckCircle className="w-4 h-4" />
-                <span>Eliminates AI hallucinations</span>
+                <span>Dramatically reduces hallucinations</span>
               </div>
             </div>
 
             {/* Visual Graph Editor */}
             <div className="group p-8 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 hover:border-trainlymainlight/30 transition-all duration-300 hover:shadow-xl hover:shadow-trainlymainlight/5">
               <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300">
-                <Eye className="w-8 h-8 text-white" />
+                <Terminal className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                Visual Graph Editing
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 font-inter">
+                Debug Your AI Like Code
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                See exactly how your AI thinks. Interactive graph visualization
-                lets you edit knowledge relationships with simple drag-and-drop.
+              <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed font-inter">
+                Set breakpoints on AI reasoning. Visual graph debugging shows
+                exactly which knowledge influenced each decision—just like
+                debugging code.
               </p>
               <div className="flex items-center gap-2 text-sm text-trainlymainlight font-semibold">
                 <CheckCircle className="w-4 h-4" />
-                <span>Complete transparency</span>
+                <span>Visual debugging tools</span>
               </div>
             </div>
 
             {/* Chat to API */}
             <div className="group p-8 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 hover:border-trainlymainlight/30 transition-all duration-300 hover:shadow-xl hover:shadow-trainlymainlight/5">
               <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300">
-                <Code className="w-8 h-8 text-white" />
+                <Zap className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                Chat to API in Seconds
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 font-inter">
+                Ship in 2 Minutes
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                Turn any conversation into a production-ready API endpoint.
-                Perfect for rapid prototyping and building AI-powered apps.
+              <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed font-inter">
+                From upload to production API in 120 seconds. No complex setup,
+                no infrastructure headaches—just upload, chat, and deploy.
               </p>
               <div className="flex items-center gap-2 text-sm text-trainlymainlight font-semibold">
                 <CheckCircle className="w-4 h-4" />
-                <span>Instant deployment</span>
+                <span>Lightning-fast deployment</span>
               </div>
             </div>
           </div>
 
           {/* Developer Use Cases */}
           <div className="text-center mb-16">
-            <h3 className="text-4xl font-bold text-slate-900 dark:text-white mb-8">
-              Built for developers who care about quality
+            <h3 className="text-4xl font-bold text-slate-900 dark:text-white mb-8 font-inter">
+              Built for developers who ship fast
             </h3>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Whether you're building side projects or production apps
+            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-inter">
+              Stop wasting weeks debugging AI. Start shipping reliable AI
+              products in minutes.
             </p>
           </div>
 
@@ -319,57 +331,59 @@ export default function Home() {
                 <Zap className="w-6 h-6 text-trainlymainlight" />
               </div>
               <div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Rapid Prototyping
+                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3 font-inter">
+                  2-Minute MVP
                 </h4>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Upload documents, chat to test ideas, then export as API
-                  endpoints. Perfect for hackathons and quick experiments.
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-inter">
+                  Upload docs → Chat → Deploy API. From zero to demo in 120
+                  seconds. Perfect for hackathons, investor demos, and rapid
+                  validation.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-6 p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
               <div className="w-12 h-12 bg-trainlymainlight/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Shield className="w-6 h-6 text-trainlymainlight" />
+                <Terminal className="w-6 h-6 text-trainlymainlight" />
               </div>
               <div>
                 <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Trustworthy AI
+                  AI Debugging Like Code
                 </h4>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Debug your AI's reasoning with visual graphs. See exactly
-                  which documents influenced each answer.
+                  Set breakpoints, inspect variables, trace execution paths.
+                  Debug AI reasoning with the same tools you use for code.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-6 p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
               <div className="w-12 h-12 bg-trainlymainlight/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Code className="w-6 h-6 text-trainlymainlight" />
+                <TrendingUp className="w-6 h-6 text-trainlymainlight" />
               </div>
               <div>
                 <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Production Ready
+                  Scale Without Rewrites
                 </h4>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Scale from prototype to production with proper API endpoints,
-                  monitoring, and performance optimization.
+                  Your 2-minute prototype becomes production-ready
+                  automatically. No migration headaches, no architectural
+                  rewrites.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-6 p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
               <div className="w-12 h-12 bg-trainlymainlight/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Users className="w-6 h-6 text-trainlymainlight" />
+                <GitBranch className="w-6 h-6 text-trainlymainlight" />
               </div>
               <div>
                 <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Developer Experience
+                  Ship & Iterate Fast
                 </h4>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Clean APIs, comprehensive docs, and SDKs for popular
-                  languages. Built by developers, for developers.
+                  Deploy instantly, debug visually, iterate quickly. The fastest
+                  way to go from AI idea to paying customers.
                 </p>
               </div>
             </div>
@@ -380,7 +394,7 @@ export default function Home() {
       {/* Developer Community */}
       <section className="py-20 bg-slate-50 dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-12">
+          <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-12 font-inter">
             Join the developer community
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
@@ -433,10 +447,10 @@ export default function Home() {
       {/* Final CTA Section */}
       <section className="py-32 bg-gradient-to-br from-trainlymainlight/5 via-purple-50/50 to-pink-50/50 dark:from-trainlymainlight/10 dark:via-slate-900 dark:to-slate-900">
         <div className="max-w-5xl mx-auto px-6 text-center">
-          <h2 className="text-5xl font-bold text-slate-900 dark:text-white mb-6">
+          <h2 className="text-5xl font-bold text-slate-900 dark:text-white mb-6 font-inter">
             Ready to build AI you can trust?
           </h2>
-          <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed font-inter">
             Join hundreds of developers who've discovered the power of
             explainable GraphRAG. Start building today with our free tier.
           </p>
@@ -476,17 +490,15 @@ export default function Home() {
             <div className="flex justify-center items-center gap-12 text-slate-500">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4" />
-                <span className="text-sm font-medium">Setup in 2 minutes</span>
+                <span className="text-sm font-medium">Deploy in 2 minutes</span>
               </div>
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  Your data stays yours
-                </span>
+                <Terminal className="w-4 h-4" />
+                <span className="text-sm font-medium">Visual AI debugging</span>
               </div>
               <div className="flex items-center gap-2">
-                <Code className="w-4 h-4" />
-                <span className="text-sm font-medium">API ready</span>
+                <TrendingUp className="w-4 h-4" />
+                <span className="text-sm font-medium">Scale instantly</span>
               </div>
             </div>
           </div>

@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { startTransition } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -30,16 +29,99 @@ import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useNavigationLoading } from "@/components/app-loading-provider";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useConvexAuth } from "@/hooks/use-auth-state";
 
 interface ResizableSidebarParams {
   chatId?: Id<"chats">;
 }
 
+// Memoized chat item component for better performance
+const ChatItem = React.memo(
+  ({
+    chat,
+    isActive,
+    onClick,
+  }: {
+    chat: any;
+    isActive: boolean;
+    onClick: () => void;
+  }) => {
+    const [isNavigating, setIsNavigating] = React.useState(false);
+
+    const handleClick = () => {
+      setIsNavigating(true);
+      onClick();
+      // Reset after navigation
+      setTimeout(() => setIsNavigating(false), 100);
+    };
+
+    return (
+      <button
+        onClick={handleClick}
+        className={cn(
+          "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 group",
+          isActive &&
+            "bg-trainlymainlight/10 border border-trainlymainlight/20",
+          isNavigating && "bg-trainlymainlight/5", // Immediate feedback
+        )}
+      >
+        <div
+          className={cn(
+            "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
+            isActive
+              ? "bg-trainlymainlight text-white"
+              : isNavigating
+                ? "bg-trainlymainlight/50 text-white"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+          )}
+        >
+          <MessageSquare className="h-3 w-3" />
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <div
+            className={cn(
+              "text-sm font-medium truncate",
+              isActive
+                ? "text-trainlymainlight"
+                : isNavigating
+                  ? "text-trainlymainlight/70"
+                  : "text-slate-900 dark:text-white",
+            )}
+          >
+            {chat.title}
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+            {chat.context?.length || 0} docs •{" "}
+            {new Date(chat._creationTime).toLocaleDateString()}
+          </div>
+        </div>
+        {isNavigating && !isActive && (
+          <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+        )}
+      </button>
+    );
+  },
+);
+
+ChatItem.displayName = "ChatItem";
+
 export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useUser();
+  const { startNavigation } = useNavigationLoading();
+  const { canQuery, skipQuery } = useConvexAuth();
 
-  const chats = useQuery(api.chats.getChats);
+  // Extract current chatId from URL for immediate highlighting
+  const currentChatId = React.useMemo(() => {
+    const match = pathname.match(/\/dashboard\/([^\/]+)/);
+    return match ? match[1] : chatId;
+  }, [pathname, chatId]);
+
+  const chats = useQuery(api.chats.getChats, canQuery ? undefined : skipQuery);
+  const favoriteChats = useQuery(api.chats.getFavoriteChats, canQuery ? undefined : skipQuery);
   const addChat = useMutation(api.chats.createChat);
 
   // Sidebar state
@@ -47,6 +129,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isResizing, setIsResizing] = React.useState(false);
   const [showContent, setShowContent] = React.useState(true); // For smooth expand animation
+  const [isNavigatingToManage, setIsNavigatingToManage] = React.useState(false);
   const sidebarRef = React.useRef<HTMLDivElement>(null);
 
   // Load saved state from localStorage
@@ -137,18 +220,11 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
       .slice(0, 5);
   }, [chats]);
 
-  // Get pinned chats (simulated for now)
+  // Get pinned chats (optimized filtering)
   const pinnedChats = React.useMemo(() => {
-    if (!chats) return [];
-    return chats
-      .filter(
-        (chat) =>
-          chat.title.toLowerCase().includes("important") ||
-          chat.title.toLowerCase().includes("project") ||
-          chat.title.toLowerCase().includes("work"),
-      )
-      .slice(0, 3);
-  }, [chats]);
+    if (!favoriteChats) return [];
+    return favoriteChats;
+  }, [favoriteChats]);
 
   const onCreate = () => {
     const promise = addChat({ title: "Untitled Chat" });
@@ -262,8 +338,18 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       </button>
 
                       <button
-                        onClick={() => router.push("/dashboard/manage")}
+                        onClick={() => {
+                          setIsNavigatingToManage(true);
+                          const navigation = startNavigation("My Chats");
+                          router.push("/dashboard/manage");
+                          // Reset loading state after navigation
+                          setTimeout(() => {
+                            setIsNavigatingToManage(false);
+                            navigation.finish();
+                          }, 1000);
+                        }}
                         className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+                        disabled={isNavigatingToManage}
                       >
                         <div className="flex items-center gap-3">
                           <LayoutGrid className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
@@ -272,10 +358,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <span className="text-xs text-slate-400">
-                            {chats?.length || 0}
-                          </span>
-                          <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-trainlymainlight" />
+                          {isNavigatingToManage ? (
+                            <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <span className="text-xs text-slate-400">
+                                {chats?.length || 0}
+                              </span>
+                              <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-trainlymainlight" />
+                            </>
+                          )}
                         </div>
                       </button>
                     </div>
@@ -291,42 +383,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       <div className="space-y-1">
                         {pinnedChats.map((chat) => (
                           <div key={chat._id}>
-                            <button
-                              onClick={() => {
-                                startTransition(() => {
-                                  router.push(`/dashboard/${chat._id}`);
-                                });
-                              }}
-                              className={cn(
-                                "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800",
-                                chat._id === chatId &&
-                                  "bg-trainlymainlight/10 border border-trainlymainlight/20",
-                              )}
-                            >
-                              <div
-                                className={cn(
-                                  "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
-                                  chat._id === chatId
-                                    ? "bg-trainlymainlight text-white"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
-                                )}
-                              >
-                                <MessageSquare className="h-3 w-3" />
-                              </div>
-                              <div className="flex-1 min-w-0 text-left">
-                                <div
-                                  className={cn(
-                                    "text-sm font-medium truncate",
-                                    chat._id === chatId
-                                      ? "text-trainlymainlight"
-                                      : "text-slate-900 dark:text-white",
-                                  )}
-                                >
-                                  {chat.title}
-                                </div>
-                              </div>
-                              <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                            </button>
+                            <ChatItem
+                              chat={chat}
+                              isActive={chat._id === currentChatId}
+                              onClick={() =>
+                                router.push(`/dashboard/${chat._id}`)
+                              }
+                            />
                           </div>
                         ))}
                       </div>
@@ -341,72 +404,55 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     </div>
                     <div className="space-y-1">
                       {!chats
-                        ? // Loading skeletons
+                        ? // Loading skeletons with improved styling
                           Array.from({ length: 3 }).map((_, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-3 p-2"
+                              className="flex items-center gap-3 p-2 animate-pulse"
                             >
-                              <Skeleton className="w-6 h-6 rounded-lg" />
-                              <Skeleton className="h-4 flex-1" />
+                              <div className="w-6 h-6 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                              <div className="flex-1 space-y-1">
+                                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                                <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded w-1/2"></div>
+                              </div>
                             </div>
                           ))
                         : recentChats.map((chat) => (
                             <div key={chat._id}>
-                              <button
-                                onClick={() => {
-                                  startTransition(() => {
-                                    router.push(`/dashboard/${chat._id}`);
-                                  });
-                                }}
-                                className={cn(
-                                  "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800",
-                                  chat._id === chatId &&
-                                    "bg-trainlymainlight/10 border border-trainlymainlight/20",
-                                )}
-                              >
-                                <div
-                                  className={cn(
-                                    "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
-                                    chat._id === chatId
-                                      ? "bg-trainlymainlight text-white"
-                                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
-                                  )}
-                                >
-                                  <MessageSquare className="h-3 w-3" />
-                                </div>
-                                <div className="flex-1 min-w-0 text-left">
-                                  <div
-                                    className={cn(
-                                      "text-sm font-medium truncate",
-                                      chat._id === chatId
-                                        ? "text-trainlymainlight"
-                                        : "text-slate-900 dark:text-white",
-                                    )}
-                                  >
-                                    {chat.title}
-                                  </div>
-                                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                    {chat.context?.length || 0} docs •{" "}
-                                    {new Date(
-                                      chat._creationTime,
-                                    ).toLocaleDateString()}
-                                  </div>
-                                </div>
-                              </button>
+                              <ChatItem
+                                chat={chat}
+                                isActive={chat._id === currentChatId}
+                                onClick={() =>
+                                  router.push(`/dashboard/${chat._id}`)
+                                }
+                              />
                             </div>
                           ))}
 
                       {/* See All Chats Link */}
                       <div>
                         <button
-                          onClick={() => router.push("/dashboard/manage")}
+                          onClick={() => {
+                            setIsNavigatingToManage(true);
+                            router.push("/dashboard/manage");
+                            setTimeout(
+                              () => setIsNavigatingToManage(false),
+                              1000,
+                            );
+                          }}
                           className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group mt-2"
+                          disabled={isNavigatingToManage}
                         >
                           <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight">
-                            View all chats
+                            {isNavigatingToManage
+                              ? "Loading..."
+                              : "View all chats"}
                           </span>
-                          <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-trainlymainlight" />
+                          {isNavigatingToManage ? (
+                            <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                          ) : (
+                            <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-trainlymainlight" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -417,10 +463,11 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() =>
-                          chatId && router.push(`/dashboard/${chatId}/graph`)
+                          currentChatId &&
+                          router.push(`/dashboard/${currentChatId}/graph`)
                         }
                         className="flex flex-col items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
-                        disabled={!chatId}
+                        disabled={!currentChatId}
                       >
                         <Network className="h-4 w-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
                         <span className="text-xs text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight">
@@ -465,15 +512,26 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   </button>
 
                   <button
-                    onClick={() => router.push("/dashboard/manage")}
+                    onClick={() => {
+                      setIsNavigatingToManage(true);
+                      router.push("/dashboard/manage");
+                      setTimeout(() => setIsNavigatingToManage(false), 1000);
+                    }}
                     className="w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center relative mx-auto"
                     title={`My Chats (${chats?.length || 0})`}
+                    disabled={isNavigatingToManage}
                   >
-                    <LayoutGrid className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                    {chats && chats.length > 0 && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-trainlymainlight text-white text-xs rounded-full flex items-center justify-center">
-                        {chats.length > 9 ? "9" : chats.length}
-                      </div>
+                    {isNavigatingToManage ? (
+                      <div className="w-4 h-4 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <LayoutGrid className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                        {chats && chats.length > 0 && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-trainlymainlight text-white text-xs rounded-full flex items-center justify-center">
+                            {chats.length > 9 ? "9" : chats.length}
+                          </div>
+                        )}
+                      </>
                     )}
                   </button>
                 </div>
@@ -489,7 +547,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       onClick={() => router.push(`/dashboard/${chat._id}`)}
                       className={cn(
                         "w-10 h-10 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center mx-auto",
-                        chat._id === chatId &&
+                        chat._id === currentChatId &&
                           "bg-trainlymainlight/10 ring-2 ring-trainlymainlight/30",
                       )}
                       title={chat.title}
@@ -497,7 +555,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       <div
                         className={cn(
                           "w-5 h-5 rounded-md flex items-center justify-center",
-                          chat._id === chatId
+                          chat._id === currentChatId
                             ? "bg-trainlymainlight text-white"
                             : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
                         )}
@@ -509,10 +567,12 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                 </div>
 
                 {/* Quick Access to Graph */}
-                {chatId && (
+                {currentChatId && (
                   <div className="pt-2 w-full">
                     <button
-                      onClick={() => router.push(`/dashboard/${chatId}/graph`)}
+                      onClick={() =>
+                        router.push(`/dashboard/${currentChatId}/graph`)
+                      }
                       className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center mx-auto"
                       title="Graph View"
                     >

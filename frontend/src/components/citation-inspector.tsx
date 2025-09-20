@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -39,6 +39,22 @@ export const CitationInspector: React.FC<CitationInspectorProps> = ({
   onDeleteNode,
 }) => {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Reset expanded nodes when citedNodes change
+  useEffect(() => {
+    console.log(
+      "🔄 CitationInspector: citedNodes changed, resetting expanded state",
+    );
+    console.log("New citedNodes:", citedNodes);
+    setIsLoading(true);
+    setExpandedNodes(new Set());
+
+    // Simulate loading time for better UX
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
+  }, [citedNodes]);
 
   const toggleNodeExpansion = (nodeId: string) => {
     const newExpanded = new Set(expandedNodes);
@@ -86,7 +102,35 @@ export const CitationInspector: React.FC<CitationInspectorProps> = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto max-h-[calc(80vh-80px)]">
           <div className="p-4 space-y-4">
-            {citedNodes.map((node, index) => (
+            {isLoading ? (
+              // Loading skeleton
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden animate-pulse">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
+                          <div className="flex items-center gap-2">
+                            <div className="h-5 w-12 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                            <div className="h-5 w-16 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                          </div>
+                        </div>
+                        <div className="h-7 w-7 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <div className="space-y-2">
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-4/6"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              citedNodes.map((node, index) => (
               <div
                 key={node.id}
                 className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden"
@@ -235,7 +279,8 @@ export const CitationInspector: React.FC<CitationInspectorProps> = ({
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

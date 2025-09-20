@@ -50,13 +50,19 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
     ...vscDarkPlus, // Start by copying the dark theme
     'pre[class*="language-"]': {
       ...vscDarkPlus['pre[class*="language-"]'],
-      background: "#f5f5f5", // Light background
+      background: "#f8f9fa", // Light background
       color: "#333333", // Dark text color
       overflow: "auto",
+      border: "none",
+      boxShadow: "none",
+      outline: "none",
     },
     'code[class*="language-"]': {
       ...vscDarkPlus['code[class*="language-"]'],
       color: "#333333", // Dark text color
+      background: "transparent",
+      border: "none",
+      boxShadow: "none",
     },
     // Customize specific token colors for light theme
     comment: {
@@ -97,11 +103,27 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
   };
 
   return (
-    <div className="relative bg-red-400 rounded-full">
+    <div className="code-block relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 my-3">
       <SyntaxHighlighter
         language={language}
         style={theme === "dark" ? vscDarkPlus : customVscLightPlus}
         PreTag="div"
+        customStyle={{
+          margin: 0,
+          padding: "1rem",
+          borderRadius: 0,
+          background: theme === "dark" ? "#1e1e1e" : "#f8f9fa",
+          border: "none",
+          boxShadow: "none",
+          outline: "none",
+        }}
+        codeTagProps={{
+          style: {
+            background: "transparent",
+            border: "none",
+            boxShadow: "none",
+          },
+        }}
       >
         {value}
       </SyntaxHighlighter>

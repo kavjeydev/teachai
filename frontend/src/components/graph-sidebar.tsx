@@ -31,6 +31,7 @@ interface GraphSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   reasoningContext?: any[];
+  refreshTrigger?: number; // Add refresh trigger prop
 }
 
 export const GraphSidebar: React.FC<GraphSidebarProps> = ({
@@ -38,6 +39,7 @@ export const GraphSidebar: React.FC<GraphSidebarProps> = ({
   isOpen,
   onToggle,
   reasoningContext,
+  refreshTrigger,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000/";
@@ -129,6 +131,7 @@ export const GraphSidebar: React.FC<GraphSidebarProps> = ({
                   chatId={chatId as string}
                   baseUrl={baseUrl}
                   reasoningContext={reasoningContext}
+                  refreshTrigger={refreshTrigger}
                 />
               </div>
             </div>

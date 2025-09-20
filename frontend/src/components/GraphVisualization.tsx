@@ -63,6 +63,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
   const [selectedRelationship, setSelectedRelationship] =
     useState<GraphRelationship | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [editingNode, setEditingNode] = useState<GraphNode | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
 
@@ -84,6 +86,9 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
   // Initialize Cytoscape
   useEffect(() => {
     if (!cyRef.current) return;
+
+    setIsInitializing(true);
+    setLoadingProgress(10);
 
     cyInstance.current = cytoscape({
       container: cyRef.current,
@@ -283,6 +288,9 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
       }
     });
 
+    setLoadingProgress(100);
+    setIsInitializing(false);
+
     return () => {
       if (cyInstance.current) {
         cyInstance.current.destroy();
@@ -293,13 +301,17 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
   // Load graph data
   const loadGraphData = async () => {
     setIsLoading(true);
+    setLoadingProgress(0);
     try {
+      setLoadingProgress(20);
       const response = await fetch(`${baseUrl}graph_data/${chatId}`);
       if (!response.ok) {
-        throw new Error("Failed to load graph data");
+        // throw new Error("Failed to load graph data");
       }
 
+      setLoadingProgress(40);
       const data: GraphData = await response.json();
+      setLoadingProgress(60);
       setGraphData(data);
 
       // Convert to Cytoscape format
@@ -325,16 +337,20 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
       ];
 
       if (cyInstance.current) {
+        setLoadingProgress(80);
         cyInstance.current.elements().remove();
         cyInstance.current.add(cytoscapeElements);
+        setLoadingProgress(90);
         applyLayout();
+        setLoadingProgress(100);
       }
 
       // Silently load data - no toast needed
     } catch (error) {
-      toast.error("Failed to load graph data");
+      // toast.error("Failed to load graph data");
     } finally {
       setIsLoading(false);
+      setLoadingProgress(100);
     }
   };
 
@@ -628,9 +644,32 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         {/* Graph Container */}
         <div
           ref={cyRef}
-          className="w-full h-full bg-gray-50 dark:bg-gray-900"
+          className="w-full h-full bg-gray-50 dark:bg-gray-900 relative"
           style={{ minHeight: "600px" }}
-        />
+        >
+          {/* Loading Overlay */}
+          {(isInitializing || isLoading) && (
+            <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 mb-2">
+                  {isInitializing ? "Initializing graph..." : "Loading graph data..."}
+                </p>
+                <div className="w-48 bg-slate-200 dark:bg-slate-700 rounded-full h-2 mx-auto">
+                  <div
+                    className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${loadingProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  {loadingProgress}%
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Side Panel */}

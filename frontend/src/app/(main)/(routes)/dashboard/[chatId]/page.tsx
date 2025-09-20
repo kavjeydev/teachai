@@ -19,11 +19,15 @@ import CodeBlock from "@/app/(main)/components/code-block";
 import { CitationMarkdown } from "@/components/citation-markdown";
 import { CitationInspector } from "@/components/citation-inspector";
 import { ContextList } from "@/app/(main)/components/context-list";
+import { ChatSettings } from "@/components/chat-settings";
+import { ModelSelector } from "@/components/model-selector";
+import { useConvexAuth } from "@/hooks/use-auth-state";
 import "../../../components/styles.scss";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
 import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
+import HardBreak from "@tiptap/extension-hard-break";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
 import suggestion from "../../../components/suggestion";
@@ -32,6 +36,20 @@ import { Toaster, toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
 import { GraphSidebar } from "@/components/graph-sidebar";
+import { flushSync } from "react-dom";
+import { startTransition } from "react";
+import { MessageSquare } from "lucide-react";
+
+// Extend window object for global cache
+declare global {
+  interface Window {
+    trainlyCache?: {
+      chats: Record<string, any>;
+      content: Record<string, any[]>;
+      context: Record<string, any>;
+    };
+  }
+}
 
 interface ChatIdPageProps {
   params: Promise<{
@@ -59,6 +77,10 @@ interface EmbeddingsFormData {
 interface AnswerQuestionPayload {
   question: string;
   chat_id: string;
+  selected_model?: string;
+  custom_prompt?: string | null;
+  temperature?: number;
+  max_tokens?: number;
 }
 
 export default function Dashboard({ params }: ChatIdPageProps) {
@@ -87,10 +109,22 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   const { user } = useUser();
   const { sidebarWidth } = useSidebarWidth();
+  const { canQuery, skipQuery } = useConvexAuth();
 
-  // Get chatId from params
+  // Get chatId from params with caching
+  const [cachedChatId, setCachedChatId] = useState<Id<"chats"> | null>(null);
   const unwrappedParams = React.use(params);
   const chatId = unwrappedParams.chatId;
+
+  // Update cached chatId when it changes
+  useEffect(() => {
+    if (chatId) {
+      setCachedChatId(chatId);
+    }
+  }, [chatId]);
+
+  // Use cached chatId if current one is undefined (during navigation)
+  const effectiveChatId = chatId || cachedChatId;
 
   const [input, setInput] = useState("");
   const [progress, setProgress] = useState(0);
@@ -100,39 +134,192 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const [fileKey, setFileKey] = useState<Date>(new Date());
   const [isGraphSidebarOpen, setIsGraphSidebarOpen] = useState(false);
 
+  // Optimistic updates for instant message display
+  const [optimisticMessages, setOptimisticMessages] = useState<any[]>([]);
+
   const scrollToBottom = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastScrollTimeRef = useRef<number>(0);
 
-  const currentChat = useQuery(api.chats.getChatById, { id: chatId });
-  const chatContent = useQuery(api.chats.getChatContent, { id: chatId });
-  const showContextData = useQuery(api.chats.getContext, { id: chatId });
+  const currentChat = useQuery(
+    api.chats.getChatById,
+    !canQuery || !effectiveChatId ? skipQuery : { id: effectiveChatId },
+  );
+  const chatContent = useQuery(
+    api.chats.getChatContent,
+    !canQuery || !effectiveChatId ? skipQuery : { id: effectiveChatId },
+  );
+  const showContextData = useQuery(
+    api.chats.getContext,
+    !canQuery || !effectiveChatId ? skipQuery : { id: effectiveChatId },
+  );
+
+  // Global cache that persists across navigation (stored in window object)
+  const getGlobalCache = () => {
+    if (typeof window !== "undefined") {
+      if (!window.trainlyCache) {
+        window.trainlyCache = {
+          chats: {},
+          content: {},
+          context: {},
+        };
+      }
+      return window.trainlyCache;
+    }
+    return { chats: {}, content: {}, context: {} };
+  };
+
+  // Update global cache when data loads and manage loading states
+  useEffect(() => {
+    if (currentChat && effectiveChatId) {
+      const cache = getGlobalCache();
+      cache.chats[effectiveChatId] = currentChat;
+    }
+  }, [currentChat, effectiveChatId]);
+
+  useEffect(() => {
+    if (chatContent && effectiveChatId) {
+      const cache = getGlobalCache();
+      cache.content[effectiveChatId] = chatContent;
+    }
+  }, [chatContent, effectiveChatId]);
+
+  useEffect(() => {
+    if (showContextData && effectiveChatId) {
+      const cache = getGlobalCache();
+      cache.context[effectiveChatId] = showContextData;
+    }
+  }, [showContextData, effectiveChatId]);
+
+  // Manage initial loading state
+  useEffect(() => {
+    if (effectiveChatId) {
+      const hasBasicData = currentChat !== undefined && chatContent !== undefined && showContextData !== undefined;
+      if (hasBasicData) {
+        setIsLoadingInitialData(false);
+      }
+    }
+  }, [currentChat, chatContent, showContextData, effectiveChatId]);
+
+  // Get cached or current data - prioritize fresh data over cache
+  const cache = getGlobalCache();
+  const displayChat =
+    currentChat || (effectiveChatId && cache.chats[effectiveChatId]);
+  const baseContent =
+    chatContent || (effectiveChatId && cache.content[effectiveChatId]);
+  const displayContext =
+    showContextData || (effectiveChatId && cache.context[effectiveChatId]);
+
+  // Merge optimistic messages with real messages for instant display
+  const displayContent = React.useMemo(() => {
+    if (!baseContent) return optimisticMessages;
+
+    // Filter out optimistic messages that have been persisted
+    const filteredOptimistic = optimisticMessages.filter(
+      (optMsg) =>
+        !baseContent.some(
+          (realMsg) =>
+            realMsg.text === optMsg.text && realMsg.sender === optMsg.sender,
+        ),
+    );
+
+    return [...baseContent, ...filteredOptimistic];
+  }, [baseContent, optimisticMessages]);
+
+  // Clean up optimistic messages when real messages arrive
+  React.useEffect(() => {
+    if (baseContent && optimisticMessages.length > 0) {
+      const filteredOptimistic = optimisticMessages.filter(
+        (optMsg) =>
+          !baseContent.some(
+            (realMsg) =>
+              realMsg.text === optMsg.text && realMsg.sender === optMsg.sender,
+          ),
+      );
+
+      if (filteredOptimistic.length !== optimisticMessages.length) {
+        console.log("🧹 Cleaning up optimistic messages");
+        setOptimisticMessages(filteredOptimistic);
+      }
+    }
+  }, [baseContent, optimisticMessages]);
+
+  // Debug logging for display content
+  React.useEffect(() => {
+    console.log("📊 Display content updated:", {
+      baseContentLength: baseContent?.length,
+      optimisticLength: optimisticMessages.length,
+      displayContentLength: displayContent?.length,
+    });
+  }, [baseContent, optimisticMessages, displayContent]);
 
   const writeContent = useMutation(api.chats.writeContent);
   const uploadContext = useMutation(api.chats.uploadContext);
 
-  const editor = useEditor({
-    extensions: [
-      Document,
-      Paragraph,
-      Text,
-      Mention.configure({
-        HTMLAttributes: {
-          class: "mention",
+  const editor = useEditor(
+    {
+      extensions: [
+        Document,
+        Paragraph,
+        Text,
+        HardBreak.configure({
+          keepMarks: false,
+        }),
+        Mention.configure({
+          HTMLAttributes: {
+            class: "mention",
+          },
+          suggestion,
+        }),
+        Placeholder.configure({
+          placeholder: "Type your message here...",
+        }),
+      ],
+      onUpdate: ({ editor }) => {
+        setInput(editor.getHTML());
+      },
+      editorProps: {
+        handleKeyDown: (view, event) => {
+          console.log("Key pressed:", event.key, "Shift:", event.shiftKey);
+
+          if (event.key === "Enter") {
+            if (event.shiftKey) {
+              // Force hard break for Shift+Enter
+              console.log("Shift+Enter detected, inserting hard break");
+              view.dispatch(
+                view.state.tr
+                  .replaceSelectionWith(
+                    view.state.schema.nodes.hardBreak.create(),
+                  )
+                  .scrollIntoView(),
+              );
+              return true;
+            } else {
+              // Regular Enter sends the message
+              event.preventDefault();
+              handleSendMessage();
+              return true;
+            }
+          }
+          return false;
         },
-        suggestion,
-      }),
-      Placeholder.configure({
-        placeholder: "Type your message here...",
-      }),
-    ],
-    onUpdate: ({ editor }) => {
-      setInput(editor.getHTML());
+      },
     },
-  });
+    [],
+  );
 
   const onWrite = (sender: string, text: string, reasoningContext?: any[]) => {
+    if (!effectiveChatId) {
+      console.error("❌ No effectiveChatId when trying to write message");
+      return;
+    }
+
+    console.log(`💾 Writing ${sender} message:`, {
+      text: text.substring(0, 50) + "...",
+      chatId: effectiveChatId,
+    });
     writeContent({
-      id: chatId,
+      id: effectiveChatId,
       chat: {
         sender: sender,
         text: text,
@@ -151,6 +338,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
+    setIsUploadingFile(true);
     setShowProgress(true);
     setProgress(10);
     setProgressText("File received...");
@@ -189,7 +377,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         const embeddingsPayload = {
           pdf_text: extractData.text,
           pdf_id: uniqueFileId,
-          chat_id: chatId as string,
+          chat_id: effectiveChatId as string,
           filename: file.name,
         };
 
@@ -215,13 +403,15 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         setProgressText("Adding to knowledge graph...");
 
         // Add to Convex context
-        await uploadContext({
-          id: chatId,
-          context: {
-            filename: file.name,
-            fileId: uniqueFileId,
-          },
-        });
+        if (effectiveChatId) {
+          await uploadContext({
+            id: effectiveChatId,
+            context: {
+              filename: file.name,
+              fileId: uniqueFileId,
+            },
+          });
+        }
 
         setProgress(100);
         setProgressText("Complete!");
@@ -231,6 +421,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       console.error("File upload error:", error);
       toast.error("Failed to upload file. Make sure your backend is running.");
     } finally {
+      setIsUploadingFile(false);
       setShowProgress(false);
       setProgress(0);
       setProgressText("");
@@ -255,40 +446,155 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const [showCitationInspector, setShowCitationInspector] = useState(false);
   const [inspectedCitations, setInspectedCitations] = useState<any[]>([]);
 
+  // Graph refresh trigger
+  const [graphRefreshTrigger, setGraphRefreshTrigger] = useState(0);
+
+  // Streaming state
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState("");
+  const streamingRef = useRef<HTMLDivElement>(null);
+  const streamingMessageRef = useRef<HTMLDivElement>(null);
+
+  // Loading states for better UX
+  const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isProcessingMessage, setIsProcessingMessage] = useState(false);
+
+  // Single scroll function to prevent conflicts
+  const scrollToBottomSafe = useCallback((force: boolean = false) => {
+    const now = Date.now();
+    // Prevent rapid successive scrolls unless forced
+    if (force || now - lastScrollTimeRef.current > 100) {
+      lastScrollTimeRef.current = now;
+      setTimeout(() => {
+        scrollToBottom.current?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
+    }
+  }, []);
+
+  // Minimal debug logging for performance
+  useEffect(() => {
+    if (streamingContent && streamingContent.length % 100 === 0) {
+      console.log("🎨 Streaming:", streamingContent.length, "chars");
+    }
+  }, [streamingContent]);
+
+  // Memoize chat content rendering for performance
+  const memoizedChatContent = React.useMemo(
+    () =>
+      displayContent?.map((msg: any, index: number) => (
+        <div
+          key={`${index}-${msg.sender}-${msg.text?.substring(0, 20)}`}
+          className="mb-8"
+        >
+          {msg.sender === "user" ? (
+            // User message - improved bubble style with better padding
+            <div className="flex justify-end gap-4 mb-6">
+              <div className="bg-trainlymainlight text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed max-w-[75%] shadow-lg shadow-trainlymainlight/20 font-inter selectable">
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHTML(msg.text),
+                  }}
+                />
+              </div>
+              {user?.imageUrl && (
+                <img
+                  src={user.imageUrl}
+                  className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
+                />
+              )}
+            </div>
+          ) : (
+            // AI response - improved formatting for better readability
+            <div className="flex gap-4 mb-6">
+              <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
+                <span className="text-white font-bold text-xs">T</span>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable">
+                <CitationMarkdown
+                  content={msg.text}
+                  reasoningContext={msg.reasoningContext || []}
+                  onCitationClick={(chunkIndex) => {
+                    handleCitationClick(chunkIndex, msg.reasoningContext || []);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )),
+    [displayContent, user?.imageUrl],
+  );
+
+  // Function to trigger graph refresh
+  const triggerGraphRefresh = () => {
+    const newTrigger = graphRefreshTrigger + 1;
+    console.log(
+      `🔄 Dashboard: Triggering graph refresh (${graphRefreshTrigger} → ${newTrigger})`,
+    );
+    setGraphRefreshTrigger(newTrigger);
+  };
+
   // Handle citation clicks to open inspector
   const handleCitationClick = (
     chunkIndex: number,
     messageReasoningContext: any[],
   ) => {
+    console.log("=== CITATION CLICK DEBUG ===");
+    console.log("Chunk index:", chunkIndex);
+    console.log("Message context length:", messageReasoningContext.length);
+    console.log("Message context:", messageReasoningContext);
+    console.log("============================");
+
     if (messageReasoningContext[chunkIndex]) {
       const clickedChunk = messageReasoningContext[chunkIndex];
       console.log("Citation clicked:", clickedChunk);
 
-      // Find related chunks from the same document
-      const documentId = clickedChunk.chunk_id.split("-")[0];
-      const relatedChunks = messageReasoningContext.filter((chunk) =>
-        chunk.chunk_id.startsWith(documentId + "-"),
+      // Option 1: Show only the clicked chunk (most specific)
+      // const relatedChunks = [clickedChunk];
+
+      // Option 2: Show all chunks from this message (current behavior)
+      const relatedChunks = messageReasoningContext;
+
+      // Option 3: Show chunks from the same document within this message (original behavior)
+      // const documentId = clickedChunk.chunk_id.split("-")[0];
+      // const relatedChunks = messageReasoningContext.filter((chunk) =>
+      //   chunk.chunk_id.startsWith(documentId + "-"),
+      // );
+
+      console.log(
+        `Found ${relatedChunks.length} related chunks for this message`,
       );
+      console.log("Raw related chunks:", relatedChunks);
 
       // Convert chunks to CitedNode format for inspector
-      const citedNodes = relatedChunks.map((chunk) => ({
-        id: chunk.chunk_id,
-        title: `Chunk ${chunk.chunk_id}`,
-        snippet: chunk.chunk_text.substring(0, 200) + "...",
-        properties: {
-          score: chunk.score,
-          chunk_id: chunk.chunk_id,
-          full_text: chunk.chunk_text,
-        },
-        relationships: [], // TODO: Fetch actual relationships
-        labels: ["Chunk"],
-      }));
+      try {
+        const citedNodes = relatedChunks.map((chunk, index) => {
+          console.log(`Processing chunk ${index}:`, chunk);
+          return {
+            id: chunk.chunk_id,
+            title: `Chunk ${chunk.chunk_id}`,
+            snippet: chunk.chunk_text.substring(0, 200) + "...",
+            properties: {
+              score: chunk.score,
+              chunk_id: chunk.chunk_id,
+              full_text: chunk.chunk_text,
+            },
+            relationships: [], // TODO: Fetch actual relationships
+            labels: ["Chunk"],
+          };
+        });
 
-      // Open citation inspector
-      setInspectedCitations(citedNodes);
-      setShowCitationInspector(true);
+        // Open citation inspector
+        console.log("🔍 Setting inspected citations:", citedNodes);
+        setInspectedCitations(citedNodes);
+        setShowCitationInspector(true);
 
-      console.log(`Opening inspector for ${citedNodes.length} related nodes`);
+        console.log(`Opening inspector for ${citedNodes.length} related nodes`);
+      } catch (error) {
+        console.error("❌ Error processing citation nodes:", error);
+        console.log("Related chunks that caused error:", relatedChunks);
+      }
     } else {
       console.log(
         `Citation ${chunkIndex} not found in context. Available: 0-${messageReasoningContext.length - 1}`,
@@ -325,13 +631,117 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     }
   };
 
-  // GraphRAG API integration
+  // GraphRAG API integration with streaming
+  async function answerQuestionStream(
+    question: string,
+    onContent: (content: string) => void,
+    onContext: (context: any[]) => void,
+    onComplete: (fullAnswer: string) => void,
+  ) {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000/";
+    const answerQuestionPayload = {
+      question: question,
+      chat_id: chatId as string,
+      selected_model: displayChat?.selectedModel || "gpt-4o-mini",
+      custom_prompt: displayChat?.customPrompt || null,
+      temperature: displayChat?.temperature || 0.7,
+      max_tokens: displayChat?.maxTokens || 1000,
+    };
+
+    const response = await fetch(baseUrl + "answer_question_stream", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(answerQuestionPayload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("Failed to get response reader");
+    }
+
+    const decoder = new TextDecoder();
+    let fullAnswer = "";
+    let receivedContext: any[] = [];
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+
+        // Process complete lines
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr) {
+                const data = JSON.parse(jsonStr);
+                console.log("📡 Received streaming data:", data);
+
+                if (data.type === "context") {
+                  receivedContext = data.data;
+                  onContext(receivedContext);
+                  setLatestReasoningContext(receivedContext);
+                  console.log(
+                    "📚 Streaming context received:",
+                    receivedContext,
+                  );
+                } else if (data.type === "content") {
+                  fullAnswer += data.data;
+                  console.log("✍️ Streaming content chunk:", data.data);
+                  onContent(data.data);
+                } else if (data.type === "end") {
+                  console.log("🏁 Stream ended, final answer:", fullAnswer);
+                  onComplete(fullAnswer);
+                  return {
+                    answer: fullAnswer,
+                    context: receivedContext,
+                  };
+                }
+              }
+            } catch (e) {
+              console.warn("Failed to parse streaming data:", line, e);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    return {
+      answer: fullAnswer,
+      context: receivedContext,
+    };
+  }
+
+  // Keep the original non-streaming function as fallback
   async function answerQuestion(question: string) {
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000/";
     const answerQuestionPayload = {
       question: question,
       chat_id: chatId as string,
+      selected_model: displayChat?.selectedModel || "gpt-4o-mini",
+      custom_prompt: displayChat?.customPrompt || null,
+      temperature: displayChat?.temperature || 0.7,
+      max_tokens: displayChat?.maxTokens || 1000,
     };
 
     const response = await fetch(baseUrl + "answer_question", {
@@ -380,22 +790,78 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
+    if (isStreaming || isProcessingMessage) {
+      toast.error("Please wait for the current response to complete.");
+      return;
+    }
+
     const userMessage = editor?.getText() || "";
     if (editor) {
       editor.commands.setContent("");
     }
 
-    // Send user message
+    setIsProcessingMessage(true);
+
+    // Add message optimistically for instant display
+    const optimisticMessage = {
+      sender: "user",
+      text: userMessage,
+      user: user?.id || "user",
+      _id: `optimistic-${Date.now()}`, // Temporary ID
+    };
+
+    console.log("📝 Adding optimistic user message:", userMessage);
+    setOptimisticMessages((prev) => [...prev, optimisticMessage]);
+
+    // Send user message to database (will be filtered out once persisted)
     onWrite("user", userMessage);
 
-    // Call actual GraphRAG API
-    try {
-      const result = await answerQuestion(userMessage);
+    setIsStreaming(true);
+    setStreamingContent("");
 
-      // Write bot response with reasoning context directly from the result
-      onWrite("bot", result.answer, result.context);
+    // Scroll to bottom immediately when streaming starts
+    scrollToBottomSafe(true); // Force scroll for new message
+
+    // Call streaming GraphRAG API
+    try {
+      let finalContext: any[] = [];
+
+      await answerQuestionStream(
+        userMessage,
+        // onContent callback - update the streaming content
+        (content: string) => {
+          setStreamingContent((prev) => prev + content);
+        },
+        // onContext callback
+        (context: any[]) => {
+          finalContext = context;
+        },
+        // onComplete callback
+        (fullAnswer: string) => {
+          // Write the complete bot response FIRST
+          onWrite("bot", fullAnswer, finalContext);
+
+          // Keep the streaming content until the real message appears
+          // This prevents the visual gap that causes scroll jumping
+          setTimeout(() => {
+            setIsStreaming(false);
+            setStreamingContent("");
+          }, 200);
+
+          // Clear any remaining optimistic messages after response is complete
+          setTimeout(() => {
+            setOptimisticMessages([]);
+          }, 1000);
+        },
+      );
     } catch (error) {
       console.error("GraphRAG API error:", error);
+      setIsStreaming(false);
+      setStreamingContent("");
+
+      // Clear optimistic messages on error
+      setOptimisticMessages([]);
+
       toast.error(
         "Failed to get response from GraphRAG API. Make sure your backend is running.",
       );
@@ -403,19 +869,24 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         "bot",
         "Sorry, I encountered an error processing your question. Please make sure the backend server is running and try again.",
       );
+    } finally {
+      setIsProcessingMessage(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
+  // Scroll to bottom when content changes (only when not streaming)
   useEffect(() => {
-    scrollToBottom.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatContent]);
+    if (!isStreaming && displayContent && displayContent.length > 0) {
+      scrollToBottomSafe();
+    }
+  }, [displayContent, isStreaming, scrollToBottomSafe]);
+
+  // Auto-scroll during streaming
+  useEffect(() => {
+    if (isStreaming && streamingContent && streamingContent.length % 15 === 0) {
+      scrollToBottomSafe();
+    }
+  }, [streamingContent, isStreaming, scrollToBottomSafe]);
 
   if (user === undefined) {
     return (
@@ -432,7 +903,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     );
   }
 
-  if (!chatId) {
+  if (!effectiveChatId) {
     return (
       <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
         <div className="text-center">
@@ -445,83 +916,15 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     );
   }
 
-  // Show chat skeleton while data is loading
-  if (!currentChat || chatContent === undefined) {
-    return (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <ResizableSidebar chatId={chatId} />
-        <div
-          className="h-screen flex flex-col"
-          style={{
-            marginLeft: `${sidebarWidth}px`,
-            transition: "margin-left 300ms ease-out",
-          }}
-        >
-          <div className="flex items-center justify-between w-full h-12 px-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
-            <Skeleton className="h-6 w-32" />
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-8 w-20" />
-              <Skeleton className="h-8 w-24" />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            <div className="w-full h-full px-6 py-4 max-w-4xl mx-auto">
-              <div className="space-y-6">
-                {/* Chat message skeletons */}
-                <div className="flex gap-4">
-                  <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
-                  <div className="flex-1 max-w-[80%]">
-                    <Skeleton className="h-16 w-full rounded-xl" />
-                  </div>
-                </div>
-                <div className="flex gap-4 justify-end">
-                  <div className="flex-1 max-w-[80%] flex justify-end">
-                    <Skeleton className="h-12 w-48 rounded-xl" />
-                  </div>
-                  <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
-                </div>
-                <div className="flex gap-4">
-                  <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
-                  <div className="flex-1 max-w-[80%]">
-                    <Skeleton className="h-20 w-full rounded-xl" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Input skeleton */}
-          <div className="p-4">
-            <Skeleton className="h-20 w-full rounded-xl" />
-          </div>
-        </div>
-
-        {/* Graph Sidebar */}
-        <GraphSidebar
-          chatId={chatId}
-          isOpen={isGraphSidebarOpen}
-          onToggle={() => setIsGraphSidebarOpen(!isGraphSidebarOpen)}
-          reasoningContext={latestReasoningContext}
-        />
-
-        {/* Citation Inspector */}
-        <CitationInspector
-          isOpen={showCitationInspector}
-          onClose={() => setShowCitationInspector(false)}
-          citedNodes={inspectedCitations}
-          onOpenInGraph={handleOpenInGraph}
-        />
-      </div>
-    );
-  }
+  // Show loading indicator in navbar instead of full screen for better UX
+  const isLoadingFreshData = !displayContent && chatContent === undefined;
 
   return (
     <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Toaster position="top-center" richColors />
 
       {/* Resizable Sidebar */}
-      <ResizableSidebar chatId={chatId} />
+      <ResizableSidebar chatId={effectiveChatId} />
 
       {/* Main Content Area - Responsive to sidebar width */}
       <div
@@ -532,7 +935,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         }}
       >
         <ChatNavbar
-          chatId={chatId}
+          chatId={effectiveChatId}
           onGraphToggle={() => setIsGraphSidebarOpen(!isGraphSidebarOpen)}
           isGraphOpen={isGraphSidebarOpen}
           reasoningContextCount={latestReasoningContext.length}
@@ -541,7 +944,22 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         {/* Chat Messages Area - Full width */}
         <div className="flex-1 overflow-y-auto">
           <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto">
-            {chatContent?.length === 0 && (
+            {/* Loading overlay for initial data */}
+            {isLoadingInitialData && (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 animate-pulse">
+                    Loading your chat...
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!isLoadingInitialData && displayContent?.length === 0 && !isStreaming && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-trainlymainlight/20">
                   <svg
@@ -558,10 +976,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 font-inter">
                   Start Your GraphRAG Chat
                 </h3>
-                <p className="text-base text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto leading-relaxed">
+                <p className="text-base text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto leading-relaxed font-inter">
                   Upload documents and ask questions to build your knowledge
                   graph. Watch as relationships form and your AI becomes more
                   intelligent.
@@ -569,47 +987,51 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               </div>
             )}
 
-            {chatContent?.map((msg: any, index: number) => (
-              <div key={index} className="mb-8">
-                {msg.sender === "user" ? (
-                  // User message - keep bubble style
-                  <div className="flex justify-end gap-4 mb-6">
-                    <div className="bg-trainlymainlight text-white rounded-xl px-4 py-3 text-sm leading-relaxed max-w-[80%] shadow-lg shadow-trainlymainlight/20">
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: sanitizeHTML(msg.text),
-                        }}
-                      />
-                    </div>
-                    {user?.imageUrl && (
-                      <img
-                        src={user.imageUrl}
-                        className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
-                      />
+            {/* Chat content - only show when not in initial loading */}
+            {!isLoadingInitialData && memoizedChatContent}
+
+            {/* Streaming message display */}
+            {(isStreaming || streamingContent) && (
+              <div
+                ref={streamingMessageRef}
+                key={`streaming-${streamingContent.length}`}
+                className="mb-8"
+              >
+                <div className="flex gap-4 mb-6">
+                  <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
+                    <span className="text-white font-bold text-xs">T</span>
+                  </div>
+                  <div
+                    ref={streamingRef}
+                    className="bg-slate-50 dark:bg-slate-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable"
+                  >
+                    {streamingContent ? (
+                      <div className="whitespace-pre-wrap text-slate-900 dark:text-white text-sm leading-relaxed font-inter">
+                        {streamingContent}
+                        {/* Blinking cursor to show active streaming */}
+                        <span className="inline-block w-0.5 h-5 bg-trainlymainlight ml-1 animate-pulse"></span>
+                      </div>
+                    ) : (
+                      <div className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"></div>
+                          <div
+                            className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"
+                            style={{ animationDelay: "0.1s" }}
+                          ></div>
+                          <div
+                            className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"
+                            style={{ animationDelay: "0.2s" }}
+                          ></div>
+                        </div>
+                        <span>Thinking...</span>
+                      </div>
                     )}
                   </div>
-                ) : (
-                  // AI response - bubble without border, smaller text
-                  <div className="flex gap-4 mb-6">
-                    <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
-                      <span className="text-white font-bold text-xs">T</span>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-3 max-w-[85%] shadow-sm">
-                      <CitationMarkdown
-                        content={msg.text}
-                        reasoningContext={msg.reasoningContext || []}
-                        onCitationClick={(chunkIndex) =>
-                          handleCitationClick(
-                            chunkIndex,
-                            msg.reasoningContext || [],
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
-            ))}
+            )}
+
             <div ref={scrollToBottom} />
           </div>
         </div>
@@ -618,7 +1040,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         <div className="px-12 pb-8 pt-4 max-w-5xl mx-auto w-full">
           <div className="bg-gradient-to-br from-white via-white to-slate-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl rounded-3xl overflow-hidden">
             {/* Context Files */}
-            {currentChat?.context?.length ? (
+            {displayChat?.context?.length ? (
               <div className="px-3 py-2 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-4 h-4 bg-trainlymainlight/10 rounded-md flex items-center justify-center">
@@ -629,8 +1051,12 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                   </span>
                 </div>
                 <div className="flex gap-2 items-center overflow-x-auto">
-                  <ContextList context={showContextData} chatId={chatId} />
-                  {currentChat?.context.map((context: any) => (
+                  <ContextList
+                    context={displayContext}
+                    chatId={effectiveChatId}
+                    onContextDeleted={triggerGraphRefresh}
+                  />
+                  {displayChat?.context.map((context: any) => (
                     <div
                       key={context.fileId}
                       className="flex gap-2 items-center rounded-lg p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex-shrink-0 hover:border-trainlymainlight/30 transition-all duration-200 shadow-sm"
@@ -656,11 +1082,13 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             <div className="p-4 relative">
               <div className="relative group">
                 {/* Input Container */}
-                <div className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 group-focus-within:border-trainlymainlight/50 group-focus-within:shadow-lg group-focus-within:shadow-trainlymainlight/10 transition-all duration-300">
+                <div
+                  className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 group-focus-within:border-trainlymainlight/50 group-focus-within:shadow-lg group-focus-within:shadow-trainlymainlight/10 transition-all duration-300 cursor-text"
+                  onClick={() => editor?.commands.focus()}
+                >
                   <EditorContent
                     editor={editor}
                     className="text-slate-900 dark:text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none"
-                    onKeyDown={handleKeyDown}
                   />
 
                   {/* Enhanced Placeholder */}
@@ -687,22 +1115,52 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
                   {/* Input Actions */}
                   <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                    {/* Model Selector - subtle and integrated */}
+                    <ModelSelector
+                      chatId={effectiveChatId}
+                      currentModel={displayChat?.selectedModel}
+                      onModelChange={() => {
+                        // Optionally trigger a refresh of chat data
+                      }}
+                      compact={true}
+                    />
+
+                    {/* Chat Settings Button */}
+                    <ChatSettings
+                      chatId={effectiveChatId}
+                      currentPrompt={displayChat?.customPrompt}
+                      currentTemperature={displayChat?.temperature}
+                      currentMaxTokens={displayChat?.maxTokens}
+                      onSettingsChange={() => {
+                        // Optionally trigger a refresh of chat data
+                      }}
+                    />
+
                     {/* File Upload Button */}
                     <button
                       onClick={triggerFileInput}
-                      className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group/upload"
-                      title="Upload document"
+                      disabled={isUploadingFile || isStreaming}
+                      className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
+                      title={isUploadingFile ? "Uploading..." : "Upload document"}
                     >
-                      <Paperclip className="w-3.5 h-3.5 text-slate-400 group-hover/upload:text-trainlymainlight transition-colors" />
+                      {isUploadingFile ? (
+                        <div className="w-3.5 h-3.5 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                      ) : (
+                        <Paperclip className="w-3.5 h-3.5 text-slate-400 group-hover/upload:text-trainlymainlight transition-colors" />
+                      )}
                     </button>
 
                     {/* Send Button */}
                     <button
                       onClick={handleSendMessage}
-                      disabled={!editor?.getText()?.trim()}
+                      disabled={!editor?.getText()?.trim() || isStreaming || isProcessingMessage || isUploadingFile}
                       className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-trainlymainlight/25 disabled:shadow-none"
                     >
-                      <Send className="w-3.5 h-3.5" />
+                      {isStreaming || isProcessingMessage ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -752,14 +1210,16 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
       {/* Graph Sidebar */}
       <GraphSidebar
-        chatId={chatId}
+        chatId={effectiveChatId}
         isOpen={isGraphSidebarOpen}
         onToggle={() => setIsGraphSidebarOpen(!isGraphSidebarOpen)}
         reasoningContext={latestReasoningContext}
+        refreshTrigger={graphRefreshTrigger}
       />
 
       {/* Citation Inspector */}
       <CitationInspector
+        key={`citation-inspector-${inspectedCitations.length}-${inspectedCitations[0]?.id || "empty"}`}
         isOpen={showCitationInspector}
         onClose={() => setShowCitationInspector(false)}
         citedNodes={inspectedCitations}

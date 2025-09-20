@@ -56,6 +56,7 @@ export default function ChatManagementPage() {
   const createFolder = useMutation(api.chats.createFolder);
   const moveToFolder = useMutation(api.chats.moveToFolder);
   const deleteFolder = useMutation(api.chats.deleteFolder);
+  const toggleFavorite = useMutation(api.chats.toggleFavorite);
 
   // UI State
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -73,6 +74,9 @@ export default function ChatManagementPage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [chatToMove, setChatToMove] = useState<string | null>(null);
+  const [showDeleteFolderModal, setShowDeleteFolderModal] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
+  const [folderChatCount, setFolderChatCount] = useState(0);
 
   // Calculate folder counts
   const folderCounts = useMemo(() => {
@@ -252,6 +256,62 @@ export default function ChatManagementPage() {
     }
   };
 
+  const handleToggleFavorite = async (chatId: Id<"chats">) => {
+    try {
+      const newStatus = await toggleFavorite({ chatId });
+      toast.success(newStatus ? "Chat favorited!" : "Chat unfavorited!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update favorite status");
+    }
+  };
+
+  const handleMoveToFolder = async (
+    chatId: Id<"chats">,
+    folderId: string | undefined,
+  ) => {
+    try {
+      await moveToFolder({ chatId, folderId });
+      const folderName = folderId
+        ? userFolders?.find((f) => f._id === folderId)?.name || "Unknown Folder"
+        : "Uncategorized";
+      toast.success(`Chat moved to ${folderName}!`);
+      setShowMoveModal(false);
+      setChatToMove(null);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to move chat");
+    }
+  };
+
+  const handleDeleteFolder = async (
+    folderId: string,
+    deleteChats: boolean = false,
+  ) => {
+    try {
+      const result = await deleteFolder({
+        folderId: folderId as Id<"folders">,
+        deleteChats,
+      });
+      if (deleteChats) {
+        toast.success(
+          `Folder deleted along with ${result.deletedChats} chats!`,
+        );
+      } else {
+        toast.success("Folder deleted! Chats moved to uncategorized.");
+      }
+      setShowDeleteFolderModal(false);
+      setFolderToDelete(null);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete folder");
+    }
+  };
+
+  const promptDeleteFolder = (folderId: string) => {
+    const chatCount = folderCounts[folderId] || 0;
+    setFolderChatCount(chatCount);
+    setFolderToDelete(folderId);
+    setShowDeleteFolderModal(true);
+  };
+
   if (!user) {
     return <div></div>;
   }
@@ -392,29 +452,68 @@ export default function ChatManagementPage() {
             </h3>
 
             {allFolders.map((folder) => (
-              <button
+              <div
                 key={folder.id}
-                onClick={() => setSelectedFolder(folder.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left",
+                  "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group",
                   selectedFolder === folder.id
                     ? "bg-trainlymainlight/10 border border-trainlymainlight/20 text-trainlymainlight"
                     : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
                 )}
               >
-                <folder.icon className={cn("h-4 w-4", folder.color)} />
-                <span className="text-sm font-medium">{folder.name}</span>
-                <span className="text-xs text-slate-400 ml-auto">
-                  {folderCounts[folder.id] || 0}
-                </span>
-              </button>
+                <button
+                  onClick={() => setSelectedFolder(folder.id)}
+                  className="flex items-center gap-3 flex-1 text-left"
+                >
+                  <folder.icon className={cn("h-4 w-4", folder.color)} />
+                  <span className="text-sm font-medium">{folder.name}</span>
+                  <span className="text-xs text-slate-400 ml-auto">
+                    {folderCounts[folder.id] || 0}
+                  </span>
+                </button>
+                {/* Only show delete button for custom folders */}
+                {!["all", "recent", "uncategorized"].includes(folder.id) && (
+                  <button
+                    onClick={() => promptDeleteFolder(folder.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-all"
+                    title="Delete Folder"
+                  >
+                    <Trash className="h-3 w-3 text-red-500" />
+                  </button>
+                )}
+              </div>
             ))}
 
             {/* Create Folder */}
-            <button className="w-full flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-trainlymainlight/50 transition-colors text-slate-500 dark:text-slate-400 hover:text-trainlymainlight">
-              <FolderPlus className="h-4 w-4" />
-              <span className="text-sm">New Folder</span>
-            </button>
+            {isCreatingFolder ? (
+              <div className="w-full flex items-center gap-2 p-3 rounded-lg border-2 border-trainlymainlight/50 bg-trainlymainlight/5">
+                <FolderPlus className="h-4 w-4 text-trainlymainlight" />
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreateFolder();
+                    if (e.key === "Escape") {
+                      setIsCreatingFolder(false);
+                      setNewFolderName("");
+                    }
+                  }}
+                  onBlur={handleCreateFolder}
+                  placeholder="Folder name..."
+                  className="flex-1 text-sm bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder-slate-400"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsCreatingFolder(true)}
+                className="w-full flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-trainlymainlight/50 transition-colors text-slate-500 dark:text-slate-400 hover:text-trainlymainlight"
+              >
+                <FolderPlus className="h-4 w-4" />
+                <span className="text-sm">New Folder</span>
+              </button>
+            )}
           </div>
 
           {/* Chat Grid/List */}
@@ -491,6 +590,16 @@ export default function ChatManagementPage() {
                               <Eye className="w-3 h-3 text-slate-500" />
                             </button>
                             <button
+                              onClick={() => {
+                                setChatToMove(chat._id);
+                                setShowMoveModal(true);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                              title="Move to Folder"
+                            >
+                              <Folder className="w-3 h-3 text-slate-500" />
+                            </button>
+                            <button
                               onClick={() => startEditing(chat)}
                               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                               title="Rename"
@@ -558,7 +667,19 @@ export default function ChatManagementPage() {
                                   </>
                                 )}
                               </div>
-                              <Star className="w-4 h-4 text-slate-300 hover:text-yellow-500 cursor-pointer transition-colors" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleFavorite(chat._id);
+                                }}
+                                className="transition-colors"
+                              >
+                                {chat.isFavorited ? (
+                                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 hover:text-yellow-600" />
+                                ) : (
+                                  <Star className="w-4 h-4 text-slate-300 hover:text-yellow-500" />
+                                )}
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -623,7 +744,20 @@ export default function ChatManagementPage() {
                         </div>
 
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Star className="w-4 h-4 text-slate-300 hover:text-yellow-500 cursor-pointer transition-colors" />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleFavorite(chat._id);
+                            }}
+                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            title={chat.isFavorited ? "Unfavorite" : "Favorite"}
+                          >
+                            {chat.isFavorited ? (
+                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 hover:text-yellow-600" />
+                            ) : (
+                              <Star className="w-4 h-4 text-slate-300 hover:text-yellow-500" />
+                            )}
+                          </button>
                           <button
                             onClick={() =>
                               router.push(`/dashboard/${chat._id}/graph`)
@@ -634,11 +768,21 @@ export default function ChatManagementPage() {
                             <Eye className="w-4 h-4 text-slate-500" />
                           </button>
                           <button
+                            onClick={() => {
+                              setChatToMove(chat._id);
+                              setShowMoveModal(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            title="Move to Folder"
+                          >
+                            <Folder className="w-4 h-4 text-slate-500" />
+                          </button>
+                          <button
                             onClick={() => startEditing(chat)}
                             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                             title="Rename"
                           >
-                            <Edit3 className="w-4 w-4 text-slate-500" />
+                            <Edit3 className="w-4 h-4 text-slate-500" />
                           </button>
                           <button
                             onClick={() => onDelete(chat._id)}
@@ -695,6 +839,131 @@ export default function ChatManagementPage() {
           </div>
         </div>
       </div>
+
+      {/* Move to Folder Modal */}
+      {showMoveModal && chatToMove && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                Move Chat to Folder
+              </h3>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                <button
+                  onClick={() =>
+                    handleMoveToFolder(chatToMove as Id<"chats">, undefined)
+                  }
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
+                >
+                  <Folder className="h-4 w-4 text-slate-500" />
+                  <span className="text-sm">Uncategorized</span>
+                </button>
+                {userFolders?.map((folder) => (
+                  <button
+                    key={folder._id}
+                    onClick={() =>
+                      handleMoveToFolder(chatToMove as Id<"chats">, folder._id)
+                    }
+                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
+                  >
+                    <Folder className="h-4 w-4 text-purple-500" />
+                    <span className="text-sm">{folder.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowMoveModal(false);
+                    setChatToMove(null);
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Folder Modal */}
+      {showDeleteFolderModal && folderToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                  <Trash className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Delete Folder
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {userFolders?.find((f) => f._id === folderToDelete)?.name}
+                  </p>
+                </div>
+              </div>
+
+              {folderChatCount > 0 ? (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">!</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                        This folder contains {folderChatCount} chat
+                        {folderChatCount !== 1 ? "s" : ""}
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        What would you like to do with the chats in this folder?
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  This folder is empty and can be safely deleted.
+                </p>
+              )}
+
+              <div className="flex flex-col gap-3">
+                {folderChatCount > 0 && (
+                  <Button
+                    onClick={() => handleDeleteFolder(folderToDelete, true)}
+                    className="bg-red-500 hover:bg-red-600 text-white w-full"
+                  >
+                    <Trash className="h-4 w-4 mr-2" />
+                    Delete Folder & All Chats ({folderChatCount})
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => handleDeleteFolder(folderToDelete, false)}
+                  className="w-full"
+                >
+                  {folderChatCount > 0
+                    ? "Delete Folder Only (Move Chats to Uncategorized)"
+                    : "Delete Empty Folder"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDeleteFolderModal(false);
+                    setFolderToDelete(null);
+                  }}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

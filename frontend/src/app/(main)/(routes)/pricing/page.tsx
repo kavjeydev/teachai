@@ -295,7 +295,7 @@ export default function PricingPage() {
                   <Code className="w-8 h-8 text-trainlymainlight" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                  Debug Your AI Like Code
+                  AI you can see, shape, and ship
                 </h3>
                 <p className="text-slate-600 dark:text-slate-400">
                   Visual graph editing lets you see exactly how your AI thinks

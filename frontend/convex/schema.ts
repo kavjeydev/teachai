@@ -8,7 +8,16 @@ export default defineSchema({
     title: v.string(),
     userId: v.string(),
     isArchived: v.boolean(),
+    isFavorited: v.optional(v.boolean()),
     folderId: v.optional(v.string()),
+    // AI model selection for this chat
+    selectedModel: v.optional(v.string()), // Default to gpt-4o-mini if not set
+    // Custom prompt for this chat
+    customPrompt: v.optional(v.string()), // If not set, use default system prompt
+    // AI temperature setting (0.0 to 1.0)
+    temperature: v.optional(v.number()), // Default to 0.7 if not set
+    // Response length setting (max tokens)
+    maxTokens: v.optional(v.number()), // Default to 1000 if not set
     content: v.optional(
       v.array(
         v.object({

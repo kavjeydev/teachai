@@ -11,6 +11,8 @@ import "./globals.css";
 import Navbar from "./components/navbar";
 import Providers from "./(main)/components/Providers";
 import { Toaster } from "@/components/ui/toaster";
+import { AppLoadingProvider } from "@/components/app-loading-provider";
+import { AuthWrapper } from "@/components/auth-wrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,13 +60,17 @@ export default function RootLayout({
           bg-white scrollbar-hide overscroll-none`}
       >
         <Providers>
-          <main>
-            <Toaster />
+          <AppLoadingProvider>
+            <AuthWrapper showError={false}>
+              <main>
+                <Toaster />
 
-            {/* <main> */}
-            {/* <SidebarTrigger /> */}
-            {children}
-          </main>
+                {/* <main> */}
+                {/* <SidebarTrigger /> */}
+                {children}
+              </main>
+            </AuthWrapper>
+          </AppLoadingProvider>
         </Providers>
       </body>
     </html>
