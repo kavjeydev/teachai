@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/kavin_jey/Desktop/teachai/backend/read_files.py", line 2, in <module>
+    from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Header, Depends
+ModuleNotFoundError: No module named 'fastapi'

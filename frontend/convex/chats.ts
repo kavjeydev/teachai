@@ -397,8 +397,9 @@ export const getChatByIdExposed = query({
   handler: async (ctx, args) => {
     const existingChat = await ctx.db.get(args.id);
 
+    // Return null instead of throwing error for API compatibility
     if (!existingChat) {
-      throw new Error("Not found");
+      return null;
     }
 
     return existingChat;

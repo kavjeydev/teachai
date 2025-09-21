@@ -49,6 +49,7 @@ export default defineSchema({
     }),
     apiKey: v.string(),
     apiKeyDisabled: v.boolean(),
+    hasApiAccess: v.optional(v.boolean()),
     visibility: v.string(),
   })
     .index("by_user", ["userId"])
@@ -62,4 +63,39 @@ export default defineSchema({
     color: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  integration_keys: defineTable({
+    keyId: v.string(),
+    chatId: v.id("chats"),
+    userId: v.string(),
+    scopes: v.array(v.string()),
+    allowedOrigins: v.array(v.string()),
+    rateLimitRpm: v.number(),
+    description: v.string(),
+    isRevoked: v.boolean(),
+    createdAt: v.number(),
+    lastUsed: v.optional(v.number()),
+    usageCount: v.number(),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_chat", ["chatId"])
+    .index("by_key_id", ["keyId"]),
+
+  api_usage_logs: defineTable({
+    integrationKeyId: v.id("integration_keys"),
+    chatId: v.id("chats"),
+    userId: v.string(),
+    endpoint: v.string(),
+    method: v.string(),
+    statusCode: v.number(),
+    tokensUsed: v.number(),
+    runId: v.optional(v.string()),
+    responseTime: v.optional(v.number()),
+    ipAddress: v.optional(v.string()),
+    timestamp: v.number(),
+  })
+    .index("by_key_timestamp", ["integrationKeyId", "timestamp"])
+    .index("by_chat_timestamp", ["chatId", "timestamp"])
+    .index("by_user_timestamp", ["userId", "timestamp"]),
 });

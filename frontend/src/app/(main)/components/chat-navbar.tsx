@@ -18,7 +18,7 @@ import {
   SelectGroup,
   SelectItem,
 } from "@/components/ui/select";
-import { Lock, Globe, Edit3, Network } from "lucide-react";
+import { Lock, Globe, Edit3, Network, Settings } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -29,6 +29,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import ThemeSwitcher from "./theme-switcher";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface ChatNavbarProps {
   chatId: Id<"chats">;
@@ -43,6 +44,7 @@ export const ChatNavbar = ({
   isGraphOpen,
   reasoningContextCount,
 }: ChatNavbarProps) => {
+  const router = useRouter();
   const currentChat = useQuery(api.chats.getChatById, {
     id: chatId,
   });
@@ -131,6 +133,18 @@ export const ChatNavbar = ({
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Settings Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push(`/dashboard/${chatId}/settings`)}
+          className="h-8 px-3 gap-2 transition-colors text-sm hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-trainlymainlight"
+          title="Chat Settings & API Access"
+        >
+          <Settings className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Settings</span>
+        </Button>
+
         {/* Graph Toggle Button */}
         {onGraphToggle && (
           <Button

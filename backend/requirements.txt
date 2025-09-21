@@ -53,3 +53,4 @@ numpy
 neo4j
 python-dotenv
 pydantic
+httpx

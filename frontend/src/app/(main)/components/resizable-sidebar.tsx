@@ -476,9 +476,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       </button>
 
                       <button
-                        onClick={() =>
-                          window.open("https://docs.trainlyai.com", "_blank")
-                        }
+                        onClick={() => router.push("/api-docs")}
                         className="flex flex-col items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
                       >
                         <Code className="h-4 w-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />

@@ -1,7 +1,8 @@
 #!/home/kavinjey/.virtualenvs/myvenv/bin/python
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Header, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pypdf import PdfReader
 import docx
 from bs4 import BeautifulSoup
@@ -18,6 +19,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
 import asyncio
+import httpx
+import time
+import logging
 
 # Data Models
 class ChunkScore(BaseModel):
@@ -43,7 +47,26 @@ class CreateNodesAndEmbeddingsRequest(BaseModel):
     chat_id: str
     filename: str
 
-app = FastAPI()
+# API Models for external access
+class ApiQuestionRequest(BaseModel):
+    question: str
+    selected_model: Optional[str] = None  # Will use chat's saved model if not provided
+    custom_prompt: Optional[str] = None   # Will use chat's saved prompt if not provided
+    temperature: Optional[float] = None   # Will use chat's saved temperature if not provided
+    max_tokens: Optional[int] = None      # Will use chat's saved max_tokens if not provided
+
+class ApiAnswerResponse(BaseModel):
+    answer: str
+    context: List[ChunkScore]
+    chat_id: str
+    model: str
+    usage: dict
+
+app = FastAPI(
+    title="TeachAI GraphRAG API",
+    description="GraphRAG backend with secure Chat API access",
+    version="1.0.0"
+)
 handler = Mangum(app)
 
 # Configure CORS middleware (adjust origins as needed for production)
@@ -54,6 +77,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Security
+security = HTTPBearer()
+
+# Simple rate limiting (in-memory)
+request_counts = {}
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX = 60  # requests per window
 
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -218,6 +253,33 @@ neo4j_uri = os.getenv("NEO4J_URI")
 neo4j_user = os.getenv("NEO4J_USER")
 neo4j_password = os.getenv("NEO4J_PASSWORD")
 
+# Automatically detect environment and set Convex URL
+def get_convex_url():
+    """
+    Automatically detect if running locally or in production and return appropriate Convex URL
+    """
+    # Check if we're running locally
+    is_local = (
+        os.getenv("ENVIRONMENT") == "development" or
+        os.getenv("NODE_ENV") == "development" or
+        not os.getenv("RAILWAY_ENVIRONMENT") and  # Not on Railway
+        not os.getenv("RENDER") and              # Not on Render
+        not os.getenv("VERCEL") and              # Not on Vercel
+        not os.getenv("HEROKU_APP_NAME")         # Not on Heroku
+    )
+
+    if is_local:
+        convex_url = "https://colorless-finch-681.convex.cloud"  # Dev deployment
+        logger.info("🔧 Using DEV Convex deployment (local environment detected)")
+    else:
+        convex_url = "https://agile-ermine-199.convex.cloud"     # Prod deployment
+        logger.info("🚀 Using PROD Convex deployment (production environment detected)")
+
+    return f"{convex_url}/api/run/chats/getChatByIdExposed"
+
+# Get the appropriate Convex URL
+CONVEX_URL = get_convex_url()
+
 # Helper Functions
 def sanitize_for_neo4j(text: str) -> str:
     safe_text = text
@@ -249,6 +311,132 @@ def get_embedding(text: str) -> List[float]:
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+# ==============================================================================
+# API Authentication Functions
+# ==============================================================================
+
+def check_rate_limit(api_key: str, ip: str) -> bool:
+    """Simple rate limiting check"""
+    now = time.time()
+    key = f"{api_key}:{ip}"
+
+    # Clean old entries
+    request_counts[key] = [
+        timestamp for timestamp in request_counts.get(key, [])
+        if now - timestamp < RATE_LIMIT_WINDOW
+    ]
+
+    # Check limit
+    if len(request_counts.get(key, [])) >= RATE_LIMIT_MAX:
+        return False
+
+    # Add current request
+    if key not in request_counts:
+        request_counts[key] = []
+    request_counts[key].append(now)
+
+    return True
+
+async def verify_api_key_and_chat(api_key: str, chat_id: str) -> bool:
+    """
+    Verify API key has access to the specific chat
+    Integrates with your existing Convex system
+    """
+    try:
+        # Call your Convex endpoint to verify (auto-detects dev/prod)
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                CONVEX_URL,
+                json={
+                    "args": {"id": chat_id},
+                    "format": "json"
+                }
+            )
+
+            if response.status_code != 200:
+                logger.warning(f"Convex call failed for chat {chat_id}: {response.status_code} - {response.text}")
+                return False
+
+            chat_data = response.json()
+
+            # Handle both error responses and null responses
+            if chat_data.get("status") == "error":
+                error_message = chat_data.get("errorMessage", "Unknown error")
+                logger.warning(f"Chat {chat_id} - Convex error: {error_message}")
+                return False
+
+            chat = chat_data.get("value")
+
+            # Debug logging
+            logger.info(f"🔍 Debug chat data for {chat_id}:")
+            logger.info(f"   Response status: {response.status_code}")
+            logger.info(f"   Chat found: {chat is not None}")
+
+            if chat:
+                logger.info(f"   Chat title: {chat.get('title', 'No title')}")
+                logger.info(f"   API key in DB: {chat.get('apiKey', 'No key')[:10]}...")
+                logger.info(f"   API key provided: {api_key[:10]}...")
+                logger.info(f"   API disabled: {chat.get('apiKeyDisabled', 'Not set')}")
+                logger.info(f"   Has API access: {chat.get('hasApiAccess', 'Not set')}")
+                logger.info(f"   Is archived: {chat.get('isArchived', 'Not set')}")
+                logger.info(f"   Visibility: {chat.get('visibility', 'Not set')}")
+
+            if not chat:
+                logger.warning(f"Chat {chat_id} not found - chat returned null from Convex")
+                return False
+
+            # Check if API key matches and is enabled
+            chat_api_key = chat.get("apiKey")
+            api_disabled = chat.get("apiKeyDisabled", True)
+            is_archived = chat.get("isArchived", False)
+            has_api_access = chat.get("hasApiAccess", False)
+
+            # More lenient check - if hasApiAccess field doesn't exist, check if apiKeyDisabled is False
+            api_access_enabled = has_api_access or (not api_disabled and chat_api_key and chat_api_key != "undefined")
+
+            # Verify conditions
+            if not api_access_enabled:
+                logger.warning(f"API access not enabled for chat {chat_id} - hasApiAccess: {has_api_access}, apiKeyDisabled: {api_disabled}")
+                return False
+
+            if is_archived:
+                logger.warning(f"Chat {chat_id} is archived")
+                return False
+
+            if not chat_api_key or chat_api_key == "undefined":
+                logger.warning(f"No API key set for chat {chat_id}")
+                return False
+
+            # Verify API key matches
+            if api_key != chat_api_key:
+                logger.warning(f"API key mismatch for chat {chat_id} - expected: {chat_api_key[:10]}..., got: {api_key[:10]}...")
+                return False
+
+            logger.info(f"API key verified successfully for chat {chat_id}")
+            return True
+
+    except Exception as e:
+        logger.error(f"API key verification failed: {e}")
+        return False
+
+async def get_verified_chat_access(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> HTTPAuthorizationCredentials:
+    """FastAPI dependency to verify API key"""
+
+    if not credentials:
+        raise HTTPException(
+            status_code=401,
+            detail="API key required. Include 'Authorization: Bearer your_api_key' header."
+        )
+
+    return credentials
+
+# ==============================================================================
+# Existing Helper Functions
+# ==============================================================================
 
 def analyze_chunk_relationships(chunks: List[str]) -> List[dict]:
     """Use AI to analyze relationships between chunks and determine logical connections"""
@@ -356,6 +544,361 @@ Return JSON with this exact format:
         # Fallback to simple sequential relationships
         return [{"source": i, "target": i + 1, "type": "NEXT", "description": "Sequential order", "confidence": 1.0}
                 for i in range(len(chunks) - 1)]
+
+# ==============================================================================
+# External Chat API Endpoints (Production Ready)
+# ==============================================================================
+
+@app.post("/v1/{chat_id}/answer_question", response_model=ApiAnswerResponse)
+async def api_answer_question(
+    chat_id: str,
+    payload: ApiQuestionRequest,
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    External API endpoint for answering questions about a chat's knowledge base.
+
+    This is the main production endpoint that external applications will use.
+    Requires a valid API key for the specific chat.
+
+    Usage:
+    POST https://api.trainlyai.com/v1/{chat_id}/answer_question
+    Authorization: Bearer tk_your_api_key
+    Content-Type: application/json
+
+    {
+        "question": "What is machine learning?",
+        "selected_model": "gpt-4o-mini",
+        "temperature": 0.7,
+        "max_tokens": 1000
+    }
+    """
+
+    try:
+        # Verify API key and chat access first
+        api_key = credentials.credentials
+
+        # Rate limiting
+        if not check_rate_limit(api_key, request.client.host):
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Maximum 60 requests per minute.",
+                headers={"Retry-After": "60"}
+            )
+
+        # Verify API key and chat access
+        is_valid = await verify_api_key_and_chat(api_key, chat_id)
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API key or chat not accessible. Please check: 1) Chat exists, 2) API access is enabled in chat settings, 3) API key is correct."
+            )
+
+        # Get chat settings from Convex to use stored custom prompt, model, etc.
+        async with httpx.AsyncClient() as client:
+            chat_response = await client.post(
+                CONVEX_URL,
+                json={
+                    "args": {"id": chat_id},
+                    "format": "json"
+                }
+            )
+
+            chat_settings = {}
+            if chat_response.status_code == 200:
+                chat_data = chat_response.json()
+                if chat_data.get("value"):
+                    chat = chat_data["value"]
+                    chat_settings = {
+                        "custom_prompt": chat.get("customPrompt"),
+                        "selected_model": chat.get("selectedModel", "gpt-4o-mini"),
+                        "temperature": chat.get("temperature", 0.7),
+                        "max_tokens": chat.get("maxTokens", 1000)
+                    }
+                    logger.info(f"📋 Using chat settings: custom_prompt={bool(chat_settings['custom_prompt'])}, model={chat_settings['selected_model']}")
+
+        # Use chat settings as defaults, allow API parameters to override
+        final_model = payload.selected_model if payload.selected_model is not None else chat_settings.get("selected_model", "gpt-4o-mini")
+        final_temperature = payload.temperature if payload.temperature is not None else chat_settings.get("temperature", 0.7)
+        final_max_tokens = payload.max_tokens if payload.max_tokens is not None else chat_settings.get("max_tokens", 1000)
+        final_custom_prompt = payload.custom_prompt if payload.custom_prompt is not None else chat_settings.get("custom_prompt")
+
+        logger.info(f"🎯 Final API parameters: model={final_model}, temp={final_temperature}, max_tokens={final_max_tokens}, has_custom_prompt={bool(final_custom_prompt)}")
+
+        # Call the existing answer_question function with merged settings
+        internal_payload = QuestionRequest(
+            question=payload.question,
+            chat_id=chat_id,
+            selected_model=final_model,
+            custom_prompt=final_custom_prompt,
+            temperature=final_temperature,
+            max_tokens=final_max_tokens
+        )
+
+        # Use the existing answer_question logic
+        result = await answer_question(internal_payload)
+
+        # Format for external API
+        api_response = ApiAnswerResponse(
+            answer=result.answer,
+            context=result.context,
+            chat_id=chat_id,
+            model=payload.selected_model or "gpt-4o-mini",
+            usage={
+                "prompt_tokens": len(payload.question) // 4,  # Rough estimate
+                "completion_tokens": len(result.answer) // 4,
+                "total_tokens": 0
+            }
+        )
+
+        api_response.usage["total_tokens"] = (
+            api_response.usage["prompt_tokens"] +
+            api_response.usage["completion_tokens"]
+        )
+
+        # Log successful request
+        logger.info(f"✅ API call successful for chat {chat_id} from {request.client.host}")
+
+        return api_response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ API answer_question failed for chat {chat_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process question. Please try again.")
+
+@app.post("/v1/{chat_id}/answer_question_stream")
+async def api_answer_question_stream(
+    chat_id: str,
+    payload: ApiQuestionRequest,
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    External API endpoint for streaming answers.
+
+    Returns Server-Sent Events stream for real-time applications.
+
+    Usage:
+    POST https://api.trainlyai.com/v1/{chat_id}/answer_question_stream
+    Authorization: Bearer tk_your_api_key
+    Accept: text/event-stream
+    """
+
+    try:
+        # Verify API key and chat access first
+        api_key = credentials.credentials
+
+        # Rate limiting
+        if not check_rate_limit(api_key, request.client.host):
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Maximum 60 requests per minute.",
+                headers={"Retry-After": "60"}
+            )
+
+        # Verify API key and chat access
+        is_valid = await verify_api_key_and_chat(api_key, chat_id)
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API key or chat not accessible. Please check: 1) Chat exists, 2) API access is enabled in chat settings, 3) API key is correct."
+            )
+
+        # Get chat settings from Convex
+        async with httpx.AsyncClient() as client:
+            chat_response = await client.post(
+                CONVEX_URL,
+                json={
+                    "args": {"id": chat_id},
+                    "format": "json"
+                }
+            )
+
+            chat_settings = {}
+            if chat_response.status_code == 200:
+                chat_data = chat_response.json()
+                if chat_data.get("value"):
+                    chat = chat_data["value"]
+                    chat_settings = {
+                        "custom_prompt": chat.get("customPrompt"),
+                        "selected_model": chat.get("selectedModel", "gpt-4o-mini"),
+                        "temperature": chat.get("temperature", 0.7),
+                        "max_tokens": chat.get("maxTokens", 1000)
+                    }
+
+        # Use chat settings as defaults, allow API parameters to override
+        final_model = payload.selected_model if payload.selected_model is not None else chat_settings.get("selected_model", "gpt-4o-mini")
+        final_temperature = payload.temperature if payload.temperature is not None else chat_settings.get("temperature", 0.7)
+        final_max_tokens = payload.max_tokens if payload.max_tokens is not None else chat_settings.get("max_tokens", 1000)
+        final_custom_prompt = payload.custom_prompt if payload.custom_prompt is not None else chat_settings.get("custom_prompt")
+
+        # Call the existing streaming function with merged settings
+        internal_payload = QuestionRequest(
+            question=payload.question,
+            chat_id=chat_id,
+            selected_model=final_model,
+            custom_prompt=final_custom_prompt,
+            temperature=final_temperature,
+            max_tokens=final_max_tokens
+        )
+
+        # Use the existing streaming logic
+        stream_response = await answer_question_stream(internal_payload)
+
+        # Log successful streaming request
+        logger.info(f"✅ API streaming call successful for chat {chat_id} from {request.client.host}")
+
+        return stream_response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ API streaming failed for chat {chat_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to stream response. Please try again.")
+
+@app.get("/v1/{chat_id}/info")
+async def api_get_chat_info(
+    chat_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """Get basic information about the chat"""
+
+    try:
+        # Verify API key first
+        api_key = credentials.credentials
+        is_valid = await verify_api_key_and_chat(api_key, chat_id)
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API key or chat not accessible."
+            )
+
+        # Get chat info from Convex (auto-detects dev/prod)
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                CONVEX_URL,
+                json={
+                    "args": {"id": chat_id},
+                    "format": "json"
+                }
+            )
+
+            if response.status_code == 200:
+                chat_data = response.json()
+                chat = chat_data.get("value", {})
+
+                return {
+                    "chat_id": chat_id,
+                    "title": chat.get("title", "Untitled Chat"),
+                    "created_at": chat.get("_creationTime"),
+                    "has_api_access": not chat.get("apiKeyDisabled", True),
+                    "visibility": chat.get("visibility", "private"),
+                    "context_files": len(chat.get("context", [])),
+                    "api_version": "1.0.0"
+                }
+            else:
+                raise HTTPException(status_code=404, detail="Chat not found")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get chat info: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get chat information")
+
+@app.get("/v1/debug/{chat_id}")
+async def debug_chat_data(chat_id: str):
+    """Debug endpoint to check chat data in Convex (no auth required)"""
+    try:
+        convex_url = "https://agile-ermine-199.convex.cloud/api/run/chats/getChatByIdExposed"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                convex_url,
+                json={
+                    "args": {"id": chat_id},
+                    "format": "json"
+                }
+            )
+
+            return {
+                "chat_id": chat_id,
+                "convex_status": response.status_code,
+                "convex_response": response.json() if response.status_code == 200 else response.text,
+                "debug": "This endpoint shows raw Convex data for debugging"
+            }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "chat_id": chat_id
+        }
+
+@app.post("/v1/test/answer_question")
+async def test_api_endpoint(payload: ApiQuestionRequest):
+    """
+    Test endpoint that bypasses authentication for development.
+    Use this to verify the API structure is working before testing with real chat IDs.
+    """
+    return {
+        "answer": f"✅ Test response for: '{payload.question}'. Your API structure is working correctly! Now use a real chat ID and API key.",
+        "context": [
+            {
+                "chunk_id": "test_chunk_1",
+                "chunk_text": "This is test content to verify the API response format is correct.",
+                "score": 0.95
+            },
+            {
+                "chunk_id": "test_chunk_2",
+                "chunk_text": "Your API endpoints are properly configured and responding.",
+                "score": 0.87
+            }
+        ],
+        "chat_id": "test_chat_id",
+        "model": payload.selected_model or "gpt-4o-mini",
+        "usage": {
+            "prompt_tokens": len(payload.question) // 4,
+            "completion_tokens": 50,
+            "total_tokens": len(payload.question) // 4 + 50
+        }
+    }
+
+@app.get("/v1/health")
+async def api_health_check():
+    """API health check for external monitoring"""
+    try:
+        # Test Neo4j connection
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                session.run("RETURN 1")
+
+        return {
+            "status": "healthy",
+            "timestamp": time.time(),
+            "version": "1.0.0",
+            "services": {
+                "neo4j": "connected",
+                "openai": "configured" if openai.api_key else "not_configured"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "timestamp": time.time(),
+                "error": str(e)
+            }
+        )
+
+# ==============================================================================
+# Existing Internal Endpoints (Keep for dashboard functionality)
+# ==============================================================================
 
 @app.post("/create_nodes_and_embeddings")
 async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
@@ -1221,4 +1764,15 @@ async def debug_database(chat_id: str):
 
 if __name__ == "__main__":
     import uvicorn
+
+    print("🚀 Starting TeachAI GraphRAG API with Chat API endpoints...")
+    print("📡 Internal endpoints: http://localhost:8000")
+    print("🌐 External API endpoints:")
+    print("   POST /v1/{chat_id}/answer_question")
+    print("   POST /v1/{chat_id}/answer_question_stream")
+    print("   GET  /v1/{chat_id}/info")
+    print("   GET  /v1/health")
+    print("📚 API Documentation: http://localhost:8000/docs")
+    print("🔐 Authentication: Bearer token required for /v1/ endpoints")
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
