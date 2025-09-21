@@ -632,7 +632,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               setCurrentLayout(e.target.value as any)
             }
-            className="px-3 py-1 border rounded bg-white text-sm"
+            className="px-3 py-1 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 text-sm"
           >
             <option value="dagre">Hierarchical</option>
             <option value="cose-bilkent">Force-directed</option>
@@ -651,7 +651,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
           {(isInitializing || isLoading) && (
             <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 </div>
                 <p className="text-slate-600 dark:text-slate-400 mb-2">
@@ -659,7 +659,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                 </p>
                 <div className="w-48 bg-slate-200 dark:bg-slate-700 rounded-full h-2 mx-auto">
                   <div
-                    className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${loadingProgress}%` }}
                   ></div>
                 </div>

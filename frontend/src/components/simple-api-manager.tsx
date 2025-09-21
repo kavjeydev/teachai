@@ -116,7 +116,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 rounded-lg flex items-center justify-center">
               <Globe className="w-4 h-4 text-white" />
             </div>
             API Access
@@ -186,7 +186,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                 <Button
                   onClick={handleToggleAccess}
                   variant={apiKeyStatus.isEnabled ? "destructive" : "default"}
-                  className={apiKeyStatus.isEnabled ? "" : "bg-trainlymainlight hover:bg-trainlymainlight/90"}
+                  className={apiKeyStatus.isEnabled ? "" : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"}
                 >
                   {apiKeyStatus.isEnabled ? "Disable API" : "Enable API"}
                 </Button>
@@ -235,7 +235,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
               <Button
                 onClick={handleGenerateKey}
                 disabled={isGenerating}
-                className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white"
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white"
               >
                 {isGenerating ? (
                   <>

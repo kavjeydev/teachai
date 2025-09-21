@@ -61,15 +61,10 @@ export default function RootLayout({
       >
         <Providers>
           <AppLoadingProvider>
-            <AuthWrapper showError={false}>
-              <main>
-                <Toaster />
-
-                {/* <main> */}
-                {/* <SidebarTrigger /> */}
-                {children}
-              </main>
-            </AuthWrapper>
+            <main>
+              <Toaster />
+              {children}
+            </main>
           </AppLoadingProvider>
         </Providers>
       </body>

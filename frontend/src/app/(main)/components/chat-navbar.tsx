@@ -36,6 +36,7 @@ interface ChatNavbarProps {
   onGraphToggle?: () => void;
   isGraphOpen?: boolean;
   reasoningContextCount?: number;
+  onApiSettingsToggle?: () => void;
 }
 
 export const ChatNavbar = ({
@@ -43,6 +44,7 @@ export const ChatNavbar = ({
   onGraphToggle,
   isGraphOpen,
   reasoningContextCount,
+  onApiSettingsToggle,
 }: ChatNavbarProps) => {
   const router = useRouter();
   const currentChat = useQuery(api.chats.getChatById, {
@@ -52,25 +54,37 @@ export const ChatNavbar = ({
   const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(
     null,
   );
+  const [isRenaming, setIsRenaming] = React.useState(false);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = React.useState(false);
   const renameChat = useMutation(api.chats.rename);
 
-  const finishEditing = (chatId: Id<"chats">) => {
-    renameChat({ id: chatId, title: editingTitle });
-    setEditingChatId(null);
+  const finishEditing = async (chatId: Id<"chats">) => {
+    setIsRenaming(true);
+    try {
+      await renameChat({ id: chatId, title: editingTitle });
+      setEditingChatId(null);
+      toast.success("Chat renamed successfully!");
+    } catch (error) {
+      toast.error("Failed to rename chat");
+    } finally {
+      setIsRenaming(false);
+    }
   };
   const updateVisibility = useMutation(api.chats.changeChatVisibility);
 
-  function handleVisibilityChange(selectedValue: string): void {
-    updateVisibility({
-      id: chatId,
-      visibility: selectedValue,
-    })
-      .then(() => {
-        toast.success("Visibility updated successfully!");
-      })
-      .catch((error) => {
-        toast.error("Failed to update visibility.");
+  async function handleVisibilityChange(selectedValue: string): Promise<void> {
+    setIsUpdatingVisibility(true);
+    try {
+      await updateVisibility({
+        id: chatId,
+        visibility: selectedValue,
       });
+      toast.success("Visibility updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update visibility.");
+    } finally {
+      setIsUpdatingVisibility(false);
+    }
   }
 
   return (
@@ -118,13 +132,18 @@ export const ChatNavbar = ({
             <DialogFooter>
               <DialogClose asChild>
                 <Button
-                  className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white"
-                  onClick={() => {
-                    finishEditing(chatId);
-                    toast.success("Chat renamed successfully!");
-                  }}
+                  className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-trainlymainlight/50 disabled:cursor-not-allowed text-white"
+                  disabled={isRenaming}
+                  onClick={() => finishEditing(chatId)}
                 >
-                  Save Changes
+                  {isRenaming ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </Button>
               </DialogClose>
             </DialogFooter>
@@ -137,12 +156,12 @@ export const ChatNavbar = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push(`/dashboard/${chatId}/settings`)}
+          onClick={onApiSettingsToggle}
           className="h-8 px-3 gap-2 transition-colors text-sm hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-trainlymainlight"
           title="Chat Settings & API Access"
         >
           <Settings className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Settings</span>
+          <span className="hidden sm:inline">API Settings</span>
         </Button>
 
         {/* Graph Toggle Button */}

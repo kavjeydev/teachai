@@ -35,7 +35,8 @@ import { sanitizeHTML } from "@/app/(main)/components/sanitizeHtml";
 import { Toaster, toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
-import { GraphSidebar } from "@/components/graph-sidebar";
+import { GraphSlideout } from "@/components/graph-slideout";
+import { ApiSettingsSlideout } from "@/components/api-settings-slideout";
 import { flushSync } from "react-dom";
 import { startTransition } from "react";
 import { MessageSquare } from "lucide-react";
@@ -132,7 +133,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const [progressText, setProgressText] = useState("");
   const [showContext, setShowContext] = useState(false);
   const [fileKey, setFileKey] = useState<Date>(new Date());
-  const [isGraphSidebarOpen, setIsGraphSidebarOpen] = useState(false);
+  const [isGraphSlideoutOpen, setIsGraphSlideoutOpen] = useState(false);
+  const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
 
   // Optimistic updates for instant message display
   const [optimisticMessages, setOptimisticMessages] = useState<any[]>([]);
@@ -610,8 +612,8 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     // Close inspector
     setShowCitationInspector(false);
 
-    // Open graph sidebar
-    setIsGraphSidebarOpen(true);
+    // Open graph slideout
+    setIsGraphSlideoutOpen(true);
 
     // Set the specific node for highlighting from inspected citations
     const nodeChunk = inspectedCitations.find((node) => node.id === nodeId);
@@ -928,7 +930,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
       {/* Main Content Area - Responsive to sidebar width */}
       <div
-        className="h-screen flex flex-col"
+        className="h-screen flex flex-col relative"
         style={{
           marginLeft: `${sidebarWidth}px`,
           transition: "margin-left 300ms ease-out",
@@ -936,13 +938,14 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       >
         <ChatNavbar
           chatId={effectiveChatId}
-          onGraphToggle={() => setIsGraphSidebarOpen(!isGraphSidebarOpen)}
-          isGraphOpen={isGraphSidebarOpen}
+          onGraphToggle={() => setIsGraphSlideoutOpen(!isGraphSlideoutOpen)}
+          isGraphOpen={isGraphSlideoutOpen}
           reasoningContextCount={latestReasoningContext.length}
+          onApiSettingsToggle={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
         />
 
         {/* Chat Messages Area - Full width */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto relative">
           <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto">
             {/* Loading overlay for initial data */}
             {isLoadingInitialData && (
@@ -1034,6 +1037,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
             <div ref={scrollToBottom} />
           </div>
+
         </div>
 
         {/* Enhanced Input Area */}
@@ -1206,16 +1210,23 @@ export default function Dashboard({ params }: ChatIdPageProps) {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Graph Sidebar */}
-      <GraphSidebar
-        chatId={effectiveChatId}
-        isOpen={isGraphSidebarOpen}
-        onToggle={() => setIsGraphSidebarOpen(!isGraphSidebarOpen)}
-        reasoningContext={latestReasoningContext}
-        refreshTrigger={graphRefreshTrigger}
-      />
+        {/* API Settings Slideout - positioned to cover entire chat area (messages + input) */}
+        <ApiSettingsSlideout
+          chatId={effectiveChatId}
+          isOpen={isApiSettingsOpen}
+          onClose={() => setIsApiSettingsOpen(false)}
+        />
+
+        {/* Graph Slideout - positioned to cover entire chat area (messages + input) */}
+        <GraphSlideout
+          chatId={effectiveChatId}
+          isOpen={isGraphSlideoutOpen}
+          onClose={() => setIsGraphSlideoutOpen(false)}
+          reasoningContext={latestReasoningContext}
+          refreshTrigger={graphRefreshTrigger}
+        />
+      </div>
 
       {/* Citation Inspector */}
       <CitationInspector

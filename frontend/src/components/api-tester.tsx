@@ -96,10 +96,19 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
     }
   };
 
-  const copyResponse = () => {
+  const [isCopying, setIsCopying] = useState(false);
+
+  const copyResponse = async () => {
     if (response) {
-      navigator.clipboard.writeText(JSON.stringify(response, null, 2));
-      toast.success("Response copied to clipboard");
+      setIsCopying(true);
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(response, null, 2));
+        toast.success("Response copied to clipboard");
+      } catch (error) {
+        toast.error("Failed to copy response");
+      } finally {
+        setTimeout(() => setIsCopying(false), 500); // Brief delay for visual feedback
+      }
     }
   };
 
@@ -209,7 +218,7 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
           <Button
             onClick={testApi}
             disabled={isLoading || !apiKey.trim() || !testChatId.trim() || !question.trim()}
-            className="w-full bg-trainlymainlight hover:bg-trainlymainlight/90 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white"
           >
             {isLoading ? (
               <>
@@ -245,9 +254,24 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
                 )}
               </CardTitle>
               {response && (
-                <Button variant="outline" size="sm" onClick={copyResponse}>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy Response
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyResponse}
+                  disabled={isCopying}
+                  className="disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCopying ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy Response
+                    </>
+                  )}
                 </Button>
               )}
             </div>

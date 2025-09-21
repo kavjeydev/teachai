@@ -63,6 +63,7 @@ export function ChatSettings({
   const [maxTokens, setMaxTokens] = useState(currentMaxTokens);
   const [isUsingDefaultPrompt, setIsUsingDefaultPrompt] =
     useState(!currentPrompt);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const updateChatPrompt = useMutation(api.chats.updateChatPrompt);
   const updateChatTemperature = useMutation(api.chats.updateChatTemperature);
@@ -82,6 +83,7 @@ export function ChatSettings({
 
 
   const handlePromptSave = async () => {
+    setIsUpdating(true);
     try {
       const promptToSave = isUsingDefaultPrompt
         ? undefined
@@ -95,6 +97,8 @@ export function ChatSettings({
     } catch (error) {
       console.error("Failed to update prompt:", error);
       toast.error("Failed to update prompt");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -313,9 +317,17 @@ export function ChatSettings({
             </Button>
             <Button
               onClick={handlePromptSave}
-              className="bg-trainlymainlight hover:bg-trainlymainlight/90"
+              disabled={isUpdating}
+              className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-trainlymainlight/50 disabled:cursor-not-allowed"
             >
-              Save Settings
+              {isUpdating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                "Save Settings"
+              )}
             </Button>
           </div>
         </div>

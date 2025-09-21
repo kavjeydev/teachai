@@ -1174,70 +1174,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             <Button onClick={handleCenter} size="sm" variant="outline">
               <Target className="h-4 w-4" />
             </Button>
-            {/* Test highlighting button */}
-            <Button
-              onClick={() => {
-                console.log("🧪 Testing highlighting with first 3 nodes...");
-                if (graphData.nodes.length > 0) {
-                  const testContext = graphData.nodes
-                    .slice(0, 3)
-                    .map((node) => ({
-                      chunk_id: node.id,
-                      chunk_text: `Test chunk for ${node.id}`,
-                      score: 0.9,
-                    }));
-                  console.log("Test context:", testContext);
-
-                  // Manually trigger highlighting
-                  const testUpdatedNodes = graphData.nodes.map((node) => {
-                    const isTestNode = testContext.some(
-                      (ctx) => ctx.chunk_id === node.id,
-                    );
-                    return {
-                      id: node.id,
-                      captions: [{ value: getNodeDisplayLabel(node) }],
-                      size: isTestNode
-                        ? 200
-                        : node.labels.includes("Document")
-                          ? 80
-                          : 60,
-                      color: isTestNode
-                        ? "#00ff00"
-                        : getNodeColor(node.labels[0]), // Bright green for test
-                      properties: {
-                        ...node.properties,
-                        labels: node.labels.join(", "),
-                        backendId: node.id,
-                      },
-                    };
-                  });
-
-                  const testRelationships = graphData.relationships.map(
-                    (rel) => ({
-                      id: rel.id,
-                      from: rel.source,
-                      to: rel.target,
-                      captions: [{ value: rel.type }],
-                      properties: {
-                        ...rel.properties,
-                        type: rel.type,
-                      },
-                    }),
-                  );
-
-                  nvlInstance.current.addAndUpdateElementsInGraph(
-                    testUpdatedNodes,
-                    testRelationships,
-                  );
-                  console.log("🧪 Test highlighting applied!");
-                }
-              }}
-              size="sm"
-              variant="outline"
-              className="bg-green-100 hover:bg-green-200"
-            >
-              Test
-            </Button>
           </div>
 
           <div className="flex gap-2">
@@ -1269,7 +1205,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               handleLayout(e.target.value)
             }
-            className="px-3 py-1 border rounded bg-white text-sm"
+            className="px-3 py-1 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 text-sm"
           >
             <option value="hierarchical">Hierarchical</option>
             <option value="force">Force-directed</option>
@@ -1297,7 +1233,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           {(isInitializing || isLoading) && (
             <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 </div>
                 <p className="text-slate-600 dark:text-slate-400 mb-2">
@@ -1305,7 +1241,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                 </p>
                 <div className="w-48 bg-slate-200 dark:bg-slate-700 rounded-full h-2 mx-auto">
                   <div
-                    className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${loadingProgress}%` }}
                   ></div>
                 </div>

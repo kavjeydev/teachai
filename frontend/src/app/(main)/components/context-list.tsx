@@ -149,7 +149,7 @@ export function ContextList({
                       </div>
                     </div>
                     <Button
-                      className="x-[9999999] rounded-full dark:hover:bg-darkmaincolor hover:bg-white"
+                      className="x-[9999999] rounded-full dark:hover:bg-gray-800 hover:bg-white"
                       onClick={() => {
                         handleErase(chatId, item.fileId);
                       }}

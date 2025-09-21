@@ -341,9 +341,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   if (currentChat?.visibility === "public" && currentChat.userId !== user.id) {
     return (
       <div>
-        <div className="h-screen w-screen dark:bg-darkmaincolor bg-white font-geist">
+        <div className="h-screen w-screen dark:bg-gray-900 bg-white font-geist">
           <Toaster position="top-center" richColors />
-          <div className="h-screen w-screen flex flex-col pb-8 dark:bg-darkmaincolor bg-white">
+          <div className="h-screen w-screen flex flex-col pb-8 dark:bg-gray-900 bg-white">
             <div className="flex h-full justify-center overflow-y-auto w-full scrollbar-none">
               <div className="absolute top-4 left-72 flex items-center gap-2"></div>
               <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white">
@@ -460,7 +460,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     );
   }
   return (
-    <div className="h-screen w-screen dark:bg-darkmaincolor bg-white font-geist">
+    <div className="h-screen w-screen dark:bg-gray-900 bg-white font-geist">
       <Toaster position="top-center" richColors />
 
       <div className="h-screen w-screen flex flex-col pb-8">

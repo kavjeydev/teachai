@@ -265,7 +265,7 @@ curl https://api.trainlyai.com/v1/health`
             <BookOpen className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-            TeachAI Chat API
+            Trainly API Reference
           </h1>
           <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
             Turn your knowledge graphs into powerful APIs. Each chat becomes a secure endpoint that external applications can query.

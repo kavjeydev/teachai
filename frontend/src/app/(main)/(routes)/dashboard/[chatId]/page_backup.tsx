@@ -461,7 +461,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   if (currentChat?.visibility === "public" && currentChat.userId !== user.id) {
     return (
-      <div className="h-screen w-screen bg-darkmaincolor font-geist">
+      <div className="h-screen w-screen bg-gray-900 font-geist">
         <Toaster position="top-center" richColors />
 
         <div className="h-screen w-screen flex flex-col pb-8">
@@ -575,7 +575,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     );
   }
   return (
-    <div className="h-screen w-screen bg-darkmaincolor font-geist">
+    <div className="h-screen w-screen bg-gray-900 font-geist">
       <Toaster position="top-center" richColors />
       <SidebarProvider className="h-full w-full dark:bg-[#0E0E0E] bg-white rounded-lg">
         <SidebarTrigger />

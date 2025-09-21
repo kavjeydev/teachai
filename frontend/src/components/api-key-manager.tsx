@@ -34,6 +34,8 @@ interface ApiKeyManagerProps {
 export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showKeyValue, setShowKeyValue] = useState<Record<string, boolean>>({});
+  const [isCreating, setIsCreating] = useState(false);
+  const [revokingKeys, setRevokingKeys] = useState<Set<string>>(new Set());
 
   // Form state
   const [description, setDescription] = useState("");
@@ -49,6 +51,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
   const updateKey = useMutation(api.api_keys.updateIntegrationKey);
 
   const handleCreateKey = async () => {
+    setIsCreating(true);
     try {
       const result = await createKey({
         chatId,
@@ -71,6 +74,8 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
     } catch (error) {
       console.error("Failed to create integration key:", error);
       toast.error("Failed to create integration key");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -79,12 +84,19 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
       return;
     }
 
+    setRevokingKeys(prev => new Set([...prev, keyId]));
     try {
       await revokeKey({ integrationKeyId: keyId });
       toast.success("Integration key revoked successfully");
     } catch (error) {
       console.error("Failed to revoke key:", error);
       toast.error("Failed to revoke integration key");
+    } finally {
+      setRevokingKeys(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(keyId);
+        return newSet;
+      });
     }
   };
 
@@ -137,7 +149,8 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
 
         <Button
           onClick={() => setShowCreateForm(true)}
-          className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white"
+          disabled={isCreating}
+          className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-trainlymainlight/50 disabled:cursor-not-allowed text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create API Key
@@ -271,8 +284,19 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreateKey} className="flex-1">
-                Create Integration Key
+              <Button
+                onClick={handleCreateKey}
+                disabled={isCreating}
+                className="flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCreating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Integration Key"
+                )}
               </Button>
               <Button variant="outline" onClick={() => setShowCreateForm(false)}>
                 Cancel
@@ -352,8 +376,14 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                       variant="destructive"
                       size="sm"
                       onClick={() => handleRevokeKey(key._id)}
+                      disabled={revokingKeys.has(key._id)}
+                      className="disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {revokingKeys.has(key._id) ? (
+                        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 </div>

@@ -329,7 +329,7 @@ print(response)
       className="z-99999 font-darkerGrotesque text-2xl"
       collapsible="icon"
     >
-      <SidebarHeader className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
+      <SidebarHeader className=" bg-opacity-90 border-muted-foreground/50 dark:bg-gray-900">
         <Popover>
           <PopoverTrigger asChild>
             <SidebarMenuButton className="h-12 pt-2 transition-colors duration-200">
@@ -346,7 +346,7 @@ print(response)
           </PopoverContent>
         </Popover>
       </SidebarHeader>
-      <SidebarContent className="dark:bg-darkmaincolor bg-opacity-90 border-r-0">
+      <SidebarContent className="dark:bg-gray-900 bg-opacity-90 border-r-0">
         <SidebarGroup>
           <SidebarGroupLabel className="text-muted-foreground text-lg font-medium">
             Navigation
@@ -553,7 +553,7 @@ print(response)
                                               </div>
                                             </div>
                                             <Button
-                                              className="x-[9999999] rounded-full hover:bg-darkmaincolor"
+                                              className="x-[9999999] rounded-full hover:bg-gray-800"
                                               onClick={() => {
                                                 handleErase(
                                                   chatId,
@@ -819,7 +819,7 @@ print(response)
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className=" bg-opacity-90 border-muted-foreground/50 dark:bg-darkmaincolor">
+      <SidebarFooter className=" bg-opacity-90 border-muted-foreground/50 dark:bg-gray-900">
         {showProgress && (
           <ProgressBar value={fileProgress} label={progressText} />
         )}

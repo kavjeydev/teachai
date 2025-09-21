@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useNavigationLoading } from "@/components/app-loading-provider";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useConvexAuth } from "@/hooks/use-auth-state";
+import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
 
 interface ResizableSidebarParams {
   chatId?: Id<"chats">;
@@ -43,18 +44,15 @@ const ChatItem = React.memo(
     chat,
     isActive,
     onClick,
+    isNavigatingTo,
   }: {
     chat: any;
     isActive: boolean;
     onClick: () => void;
+    isNavigatingTo?: boolean;
   }) => {
-    const [isNavigating, setIsNavigating] = React.useState(false);
-
     const handleClick = () => {
-      setIsNavigating(true);
       onClick();
-      // Reset after navigation
-      setTimeout(() => setIsNavigating(false), 100);
     };
 
     return (
@@ -64,7 +62,7 @@ const ChatItem = React.memo(
           "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 group",
           isActive &&
             "bg-trainlymainlight/10 border border-trainlymainlight/20",
-          isNavigating && "bg-trainlymainlight/5", // Immediate feedback
+          isNavigatingTo && "bg-trainlymainlight/5", // Immediate feedback
         )}
       >
         <div
@@ -72,7 +70,7 @@ const ChatItem = React.memo(
             "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
             isActive
               ? "bg-trainlymainlight text-white"
-              : isNavigating
+              : isNavigatingTo
                 ? "bg-trainlymainlight/50 text-white"
                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
           )}
@@ -85,7 +83,7 @@ const ChatItem = React.memo(
               "text-sm font-medium truncate",
               isActive
                 ? "text-trainlymainlight"
-                : isNavigating
+                : isNavigatingTo
                   ? "text-trainlymainlight/70"
                   : "text-slate-900 dark:text-white",
             )}
@@ -97,7 +95,7 @@ const ChatItem = React.memo(
             {new Date(chat._creationTime).toLocaleDateString()}
           </div>
         </div>
-        {isNavigating && !isActive && (
+        {isNavigatingTo && !isActive && (
           <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
         )}
       </button>
@@ -113,6 +111,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const { user } = useUser();
   const { startNavigation } = useNavigationLoading();
   const { canQuery, skipQuery } = useConvexAuth();
+  const { navigateTo, isNavigating } = useSmoothNavigation();
 
   // Extract current chatId from URL for immediate highlighting
   const currentChatId = React.useMemo(() => {
@@ -386,8 +385,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             <ChatItem
                               chat={chat}
                               isActive={chat._id === currentChatId}
+                              isNavigatingTo={isNavigating(`/dashboard/${chat._id}`)}
                               onClick={() =>
-                                router.push(`/dashboard/${chat._id}`)
+                                navigateTo(`/dashboard/${chat._id}`)
                               }
                             />
                           </div>
@@ -422,8 +422,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                               <ChatItem
                                 chat={chat}
                                 isActive={chat._id === currentChatId}
+                                isNavigatingTo={isNavigating(`/dashboard/${chat._id}`)}
                                 onClick={() =>
-                                  router.push(`/dashboard/${chat._id}`)
+                                  navigateTo(`/dashboard/${chat._id}`)
                                 }
                               />
                             </div>
@@ -476,7 +477,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       </button>
 
                       <button
-                        onClick={() => router.push("/api-docs")}
+                        onClick={() => window.open("/api-docs", "_blank")}
                         className="flex flex-col items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
                       >
                         <Code className="h-4 w-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />

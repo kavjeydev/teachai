@@ -24,6 +24,7 @@ import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
 
 interface MinimalSidebarParams {
   chatId?: Id<"chats">;
@@ -32,6 +33,10 @@ interface MinimalSidebarParams {
 export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
   const router = useRouter();
   const { user } = useUser();
+  const [isCreatingChat, setIsCreatingChat] = React.useState(false);
+  const [isNavigatingToManage, setIsNavigatingToManage] = React.useState(false);
+  const [isNavigatingToHome, setIsNavigatingToHome] = React.useState(false);
+  const { navigateTo, isNavigating } = useSmoothNavigation();
 
   const chats = useQuery(api.chats.getChats);
   const addChat = useMutation(api.chats.createChat);
@@ -61,9 +66,16 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
       .slice(0, 3);
   }, [chats]);
 
-  const onCreate = () => {
-    const promise = addChat({ title: "Untitled Chat" });
-    toast.success("Created new chat!");
+  const onCreate = async () => {
+    setIsCreatingChat(true);
+    try {
+      await addChat({ title: "Untitled Chat" });
+      toast.success("Created new chat!");
+    } catch (error) {
+      toast.error("Failed to create chat");
+    } finally {
+      setIsCreatingChat(false);
+    }
   };
 
   return (
@@ -91,10 +103,20 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
         <div className="mb-6">
           <Button
             onClick={onCreate}
-            className="w-full bg-gradient-to-r from-trainlymainlight to-purple-600 hover:from-trainlymainlight/90 hover:to-purple-600/90 text-white rounded-xl shadow-lg hover:shadow-trainlymainlight/25 transition-all duration-200 flex items-center gap-2 mb-4"
+            disabled={isCreatingChat}
+            className="w-full bg-gradient-to-r from-trainlymainlight to-purple-600 hover:from-trainlymainlight/90 hover:to-purple-600/90 disabled:from-trainlymainlight/50 disabled:to-purple-600/50 disabled:cursor-not-allowed text-white rounded-xl shadow-lg hover:shadow-trainlymainlight/25 transition-all duration-200 flex items-center gap-2 mb-4"
           >
-            <PlusCircle className="h-4 w-4" />
-            New Chat
+            {isCreatingChat ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <PlusCircle className="h-4 w-4" />
+                New Chat
+              </>
+            )}
           </Button>
         </div>
 
@@ -102,18 +124,38 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
         <div className="mb-6">
           <div className="space-y-1">
             <button
-              onClick={() => router.push("/")}
-              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+              onClick={() => {
+                setIsNavigatingToHome(true);
+                router.push("/");
+                // Reset loading state after navigation
+                setTimeout(() => {
+                  setIsNavigatingToHome(false);
+                }, 1500);
+              }}
+              disabled={isNavigatingToHome}
+              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group disabled:opacity-75 disabled:cursor-not-allowed"
             >
-              <Home className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
+              {isNavigatingToHome ? (
+                <div className="w-4 h-4 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+              ) : (
+                <Home className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
+              )}
               <span className="text-sm font-medium text-slate-900 dark:text-white group-hover:text-trainlymainlight">
                 Home
               </span>
             </button>
 
             <button
-              onClick={() => router.push("/dashboard/manage")}
-              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+              onClick={() => {
+                setIsNavigatingToManage(true);
+                router.push("/dashboard/manage");
+                // Reset loading state after navigation
+                setTimeout(() => {
+                  setIsNavigatingToManage(false);
+                }, 2000);
+              }}
+              disabled={isNavigatingToManage}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group disabled:opacity-75 disabled:cursor-not-allowed"
             >
               <div className="flex items-center gap-3">
                 <LayoutGrid className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
@@ -122,10 +164,16 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-xs text-slate-400">
-                  {chats?.length || 0}
-                </span>
-                <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-trainlymainlight" />
+                {isNavigatingToManage ? (
+                  <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span className="text-xs text-slate-400">
+                      {chats?.length || 0}
+                    </span>
+                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-trainlymainlight" />
+                  </>
+                )}
               </div>
             </button>
           </div>
@@ -142,11 +190,12 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
               {pinnedChats.map((chat) => (
                 <div key={chat._id}>
                   <button
-                    onClick={() => router.push(`/dashboard/${chat._id}`)}
+                    onClick={() => navigateTo(`/dashboard/${chat._id}`)}
                     className={cn(
                       "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800",
                       chat._id === chatId &&
                         "bg-trainlymainlight/10 border border-trainlymainlight/20",
+                      isNavigating(`/dashboard/${chat._id}`) && "bg-trainlymainlight/5",
                     )}
                   >
                     <div
@@ -171,7 +220,11 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
                         {chat.title}
                       </div>
                     </div>
-                    <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                    {isNavigating(`/dashboard/${chat._id}`) && chat._id !== chatId ? (
+                      <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                    ) : (
+                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                    )}
                   </button>
                 </div>
               ))}
@@ -189,11 +242,12 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
             {recentChats.map((chat) => (
               <div key={chat._id}>
                 <button
-                  onClick={() => router.push(`/dashboard/${chat._id}`)}
+                  onClick={() => navigateTo(`/dashboard/${chat._id}`)}
                   className={cn(
                     "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800",
                     chat._id === chatId &&
                       "bg-trainlymainlight/10 border border-trainlymainlight/20",
+                    isNavigating(`/dashboard/${chat._id}`) && "bg-trainlymainlight/5",
                   )}
                 >
                   <div
@@ -222,6 +276,9 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
                       {new Date(chat._creationTime).toLocaleDateString()}
                     </div>
                   </div>
+                  {isNavigating(`/dashboard/${chat._id}`) && chat._id !== chatId && (
+                    <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                  )}
                 </button>
               </div>
             ))}

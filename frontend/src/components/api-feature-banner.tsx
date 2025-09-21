@@ -14,12 +14,12 @@ import {
 
 export function ApiFeatureBanner() {
   return (
-    <Card className="bg-gradient-to-br from-trainlymainlight/5 via-purple-50/50 to-blue-50/50 dark:from-trainlymainlight/5 dark:via-purple-900/20 dark:to-blue-900/20 border-trainlymainlight/20">
+    <Card className="bg-gradient-to-br from-blue-600/5 via-purple-50/50 to-blue-50/50 dark:from-blue-500/5 dark:via-purple-900/20 dark:to-blue-900/20 border-blue-600/20 dark:border-blue-500/20">
       <CardContent className="p-8">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
                 <Globe className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -92,8 +92,8 @@ export function ApiFeatureBanner() {
 
           <div className="flex flex-col gap-3 ml-8">
             <Button
-              onClick={() => window.location.href = "/api-docs"}
-              className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white"
+              onClick={() => window.open("/api-docs", "_blank")}
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white"
             >
               View API Docs
               <ArrowRight className="w-4 h-4 ml-2" />
