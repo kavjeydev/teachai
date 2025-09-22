@@ -280,7 +280,153 @@ def get_convex_url():
 # Get the appropriate Convex URL
 CONVEX_URL = get_convex_url()
 
-# Helper Functions
+# ==============================================================================
+# Credit Management System
+# ==============================================================================
+
+# Model multipliers for credit calculation (GPT-4o-mini as 1x baseline)
+MODEL_MULTIPLIERS = {
+    # OpenAI Models
+    'gpt-4o-mini': 1,         # Baseline: 1 credit = 1000 tokens
+    'gpt-3.5-turbo': 0.7,     # 0.7x of 4o-mini
+    'gpt-4': 18,              # 18x more expensive than 4o-mini
+    'gpt-4-turbo': 12,        # 12x more expensive than 4o-mini
+    'gpt-4o': 15,             # 15x more expensive than 4o-mini
+
+    # Anthropic Claude Models
+    'claude-3-haiku': 1,      # Similar to 4o-mini
+    'claude-3-sonnet': 8,     # 8x more expensive than 4o-mini
+    'claude-3-opus': 20,      # 20x more expensive than 4o-mini
+    'claude-3.5-sonnet': 10,  # 10x more expensive than 4o-mini
+
+    # Google Gemini Models
+    'gemini-pro': 3,          # 3x more expensive than 4o-mini
+    'gemini-ultra': 12,       # 12x more expensive than 4o-mini
+    'gemini-1.5-pro': 4,      # 4x more expensive than 4o-mini
+
+    # Open Source Models (cheaper)
+    'llama-3': 0.5,           # 0.5x cheaper than 4o-mini
+    'llama-3.1': 0.6,         # 0.6x of 4o-mini
+    'mistral-7b': 0.5,        # 0.5x cheaper than 4o-mini
+    'mixtral-8x7b': 0.8,      # 0.8x of 4o-mini
+}
+
+def calculate_credits_used(tokens: int, model: str) -> int:
+    """Calculate credits used based on tokens and model"""
+    multiplier = MODEL_MULTIPLIERS.get(model, 1)
+    return max(1, int((tokens / 1000) * multiplier))  # At least 1 credit
+
+class InsufficientCreditsError(Exception):
+    """Raised when user doesn't have enough credits"""
+    def __init__(self, required: int, available: int):
+        self.required = required
+        self.available = available
+        super().__init__(f"Insufficient credits: need {required}, have {available}")
+
+async def check_user_credits(user_id: str, required_credits: int) -> dict:
+    """Check if user has enough credits and return credit info"""
+    try:
+        # For now, return mock data - in production this would call Convex
+        # This is a simplified version for testing
+        logger.info(f"Checking credits for user {user_id}: need {required_credits}")
+
+        # Mock credit check - always return sufficient credits for testing
+        return {
+            "has_sufficient": True,
+            "remaining": 10000,
+            "total": 10000,
+            "used": 0
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking user credits: {e}")
+        return {
+            "has_sufficient": False,
+            "remaining": 0,
+            "total": 0,
+            "used": 0
+        }
+
+async def consume_user_credits(
+    user_id: str,
+    credits: int,
+    model: str,
+    tokens_used: int,
+    chat_id: str = None,
+    description: str = "AI model usage"
+) -> bool:
+    """Consume credits from user's balance"""
+    try:
+        logger.info(f"💳 Attempting to consume {credits} credits for user {user_id}: {description}")
+        logger.info(f"   Model: {model}, Tokens: {tokens_used}, Chat: {chat_id}")
+
+        # Call Convex to actually consume credits
+        convex_url = "https://colorless-finch-681.convex.cloud"  # Your dev deployment
+
+        async with httpx.AsyncClient() as client:
+            # Call the consumeCredits mutation
+            response = await client.post(
+                f"{convex_url}/api/mutation",
+                json={
+                    "path": "subscriptions:consumeCredits",
+                    "args": {
+                        "credits": credits,
+                        "model": model,
+                        "tokensUsed": tokens_used,
+                        "chatId": chat_id,
+                        "description": description
+                    },
+                    "format": "json"
+                },
+                headers={
+                    "Content-Type": "application/json",
+                }
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"✅ Successfully consumed {credits} credits via Convex")
+                return True
+            else:
+                logger.error(f"❌ Failed to consume credits via Convex: {response.status_code} - {response.text}")
+                return False
+
+    except Exception as e:
+        logger.error(f"Error consuming user credits: {e}")
+        return False
+
+async def validate_and_consume_credits(
+    user_id: str,
+    model: str,
+    estimated_tokens: int,
+    chat_id: str = None
+) -> int:
+    """
+    Validate user has enough credits and consume them.
+    Returns the number of credits consumed.
+    """
+    required_credits = calculate_credits_used(estimated_tokens, model)
+
+    # Check if user has enough credits
+    credit_info = await check_user_credits(user_id, required_credits)
+    if not credit_info["has_sufficient"]:
+        raise InsufficientCreditsError(required_credits, credit_info["remaining"])
+
+    # Consume the credits
+    success = await consume_user_credits(
+        user_id,
+        required_credits,
+        model,
+        estimated_tokens,
+        chat_id,
+        f"AI response using {model}"
+    )
+
+    if not success:
+        raise Exception("Failed to consume credits")
+
+    return required_credits
+
 def sanitize_for_neo4j(text: str) -> str:
     safe_text = text
     safe_text = safe_text.replace('\\', '\\\\')
@@ -1170,6 +1316,51 @@ async def answer_question(payload: QuestionRequest):
                     RESPOND IN MARKDOWN FORMAT WITH CITATIONS
                     """.strip()
 
+                # Estimate tokens for credit validation (rough estimate)
+                estimated_tokens = len(question) // 4 + max_tokens  # Prompt + max response
+
+                # Get user ID from chat data for proper credit consumption
+                user_id = None
+                try:
+                    # Get chat data to find the user ID
+                    async with httpx.AsyncClient() as client:
+                        chat_response = await client.post(
+                            CONVEX_URL,
+                            json={
+                                "args": {"id": chat_id},
+                                "format": "json"
+                            }
+                        )
+
+                        if chat_response.status_code == 200:
+                            chat_data = chat_response.json()
+                            if chat_data.get("value"):
+                                user_id = chat_data["value"].get("userId")
+                                logger.info(f"🔍 Found user ID for chat {chat_id}: {user_id}")
+
+                    if not user_id:
+                        logger.warning(f"Could not find user ID for chat {chat_id}, using chat_id as fallback")
+                        user_id = chat_id
+
+                except Exception as e:
+                    logger.warning(f"Failed to get user ID from chat: {e}, using chat_id as fallback")
+                    user_id = chat_id
+
+                # Validate and consume credits before making AI call
+                try:
+                    credits_consumed = await validate_and_consume_credits(
+                        user_id=user_id,
+                        model=selected_model,
+                        estimated_tokens=estimated_tokens,
+                        chat_id=chat_id
+                    )
+                    logger.info(f"💳 Consumed {credits_consumed} credits for {selected_model}")
+                except InsufficientCreditsError as e:
+                    raise HTTPException(
+                        status_code=402,  # Payment Required
+                        detail=f"Insufficient credits: need {e.required}, have {e.available}. Please upgrade your plan or purchase more credits."
+                    )
+
                 completion = openai.chat.completions.create(
                     model=selected_model,
                     messages=[
@@ -1333,6 +1524,27 @@ async def answer_question_stream(payload: QuestionRequest):
                     }
                     yield f"data: {json.dumps(context_data)}\n\n"
 
+                    # Estimate tokens for credit validation
+                    estimated_tokens = len(question) // 4 + max_tokens
+
+                    # Validate and consume credits before streaming
+                    try:
+                        credits_consumed = await validate_and_consume_credits(
+                            user_id=chat_id,  # Using chat_id as user identifier for now
+                            model=selected_model,
+                            estimated_tokens=estimated_tokens,
+                            chat_id=chat_id
+                        )
+                        logger.info(f"💳 Consumed {credits_consumed} credits for streaming {selected_model}")
+                    except InsufficientCreditsError as e:
+                        # Send error message through stream
+                        error_data = {
+                            "type": "error",
+                            "data": f"Insufficient credits: need {e.required}, have {e.available}. Please upgrade your plan or purchase more credits."
+                        }
+                        yield f"data: {json.dumps(error_data)}\n\n"
+                        return
+
                     # Then stream the AI response with selected model and settings
                     stream = openai.chat.completions.create(
                         model=selected_model,
@@ -1357,7 +1569,9 @@ async def answer_question_stream(payload: QuestionRequest):
                             await asyncio.sleep(0.01)
 
                     # Send end signal
-                    yield f"data: {json.dumps({'type': 'end'})}\n\n"
+                    end_data = {'type': 'end'}
+                    logger.info(f"🏁 Sending end signal: {end_data}")
+                    yield f"data: {json.dumps(end_data)}\n\n"
 
                 return StreamingResponse(
                     generate_stream(),

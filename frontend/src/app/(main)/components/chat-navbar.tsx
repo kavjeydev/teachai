@@ -18,7 +18,7 @@ import {
   SelectGroup,
   SelectItem,
 } from "@/components/ui/select";
-import { Lock, Globe, Edit3, Network, Settings } from "lucide-react";
+import { Lock, Globe, Edit3, Network, Settings, Crown, Sparkles } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import ThemeSwitcher from "./theme-switcher";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { getStripe } from "@/lib/stripe";
 
 interface ChatNavbarProps {
   chatId: Id<"chats">;
@@ -56,6 +57,11 @@ export const ChatNavbar = ({
   );
   const [isRenaming, setIsRenaming] = React.useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = React.useState(false);
+  const [isUpgrading, setIsUpgrading] = React.useState(false);
+
+  // Get subscription status to show/hide upgrade CTA
+  const subscription = useQuery(api.subscriptions.getUserSubscription);
+  const credits = useQuery(api.subscriptions.getUserCredits);
   const renameChat = useMutation(api.chats.rename);
 
   const finishEditing = async (chatId: Id<"chats">) => {
@@ -71,6 +77,41 @@ export const ChatNavbar = ({
     }
   };
   const updateVisibility = useMutation(api.chats.changeChatVisibility);
+
+  const handleUpgrade = async () => {
+    setIsUpgrading(true);
+
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
+          mode: 'subscription'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { sessionId, url } = await response.json();
+
+      if (url) {
+        window.location.href = url;
+      } else {
+        const stripe = await getStripe();
+        await stripe?.redirectToCheckout({ sessionId });
+      }
+    } catch (error) {
+      console.error('Checkout failed:', error);
+      toast.error('Failed to start checkout process');
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
 
   async function handleVisibilityChange(selectedValue: string): Promise<void> {
     setIsUpdatingVisibility(true);
@@ -152,13 +193,46 @@ export const ChatNavbar = ({
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Upgrade CTA - Only show for free users */}
+        {subscription?.tier === 'free' && (
+          <Button
+            onClick={handleUpgrade}
+            disabled={isUpgrading}
+            size="sm"
+            className="h-8 px-3 gap-2 bg-gradient-to-r from-trainlymainlight to-purple-600 hover:from-trainlymainlight/90 hover:to-purple-600/90 text-white shadow-lg hover:shadow-trainlymainlight/25 transition-all duration-300"
+          >
+            {isUpgrading ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="hidden sm:inline">Processing...</span>
+              </>
+            ) : (
+              <>
+                <Crown className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Upgrade Pro</span>
+                <span className="sm:hidden">Pro</span>
+              </>
+            )}
+          </Button>
+        )}
+
+        {/* Credit Counter - Show for paid users */}
+        {subscription?.tier !== 'free' && credits && (
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <Sparkles className="w-3.5 h-3.5 text-trainlymainlight" />
+            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              {(credits.remainingCredits || 0).toFixed(1)} credits
+            </span>
+          </div>
+        )}
+
         {/* Settings Button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={onApiSettingsToggle}
           className="h-8 px-3 gap-2 transition-colors text-sm hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-trainlymainlight"
-          title="Chat Settings & API Access"
+          title={subscription?.tier === 'free' ? "Chat Settings & API Access (Pro Feature)" : "Chat Settings & API Access"}
         >
           <Settings className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">API Settings</span>

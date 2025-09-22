@@ -42,7 +42,9 @@ import {
   Tag,
   Users,
   Zap,
+  CreditCard,
 } from "lucide-react";
+import { BillingDashboard } from "@/components/billing-dashboard";
 
 export default function ChatManagementPage() {
   const { user } = useUser();

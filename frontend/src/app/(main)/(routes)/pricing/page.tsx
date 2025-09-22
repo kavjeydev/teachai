@@ -3,11 +3,66 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NextUIProvider } from "@nextui-org/react";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Zap, Code, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Check, X, Zap, Code, Users, Crown, Rocket, Star, ArrowRight } from "lucide-react";
 import Navbar from "@/app/components/navbar";
+import { PRICING_TIERS, formatTokens } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(true);
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  const handleUpgrade = async (priceId: string | null, tierName: string) => {
+    if (!priceId) {
+      // Free tier - redirect to sign up
+      window.location.href = '/sign-up';
+      return;
+    }
+
+    setIsLoading(priceId);
+
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId, mode: 'subscription' }),
+      });
+
+      const { sessionId, url } = await response.json();
+
+      if (url) {
+        window.location.href = url;
+      } else {
+        const stripe = await getStripe();
+        await stripe?.redirectToCheckout({ sessionId });
+      }
+    } catch (error) {
+      console.error('Checkout failed:', error);
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const getTierIcon = (tier: string) => {
+    switch (tier) {
+      case 'pro': return <Zap className="w-6 h-6" />;
+      case 'team': return <Users className="w-6 h-6" />;
+      case 'startup': return <Rocket className="w-6 h-6" />;
+      default: return <Crown className="w-6 h-6" />;
+    }
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'pro': return 'from-blue-500 to-cyan-600';
+      case 'team': return 'from-purple-500 to-pink-600';
+      case 'startup': return 'from-orange-500 to-red-600';
+      default: return 'from-slate-500 to-slate-600';
+    }
+  };
 
   return (
     <NextUIProvider>

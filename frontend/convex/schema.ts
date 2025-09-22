@@ -98,4 +98,64 @@ export default defineSchema({
     .index("by_key_timestamp", ["integrationKeyId", "timestamp"])
     .index("by_chat_timestamp", ["chatId", "timestamp"])
     .index("by_user_timestamp", ["userId", "timestamp"]),
+
+  // Subscription and billing tables
+  subscriptions: defineTable({
+    userId: v.string(),
+    stripeCustomerId: v.string(),
+    stripeSubscriptionId: v.string(),
+    stripePriceId: v.string(),
+    tier: v.string(), // 'free', 'pro', 'team', 'startup'
+    status: v.string(), // 'active', 'canceled', 'past_due', 'trialing'
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    cancelAtPeriodEnd: v.boolean(),
+    // Plan change management
+    pendingTier: v.optional(v.string()), // Tier to change to at next billing cycle
+    pendingPriceId: v.optional(v.string()), // Price ID for pending tier
+    planChangeEffectiveDate: v.optional(v.number()), // When plan change takes effect
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_stripe_customer", ["stripeCustomerId"])
+    .index("by_stripe_subscription", ["stripeSubscriptionId"]),
+
+  user_credits: defineTable({
+    userId: v.string(),
+    totalCredits: v.number(), // Total credits available (stored as float)
+    usedCredits: v.number(), // Credits used this billing period (stored as float)
+    periodStart: v.number(), // When current billing period started
+    periodEnd: v.number(), // When current billing period ends
+    lastResetAt: v.number(), // When credits were last reset
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
+
+  credit_transactions: defineTable({
+    userId: v.string(),
+    type: v.string(), // 'subscription', 'purchase', 'usage', 'refund'
+    amount: v.number(), // Positive for additions, negative for usage (stored as float)
+    description: v.string(),
+    model: v.optional(v.string()), // Model used for usage transactions
+    tokensUsed: v.optional(v.number()), // Actual tokens consumed for usage transactions
+    stripePaymentIntentId: v.optional(v.string()), // For purchase transactions
+    relatedChatId: v.optional(v.id("chats")), // For usage transactions
+    timestamp: v.number(),
+  })
+    .index("by_user_timestamp", ["userId", "timestamp"])
+    .index("by_type", ["type"])
+    .index("by_stripe_payment", ["stripePaymentIntentId"]),
+
+  billing_events: defineTable({
+    userId: v.string(),
+    eventType: v.string(), // 'subscription_created', 'payment_succeeded', 'subscription_canceled', etc.
+    stripeEventId: v.string(),
+    data: v.any(), // Store the full Stripe event data
+    processed: v.boolean(),
+    timestamp: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_stripe_event", ["stripeEventId"])
+    .index("by_processed", ["processed"]),
 });

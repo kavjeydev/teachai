@@ -9,8 +9,11 @@ import { ResizableSidebar } from "@/app/(main)/components/resizable-sidebar";
 import { useSidebarWidth } from "@/hooks/use-sidebar-width";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Settings, Key, Zap, Shield, BookOpen, ExternalLink } from "lucide-react";
+import { ArrowLeft, Settings, Key, Zap, Shield, BookOpen, ExternalLink, Crown } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { getStripe } from "@/lib/stripe";
+import { toast } from "sonner";
 
 interface ChatSettingsPageProps {
   params: Promise<{
@@ -21,6 +24,32 @@ interface ChatSettingsPageProps {
 export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
   const router = useRouter();
   const { sidebarWidth } = useSidebarWidth();
+  const [isUpgrading, setIsUpgrading] = useState(false);
+
+  // Handle subscription upgrade
+  const handleUpgrade = async (priceId: string, planName: string) => {
+    setIsUpgrading(true);
+    try {
+      const stripe = await getStripe();
+      if (!stripe) throw new Error("Stripe failed to load");
+
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId }),
+      });
+
+      const session = await response.json();
+      if (session.error) throw new Error(session.error);
+
+      await stripe.redirectToCheckout({ sessionId: session.sessionId });
+    } catch (error) {
+      console.error("Upgrade error:", error);
+      toast.error(`Failed to upgrade to ${planName}. Please try again.`);
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
 
   // Get chatId from params
   const unwrappedParams = React.use(params);
@@ -28,6 +57,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
 
   // Get chat data
   const currentChat = useQuery(api.chats.getChatById, { id: chatId });
+  const subscription = useQuery(api.subscriptions.getUserSubscription);
 
   if (!currentChat) {
     return (
@@ -134,7 +164,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
               </Card>
             </div>
 
-            {/* Main API Manager */}
+            {/* Main API Manager - Only for paid users */}
             <Card className="border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
               <CardHeader className="border-b border-slate-200/60 dark:border-gray-700/60 pb-6">
                 <div className="flex items-center gap-3">
@@ -142,16 +172,77 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
                   <div>
                     <CardTitle className="text-2xl">API Configuration</CardTitle>
                     <CardDescription className="text-base mt-1">
-                      Manage your API keys, test endpoints, and configure access settings for this chat
+                      {subscription?.tier === 'free'
+                        ? "Turn your chat into a powerful REST API endpoint - Available with Pro subscription"
+                        : "Manage your API keys, test endpoints, and configure access settings for this chat"
+                      }
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-8">
-                <SimpleApiManager
-                  chatId={chatId}
-                  chatTitle={currentChat.title}
-                />
+                {subscription?.tier === 'free' ? (
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <Key className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                      Unlock API Access with Pro
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-lg mx-auto">
+                      Transform your intelligent chat into a production-ready REST API. Generate secure API keys,
+                      test endpoints in real-time, and integrate with your applications seamlessly.
+                    </p>
+                    <div className="space-y-4 mb-8">
+                      <div className="flex items-center justify-center gap-3 text-sm text-slate-600 dark:text-slate-400">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>Secure API key generation</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>Interactive API testing</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center gap-3 text-sm text-slate-600 dark:text-slate-400">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>Custom endpoint configuration</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>Rate limiting & monitoring</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!, "Pro")}
+                      disabled={isUpgrading}
+                      size="lg"
+                      className="bg-gradient-to-r from-trainlymainlight to-purple-600 hover:from-trainlymainlight/90 hover:to-purple-600/90 text-white shadow-lg px-8"
+                    >
+                      {isUpgrading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Crown className="w-4 h-4 mr-2" />
+                          Upgrade to Pro - $39/month
+                        </>
+                      )}
+                    </Button>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-4">
+                      ✓ 10,000 AI credits/month • ✓ Full API access • ✓ Priority support • ✓ Advanced features
+                    </div>
+                  </div>
+                ) : (
+                  <SimpleApiManager
+                    chatId={chatId}
+                    chatTitle={currentChat.title}
+                  />
+                )}
               </CardContent>
             </Card>
 

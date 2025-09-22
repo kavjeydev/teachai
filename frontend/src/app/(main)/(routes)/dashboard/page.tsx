@@ -8,27 +8,107 @@ import { useUser } from "@clerk/clerk-react";
 import { PlusCircle, Sparkles } from "lucide-react";
 import { ResizableSidebar } from "../../components/resizable-sidebar";
 import { useSidebarWidth } from "@/hooks/use-sidebar-width";
-import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "sonner";
 import { useState } from "react";
+import React from "react";
 import { useConvexAuth } from "@/hooks/use-auth-state";
+import { getStripe } from "@/lib/stripe";
+import { useSearchParams } from "next/navigation";
 
 export default function NoChat() {
   const { user } = useUser();
-  const { toast } = useToast();
   const { sidebarWidth } = useSidebarWidth();
   const [isCreating, setIsCreating] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
   const { canQuery } = useConvexAuth();
+  const searchParams = useSearchParams();
+
+  // Check if user just completed payment
+  const paymentSuccess = searchParams.get('success');
+  const userId = searchParams.get('user_id');
+  const priceId = searchParams.get('price_id');
 
   const addChat = useMutation(api.chats.createChat);
+  const manuallyActivateSubscription = useMutation(api.subscriptions.manuallyActivateSubscription);
+
+  // Map price IDs to tiers
+  const getTierFromPriceId = (priceId: string): string => {
+    const priceMap: Record<string, string> = {
+      [process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!]: 'pro',
+      [process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID!]: 'team',
+      [process.env.NEXT_PUBLIC_STRIPE_STARTUP_PRICE_ID!]: 'startup',
+    };
+    return priceMap[priceId] || 'pro';
+  };
+
+  // Handle payment success and auto-activate subscription
+  React.useEffect(() => {
+    if (paymentSuccess && userId && user?.id === userId && priceId) {
+      const activateSubscription = async () => {
+        try {
+          const tier = getTierFromPriceId(priceId);
+
+          await manuallyActivateSubscription({ tier });
+
+          toast.success(`🎉 Payment successful! Your ${tier.charAt(0).toUpperCase() + tier.slice(1)} subscription is now active!`);
+
+          // Clean up URL parameters
+          window.history.replaceState({}, '', '/dashboard');
+
+          // Refresh to show updated plan
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+
+        } catch (error) {
+          console.error("Auto-activation failed:", error);
+          toast.error("Payment successful but activation failed. Please contact support.");
+        }
+      };
+
+      activateSubscription();
+    } else if (paymentSuccess && userId && user?.id === userId) {
+      // Fallback for payments without price_id
+      toast.success("🎉 Payment successful! Please use manual activation below if your plan didn't update.");
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [paymentSuccess, userId, user?.id, priceId, manuallyActivateSubscription]);
+
+  const handleUpgrade = async (priceId: string, tierName: string) => {
+    setIsUpgrading(true);
+
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId, mode: 'subscription' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { sessionId, url } = await response.json();
+
+      if (url) {
+        window.location.href = url;
+      } else {
+        const stripe = await getStripe();
+        await stripe?.redirectToCheckout({ sessionId });
+      }
+    } catch (error) {
+      console.error('Checkout failed:', error);
+      toast.error("Checkout failed. Please try again or contact support.");
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
 
   const onCreate = async () => {
     if (!canQuery) {
-      toast({
-        title: "Please wait",
-        description: "Authentication is still loading",
-        variant: "destructive",
-      });
+      toast.error("Please wait - authentication is still loading");
       return;
     }
 
@@ -36,18 +116,12 @@ export default function NoChat() {
     try {
       const promise = addChat({ title: "untitled" });
 
-      toast({
-        title: "Created chat!",
-      });
+      toast.success("Created chat!");
 
       await promise;
     } catch (error) {
       console.error("Failed to create chat:", error);
-      toast({
-        title: "Failed to create chat",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      toast.error(`Failed to create chat: ${error instanceof Error ? error.message : "Please try again"}`);
     } finally {
       setIsCreating(false);
     }
@@ -95,23 +169,60 @@ export default function NoChat() {
               Upload documents, ask questions, and watch your knowledge graph
               come to life.
             </p>
-            <Button
-              onClick={onCreate}
-              disabled={isCreating}
-              className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-trainlymainlight/50 disabled:cursor-not-allowed text-white px-8 py-4 text-lg rounded-xl font-semibold shadow-xl hover:shadow-2xl hover:shadow-trainlymainlight/25 transition-all duration-300 flex items-center gap-3 mx-auto"
-            >
-              {isCreating ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating Chat...
-                </>
-              ) : (
-                <>
-                  <PlusCircle className="h-5 w-5" />
-                  Create Your First Chat
-                </>
-              )}
-            </Button>
+            <div className="flex flex-col gap-4 items-center">
+              <Button
+                onClick={onCreate}
+                disabled={isCreating}
+                className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-trainlymainlight/50 disabled:cursor-not-allowed text-white px-8 py-4 text-lg rounded-xl font-semibold shadow-xl hover:shadow-2xl hover:shadow-trainlymainlight/25 transition-all duration-300 flex items-center gap-3"
+              >
+                {isCreating ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creating Chat...
+                  </>
+                ) : (
+                  <>
+                    <PlusCircle className="h-5 w-5" />
+                    Create Your First Chat
+                  </>
+                )}
+              </Button>
+
+              {/* Upgrade CTA */}
+              <div className="text-center">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                  Or start with more powerful features
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!, "Pro")}
+                    disabled={isUpgrading}
+                    variant="outline"
+                    className="border-trainlymainlight text-trainlymainlight hover:bg-trainlymainlight hover:text-white transition-all duration-300"
+                  >
+                    {isUpgrading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Start Pro - $39/mo
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => window.open('/billing', '_blank')}
+                    variant="ghost"
+                    className="text-slate-600 hover:text-trainlymainlight"
+                  >
+                    View All Plans
+                  </Button>
+                </div>
+
+              </div>
+            </div>
           </div>
         </div>
       </div>

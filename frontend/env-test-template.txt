@@ -1,0 +1,28 @@
+# Trainly Development Environment Configuration
+# Copy this to .env.local and update with your actual TEST keys
+
+# ========================================
+# STRIPE TEST CONFIGURATION (for localhost development)
+# ========================================
+
+# Get these from: https://dashboard.stripe.com/test/apikeys
+STRIPE_SECRET_KEY=sk_test_YOUR_TEST_SECRET_KEY_HERE
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_TEST_PUBLISHABLE_KEY_HERE
+
+# TEST Subscription Price IDs (get from running setup-stripe-test-products.js)
+NEXT_PUBLIC_STRIPE_PRO_PRICE_ID=price_test_...
+NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID=price_test_...
+NEXT_PUBLIC_STRIPE_STARTUP_PRICE_ID=price_test_...
+
+# TEST Credit Pack Price IDs (get from running setup-stripe-test-products.js)
+NEXT_PUBLIC_STRIPE_CREDITS_5K_PRICE_ID=price_test_...
+NEXT_PUBLIC_STRIPE_CREDITS_15K_PRICE_ID=price_test_...
+NEXT_PUBLIC_STRIPE_CREDITS_50K_PRICE_ID=price_test_...
+
+# TEST Webhook Secret (optional for basic testing)
+STRIPE_WEBHOOK_SECRET=whsec_test_...
+
+# ========================================
+# YOUR EXISTING ENVIRONMENT VARIABLES
+# ========================================
+# Keep all your existing Convex, Clerk, etc. variables as they are

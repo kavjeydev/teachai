@@ -24,6 +24,7 @@ import {
   GripVertical,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -587,46 +588,65 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
           {!isCollapsed ? (
             <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.imageUrl} className="rounded-full" />
-                  <AvatarFallback className="bg-trainlymainlight text-white text-sm">
-                    {user?.firstName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
-                    {user?.firstName}
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    {chats?.length || 0} chats
-                  </div>
-                </div>
-                <SignOutButton>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </SignOutButton>
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
-              <div className="flex justify-center">
-                <div className="w-12 h-12 flex items-center justify-center">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage
-                      src={user?.imageUrl}
-                      className="rounded-full"
-                    />
+                <button
+                  onClick={() => router.push("/profile")}
+                  className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.imageUrl} className="rounded-full" />
                     <AvatarFallback className="bg-trainlymainlight text-white text-sm">
                       {user?.firstName?.[0]}
                     </AvatarFallback>
                   </Avatar>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
+                      {user?.firstName}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      View Profile & Usage
+                    </div>
+                  </div>
+                </button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push("/profile")}
+                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-trainlymainlight rounded-lg"
+                    title="Profile Settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <SignOutButton>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 rounded-lg"
+                      title="Sign Out"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </SignOutButton>
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
+              <button
+                onClick={() => router.push("/profile")}
+                className="w-full flex justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg p-2 transition-colors"
+                title="View Profile & Usage"
+              >
+                <Avatar className="h-10 w-10">
+                  <AvatarImage
+                    src={user?.imageUrl}
+                    className="rounded-full"
+                  />
+                  <AvatarFallback className="bg-trainlymainlight text-white text-sm">
+                    {user?.firstName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
             </div>
           )}
         </div>

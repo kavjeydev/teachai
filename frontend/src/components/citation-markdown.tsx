@@ -20,12 +20,13 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
   const processContent = () => {
     const parts = [];
     let lastIndex = 0;
-    // Updated regex to handle grouped citations better
-    const citationRegex = /\[\^(\d+)\]/g;
+    // Updated regex to handle multiple citation formats: [^0], [^0^], [^0^^], etc.
+    const citationRegex = /\[\^(\d+)\^*\]/g;
     let match;
 
     // Reset regex lastIndex to ensure we catch all matches
     citationRegex.lastIndex = 0;
+
 
     while ((match = citationRegex.exec(content)) !== null) {
       // Add text before citation
@@ -58,7 +59,6 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
       });
     }
 
-    console.log("Processed citation parts:", parts);
     return parts;
   };
 
@@ -73,9 +73,6 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
             part.chunkIndex !== undefined &&
             reasoningContext[part.chunkIndex];
 
-          console.log(
-            `Citation ${part.chunkIndex}: hasContext=${hasContext}, reasoningContext.length=${reasoningContext?.length || 0}`,
-          );
 
           return (
             <span
@@ -90,22 +87,9 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
                   ? (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log(
-                        "Citation clicked:",
-                        part.chunkIndex,
-                        part.content,
-                        reasoningContext[part.chunkIndex],
-                      );
                       onCitationClick?.(part.chunkIndex);
                     }
-                  : (e) => {
-                      console.log(
-                        "Citation clicked but no context:",
-                        part.chunkIndex,
-                        "Available context:",
-                        reasoningContext?.length || 0,
-                      );
-                    }
+                  : undefined
               }
               title={
                 hasContext

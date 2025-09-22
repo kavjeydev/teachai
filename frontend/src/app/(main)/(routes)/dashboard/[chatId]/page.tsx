@@ -37,7 +37,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
 import { GraphSlideout } from "@/components/graph-slideout";
 import { ApiSettingsSlideout } from "@/components/api-settings-slideout";
+import { CreditWarning } from "@/components/credit-warning";
 import { flushSync } from "react-dom";
+import { useCreditConsumption } from "@/hooks/use-credit-consumption";
 import { startTransition } from "react";
 import { MessageSquare } from "lucide-react";
 
@@ -145,15 +147,15 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   const currentChat = useQuery(
     api.chats.getChatById,
-    !canQuery || !effectiveChatId ? skipQuery : { id: effectiveChatId },
+    !canQuery || !effectiveChatId ? "skip" : { id: effectiveChatId },
   );
   const chatContent = useQuery(
     api.chats.getChatContent,
-    !canQuery || !effectiveChatId ? skipQuery : { id: effectiveChatId },
+    !canQuery || !effectiveChatId ? "skip" : { id: effectiveChatId },
   );
   const showContextData = useQuery(
     api.chats.getContext,
-    !canQuery || !effectiveChatId ? skipQuery : { id: effectiveChatId },
+    !canQuery || !effectiveChatId ? "skip" : { id: effectiveChatId },
   );
 
   // Global cache that persists across navigation (stored in window object)
@@ -257,6 +259,26 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   const writeContent = useMutation(api.chats.writeContent);
   const uploadContext = useMutation(api.chats.uploadContext);
+
+  // Use the credit consumption hook
+  const { checkSufficientCredits, consumeCreditsForResponse, calculateCreditsFromTokens } = useCreditConsumption();
+
+  // Direct credit consumption (since backend consumption isn't working)
+  const consumeCredits = useMutation(api.subscriptions.consumeCredits);
+  const consumeCreditsDirectly = async (credits: number, model: string, tokens: number) => {
+    try {
+      await consumeCredits({
+        credits: credits,
+        model: model,
+        tokensUsed: tokens,
+        chatId: effectiveChatId || undefined,
+        description: `AI chat response using ${model}`,
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
 
   const editor = useEditor(
     {
@@ -542,15 +564,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     chunkIndex: number,
     messageReasoningContext: any[],
   ) => {
-    console.log("=== CITATION CLICK DEBUG ===");
-    console.log("Chunk index:", chunkIndex);
-    console.log("Message context length:", messageReasoningContext.length);
-    console.log("Message context:", messageReasoningContext);
-    console.log("============================");
 
     if (messageReasoningContext[chunkIndex]) {
       const clickedChunk = messageReasoningContext[chunkIndex];
-      console.log("Citation clicked:", clickedChunk);
 
       // Option 1: Show only the clicked chunk (most specific)
       // const relatedChunks = [clickedChunk];
@@ -651,6 +667,16 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       max_tokens: displayChat?.maxTokens || 1000,
     };
 
+    // Check credits before making AI call
+    const model = displayChat?.selectedModel || "gpt-4o-mini";
+    const maxTokens = displayChat?.maxTokens || 1000;
+    const creditCheck = checkSufficientCredits(question, model, maxTokens);
+
+    if (!creditCheck.sufficient) {
+      throw new Error(`Insufficient credits: need ${creditCheck.needed}, have ${creditCheck.available}. Please upgrade your plan.`);
+    }
+
+
     const response = await fetch(baseUrl + "answer_question_stream", {
       method: "POST",
       headers: {
@@ -659,14 +685,17 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       body: JSON.stringify(answerQuestionPayload),
     });
 
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
 
     const reader = response.body?.getReader();
     if (!reader) {
       throw new Error("Failed to get response reader");
     }
+
 
     const decoder = new TextDecoder();
     let fullAnswer = "";
@@ -674,8 +703,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     let buffer = "";
 
     try {
+      let chunkCount = 0;
       while (true) {
         const { done, value } = await reader.read();
+        chunkCount++;
 
         if (done) {
           break;
@@ -683,6 +714,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
+
 
         // Process complete lines
         const lines = buffer.split("\n");
@@ -694,27 +726,17 @@ export default function Dashboard({ params }: ChatIdPageProps) {
               const jsonStr = line.slice(6).trim();
               if (jsonStr) {
                 const data = JSON.parse(jsonStr);
-                console.log("📡 Received streaming data:", data);
 
                 if (data.type === "context") {
                   receivedContext = data.data;
                   onContext(receivedContext);
                   setLatestReasoningContext(receivedContext);
-                  console.log(
-                    "📚 Streaming context received:",
-                    receivedContext,
-                  );
                 } else if (data.type === "content") {
                   fullAnswer += data.data;
-                  console.log("✍️ Streaming content chunk:", data.data);
                   onContent(data.data);
                 } else if (data.type === "end") {
-                  console.log("🏁 Stream ended, final answer:", fullAnswer);
                   onComplete(fullAnswer);
-                  return {
-                    answer: fullAnswer,
-                    context: receivedContext,
-                  };
+                  break; // Break out of the while loop to continue with credit processing
                 }
               }
             } catch (e) {
@@ -726,6 +748,20 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     } finally {
       reader.releaseLock();
     }
+
+
+    // Calculate precise credit usage based on actual tokens
+    const questionTokens = Math.ceil(question.length / 4);
+    const responseTokens = Math.ceil(fullAnswer.length / 4);
+    const totalTokens = questionTokens + responseTokens;
+    const creditsUsed = calculateCreditsFromTokens(totalTokens, model);
+
+
+
+    // Consume credits directly in frontend (since backend consumption isn't updating UI)
+    setTimeout(async () => {
+      await consumeCreditsDirectly(creditsUsed, model, totalTokens);
+    }, 500);
 
     return {
       answer: fullAnswer,
@@ -766,17 +802,21 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     // Store the reasoning context for graph visualization
     if (json.context) {
       setLatestReasoningContext(json.context);
-      console.log("Full API response:", json);
-      console.log("Reasoning context received:", json.context);
-      console.log("Context length:", json.context.length);
-      json.context.forEach((chunk: any, index: number) => {
-        console.log(
-          `Context[${index}]:`,
-          chunk.chunk_id,
-          chunk.chunk_text.substring(0, 100),
-        );
-      });
     }
+
+    // Calculate precise credit usage based on actual tokens
+    const currentModel = displayChat?.selectedModel || "gpt-4o-mini";
+    const questionTokens = Math.ceil(question.length / 4);
+    const responseTokens = Math.ceil(json.answer.length / 4);
+    const totalTokens = questionTokens + responseTokens;
+    const creditsUsed = calculateCreditsFromTokens(totalTokens, currentModel);
+
+
+
+    // Consume credits directly in frontend (since backend consumption isn't updating UI)
+    setTimeout(async () => {
+      await consumeCreditsDirectly(creditsUsed, currentModel, totalTokens);
+    }, 500);
 
     // Return both answer and context to avoid state timing issues
     return {
@@ -791,6 +831,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       toast.error("Message cannot be empty.");
       return;
     }
+
 
     if (isStreaming || isProcessingMessage) {
       toast.error("Please wait for the current response to complete.");
@@ -947,6 +988,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         {/* Chat Messages Area - Full width */}
         <div className="flex-1 overflow-y-auto relative">
           <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto">
+            {/* Credit Warning */}
+            <CreditWarning />
+
+
             {/* Loading overlay for initial data */}
             {isLoadingInitialData && (
               <div className="flex items-center justify-center h-full">

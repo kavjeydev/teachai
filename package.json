@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "stripe": "^18.5.0"
+  }
+}

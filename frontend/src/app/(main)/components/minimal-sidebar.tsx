@@ -19,6 +19,8 @@ import {
   ChevronRight,
   Network,
   Code,
+  CreditCard,
+  User,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -175,6 +177,26 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
                   </>
                 )}
               </div>
+            </button>
+
+            <button
+              onClick={() => router.push("/profile")}
+              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+            >
+              <User className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
+              <span className="text-sm font-medium text-slate-900 dark:text-white group-hover:text-trainlymainlight">
+                Profile & Usage
+              </span>
+            </button>
+
+            <button
+              onClick={() => router.push("/billing")}
+              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+            >
+              <CreditCard className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
+              <span className="text-sm font-medium text-slate-900 dark:text-white group-hover:text-trainlymainlight">
+                Billing & Credits
+              </span>
             </button>
           </div>
         </div>
