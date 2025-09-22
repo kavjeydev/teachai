@@ -18,10 +18,10 @@ export function useButtonLoading() {
     return loadingStates[buttonId] || false;
   }, [loadingStates]);
 
-  const withLoading = useCallback(async <T>(
+  const withLoading = useCallback(async (
     buttonId: string,
-    asyncFn: () => Promise<T>
-  ): Promise<T> => {
+    asyncFn: () => Promise<any>
+  ) => {
     setLoading(buttonId, true);
     try {
       const result = await asyncFn();

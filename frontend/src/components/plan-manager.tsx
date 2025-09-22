@@ -124,9 +124,9 @@ export function PlanManager() {
   const cancelPendingPlanChange = useMutation(api.subscriptions.cancelPendingPlanChange);
 
   const currentTier = detailedSubscription?.tier || 'free';
-  const pendingTier = detailedSubscription?.pendingTier;
+  const pendingTier = detailedSubscription && 'pendingTier' in detailedSubscription ? detailedSubscription.pendingTier : undefined;
   const hasPendingChange = detailedSubscription?.hasPendingChange || false;
-  const daysUntilChange = detailedSubscription?.daysUntilChange || 0;
+  const daysUntilChange = detailedSubscription && 'daysUntilChange' in detailedSubscription ? detailedSubscription.daysUntilChange || 0 : 0;
 
   // Handle plan changes
   const handlePlanChange = async (newTier: string, newPriceId: string, planName: string) => {
@@ -210,7 +210,7 @@ export function PlanManager() {
                 </h3>
                 <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">
                   Your plan will change from <strong>{currentTier.charAt(0).toUpperCase() + currentTier.slice(1)}</strong> to{' '}
-                  <strong>{pendingTier?.charAt(0).toUpperCase() + pendingTier?.slice(1)}</strong> in{' '}
+                  <strong>{(pendingTier || '').charAt(0).toUpperCase() + (pendingTier || '').slice(1)}</strong> in{' '}
                   <strong>{daysUntilChange} day{daysUntilChange !== 1 ? 's' : ''}</strong> at your next billing cycle.
                 </p>
                 <div className="flex gap-2">
@@ -235,7 +235,7 @@ export function PlanManager() {
                   </Button>
                   <div className="text-xs text-orange-600 dark:text-orange-300 flex items-center">
                     <Calendar className="w-3 h-3 mr-1" />
-                    Effective: {new Date(detailedSubscription?.planChangeEffectiveDate || 0).toLocaleDateString()}
+                    Effective: {new Date((detailedSubscription && 'planChangeEffectiveDate' in detailedSubscription ? detailedSubscription.planChangeEffectiveDate : 0) || 0).toLocaleDateString()}
                   </div>
                 </div>
               </div>

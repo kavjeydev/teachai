@@ -48,7 +48,7 @@ export const createIntegrationKey = mutation({
       description: args.description || "Generated from dashboard",
       isRevoked: false,
       createdAt: Date.now(),
-      lastUsed: null,
+      lastUsed: undefined,
       usageCount: 0,
     });
 

@@ -6,6 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { SimpleApiManager } from "@/components/simple-api-manager";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Settings, Key, Zap, Shield, BookOpen, ExternalLink, Crown, ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -191,9 +192,9 @@ export function ApiSettingsSlideout({ chatId, isOpen, onClose }: ApiSettingsSlid
                     </CardTitle>
                     <CardDescription>
                       {credits.usedCredits.toLocaleString()} / {credits.totalCredits.toLocaleString()} credits used this month
-                      {detailedSubscription?.hasPendingChange && (
+                      {detailedSubscription?.hasPendingChange && 'pendingTier' in detailedSubscription && 'daysUntilChange' in detailedSubscription && (
                         <div className="mt-1 text-xs text-orange-600 dark:text-orange-400">
-                          → Changing to {detailedSubscription.pendingTier?.charAt(0).toUpperCase() + detailedSubscription.pendingTier?.slice(1)} in {detailedSubscription.daysUntilChange} day{detailedSubscription.daysUntilChange !== 1 ? 's' : ''}
+                          → Changing to {(detailedSubscription.pendingTier || '').charAt(0).toUpperCase() + (detailedSubscription.pendingTier || '').slice(1)} in {detailedSubscription.daysUntilChange} day{detailedSubscription.daysUntilChange !== 1 ? 's' : ''}
                         </div>
                       )}
                     </CardDescription>

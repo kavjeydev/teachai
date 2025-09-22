@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 /**
  * TeachAI Chat API SDK
  *
@@ -154,7 +156,7 @@ export class TeachAIClient {
         console.log('TeachAI: Token refreshed successfully');
       }
 
-      return this.accessToken;
+      return this.accessToken!;
     } catch (error) {
       if (error instanceof TeachAIError) throw error;
       throw new TeachAIError('Failed to exchange token', 500, 'NETWORK_ERROR');

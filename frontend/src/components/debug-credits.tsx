@@ -45,7 +45,7 @@ export function DebugCredits() {
       toast("Test: Consumed 5 credits!");
     } catch (error) {
       console.error("Failed to consume test credits:", error);
-      toast(`Failed to consume credits: ${error.message}`);
+      toast(`Failed to consume credits: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsConsuming(false);
     }

@@ -5,7 +5,7 @@ import { api } from '../../../../../convex/_generated/api';
 import { currentUser } from '@clerk/nextjs/server';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-08-27.basil',
 });
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -92,14 +92,13 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   const credits = getCreditsForTier(tier);
 
   await convex.mutation(api.subscriptions.createSubscription, {
-    userId,
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscription.id,
     stripePriceId: priceId!,
     tier,
     status: subscription.status,
-    currentPeriodStart: subscription.current_period_start * 1000,
-    currentPeriodEnd: subscription.current_period_end * 1000,
+    currentPeriodStart: (subscription as any).current_period_start * 1000,
+    currentPeriodEnd: (subscription as any).current_period_end * 1000,
   });
 
   // Apply any pending plan changes if this is a billing cycle renewal
@@ -116,8 +115,8 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     userId,
     totalCredits: credits,
     resetUsage: true, // Always reset to 0 and give full plan credits
-    periodStart: subscription.current_period_start * 1000,
-    periodEnd: subscription.current_period_end * 1000,
+    periodStart: (subscription as any).current_period_start * 1000,
+    periodEnd: (subscription as any).current_period_end * 1000,
   });
 }
 

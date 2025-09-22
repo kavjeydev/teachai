@@ -149,7 +149,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                 <Label>API Key</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <Input
-                    value={showApiKey ? apiKeyStatus.apiKey : "tk_" + "•".repeat(32)}
+                    value={showApiKey ? (apiKeyStatus.apiKey || "") : "tk_" + "•".repeat(32)}
                     readOnly
                     className="font-mono text-sm"
                   />
