@@ -158,4 +158,47 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_stripe_event", ["stripeEventId"])
     .index("by_processed", ["processed"]),
+
+  // File upload queue system
+  file_upload_queue: defineTable({
+    userId: v.string(),
+    chatId: v.id("chats"),
+    queueId: v.string(), // Unique identifier for this upload batch
+    fileName: v.string(),
+    fileSize: v.number(),
+    fileType: v.string(),
+    filePath: v.optional(v.string()), // For folder uploads, store the relative path
+    status: v.string(), // 'pending', 'processing', 'completed', 'failed', 'cancelled'
+    progress: v.number(), // 0-100
+    error: v.optional(v.string()),
+    fileId: v.optional(v.string()), // Generated file ID after processing
+    extractedTextLength: v.optional(v.number()),
+    nodesCreated: v.optional(v.number()),
+    createdAt: v.number(),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_chat", ["chatId"])
+    .index("by_queue", ["queueId"])
+    .index("by_status", ["status"])
+    .index("by_user_status", ["userId", "status"]),
+
+  upload_queues: defineTable({
+    queueId: v.string(),
+    userId: v.string(),
+    chatId: v.id("chats"),
+    name: v.string(), // Display name for the upload batch
+    totalFiles: v.number(),
+    completedFiles: v.number(),
+    failedFiles: v.number(),
+    status: v.string(), // 'active', 'completed', 'failed', 'cancelled'
+    isFolder: v.boolean(), // True if this was a folder upload
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_chat", ["chatId"])
+    .index("by_queue_id", ["queueId"])
+    .index("by_status", ["status"]),
 });

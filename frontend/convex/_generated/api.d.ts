@@ -16,6 +16,7 @@ import type {
 import type * as api_keys from "../api_keys.js";
 import type * as chats from "../chats.js";
 import type * as convexClient from "../convexClient.js";
+import type * as fileQueue from "../fileQueue.js";
 import type * as simple_api from "../simple_api.js";
 import type * as subscriptions from "../subscriptions.js";
 
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   api_keys: typeof api_keys;
   chats: typeof chats;
   convexClient: typeof convexClient;
+  fileQueue: typeof fileQueue;
   simple_api: typeof simple_api;
   subscriptions: typeof subscriptions;
 }>;

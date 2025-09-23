@@ -93,6 +93,7 @@ export default {
         geist: ["Geist", "sans-serif"],
         darkerGrotesque: ["Darker Grotesque", "sans-serif"],
         inter: ["Inter Variable", "Inter", "sans-serif"],
+        viaoda: ["var(--font-viaoda-libre)", "serif"],
       },
       keyframes: {
         blink: {

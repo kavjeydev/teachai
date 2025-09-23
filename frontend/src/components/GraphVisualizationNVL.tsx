@@ -75,13 +75,29 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Relationship creation state
   const [creatingRelationship, setCreatingRelationship] = useState(false);
+  const creatingRelationshipRef = useRef(false);
   const [sourceNode, setSourceNode] = useState<string | null>(null);
+  const sourceNodeRef = useRef<string | null>(null);
   const [targetNode, setTargetNode] = useState<string | null>(null);
+  const targetNodeRef = useRef<string | null>(null);
   const [relationshipType, setRelationshipType] =
     useState<string>("RELATES_TO");
   const [relationshipProperties, setRelationshipProperties] = useState<
     Record<string, any>
   >({});
+  const [customRelationshipTypes, setCustomRelationshipTypes] = useState<string[]>([]);
+
+  // Load custom relationship types from localStorage on mount
+  useEffect(() => {
+    const savedTypes = localStorage.getItem('customRelationshipTypes');
+    if (savedTypes) {
+      try {
+        setCustomRelationshipTypes(JSON.parse(savedTypes));
+      } catch (error) {
+        console.warn('Failed to parse custom relationship types from localStorage:', error);
+      }
+    }
+  }, []);
 
   // Relationship editing state
   const [editingRelationship, setEditingRelationship] =
@@ -135,6 +151,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       const panInteraction = new PanInteraction(nvlInstance.current);
       const zoomInteraction = new ZoomInteraction(nvlInstance.current);
       const hoverInteraction = new HoverInteraction(nvlInstance.current);
+      const clickInteraction = new ClickInteraction(nvlInstance.current);
 
       // Configure drag interactions with optimized debouncing
       let dragTimeout: NodeJS.Timeout;
@@ -157,23 +174,54 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         }, 800); // Longer delay to ensure drag is really finished
       });
 
+      // DISABLED: ClickInteraction seems to have issues with event handling
+      // Using manual event listeners instead
+      // clickInteraction.updateCallback("onNodeClick", (node: any) => {
+      //   console.log("🖱️ Node clicked:", node);
+      //   handleNodeClick(node);
+      // });
+
+      // clickInteraction.updateCallback("onRelationshipClick", (relationship: any) => {
+      //   console.log("🖱️ Relationship clicked:", relationship);
+      //   handleRelationshipClick(relationship);
+      // });
+
+      // clickInteraction.updateCallback("onCanvasClick", () => {
+      //   console.log("🖱️ Canvas clicked - should only happen when clicking empty space");
+      //   if (creatingRelationshipRef.current) {
+      //     console.log("🚫 Canceling relationship creation due to canvas click");
+      //     cancelRelationshipCreation();
+      //   } else {
+      //     setSelectedNode(null);
+      //     setSelectedRelationship(null);
+      //     setEditingNode(null);
+      //   }
+      // });
+
       // Set up manual event listeners using NVL's getHits method
       if (nvlRef.current) {
         // Single click handler
         nvlRef.current.addEventListener("click", (evt: MouseEvent) => {
+          console.log("🖱️ Click event triggered");
           const { nvlTargets } = nvlInstance.current.getHits(evt);
 
           if (nvlTargets.nodes.length > 0) {
             // Node clicked
             const node = nvlTargets.nodes[0];
-            handleNodeClick(node.data);
+            console.log("🔍 Node clicked:", node.id);
+            handleNodeClick(node.data || node);
           } else if (nvlTargets.relationships.length > 0) {
             // Relationship clicked
             const rel = nvlTargets.relationships[0];
-            handleRelationshipClick(rel.data);
+            console.log("🔗 Relationship clicked - full object:", rel);
+            console.log("🔗 Relationship ID:", rel.id);
+            console.log("🔗 Relationship data:", rel.data);
+            handleRelationshipClick(rel.data || rel);
           } else {
             // Canvas clicked
-            if (creatingRelationship) {
+            console.log("🖱️ Canvas clicked");
+            if (creatingRelationshipRef.current) {
+              console.log("🚫 Canceling relationship creation");
               cancelRelationshipCreation();
             } else {
               setSelectedNode(null);
@@ -211,6 +259,10 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Event handler functions for NVL
   const handleNodeClick = (nodeEventData: any) => {
+    console.log("🖱️ Node clicked:", nodeEventData);
+    console.log("🔗 Creating relationship (state):", creatingRelationship);
+    console.log("🔗 Creating relationship (ref):", creatingRelationshipRef.current);
+
     // For single clicks, the node data might be in different places
     let nodeData, nodeId;
 
@@ -224,11 +276,15 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       nodeId = nodeEventData?.id;
     }
 
+    console.log("🆔 Resolved node ID:", nodeId);
+
     if (!nodeId) {
+      console.log("❌ No node ID found");
       return;
     }
 
-    if (creatingRelationship) {
+    if (creatingRelationshipRef.current) {
+      console.log("🎯 Calling handleRelationshipNodeClick with:", nodeId);
       handleRelationshipNodeClick(nodeId);
     } else {
       // Try multiple approaches to find the node data
@@ -340,18 +396,57 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   const handleRelationshipClick = (relEventData: any) => {
     if (creatingRelationship) return;
 
-    // Extract the actual relationship data
-    const relData = relEventData.data;
-    const relId = relData?.id;
+    console.log("🔗 handleRelationshipClick received:", relEventData);
+    console.log("🔗 relEventData.data:", relEventData.data);
+    console.log("🔗 relEventData.id:", relEventData.id);
+
+    // Extract the actual relationship data - try multiple approaches
+    let relData = null;
+    let relId = null;
+
+    if (relEventData.data) {
+      // Event wrapper format
+      relData = relEventData.data;
+      relId = relData?.id;
+    } else {
+      // Direct relationship data format
+      relData = relEventData;
+      relId = relEventData?.id;
+    }
+
+    console.log("🔗 Resolved relationship data:", relData);
+    console.log("🔗 Resolved relationship ID:", relId);
 
     if (!relId) {
+      console.log("❌ No relationship ID found");
       return;
     }
 
+    // Find the relationship in our graph data
     const fullRelData = graphData.relationships.find((r) => r.id === relId);
+
+    console.log("🔍 Looking for relationship with ID:", relId);
+    console.log("🔍 Available relationships:", graphData.relationships.map(r => ({ id: r.id, type: r.type })));
+    console.log("🔍 Found relationship data:", fullRelData);
 
     if (fullRelData) {
       setSelectedRelationship(fullRelData);
+      setSelectedNode(null);
+      setEditingNode(null);
+      setEditingRelationship(null);
+      toast.success("Relationship selected - view details in sidebar");
+    } else {
+      // If we can't find it in our graph data, create a temporary one from NVL data
+      console.log("⚠️ Relationship not found in graphData, creating from NVL data");
+      const tempRelData = {
+        id: relId,
+        source: relData.from,
+        target: relData.to,
+        type: relData.captions?.[0]?.value || relData.properties?.type || "UNKNOWN",
+        properties: relData.properties || {}
+      };
+      console.log("🔧 Created temporary relationship data:", tempRelData);
+      setSelectedRelationship(tempRelData);
       setSelectedNode(null);
       setEditingNode(null);
       setEditingRelationship(null);
@@ -361,8 +456,19 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Handle relationship creation node clicks
   const handleRelationshipNodeClick = (nodeId: string) => {
-    if (!sourceNode) {
+    console.log("🎯 handleRelationshipNodeClick called with:", nodeId);
+    console.log("🎯 Current sourceNode (state):", sourceNode);
+    console.log("🎯 Current sourceNode (ref):", sourceNodeRef.current);
+    console.log("🎯 Current targetNode (state):", targetNode);
+    console.log("🎯 Current targetNode (ref):", targetNodeRef.current);
+    console.log("🎯 Checking conditions:");
+    console.log("🎯   !sourceNodeRef.current =", !sourceNodeRef.current);
+    console.log("🎯   sourceNodeRef.current !== nodeId =", sourceNodeRef.current !== nodeId);
+
+    if (!sourceNodeRef.current) {
+      console.log("🔵 Setting source node to:", nodeId);
       setSourceNode(nodeId);
+      sourceNodeRef.current = nodeId;
 
       // Visual feedback - highlight source node
       if (nvlInstance.current) {
@@ -377,8 +483,10 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       toast.success(
         "Source node selected (blue). Click another node to create relationship.",
       );
-    } else if (sourceNode !== nodeId) {
+    } else if (sourceNodeRef.current !== nodeId) {
+      console.log("🟢 Setting target node to:", nodeId);
       setTargetNode(nodeId);
+      targetNodeRef.current = nodeId;
 
       // Visual feedback - highlight target node
       if (nvlInstance.current) {
@@ -394,6 +502,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         "Target node selected (green)! Configure relationship in the sidebar.",
       );
     } else {
+      console.log("❌ Cannot create relationship to the same node");
       toast.error("Cannot create relationship to the same node.");
     }
   };
@@ -642,25 +751,33 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Relationship creation functions
   const startRelationshipCreation = () => {
+    console.log("🚀 Starting relationship creation");
     setCreatingRelationship(true);
+    creatingRelationshipRef.current = true;
     setSourceNode(null);
+    sourceNodeRef.current = null;
     setTargetNode(null);
+    targetNodeRef.current = null;
     setRelationshipType("RELATES_TO");
     setRelationshipProperties({});
     toast.success("Click on a node to start creating a relationship.");
+    console.log("✅ Relationship creation state set to true");
   };
 
   const cancelRelationshipCreation = () => {
     // Reset visual feedback
-    if (nvlInstance.current && (sourceNode || targetNode)) {
+    if (nvlInstance.current && (sourceNodeRef.current || targetNodeRef.current)) {
       nvlInstance.current.deselectAll();
-      // Reload the graph to reset colors
-      loadGraphData();
+      // Don't reload the graph - just reset the colors manually
+      // The graph reload was causing the state to reset
     }
 
     setCreatingRelationship(false);
+    creatingRelationshipRef.current = false;
     setSourceNode(null);
+    sourceNodeRef.current = null;
     setTargetNode(null);
+    targetNodeRef.current = null;
     toast.info("Relationship creation cancelled.");
   };
 
@@ -685,10 +802,20 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create relationship");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP ${response.status}: Failed to create relationship`);
       }
 
       const newRelationship = await response.json();
+
+      // Add custom relationship type to the list if it's not already there
+      const defaultTypes = ["RELATES_TO", "DEPENDS_ON", "CONTAINS", "REFERENCES", "SIMILAR_TO"];
+      if (!defaultTypes.includes(relationshipType) && !customRelationshipTypes.includes(relationshipType)) {
+        const newCustomTypes = [...customRelationshipTypes, relationshipType];
+        setCustomRelationshipTypes(newCustomTypes);
+        // Save to localStorage for persistence
+        localStorage.setItem('customRelationshipTypes', JSON.stringify(newCustomTypes));
+      }
 
       // Update local state
       setGraphData((prev) => ({
@@ -718,7 +845,8 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       cancelRelationshipCreation();
     } catch (error) {
       console.error("Error creating relationship:", error);
-      toast.error("Failed to create relationship");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to create relationship: ${errorMessage}`);
     }
   };
 
@@ -919,30 +1047,32 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         },
       );
 
-      if (response.ok) {
-        // Update local state
-        setGraphData((prev) => ({
-          ...prev,
-          relationships: prev.relationships.filter(
-            (r) => r.id !== selectedRelationship.id,
-          ),
-        }));
-
-        // Update NVL visualization
-        if (nvlInstance.current) {
-          nvlInstance.current.removeRelationshipsWithIds([
-            selectedRelationship.id,
-          ]);
-        }
-
-        toast.success("Relationship deleted successfully");
-        setSelectedRelationship(null);
-      } else {
-        toast.error("Failed to delete relationship");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete relationship`);
       }
+
+      // Update local state
+      setGraphData((prev) => ({
+        ...prev,
+        relationships: prev.relationships.filter(
+          (r) => r.id !== selectedRelationship.id,
+        ),
+      }));
+
+      // Update NVL visualization
+      if (nvlInstance.current) {
+        nvlInstance.current.removeRelationshipsWithIds([
+          selectedRelationship.id,
+        ]);
+      }
+
+      toast.success("Relationship deleted successfully");
+      setSelectedRelationship(null);
     } catch (error) {
       console.error("Error deleting relationship:", error);
-      toast.error("Failed to delete relationship");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to delete relationship: ${errorMessage}`);
     }
   };
 
@@ -1147,6 +1277,11 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     }
   }, [refreshTrigger]);
 
+  // Debug state changes
+  useEffect(() => {
+    console.log("🔄 State changed - sourceNode:", sourceNode, "targetNode:", targetNode);
+  }, [sourceNode, targetNode]);
+
   return (
     <div className="flex h-full w-full">
       {/* Main Graph Area */}
@@ -1183,6 +1318,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                 size="sm"
                 variant="default"
                 className="bg-green-600 hover:bg-green-700"
+                title="Create a new relationship between two nodes"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Add Relationship
@@ -1367,25 +1503,42 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
         {/* Relationship Creation Panel */}
         {creatingRelationship && (
-          <Card className="mb-4">
-            <CardHeader>
-              <CardTitle>Create Relationship</CardTitle>
+          <Card className="mb-4 border-green-200 dark:border-green-800">
+            <CardHeader className="bg-green-50 dark:bg-green-900/20">
+              <CardTitle className="text-green-800 dark:text-green-200">Create Relationship</CardTitle>
+              <p className="text-sm text-green-600 dark:text-green-300">
+                {!sourceNode && !targetNode && "Step 1: Click on a node to select as source"}
+                {sourceNode && !targetNode && "Step 2: Click on another node to select as target"}
+                {sourceNode && targetNode && "Step 3: Configure and create the relationship"}
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Source Node</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+              <div className={`p-3 rounded border ${sourceNode ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'}`}>
+                <Label className="flex items-center gap-2">
+                  Source Node
+                  {sourceNode && <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Selected</Badge>}
+                </Label>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                   {sourceNode
-                    ? `Node ${sourceNode}`
+                    ? (() => {
+                        const node = graphData.nodes.find(n => n.id === sourceNode);
+                        return node ? `${node.properties.text?.substring(0, 30) || node.properties.id || sourceNode}...` : `Node ${sourceNode}`;
+                      })()
                     : "Click a node to select source"}
                 </p>
               </div>
 
-              <div>
-                <Label>Target Node</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+              <div className={`p-3 rounded border ${targetNode ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'}`}>
+                <Label className="flex items-center gap-2">
+                  Target Node
+                  {targetNode && <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Selected</Badge>}
+                </Label>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                   {targetNode
-                    ? `Node ${targetNode}`
+                    ? (() => {
+                        const node = graphData.nodes.find(n => n.id === targetNode);
+                        return node ? `${node.properties.text?.substring(0, 30) || node.properties.id || targetNode}...` : `Node ${targetNode}`;
+                      })()
                     : "Click another node to select target"}
                 </p>
               </div>
@@ -1400,6 +1553,30 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                       placeholder="RELATES_TO"
                       className="mt-1"
                     />
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {[
+                        ...["RELATES_TO", "DEPENDS_ON", "CONTAINS", "REFERENCES", "SIMILAR_TO"],
+                        ...customRelationshipTypes
+                      ].map(type => (
+                        <Button
+                          key={type}
+                          variant="outline"
+                          size="sm"
+                          className={`h-6 text-xs ${
+                            customRelationshipTypes.includes(type)
+                              ? 'border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-600 dark:text-purple-300 dark:hover:bg-purple-900/20'
+                              : ''
+                          }`}
+                          onClick={() => setRelationshipType(type)}
+                          title={customRelationshipTypes.includes(type) ? 'Custom relationship type' : 'Default relationship type'}
+                        >
+                          {type}
+                          {customRelationshipTypes.includes(type) && (
+                            <span className="ml-1 text-purple-500">✨</span>
+                          )}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -1611,6 +1788,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                     size="sm"
                     variant="outline"
                     onClick={handleEditRelationship}
+                    title="Edit relationship"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -1618,6 +1796,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                     size="sm"
                     variant="destructive"
                     onClick={handleDeleteRelationship}
+                    title="Delete relationship"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

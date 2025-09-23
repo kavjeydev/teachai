@@ -80,12 +80,12 @@ export function GraphSlideout({
   return (
     <div
       className={cn(
-        "absolute inset-0 bg-white dark:bg-slate-900 shadow-2xl z-50 transition-transform duration-500 ease-in-out overflow-hidden",
+        "absolute inset-0 bg-white dark:bg-slate-900 shadow-2xl z-50 transition-transform duration-500 ease-in-out overflow-hidden flex flex-col",
         isAnimating ? "translate-x-0" : "translate-x-full"
       )}
     >
       {/* Header */}
-      <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-6 py-4 z-10">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-6 py-4 z-10 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -112,7 +112,7 @@ export function GraphSlideout({
       </div>
 
       {/* Graph Content */}
-      <div className="flex-1 h-full overflow-hidden p-6">
+      <div className="flex-1 overflow-hidden p-6">
         <div className="h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg">
           <GraphVisualizationNVL
             chatId={chatId as string}

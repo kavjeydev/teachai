@@ -95,9 +95,9 @@ export default function GraphPage({ params }: GraphPageProps) {
 
         {/* Graph Container */}
         <div className="flex-1 p-6">
-          <div className="h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+          <div className="h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden flex flex-col">
             {/* Graph Header */}
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center">
                   <Network className="w-5 h-5 text-white" />
@@ -114,7 +114,7 @@ export default function GraphPage({ params }: GraphPageProps) {
             </div>
 
             {/* Graph Visualization */}
-            <div className="h-full relative">
+            <div className="flex-1 relative">
               <GraphVisualizationNVL
                 chatId={chatId as string}
                 baseUrl={baseUrl}

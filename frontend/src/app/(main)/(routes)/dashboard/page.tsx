@@ -162,7 +162,7 @@ export default function NoChat() {
             <Sparkles className="w-12 h-12 text-white" />
           </div>
           <div>
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
+            <h2 className="text-4xl font-viaoda font-normal text-slate-900 dark:text-white mb-4">
               Ready to build something amazing?
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">

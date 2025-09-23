@@ -1784,8 +1784,14 @@ async def delete_node(node_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class CreateRelationshipRequest(BaseModel):
+    source_id: str
+    target_id: str
+    relationship_type: str
+    properties: dict = {}
+
 @app.post("/create_relationship")
-async def create_relationship(source_id: str, target_id: str, relationship_type: str, properties: dict = {}):
+async def create_relationship(request: CreateRelationshipRequest):
     """Create a new relationship between two nodes"""
     try:
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
@@ -1793,14 +1799,14 @@ async def create_relationship(source_id: str, target_id: str, relationship_type:
                 # Build SET clause for relationship properties
                 set_clause = ""
                 params = {
-                    "source_id": int(source_id),
-                    "target_id": int(target_id),
-                    "rel_type": relationship_type
+                    "source_id": int(request.source_id),
+                    "target_id": int(request.target_id),
+                    "rel_type": request.relationship_type
                 }
 
-                if properties:
+                if request.properties:
                     prop_assignments = []
-                    for key, value in properties.items():
+                    for key, value in request.properties.items():
                         param_key = f"prop_{key}"
                         prop_assignments.append(f"r.{key} = ${param_key}")
                         params[param_key] = value
@@ -1809,7 +1815,7 @@ async def create_relationship(source_id: str, target_id: str, relationship_type:
                 query = f"""
                 MATCH (source), (target)
                 WHERE id(source) = $source_id AND id(target) = $target_id
-                CREATE (source)-[r:{relationship_type}]->(target)
+                CREATE (source)-[r:{request.relationship_type}]->(target)
                 {set_clause}
                 RETURN
                     id(r) as rel_id,

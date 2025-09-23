@@ -76,7 +76,7 @@ export default function PricingPage() {
                 <Zap className="w-4 h-4" />
                 <span>Developer-First Pricing</span>
               </div>
-              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6">
+              <h1 className="text-5xl md:text-6xl font-viaoda font-normal text-slate-900 dark:text-white mb-6">
                 <span className="bg-gradient-to-r from-trainlymainlight to-purple-600 bg-clip-text text-transparent">
                   Start free,
                 </span>
@@ -127,7 +127,7 @@ export default function PricingPage() {
               {/* Free Tier */}
               <div className="relative p-8 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  <h3 className="text-2xl font-viaoda font-normal text-slate-900 dark:text-white mb-2">
                     Hobby
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">
@@ -190,7 +190,7 @@ export default function PricingPage() {
                 </div>
 
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  <h3 className="text-2xl font-viaoda font-normal text-slate-900 dark:text-white mb-2">
                     Pro
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">
@@ -256,7 +256,7 @@ export default function PricingPage() {
               {/* Scale Tier */}
               <div className="relative p-8 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  <h3 className="text-2xl font-viaoda font-normal text-slate-900 dark:text-white mb-2">
                     Scale
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">

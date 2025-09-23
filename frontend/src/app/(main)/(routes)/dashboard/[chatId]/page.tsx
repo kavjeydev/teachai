@@ -19,6 +19,7 @@ import CodeBlock from "@/app/(main)/components/code-block";
 import { CitationMarkdown } from "@/components/citation-markdown";
 import { CitationInspector } from "@/components/citation-inspector";
 import { ContextList } from "@/app/(main)/components/context-list";
+import { ContextFilesSection } from "@/app/(main)/components/context-files-section";
 import { ChatSettings } from "@/components/chat-settings";
 import { ModelSelector } from "@/components/model-selector";
 import { useConvexAuth } from "@/hooks/use-auth-state";
@@ -41,7 +42,9 @@ import { CreditWarning } from "@/components/credit-warning";
 import { flushSync } from "react-dom";
 import { useCreditConsumption } from "@/hooks/use-credit-consumption";
 import { startTransition } from "react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, FolderOpen } from "lucide-react";
+import { useFileQueue } from "@/hooks/use-file-queue";
+import { FileQueueMonitor } from "@/components/file-queue-monitor";
 
 // Extend window object for global cache
 declare global {
@@ -143,6 +146,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
 
   const scrollToBottom = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const lastScrollTimeRef = useRef<number>(0);
 
   const currentChat = useQuery(
@@ -353,7 +357,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     });
   };
 
-  // File upload handler
+  // File upload handler - now uses queue system
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setFileKey(new Date());
     const files = e.target.files;
@@ -362,98 +366,27 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
-    setIsUploadingFile(true);
-    setShowProgress(true);
-    setProgress(10);
-    setProgressText("File received...");
+    // Check if this is a folder upload
+    const firstFile = files[0] as any;
+    const isFolder = Boolean(firstFile.webkitRelativePath && firstFile.webkitRelativePath.length > 0);
 
-    try {
-      for (const file of files) {
-        const uniqueFileId = uid();
-        const baseUrl =
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000/";
-
-        // Step 1: Extract text from file
-        const formData = new FormData();
-        formData.append("file", file);
-
-        setProgress(30);
-        setProgressText("Extracting text from document...");
-
-        const extractResponse = await fetch(baseUrl + "extract-pdf-text", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!extractResponse.ok) {
-          const errorData = await extractResponse.json();
-          throw new Error(
-            errorData.detail || "Failed to extract text from file.",
-          );
-        }
-
-        const extractData = await extractResponse.json();
-
-        setProgress(60);
-        setProgressText("Creating knowledge graph nodes...");
-
-        // Step 2: Create nodes and embeddings with extracted text
-        const embeddingsPayload = {
-          pdf_text: extractData.text,
-          pdf_id: uniqueFileId,
-          chat_id: effectiveChatId as string,
-          filename: file.name,
-        };
-
-        const nodesResponse = await fetch(
-          baseUrl + "create_nodes_and_embeddings",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(embeddingsPayload),
-          },
-        );
-
-        if (!nodesResponse.ok) {
-          const errorData = await nodesResponse.json();
-          throw new Error(
-            errorData.detail || "Failed to create knowledge graph nodes.",
-          );
-        }
-
-        setProgress(80);
-        setProgressText("Adding to knowledge graph...");
-
-        // Add to Convex context
-        if (effectiveChatId) {
-          await uploadContext({
-            id: effectiveChatId,
-            context: {
-              filename: file.name,
-              fileId: uniqueFileId,
-            },
-          });
-        }
-
-        setProgress(100);
-        setProgressText("Complete!");
-        toast.success(`${file.name} uploaded successfully!`);
-      }
-    } catch (error) {
-      console.error("File upload error:", error);
-      toast.error("Failed to upload file. Make sure your backend is running.");
-    } finally {
-      setIsUploadingFile(false);
-      setShowProgress(false);
-      setProgress(0);
-      setProgressText("");
+    // Extract folder name if it's a folder upload
+    let folderName;
+    if (isFolder) {
+      const pathParts = firstFile.webkitRelativePath.split('/');
+      folderName = pathParts[0];
     }
+
+    // Use the queue system for file processing
+    await fileQueue.uploadFiles(files, isFolder, folderName);
   };
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
+  };
+
+  const triggerFolderInput = () => {
+    folderInputRef.current?.click();
   };
 
   // Store the latest reasoning context for graph visualization
@@ -483,6 +416,26 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isProcessingMessage, setIsProcessingMessage] = useState(false);
+
+  // File queue system
+  const fileQueue = useFileQueue({
+    chatId: effectiveChatId!,
+    onFileProcessed: (fileId, fileName) => {
+      // Add file to context when processed
+      if (effectiveChatId) {
+        uploadContext({
+          id: effectiveChatId,
+          context: {
+            filename: fileName,
+            fileId: fileId,
+          },
+        });
+      }
+    },
+    onQueueComplete: (queueId) => {
+      toast.success("All files processed successfully!");
+    },
+  });
 
   // Single scroll function to prevent conflicts
   const scrollToBottomSafe = useCallback((force: boolean = false) => {
@@ -1024,7 +977,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 font-inter">
+                <h3 className="text-2xl font-viaoda font-normal text-slate-900 dark:text-white mb-3">
                   Start Your GraphRAG Chat
                 </h3>
                 <p className="text-base text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto leading-relaxed font-inter">
@@ -1088,43 +1041,14 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         {/* Enhanced Input Area */}
         <div className="px-12 pb-8 pt-4 max-w-5xl mx-auto w-full">
           <div className="bg-gradient-to-br from-white via-white to-slate-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl rounded-3xl overflow-hidden">
-            {/* Context Files */}
+            {/* Context Files - Elegant Collapsible Design */}
             {displayChat?.context?.length ? (
-              <div className="px-3 py-2 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 bg-trainlymainlight/10 rounded-md flex items-center justify-center">
-                    <File className="h-2.5 w-2.5 text-trainlymainlight" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                    Context Files
-                  </span>
-                </div>
-                <div className="flex gap-2 items-center overflow-x-auto">
-                  <ContextList
-                    context={displayContext}
-                    chatId={effectiveChatId}
-                    onContextDeleted={triggerGraphRefresh}
-                  />
-                  {displayChat?.context.map((context: any) => (
-                    <div
-                      key={context.fileId}
-                      className="flex gap-2 items-center rounded-lg p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex-shrink-0 hover:border-trainlymainlight/30 transition-all duration-200 shadow-sm"
-                    >
-                      <div className="h-6 w-6 bg-gradient-to-br from-trainlymainlight/20 to-purple-100 dark:from-trainlymainlight/20 dark:to-slate-700 rounded-md flex items-center justify-center">
-                        <File className="h-3 w-3 text-trainlymainlight" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium text-slate-900 dark:text-white truncate max-w-[100px]">
-                          {context.filename}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          Context
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <ContextFilesSection
+                context={displayChat.context}
+                displayContext={displayContext}
+                chatId={effectiveChatId}
+                onContextDeleted={triggerGraphRefresh}
+              />
             ) : null}
 
             {/* Enhanced Message Input */}
@@ -1152,14 +1076,24 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     </div>
                   )}
 
-                  {/* Hidden File Input */}
+                  {/* Hidden File Inputs */}
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept=".pdf,.doc,.docx,.txt"
+                    multiple
                     className="hidden"
                     onChange={handleFileChange}
                     key={fileKey.getTime()}
+                  />
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    {...({ webkitdirectory: "" } as any)}
+                    className="hidden"
+                    onChange={handleFileChange}
+                    key={`folder-${fileKey.getTime()}`}
                   />
 
                   {/* Input Actions */}
@@ -1188,21 +1122,35 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                     {/* File Upload Button */}
                     <button
                       onClick={triggerFileInput}
-                      disabled={isUploadingFile || isStreaming}
+                      disabled={fileQueue.isProcessing || isStreaming}
                       className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
-                      title={isUploadingFile ? "Uploading..." : "Upload document"}
+                      title={fileQueue.isProcessing ? "Processing files..." : "Upload documents"}
                     >
-                      {isUploadingFile ? (
+                      {fileQueue.isProcessing ? (
                         <div className="w-3.5 h-3.5 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
                       ) : (
                         <Paperclip className="w-3.5 h-3.5 text-slate-400 group-hover/upload:text-trainlymainlight transition-colors" />
                       )}
                     </button>
 
+                    {/* Folder Upload Button */}
+                    <button
+                      onClick={triggerFolderInput}
+                      disabled={fileQueue.isProcessing || isStreaming}
+                      className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/folder"
+                      title={fileQueue.isProcessing ? "Processing files..." : "Upload folder"}
+                    >
+                      {fileQueue.isProcessing ? (
+                        <div className="w-3.5 h-3.5 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                      ) : (
+                        <FolderOpen className="w-3.5 h-3.5 text-slate-400 group-hover/folder:text-trainlymainlight transition-colors" />
+                      )}
+                    </button>
+
                     {/* Send Button */}
                     <button
                       onClick={handleSendMessage}
-                      disabled={!editor?.getText()?.trim() || isStreaming || isProcessingMessage || isUploadingFile}
+                      disabled={!editor?.getText()?.trim() || isStreaming || isProcessingMessage || fileQueue.isProcessing}
                       className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-trainlymainlight/25 disabled:shadow-none"
                     >
                       {isStreaming || isProcessingMessage ? (
@@ -1231,6 +1179,16 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
+                  </div>
+                )}
+
+                {/* File Queue Monitor */}
+                {fileQueue.activeQueues.length > 0 && (
+                  <div className="mt-4">
+                    <FileQueueMonitor
+                      queues={fileQueue.activeQueues}
+                      onCancelQueue={fileQueue.cancelUploadQueue}
+                    />
                   </div>
                 )}
 
