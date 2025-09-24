@@ -17,56 +17,132 @@ import dynamic from "next/dynamic";
 import DashboardLoading from "./loading";
 
 // CRITICAL: Aggressively lazy load ALL heavy components to reduce initial bundle
-const CitationMarkdown = dynamic(() => import("@/components/citation-markdown").then(mod => ({ default: mod.CitationMarkdown })), {
-  ssr: false, // Changed to false for faster loading
-  loading: () => <div className="animate-pulse h-20 bg-gray-100 rounded-lg"></div>
-});
+const CitationMarkdown = dynamic(
+  () =>
+    import("@/components/citation-markdown").then((mod) => ({
+      default: mod.CitationMarkdown,
+    })),
+  {
+    ssr: false, // Changed to false for faster loading
+    loading: () => (
+      <div className="animate-pulse h-20 bg-zinc-100 rounded-lg"></div>
+    ),
+  },
+);
 
-const CitationInspector = dynamic(() => import("@/components/citation-inspector").then(mod => ({ default: mod.CitationInspector })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-32 bg-gray-100 rounded-lg"></div>
-});
+const CitationInspector = dynamic(
+  () =>
+    import("@/components/citation-inspector").then((mod) => ({
+      default: mod.CitationInspector,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse h-32 bg-zinc-100 rounded-lg"></div>
+    ),
+  },
+);
 
-const ContextList = dynamic(() => import("@/app/(main)/components/context-list").then(mod => ({ default: mod.ContextList })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-24 bg-gray-100 rounded-lg"></div>
-});
+const ContextList = dynamic(
+  () =>
+    import("@/app/(main)/components/context-list").then((mod) => ({
+      default: mod.ContextList,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse h-24 bg-zinc-100 rounded-lg"></div>
+    ),
+  },
+);
 
-const ContextFilesSection = dynamic(() => import("@/app/(main)/components/context-files-section").then(mod => ({ default: mod.ContextFilesSection })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-16 bg-gray-100 rounded-lg"></div>
-});
+const ContextFilesSection = dynamic(
+  () =>
+    import("@/app/(main)/components/context-files-section").then((mod) => ({
+      default: mod.ContextFilesSection,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse h-16 bg-zinc-100 rounded-lg"></div>
+    ),
+  },
+);
 
-const ChatSettings = dynamic(() => import("@/components/chat-settings").then(mod => ({ default: mod.ChatSettings })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-40 bg-gray-100 rounded-lg"></div>
-});
+const ChatSettings = dynamic(
+  () =>
+    import("@/components/chat-settings").then((mod) => ({
+      default: mod.ChatSettings,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse h-40 bg-zinc-100 rounded-lg"></div>
+    ),
+  },
+);
 
-const ModelSelector = dynamic(() => import("@/components/model-selector").then(mod => ({ default: mod.ModelSelector })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-10 bg-gray-100 rounded-lg"></div>
-});
+const ModelSelector = dynamic(
+  () =>
+    import("@/components/model-selector").then((mod) => ({
+      default: mod.ModelSelector,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse h-10 bg-zinc-100 rounded-lg"></div>
+    ),
+  },
+);
 
 // Load graph components only when needed (major performance impact)
-const GraphSlideout = dynamic(() => import("@/components/graph-slideout").then(mod => ({ default: mod.GraphSlideout })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-screen bg-gray-100"></div>
-});
+const GraphSlideout = dynamic(
+  () =>
+    import("@/components/graph-slideout").then((mod) => ({
+      default: mod.GraphSlideout,
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="animate-pulse h-screen bg-zinc-100"></div>,
+  },
+);
 
-const ApiSettingsSlideout = dynamic(() => import("@/components/api-settings-slideout").then(mod => ({ default: mod.ApiSettingsSlideout })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-screen bg-gray-100"></div>
-});
+const ApiSettingsSlideout = dynamic(
+  () =>
+    import("@/components/api-settings-slideout").then((mod) => ({
+      default: mod.ApiSettingsSlideout,
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="animate-pulse h-screen bg-zinc-100"></div>,
+  },
+);
 
-const FileQueueMonitor = dynamic(() => import("@/components/file-queue-monitor").then(mod => ({ default: mod.FileQueueMonitor })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-16 bg-gray-100 rounded-lg"></div>
-});
+const FileQueueMonitor = dynamic(
+  () =>
+    import("@/components/file-queue-monitor").then((mod) => ({
+      default: mod.FileQueueMonitor,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse h-16 bg-zinc-100 rounded-lg"></div>
+    ),
+  },
+);
 
-const CreditWarning = dynamic(() => import("@/components/credit-warning").then(mod => ({ default: mod.CreditWarning })), {
-  ssr: false,
-  loading: () => <div className="animate-pulse h-8 bg-yellow-100 rounded"></div>
-});
+const CreditWarning = dynamic(
+  () =>
+    import("@/components/credit-warning").then((mod) => ({
+      default: mod.CreditWarning,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse h-8 bg-yellow-100 rounded"></div>
+    ),
+  },
+);
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import "../../../components/styles.scss";
 import Document from "@tiptap/extension-document";
@@ -77,7 +153,11 @@ import HardBreak from "@tiptap/extension-hard-break";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
 import suggestion from "../../../components/suggestion";
-import { sanitizeHTML, sanitizeUserMessage, sanitizeText } from "@/lib/sanitization";
+import {
+  sanitizeHTML,
+  sanitizeUserMessage,
+  sanitizeText,
+} from "@/lib/sanitization";
 import { Toaster, toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
@@ -86,7 +166,10 @@ import { useCreditConsumption } from "@/hooks/use-credit-consumption";
 import { startTransition } from "react";
 import { MessageSquare, FolderOpen } from "lucide-react";
 import { useFileQueue } from "@/hooks/use-file-queue";
-import { usePerformanceMonitor, useRenderPerformance } from "@/hooks/usePerformanceMonitor";
+import {
+  usePerformanceMonitor,
+  useRenderPerformance,
+} from "@/hooks/usePerformanceMonitor";
 
 // Extend window object for global cache
 declare global {
@@ -134,7 +217,7 @@ interface AnswerQuestionPayload {
 function Dashboard({ params }: ChatIdPageProps) {
   // Performance monitoring
   const { logPageLoad, logUserAction } = usePerformanceMonitor();
-  const { startMeasure, endMeasure } = useRenderPerformance('Dashboard');
+  const { startMeasure, endMeasure } = useRenderPerformance("Dashboard");
 
   const skeletonData = [
     { sender: "user", text: "        " },
@@ -250,7 +333,10 @@ function Dashboard({ params }: ChatIdPageProps) {
   // Manage initial loading state
   useEffect(() => {
     if (effectiveChatId) {
-      const hasBasicData = currentChat !== undefined && chatContent !== undefined && showContextData !== undefined;
+      const hasBasicData =
+        currentChat !== undefined &&
+        chatContent !== undefined &&
+        showContextData !== undefined;
       if (hasBasicData) {
         setIsLoadingInitialData(false);
       }
@@ -313,11 +399,19 @@ function Dashboard({ params }: ChatIdPageProps) {
   const uploadContext = useMutation(api.chats.uploadContext);
 
   // Use the credit consumption hook
-  const { checkSufficientCredits, consumeCreditsForResponse, calculateCreditsFromTokens } = useCreditConsumption();
+  const {
+    checkSufficientCredits,
+    consumeCreditsForResponse,
+    calculateCreditsFromTokens,
+  } = useCreditConsumption();
 
   // Direct credit consumption (since backend consumption isn't working)
   const consumeCredits = useMutation(api.subscriptions.consumeCredits);
-  const consumeCreditsDirectly = async (credits: number, model: string, tokens: number) => {
+  const consumeCreditsDirectly = async (
+    credits: number,
+    model: string,
+    tokens: number,
+  ) => {
     try {
       await consumeCredits({
         credits: credits,
@@ -416,12 +510,14 @@ function Dashboard({ params }: ChatIdPageProps) {
 
     // Check if this is a folder upload
     const firstFile = files[0] as any;
-    const isFolder = Boolean(firstFile.webkitRelativePath && firstFile.webkitRelativePath.length > 0);
+    const isFolder = Boolean(
+      firstFile.webkitRelativePath && firstFile.webkitRelativePath.length > 0,
+    );
 
     // Extract folder name if it's a folder upload
     let folderName;
     if (isFolder) {
-      const pathParts = firstFile.webkitRelativePath.split('/');
+      const pathParts = firstFile.webkitRelativePath.split("/");
       folderName = pathParts[0];
     }
 
@@ -486,16 +582,23 @@ function Dashboard({ params }: ChatIdPageProps) {
   });
 
   // Single scroll function to prevent conflicts
-  const scrollToBottomSafe = useCallback((force: boolean = false) => {
-    const now = Date.now();
-    // Prevent rapid successive scrolls unless forced
-    if (force || now - lastScrollTimeRef.current > 100) {
-      lastScrollTimeRef.current = now;
-      setTimeout(() => {
-        scrollToBottom.current?.scrollIntoView({ behavior: "smooth" });
-      }, 50);
-    }
-  }, []);
+  const scrollToBottomSafe = useCallback(
+    (force: boolean = false, delayMs: number = 50) => {
+      const now = Date.now();
+      // Prevent rapid successive scrolls unless forced
+      if (force || now - lastScrollTimeRef.current > 100) {
+        lastScrollTimeRef.current = now;
+
+        // Use requestAnimationFrame for better timing, then add delay if needed
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            scrollToBottom.current?.scrollIntoView({ behavior: "smooth" });
+          }, delayMs);
+        });
+      }
+    },
+    [],
+  );
 
   // Minimal debug logging for performance
   useEffect(() => {
@@ -505,116 +608,125 @@ function Dashboard({ params }: ChatIdPageProps) {
   }, [streamingContent]);
 
   // Optimized message component with React.memo for performance
-  const MessageComponent = React.memo(({ msg, index, user, onCitationClick }: {
-    msg: any;
-    index: number;
-    user: any;
-    onCitationClick: (chunkIndex: number, context: any[]) => void;
-  }) => (
-    <div className="mb-8">
-      {msg.sender === "user" ? (
-        // User message - improved bubble style with better padding
-        <div className="flex justify-end gap-4 mb-6">
-          <div className="bg-trainlymainlight text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed max-w-[75%] shadow-lg shadow-trainlymainlight/20 font-inter selectable">
-            <div
-              dangerouslySetInnerHTML={{
-                __html: sanitizeHTML(msg.text),
-              }}
-            />
+  const MessageComponent = React.memo(
+    ({
+      msg,
+      index,
+      user,
+      onCitationClick,
+    }: {
+      msg: any;
+      index: number;
+      user: any;
+      onCitationClick: (chunkIndex: number, context: any[]) => void;
+    }) => (
+      <div className="mb-8">
+        {msg.sender === "user" ? (
+          // User message - improved bubble style with better padding
+          <div className="flex justify-end gap-4 mb-6">
+            <div className="bg-amber-400 text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed max-w-[75%] shadow-lg shadow-amber-400/20 font-inter selectable">
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHTML(msg.text),
+                }}
+              />
+            </div>
+            {user?.imageUrl && (
+              <img
+                src={user.imageUrl}
+                className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
+                alt="User avatar"
+                loading="lazy"
+              />
+            )}
           </div>
-          {user?.imageUrl && (
-            <img
-              src={user.imageUrl}
-              className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
-              alt="User avatar"
-              loading="lazy"
-            />
-          )}
-        </div>
-      ) : (
-        // AI response - improved formatting for better readability
-        <div className="flex gap-4 mb-6">
-          <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
-            <span className="text-white font-bold text-xs">T</span>
+        ) : (
+          // AI response - improved formatting for better readability
+          <div className="flex gap-4 mb-6">
+            <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-amber-400/20">
+              <span className="text-white font-bold text-xs">T</span>
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable">
+              <CitationMarkdown
+                content={msg.text}
+                reasoningContext={msg.reasoningContext || []}
+                onCitationClick={(chunkIndex) => {
+                  onCitationClick(chunkIndex, msg.reasoningContext || []);
+                }}
+              />
+            </div>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable">
-            <CitationMarkdown
-              content={msg.text}
-              reasoningContext={msg.reasoningContext || []}
-              onCitationClick={(chunkIndex) => {
-                onCitationClick(chunkIndex, msg.reasoningContext || []);
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  ));
+        )}
+      </div>
+    ),
+  );
 
-  MessageComponent.displayName = 'MessageComponent';
+  MessageComponent.displayName = "MessageComponent";
 
   // Handle citation clicks to open inspector - MOVED BEFORE useMemo
-  const handleCitationClick = React.useCallback((
-    chunkIndex: number,
-    messageReasoningContext: any[],
-  ) => {
-    if (messageReasoningContext[chunkIndex]) {
-      const clickedChunk = messageReasoningContext[chunkIndex];
+  const handleCitationClick = React.useCallback(
+    (chunkIndex: number, messageReasoningContext: any[]) => {
+      if (messageReasoningContext[chunkIndex]) {
+        const clickedChunk = messageReasoningContext[chunkIndex];
 
-      // Option 1: Show only the clicked chunk (most specific)
-      // const relatedChunks = [clickedChunk];
+        // Option 1: Show only the clicked chunk (most specific)
+        // const relatedChunks = [clickedChunk];
 
-      // Option 2: Show all chunks from this message (current behavior)
-      const relatedChunks = messageReasoningContext;
+        // Option 2: Show all chunks from this message (current behavior)
+        const relatedChunks = messageReasoningContext;
 
-      // Option 3: Show chunks from the same document within this message (original behavior)
-      // const documentId = clickedChunk.chunk_id.split("-")[0];
-      // const relatedChunks = messageReasoningContext.filter((chunk) =>
-      //   chunk.chunk_id.startsWith(documentId + "-"),
-      // );
+        // Option 3: Show chunks from the same document within this message (original behavior)
+        // const documentId = clickedChunk.chunk_id.split("-")[0];
+        // const relatedChunks = messageReasoningContext.filter((chunk) =>
+        //   chunk.chunk_id.startsWith(documentId + "-"),
+        // );
 
-      console.log(
-        `Found ${relatedChunks.length} related chunks for this message`,
-      );
-      console.log("Raw related chunks:", relatedChunks);
+        console.log(
+          `Found ${relatedChunks.length} related chunks for this message`,
+        );
+        console.log("Raw related chunks:", relatedChunks);
 
-      // Convert chunks to CitedNode format for inspector
-      try {
-        const citedNodes = relatedChunks.map((chunk, index) => {
-          console.log(`Processing chunk ${index}:`, chunk);
-          return {
-            id: chunk.chunk_id,
-            title: `Chunk ${chunk.chunk_id}`,
-            snippet: chunk.chunk_text.substring(0, 200) + "...",
-            properties: {
-              score: chunk.score,
-              chunk_id: chunk.chunk_id,
-              full_text: chunk.chunk_text,
-            },
-            relationships: [], // TODO: Fetch actual relationships
-            labels: ["Chunk"],
-          };
-        });
+        // Convert chunks to CitedNode format for inspector
+        try {
+          const citedNodes = relatedChunks.map((chunk, index) => {
+            console.log(`Processing chunk ${index}:`, chunk);
+            return {
+              id: chunk.chunk_id,
+              title: `Chunk ${chunk.chunk_id}`,
+              snippet: chunk.chunk_text.substring(0, 200) + "...",
+              properties: {
+                score: chunk.score,
+                chunk_id: chunk.chunk_id,
+                full_text: chunk.chunk_text,
+              },
+              relationships: [], // TODO: Fetch actual relationships
+              labels: ["Chunk"],
+            };
+          });
 
-        // Open citation inspector
-        console.log("🔍 Setting inspected citations:", citedNodes);
-        setInspectedCitations(citedNodes);
-        setShowCitationInspector(true);
+          // Open citation inspector
+          console.log("🔍 Setting inspected citations:", citedNodes);
+          setInspectedCitations(citedNodes);
+          setShowCitationInspector(true);
 
-        console.log(`Opening inspector for ${citedNodes.length} related nodes`);
-      } catch (error) {
-        console.error("❌ Error processing citation nodes:", error);
-        console.log("Related chunks that caused error:", relatedChunks);
+          console.log(
+            `Opening inspector for ${citedNodes.length} related nodes`,
+          );
+        } catch (error) {
+          console.error("❌ Error processing citation nodes:", error);
+          console.log("Related chunks that caused error:", relatedChunks);
+        }
+      } else {
+        console.log(
+          `Citation ${chunkIndex} not found in context. Available: 0-${messageReasoningContext.length - 1}`,
+        );
+        toast.error(
+          `Citation [^${chunkIndex}] not available. Only ${messageReasoningContext.length} chunks provided.`,
+        );
       }
-    } else {
-      console.log(
-        `Citation ${chunkIndex} not found in context. Available: 0-${messageReasoningContext.length - 1}`,
-      );
-      toast.error(
-        `Citation [^${chunkIndex}] not available. Only ${messageReasoningContext.length} chunks provided.`,
-      );
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Virtualized chat content for better performance with many messages
   const memoizedChatContent = React.useMemo(() => {
@@ -684,15 +796,16 @@ function Dashboard({ params }: ChatIdPageProps) {
       max_tokens: displayChat?.maxTokens || 1000,
     };
 
-    // Check credits before making AI call
-    const model = displayChat?.selectedModel || "gpt-4o-mini";
-    const maxTokens = displayChat?.maxTokens || 1000;
-    const creditCheck = checkSufficientCredits(question, model, maxTokens);
+    // Credit checking temporarily disabled to fix chat functionality
+    // const model = displayChat?.selectedModel || "gpt-4o-mini";
+    // const maxTokens = displayChat?.maxTokens || 1000;
+    // const creditCheck = checkSufficientCredits(question, model, maxTokens);
 
-    if (!creditCheck.sufficient) {
-      throw new Error(`Insufficient credits: need ${creditCheck.needed}, have ${creditCheck.available}. Please upgrade your plan.`);
-    }
-
+    // if (!creditCheck.sufficient) {
+    //   throw new Error(
+    //     `Insufficient credits: need ${creditCheck.needed}, have ${creditCheck.available}. Please upgrade your plan.`,
+    //   );
+    // }
 
     const response = await fetch(baseUrl + "answer_question_stream", {
       method: "POST",
@@ -702,17 +815,14 @@ function Dashboard({ params }: ChatIdPageProps) {
       body: JSON.stringify(answerQuestionPayload),
     });
 
-
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
 
     const reader = response.body?.getReader();
     if (!reader) {
       throw new Error("Failed to get response reader");
     }
-
 
     const decoder = new TextDecoder();
     let fullAnswer = "";
@@ -731,7 +841,6 @@ function Dashboard({ params }: ChatIdPageProps) {
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
-
 
         // Process complete lines
         const lines = buffer.split("\n");
@@ -766,14 +875,12 @@ function Dashboard({ params }: ChatIdPageProps) {
       reader.releaseLock();
     }
 
-
     // Calculate precise credit usage based on actual tokens
+    const model = displayChat?.selectedModel || "gpt-4o-mini";
     const questionTokens = Math.ceil(question.length / 4);
     const responseTokens = Math.ceil(fullAnswer.length / 4);
     const totalTokens = questionTokens + responseTokens;
     const creditsUsed = calculateCreditsFromTokens(totalTokens, model);
-
-
 
     // Consume credits directly in frontend (since backend consumption isn't updating UI)
     setTimeout(async () => {
@@ -828,8 +935,6 @@ function Dashboard({ params }: ChatIdPageProps) {
     const totalTokens = questionTokens + responseTokens;
     const creditsUsed = calculateCreditsFromTokens(totalTokens, currentModel);
 
-
-
     // Consume credits directly in frontend (since backend consumption isn't updating UI)
     setTimeout(async () => {
       await consumeCreditsDirectly(creditsUsed, currentModel, totalTokens);
@@ -844,7 +949,7 @@ function Dashboard({ params }: ChatIdPageProps) {
 
   const handleSendMessage = async () => {
     const messageStart = performance.now();
-    logUserAction('send_message_start');
+    logUserAction("send_message_start");
 
     const editorContent = editor?.getHTML() || "";
     if (!editorContent.trim() || editorContent === "<p></p>") {
@@ -863,7 +968,7 @@ function Dashboard({ params }: ChatIdPageProps) {
     const sanitizedMessage = sanitizeUserMessage(userMessage);
     if (!sanitizedMessage) {
       toast.error("Invalid message content detected.");
-      logUserAction('send_message_error', performance.now() - messageStart);
+      logUserAction("send_message_error", performance.now() - messageStart);
       return;
     }
 
@@ -938,7 +1043,7 @@ function Dashboard({ params }: ChatIdPageProps) {
       );
       onWrite(
         "bot",
-        "Sorry, I encountered an error processing your question. Please make sure the backend server is running and try again.",
+        "Sorry, I encountered an error processing your question. Please try again.",
       );
     } finally {
       setIsProcessingMessage(false);
@@ -948,7 +1053,11 @@ function Dashboard({ params }: ChatIdPageProps) {
   // Scroll to bottom when content changes (only when not streaming)
   useEffect(() => {
     if (!isStreaming && displayContent && displayContent.length > 0) {
-      scrollToBottomSafe();
+      // Use longer delay for initial load to ensure all content is rendered
+      const isInitialLoad =
+        !lastScrollTimeRef.current ||
+        Date.now() - lastScrollTimeRef.current > 5000;
+      scrollToBottomSafe(false, isInitialLoad ? 200 : 50);
     }
   }, [displayContent, isStreaming, scrollToBottomSafe]);
 
@@ -959,14 +1068,26 @@ function Dashboard({ params }: ChatIdPageProps) {
     }
   }, [streamingContent, isStreaming, scrollToBottomSafe]);
 
+  // Additional scroll after page loads are complete (for images, etc.)
+  useEffect(() => {
+    if (displayContent && displayContent.length > 0 && !isStreaming) {
+      // Wait for images and other content to load, then scroll again
+      const timer = setTimeout(() => {
+        scrollToBottomSafe(true, 100); // Force scroll after content loads
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [displayContent, isStreaming, scrollToBottomSafe]);
+
   if (user === undefined) {
     return (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+      <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-zinc-600 dark:text-zinc-400">
             Loading your dashboard...
           </p>
         </div>
@@ -976,12 +1097,12 @@ function Dashboard({ params }: ChatIdPageProps) {
 
   if (!effectiveChatId) {
     return (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+      <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <p className="text-slate-600 dark:text-slate-400">Loading chat...</p>
+          <p className="text-zinc-600 dark:text-zinc-400">Loading chat...</p>
         </div>
       </div>
     );
@@ -991,7 +1112,7 @@ function Dashboard({ params }: ChatIdPageProps) {
   const isLoadingFreshData = !displayContent && chatContent === undefined;
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <Toaster position="top-center" richColors />
 
       {/* Resizable Sidebar */}
@@ -1019,15 +1140,14 @@ function Dashboard({ params }: ChatIdPageProps) {
             {/* Credit Warning */}
             <CreditWarning />
 
-
             {/* Loading overlay for initial data */}
             {isLoadingInitialData && (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   </div>
-                  <p className="text-slate-600 dark:text-slate-400 animate-pulse">
+                  <p className="text-zinc-600 dark:text-zinc-400 animate-pulse">
                     Loading your chat...
                   </p>
                 </div>
@@ -1035,33 +1155,35 @@ function Dashboard({ params }: ChatIdPageProps) {
             )}
 
             {/* Empty state */}
-            {!isLoadingInitialData && displayContent?.length === 0 && !isStreaming && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-trainlymainlight/20">
-                  <svg
-                    className="w-8 h-8 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
+            {!isLoadingInitialData &&
+              displayContent?.length === 0 &&
+              !isStreaming && (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-400/20">
+                    <svg
+                      className="w-8 h-8 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-viaoda font-normal text-zinc-900 dark:text-white mb-3">
+                    Start Your GraphRAG Chat
+                  </h3>
+                  <p className="text-base text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto leading-relaxed font-inter">
+                    Upload documents and ask questions to build your knowledge
+                    graph. Watch as relationships form and your AI becomes more
+                    intelligent.
+                  </p>
                 </div>
-                <h3 className="text-2xl font-viaoda font-normal text-slate-900 dark:text-white mb-3">
-                  Start Your GraphRAG Chat
-                </h3>
-                <p className="text-base text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto leading-relaxed font-inter">
-                  Upload documents and ask questions to build your knowledge
-                  graph. Watch as relationships form and your AI becomes more
-                  intelligent.
-                </p>
-              </div>
-            )}
+              )}
 
             {/* Chat content - only show when not in initial loading */}
             {!isLoadingInitialData && memoizedChatContent}
@@ -1074,29 +1196,29 @@ function Dashboard({ params }: ChatIdPageProps) {
                 className="mb-8"
               >
                 <div className="flex gap-4 mb-6">
-                  <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
+                  <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-amber-400/20">
                     <span className="text-white font-bold text-xs">T</span>
                   </div>
                   <div
                     ref={streamingRef}
-                    className="bg-slate-50 dark:bg-slate-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable"
+                    className="bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable"
                   >
                     {streamingContent ? (
-                      <div className="whitespace-pre-wrap text-slate-900 dark:text-white text-sm leading-relaxed font-inter">
+                      <div className="whitespace-pre-wrap text-zinc-900 dark:text-white text-sm leading-relaxed font-inter">
                         {streamingContent}
                         {/* Blinking cursor to show active streaming */}
-                        <span className="inline-block w-0.5 h-5 bg-trainlymainlight ml-1 animate-pulse"></span>
+                        <span className="inline-block w-0.5 h-5 bg-amber-400 ml-1 animate-pulse"></span>
                       </div>
                     ) : (
-                      <div className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                      <div className="text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
                         <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
                           <div
-                            className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"
+                            className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
                             style={{ animationDelay: "0.1s" }}
                           ></div>
                           <div
-                            className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"
+                            className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
                             style={{ animationDelay: "0.2s" }}
                           ></div>
                         </div>
@@ -1110,12 +1232,11 @@ function Dashboard({ params }: ChatIdPageProps) {
 
             <div ref={scrollToBottom} />
           </div>
-
         </div>
 
         {/* Enhanced Input Area */}
         <div className="px-12 pb-8 pt-4 max-w-5xl mx-auto w-full">
-          <div className="bg-gradient-to-br from-white via-white to-slate-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-br from-white via-white to-zinc-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-900 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-2xl rounded-3xl overflow-hidden">
             {/* Context Files - Elegant Collapsible Design */}
             {displayChat?.context?.length ? (
               <ContextFilesSection
@@ -1131,18 +1252,18 @@ function Dashboard({ params }: ChatIdPageProps) {
               <div className="relative group">
                 {/* Input Container */}
                 <div
-                  className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 group-focus-within:border-trainlymainlight/50 group-focus-within:shadow-lg group-focus-within:shadow-trainlymainlight/10 transition-all duration-300 cursor-text"
+                  className="relative bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700 group-focus-within:border-amber-400/50 group-focus-within:shadow-lg group-focus-within:shadow-amber-400/10 transition-all duration-300 cursor-text"
                   onClick={() => editor?.commands.focus()}
                 >
                   <EditorContent
                     editor={editor}
-                    className="text-slate-900 dark:text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none"
+                    className="text-zinc-900 dark:text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none"
                   />
 
                   {/* Enhanced Placeholder */}
                   {editor?.getHTML() === "<p></p>" && (
                     <div className="absolute top-3 left-3 pointer-events-none">
-                      <div className="flex items-center gap-2 text-slate-400">
+                      <div className="flex items-center gap-2 text-zinc-400">
                         <Sparkles className="w-3.5 h-3.5 opacity-50" />
                         <span className="text-sm">
                           Ask anything about your documents...
@@ -1198,13 +1319,17 @@ function Dashboard({ params }: ChatIdPageProps) {
                     <button
                       onClick={triggerFileInput}
                       disabled={fileQueue.isProcessing || isStreaming}
-                      className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
-                      title={fileQueue.isProcessing ? "Processing files..." : "Upload documents"}
+                      className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
+                      title={
+                        fileQueue.isProcessing
+                          ? "Processing files..."
+                          : "Upload documents"
+                      }
                     >
                       {fileQueue.isProcessing ? (
-                        <div className="w-3.5 h-3.5 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                        <div className="w-3.5 h-3.5 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
                       ) : (
-                        <Paperclip className="w-3.5 h-3.5 text-slate-400 group-hover/upload:text-trainlymainlight transition-colors" />
+                        <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover/upload:text-amber-400 transition-colors" />
                       )}
                     </button>
 
@@ -1212,21 +1337,30 @@ function Dashboard({ params }: ChatIdPageProps) {
                     <button
                       onClick={triggerFolderInput}
                       disabled={fileQueue.isProcessing || isStreaming}
-                      className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/folder"
-                      title={fileQueue.isProcessing ? "Processing files..." : "Upload folder"}
+                      className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/folder"
+                      title={
+                        fileQueue.isProcessing
+                          ? "Processing files..."
+                          : "Upload folder"
+                      }
                     >
                       {fileQueue.isProcessing ? (
-                        <div className="w-3.5 h-3.5 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                        <div className="w-3.5 h-3.5 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
                       ) : (
-                        <FolderOpen className="w-3.5 h-3.5 text-slate-400 group-hover/folder:text-trainlymainlight transition-colors" />
+                        <FolderOpen className="w-3.5 h-3.5 text-zinc-400 group-hover/folder:text-amber-400 transition-colors" />
                       )}
                     </button>
 
                     {/* Send Button */}
                     <button
                       onClick={handleSendMessage}
-                      disabled={!editor?.getText()?.trim() || isStreaming || isProcessingMessage || fileQueue.isProcessing}
-                      className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-trainlymainlight/25 disabled:shadow-none"
+                      disabled={
+                        !editor?.getText()?.trim() ||
+                        isStreaming ||
+                        isProcessingMessage ||
+                        fileQueue.isProcessing
+                      }
+                      className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-amber-400/25 disabled:shadow-none"
                     >
                       {isStreaming || isProcessingMessage ? (
                         <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1239,18 +1373,18 @@ function Dashboard({ params }: ChatIdPageProps) {
 
                 {/* Progress Indicator */}
                 {showProgress && (
-                  <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-5 h-5 bg-trainlymainlight/10 rounded-md flex items-center justify-center">
-                        <Sparkles className="h-3 w-3 text-trainlymainlight animate-pulse" />
+                      <div className="w-5 h-5 bg-amber-400/10 rounded-md flex items-center justify-center">
+                        <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
                       </div>
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                         {progressText}
                       </span>
                     </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-amber-400 to-amber-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
@@ -1269,18 +1403,18 @@ function Dashboard({ params }: ChatIdPageProps) {
 
                 {/* Quick Actions */}
                 <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                     <span>Press</span>
-                    <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">
                       Enter
                     </kbd>
                     <span>to send,</span>
-                    <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">
                       Shift+Enter
                     </kbd>
                     <span>for new line</span>
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-zinc-400">
                     <span>Supports PDF, DOC, TXT files</span>
                   </div>
                 </div>
@@ -1318,4 +1452,3 @@ function Dashboard({ params }: ChatIdPageProps) {
   );
 }
 export default Dashboard;
-

@@ -127,22 +127,22 @@ export function ApiSettingsSlideout({
   return (
     <div
       className={cn(
-        "absolute inset-0 bg-white dark:bg-slate-900 shadow-2xl z-50 transition-transform duration-500 ease-in-out overflow-y-auto",
+        "absolute inset-0 bg-white dark:bg-zinc-900 shadow-2xl z-50 transition-transform duration-500 ease-in-out overflow-y-auto",
         isAnimating ? "translate-x-0" : "translate-x-full",
       )}
     >
       {/* Header */}
-      <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-6 py-4 z-10">
+      <div className="sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50 px-6 py-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
               <Settings className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
                 API Settings
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 {currentChat?.title || "Loading..."}
               </p>
             </div>
@@ -151,7 +151,7 @@ export function ApiSettingsSlideout({
             variant="ghost"
             size="sm"
             onClick={handleClose}
-            className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="h-8 w-8 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -186,7 +186,7 @@ export function ApiSettingsSlideout({
                       <BookOpen className="w-5 h-5 text-blue-600" />
                       <div className="text-left">
                         <div className="font-medium">View Documentation</div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-zinc-500">
                           Complete API reference and examples
                         </div>
                       </div>
@@ -207,7 +207,7 @@ export function ApiSettingsSlideout({
                       <Shield className="w-5 h-5 text-green-600" />
                       <div className="text-left">
                         <div className="font-medium">Test API</div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-zinc-500">
                           Interactive API testing interface
                         </div>
                       </div>
@@ -263,9 +263,9 @@ export function ApiSettingsSlideout({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 h-2 rounded-full transition-all duration-300"
                         style={{
                           width: `${Math.min(100, (credits.usedCredits / credits.totalCredits) * 100)}%`,
                         }}
@@ -282,7 +282,7 @@ export function ApiSettingsSlideout({
                             )
                           }
                           disabled={isUpgrading}
-                          className="flex-1 bg-trainlymainlight hover:bg-trainlymainlight/90"
+                          className="flex-1 bg-amber-700 hover:bg-amber-800 dark:bg-amber-500 dark:hover:bg-amber-400"
                         >
                           {isUpgrading ? (
                             <>
@@ -307,15 +307,15 @@ export function ApiSettingsSlideout({
                     )}
 
                     {credits.usedCredits / credits.totalCredits > 0.8 && (
-                      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                        <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                      <div className="mt-4 p-3 bg-amber-100 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-lg">
+                        <p className="text-sm text-amber-900 dark:text-amber-200 mb-2">
                           ⚠️ Running low on credits! Consider upgrading or
                           purchasing more credits.
                         </p>
                         <Button
                           onClick={() => window.open("/billing", "_blank")}
                           size="sm"
-                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                          className="bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white"
                         >
                           <Crown className="w-3 h-3 mr-1" />
                           Upgrade Now
@@ -341,13 +341,13 @@ export function ApiSettingsSlideout({
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <Key className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
                       API Access - Pro Feature
                     </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto">
                       Turn your chat into a powerful REST API endpoint. Generate
                       API keys, test endpoints, and integrate with your
                       applications. Available with Pro subscription.
@@ -361,7 +361,7 @@ export function ApiSettingsSlideout({
                           )
                         }
                         disabled={isUpgrading}
-                        className="bg-gradient-to-r from-trainlymainlight to-purple-600 hover:from-trainlymainlight/90 hover:to-purple-600/90 text-white shadow-lg"
+                        className="bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white shadow-lg"
                       >
                         {isUpgrading ? (
                           <>
@@ -375,7 +375,7 @@ export function ApiSettingsSlideout({
                           </>
                         )}
                       </Button>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
                         <div>
                           ✓ 10,000 AI credits/month • ✓ API access • ✓ Priority
                           support
@@ -384,7 +384,7 @@ export function ApiSettingsSlideout({
                           onClick={() => window.open("/billing", "_blank")}
                           variant="ghost"
                           size="sm"
-                          className="text-xs h-auto p-1 hover:text-trainlymainlight"
+                          className="text-xs h-auto p-1 hover:text-amber-600 dark:hover:text-amber-400"
                         >
                           View all plans & pricing →
                         </Button>
@@ -445,10 +445,10 @@ export function ApiSettingsSlideout({
                           </div>
                         </div>
                         <div>
-                          <div className="text-lg font-bold text-purple-800 dark:text-purple-200">
+                          <div className="text-lg font-bold text-amber-900 dark:text-amber-200">
                             {currentChat?.metadata?.totalQueries || 0}
                           </div>
-                          <div className="text-xs text-purple-600 dark:text-purple-400">
+                          <div className="text-xs text-amber-700 dark:text-amber-400">
                             AI Queries Only
                           </div>
                         </div>
@@ -465,7 +465,7 @@ export function ApiSettingsSlideout({
                         <div className="text-xs text-blue-600 dark:text-blue-400">
                           Total Users
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-zinc-500 mt-1">
                           {currentChat?.metadata?.activeUsers || 0} active (7d)
                         </div>
                       </div>
@@ -478,7 +478,7 @@ export function ApiSettingsSlideout({
                         <div className="text-xs text-green-600 dark:text-green-400">
                           Files Uploaded
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-zinc-500 mt-1">
                           {currentChat?.metadata?.totalStorageBytes
                             ? `${Math.round((currentChat.metadata.totalStorageBytes / 1024 / 1024) * 10) / 10} MB`
                             : "0 MB"}{" "}
@@ -486,15 +486,15 @@ export function ApiSettingsSlideout({
                         </div>
                       </div>
 
-                      <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <Activity className="w-5 h-5 text-purple-600 mx-auto mb-2" />
-                        <div className="text-lg font-bold text-purple-800 dark:text-purple-200">
+                      <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <Activity className="w-5 h-5 text-amber-600 mx-auto mb-2" />
+                        <div className="text-lg font-bold text-amber-900 dark:text-amber-200">
                           {currentChat?.metadata?.successRate || 0}%
                         </div>
-                        <div className="text-xs text-purple-600 dark:text-purple-400">
+                        <div className="text-xs text-amber-700 dark:text-amber-400">
                           Success Rate
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-zinc-500 mt-1">
                           {currentChat?.metadata?.totalQueries || 0} queries
                         </div>
                       </div>
@@ -507,7 +507,7 @@ export function ApiSettingsSlideout({
                         <div className="text-xs text-orange-600 dark:text-orange-400">
                           Avg Response
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-zinc-500 mt-1">
                           {Math.round(
                             (currentChat?.metadata?.queriesLast7Days || 0) / 7,
                           )}
@@ -518,7 +518,7 @@ export function ApiSettingsSlideout({
 
                     {/* File Type Distribution */}
                     <div className="mb-6">
-                      <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                      <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3 flex items-center gap-2">
                         <HardDrive className="w-4 h-4" />
                         File Type Breakdown
                       </h4>
@@ -537,8 +537,8 @@ export function ApiSettingsSlideout({
                               pdf: "bg-red-500",
                               docx: "bg-blue-500",
                               txt: "bg-green-500",
-                              images: "bg-purple-500",
-                              other: "bg-gray-500",
+                              images: "bg-amber-500",
+                              other: "bg-zinc-500",
                             };
 
                             if (count > 0) {
@@ -549,16 +549,16 @@ export function ApiSettingsSlideout({
                                 >
                                   <div className="flex items-center gap-3">
                                     <div
-                                      className={`w-3 h-3 rounded-full ${colors[type as keyof typeof colors] || "bg-gray-500"}`}
+                                      className={`w-3 h-3 rounded-full ${colors[type as keyof typeof colors] || "bg-zinc-500"}`}
                                     ></div>
                                     <span className="text-sm font-medium">
                                       {type.toUpperCase()}
                                     </span>
-                                    <span className="text-xs text-slate-500">
+                                    <span className="text-xs text-zinc-500">
                                       {count} files
                                     </span>
                                   </div>
-                                  <div className="text-xs text-slate-500">
+                                  <div className="text-xs text-zinc-500">
                                     {percentage}%
                                   </div>
                                 </div>
@@ -568,7 +568,7 @@ export function ApiSettingsSlideout({
                           })}
                         </div>
                       ) : (
-                        <div className="text-center py-4 text-slate-500">
+                        <div className="text-center py-4 text-zinc-500">
                           <Files className="w-8 h-8 mx-auto mb-2 opacity-50" />
                           <p className="text-sm">No files uploaded yet</p>
                           <p className="text-xs">
@@ -580,7 +580,7 @@ export function ApiSettingsSlideout({
 
                     {/* Top User Activity (Privacy-Safe) */}
                     <div className="mb-6">
-                      <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                      <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3 flex items-center gap-2">
                         <Activity className="w-4 h-4" />
                         Top Users (Privacy-Safe)
                       </h4>
@@ -593,26 +593,26 @@ export function ApiSettingsSlideout({
                             .map((user, index) => (
                               <div
                                 key={user.userIdHash}
-                                className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                                className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-amber-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
                                     #{index + 1}
                                   </div>
                                   <div>
                                     <div className="font-medium text-sm">
                                       {user.userIdHash}
                                     </div>
-                                    <div className="text-xs text-slate-500">
+                                    <div className="text-xs text-zinc-500">
                                       {user.queriesMade} queries
                                     </div>
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
                                     {user.filesUploaded} files
                                   </div>
-                                  <div className="text-xs text-slate-500">
+                                  <div className="text-xs text-zinc-500">
                                     {user.storageUsedBytes > 0
                                       ? `${Math.round((user.storageUsedBytes / 1024 / 1024) * 10) / 10} MB`
                                       : "0 MB"}
@@ -622,7 +622,7 @@ export function ApiSettingsSlideout({
                             ))}
                         </div>
                       ) : (
-                        <div className="text-center py-4 text-slate-500">
+                        <div className="text-center py-4 text-zinc-500">
                           <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                           <p className="text-sm">No user activity yet</p>
                           <p className="text-xs">
@@ -684,10 +684,10 @@ export function ApiSettingsSlideout({
           // Loading state
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
                 <Settings className="w-8 h-8 text-white" />
               </div>
-              <p className="text-slate-600 dark:text-slate-400">
+              <p className="text-zinc-600 dark:text-zinc-400">
                 Loading API settings...
               </p>
             </div>

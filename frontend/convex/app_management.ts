@@ -16,6 +16,15 @@ function generateAppSecret(): string {
   return `as_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 16)}`;
 }
 
+// Generate secure JWT secret (64-character hex string)
+function generateJwtSecret(): string {
+  // Generate 32 random bytes and convert to hex (64 characters)
+  const bytes = new Array(32)
+    .fill(0)
+    .map(() => Math.floor(Math.random() * 256));
+  return bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 // Generate app ID
 function generateAppId(): string {
   return `app_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 8)}`;
@@ -26,6 +35,7 @@ export const createApp = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
+    parentChatId: v.optional(v.id("chats")), // The chat this app is based on
     iconUrl: v.optional(v.string()),
     websiteUrl: v.optional(v.string()),
     privacyPolicyUrl: v.optional(v.string()),
@@ -39,6 +49,7 @@ export const createApp = mutation({
     const developerId = identity.subject;
     const appId = generateAppId();
     const appSecret = generateAppSecret();
+    const jwtSecret = generateJwtSecret();
 
     const app = await ctx.db.insert("apps", {
       appId,
@@ -46,6 +57,8 @@ export const createApp = mutation({
       description: args.description,
       developerId,
       appSecret,
+      jwtSecret,
+      parentChatId: args.parentChatId, // Store the source chat for settings inheritance
       iconUrl: args.iconUrl,
       websiteUrl: args.websiteUrl,
       privacyPolicyUrl: args.privacyPolicyUrl,
@@ -61,6 +74,7 @@ export const createApp = mutation({
     return {
       appId,
       appSecret, // Only returned once during creation
+      jwtSecret, // Only returned once during creation
       app: app,
     };
   },
@@ -80,6 +94,39 @@ export const getDeveloperApps = query({
     const apps = await ctx.db
       .query("apps")
       .withIndex("by_developer", (q) => q.eq("developerId", developerId))
+      .collect();
+
+    // Return apps without secrets for security
+    return apps.map((app) => ({
+      _id: app._id,
+      appId: app.appId,
+      name: app.name,
+      description: app.description,
+      iconUrl: app.iconUrl,
+      websiteUrl: app.websiteUrl,
+      privacyPolicyUrl: app.privacyPolicyUrl,
+      isActive: app.isActive,
+      createdAt: app.createdAt,
+      settings: app.settings,
+    }));
+  },
+});
+
+// Get apps for a specific parent chat
+export const getAppsForChat = query({
+  args: { chatId: v.id("chats") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    const apps = await ctx.db
+      .query("apps")
+      .withIndex("by_developer", (q) => q.eq("developerId", developerId))
+      .filter((q) => q.eq(q.field("parentChatId"), args.chatId))
       .collect();
 
     // Return apps without secrets for security
@@ -422,5 +469,327 @@ export const updateAppCapabilities = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// Get app secret for developer (secure)
+export const getAppSecret = query({
+  args: { appId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Verify app ownership
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || app.developerId !== developerId) {
+      throw new Error("App not found or unauthorized.");
+    }
+
+    return {
+      appSecret: app.appSecret,
+      appId: app.appId,
+    };
+  },
+});
+
+// Get JWT secret for developer (secure)
+export const getJwtSecret = mutation({
+  args: { appId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Verify app ownership
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || app.developerId !== developerId) {
+      throw new Error("App not found or unauthorized.");
+    }
+
+    // If app doesn't have a JWT secret yet, generate one
+    if (!app.jwtSecret) {
+      const newJwtSecret = generateJwtSecret();
+      await ctx.db.patch(app._id, {
+        jwtSecret: newJwtSecret,
+      });
+
+      return {
+        jwtSecret: newJwtSecret,
+        appId: app.appId,
+      };
+    }
+
+    return {
+      jwtSecret: app.jwtSecret,
+      appId: app.appId,
+    };
+  },
+});
+
+// Regenerate app secret for developer (secure)
+export const regenerateAppSecret = mutation({
+  args: { appId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Verify app ownership
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || app.developerId !== developerId) {
+      throw new Error("App not found or unauthorized.");
+    }
+
+    // Generate new app secret
+    const newAppSecret = generateAppSecret();
+
+    // Update the app with new secret
+    await ctx.db.patch(app._id, {
+      appSecret: newAppSecret,
+    });
+
+    // Log the rotation for audit purposes
+    await ctx.db.insert("app_audit_logs", {
+      appId: args.appId,
+      endUserId: developerId,
+      chatId: "system",
+      action: "rotate_secret",
+      requestedCapability: "admin",
+      allowed: true,
+      timestamp: Date.now(),
+      metadata: {
+        errorReason: `App secret rotated by developer ${developerId}`,
+      },
+    });
+
+    return {
+      appSecret: newAppSecret,
+      appId: app.appId,
+      rotatedAt: Date.now(),
+    };
+  },
+});
+
+// Regenerate JWT secret for developer (secure)
+export const regenerateJwtSecret = mutation({
+  args: { appId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Verify app ownership
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || app.developerId !== developerId) {
+      throw new Error("App not found or unauthorized.");
+    }
+
+    // Generate new JWT secret
+    const newJwtSecret = generateJwtSecret();
+
+    // Update the app with new JWT secret
+    await ctx.db.patch(app._id, {
+      jwtSecret: newJwtSecret,
+    });
+
+    // Log the rotation for audit purposes
+    await ctx.db.insert("app_audit_logs", {
+      appId: args.appId,
+      endUserId: developerId,
+      chatId: "system",
+      action: "rotate_jwt_secret",
+      requestedCapability: "admin",
+      allowed: true,
+      timestamp: Date.now(),
+      metadata: {
+        errorReason: `JWT secret rotated by developer ${developerId}`,
+      },
+    });
+
+    return {
+      jwtSecret: newJwtSecret,
+      appId: app.appId,
+      rotatedAt: Date.now(),
+    };
+  },
+});
+
+// Get app with parent chat settings (for backend)
+export const getAppWithSettings = query({
+  args: { appId: v.string() },
+  handler: async (ctx, args) => {
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || !app.isActive) {
+      return null;
+    }
+
+    // Get parent chat settings if available
+    let parentChatSettings = null;
+    if (app.parentChatId) {
+      const parentChat = await ctx.db.get(app.parentChatId);
+      if (parentChat) {
+        parentChatSettings = {
+          customPrompt: parentChat.customPrompt,
+          selectedModel: parentChat.selectedModel || "gpt-4o-mini",
+          temperature: parentChat.temperature || 0.7,
+          maxTokens: parentChat.maxTokens || 1000,
+          userId: parentChat.userId, // For credit consumption
+        };
+      }
+    }
+
+    return {
+      appId: app.appId,
+      developerId: app.developerId,
+      isActive: app.isActive,
+      settings: app.settings,
+      name: app.name,
+      parentChatSettings: parentChatSettings,
+    };
+  },
+});
+
+// Create or update app with parent chat (migration helper)
+export const createOrUpdateAppWithParent = mutation({
+  args: {
+    appId: v.string(),
+    parentChatId: v.id("chats"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Check if app already exists
+    const existingApp = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (existingApp) {
+      // Update existing app
+      if (existingApp.developerId !== developerId) {
+        throw new Error("App exists but you don't own it.");
+      }
+
+      await ctx.db.patch(existingApp._id, {
+        parentChatId: args.parentChatId,
+      });
+
+      return {
+        success: true,
+        appId: existingApp.appId,
+        parentChatId: args.parentChatId,
+        action: "updated",
+      };
+    } else {
+      // Create new app with parent chat
+      const appSecret = generateAppSecret();
+      const jwtSecret = generateJwtSecret();
+
+      const app = await ctx.db.insert("apps", {
+        appId: args.appId,
+        name: args.name || `App ${args.appId}`,
+        description: args.description || `App created from chat migration`,
+        developerId,
+        appSecret,
+        jwtSecret,
+        parentChatId: args.parentChatId,
+        isActive: true,
+        createdAt: Date.now(),
+        settings: {
+          allowDirectUploads: true,
+          maxUsersPerApp: 10000,
+          allowedCapabilities: ["ask", "upload"],
+        },
+      });
+
+      return {
+        success: true,
+        appId: args.appId,
+        appSecret, // Return for first time setup
+        jwtSecret,
+        parentChatId: args.parentChatId,
+        action: "created",
+      };
+    }
+  },
+});
+
+// Verify app secret (called by backend)
+export const verifyAppSecret = query({
+  args: { appSecret: v.string() },
+  handler: async (ctx, args) => {
+    const app = await ctx.db
+      .query("apps")
+      .filter((q) => q.eq(q.field("appSecret"), args.appSecret))
+      .first();
+
+    if (!app || !app.isActive) {
+      return null;
+    }
+
+    // Get parent chat settings if available
+    let parentChatSettings = null;
+    if (app.parentChatId) {
+      const parentChat = await ctx.db.get(app.parentChatId);
+      if (parentChat) {
+        parentChatSettings = {
+          customPrompt: parentChat.customPrompt,
+          selectedModel: parentChat.selectedModel || "gpt-4o-mini",
+          temperature: parentChat.temperature || 0.7,
+          maxTokens: parentChat.maxTokens || 1000,
+          userId: parentChat.userId, // For credit consumption
+        };
+      }
+    }
+
+    // Return app data without sensitive info
+    return {
+      appId: app.appId,
+      developerId: app.developerId,
+      isActive: app.isActive,
+      settings: app.settings,
+      name: app.name,
+      parentChatSettings: parentChatSettings,
+    };
   },
 });

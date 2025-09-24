@@ -44,17 +44,17 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
       {/* Sidebar - Fixed to far right edge of screen */}
       <div
         className={cn(
-          "fixed right-0 top-0 h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 shadow-xl z-50 transition-all duration-300 ease-in-out",
+          "fixed right-0 top-0 h-full bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-700 shadow-xl z-50 transition-all duration-300 ease-in-out",
           isCollapsed ? "w-16" : "w-[480px]",
           className
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">
           {!isCollapsed && (
             <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-trainlymainlight" />
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              <Activity className="h-5 w-5 text-amber-400" />
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 File Processing
               </h2>
             </div>
@@ -66,7 +66,7 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="h-8 w-8 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
               {isCollapsed ? (
                 <ChevronLeft className="h-4 w-4" />
@@ -80,7 +80,7 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="h-8 w-8 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -92,15 +92,15 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
           <div className="flex-1 overflow-y-auto p-4">
             {/* Stats Summary */}
             {(activeQueues.length > 0 || completedQueues.length > 0 || failedQueues.length > 0) && (
-              <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
+              <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-3">
                   Processing Summary
                 </h3>
 
                 <div className="grid grid-cols-1 gap-2 text-xs">
                   {activeQueues.length > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">
+                      <span className="text-zinc-600 dark:text-zinc-400">
                         Active Files:
                       </span>
                       <span className="font-medium text-blue-600 dark:text-blue-400">
@@ -111,7 +111,7 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
 
                   {completedQueues.length > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">
+                      <span className="text-zinc-600 dark:text-zinc-400">
                         Completed Queues:
                       </span>
                       <span className="font-medium text-green-600 dark:text-green-400">
@@ -122,7 +122,7 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
 
                   {failedQueues.length > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">
+                      <span className="text-zinc-600 dark:text-zinc-400">
                         Failed Queues:
                       </span>
                       <span className="font-medium text-red-600 dark:text-red-400">
@@ -142,13 +142,13 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="h-8 w-8 text-slate-400" />
+                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                  <FileText className="h-8 w-8 text-zinc-400" />
                 </div>
-                <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
                   No files processing
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs">
                   Upload files or folders to see their processing status here
                 </p>
               </div>
@@ -162,7 +162,7 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
             {/* Activity Indicator */}
             {activeQueues.length > 0 && (
               <div className="relative">
-                <Activity className="h-6 w-6 text-trainlymainlight" />
+                <Activity className="h-6 w-6 text-amber-400" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-xs text-white font-bold">
                     {activeQueues.length}

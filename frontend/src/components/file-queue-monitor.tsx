@@ -43,7 +43,7 @@ const getStatusIcon = (status: string) => {
     case "processing":
       return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
     case "cancelled":
-      return <Pause className="h-4 w-4 text-gray-500" />;
+      return <Pause className="h-4 w-4 text-zinc-500" />;
     default:
       return <Clock className="h-4 w-4 text-yellow-500" />;
   }
@@ -58,11 +58,11 @@ const getStatusColor = (status: string) => {
     case "processing":
       return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
     case "cancelled":
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+      return "bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-300";
     case "active":
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
     default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+      return "bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-300";
   }
 };
 
@@ -89,22 +89,22 @@ const formatTimeAgo = (timestamp: number) => {
 
 const FileItem: React.FC<FileItemProps> = ({ file }) => {
   return (
-    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+    <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {getStatusIcon(file.status)}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
               {file.fileName}
             </span>
             {file.filePath && (
-              <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                 {file.filePath}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
               {formatFileSize(file.fileSize)}
             </span>
             <Badge variant="outline" className={cn("text-xs", getStatusColor(file.status))}>
@@ -117,7 +117,7 @@ const FileItem: React.FC<FileItemProps> = ({ file }) => {
       {file.status === "processing" && (
         <div className="flex items-center gap-2">
           <Progress value={file.progress} className="w-16 h-2" />
-          <span className="text-xs text-slate-500 dark:text-slate-400 w-8">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400 w-8">
             {file.progress}%
           </span>
         </div>
@@ -150,7 +150,7 @@ const QueueCard: React.FC<QueueCardProps> = ({ queue, onCancel }) => {
             {queue.isFolder ? (
               <Folder className="h-4 w-4 text-blue-500" />
             ) : (
-              <File className="h-4 w-4 text-slate-500" />
+              <File className="h-4 w-4 text-zinc-500" />
             )}
             <CardTitle className="text-sm font-medium truncate">
               {queue.name}
@@ -175,7 +175,7 @@ const QueueCard: React.FC<QueueCardProps> = ({ queue, onCancel }) => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
           <span>
             {queue.completedFiles} of {queue.totalFiles} completed
             {queue.failedFiles > 0 && ` • ${queue.failedFiles} failed`}
@@ -226,15 +226,15 @@ export const FileQueueMonitor: React.FC<FileQueueMonitorProps> = ({
     <div className={cn("space-y-4", className)}>
       {/* Summary */}
       {queues.length > 0 && (
-        <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-4 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
               File Processing Queue
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400">
             {activeQueues.length > 0 && (
               <span>{activeQueues.length} active</span>
             )}

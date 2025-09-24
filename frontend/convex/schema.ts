@@ -10,6 +10,8 @@ export default defineSchema({
     description: v.optional(v.string()),
     developerId: v.string(), // The developer who created the app
     appSecret: v.string(), // Server-to-server secret for creating users and tokens
+    jwtSecret: v.optional(v.string()), // JWT secret for signing user tokens
+    parentChatId: v.optional(v.id("chats")), // The chat this app was created from (for settings inheritance)
     iconUrl: v.optional(v.string()),
     websiteUrl: v.optional(v.string()),
     privacyPolicyUrl: v.optional(v.string()),
@@ -58,11 +60,26 @@ export default defineSchema({
     .index("by_token", ["userAuthToken"])
     .index("by_chat", ["chatId"]),
 
+  // User-app chat relationships (for privacy-first app management)
+  user_app_chats: defineTable({
+    appId: v.string(),
+    endUserId: v.string(), // The user ID from the app's perspective
+    chatId: v.id("chats"), // Reference to the private chat
+    authorizedAt: v.number(),
+    isRevoked: v.boolean(),
+    capabilities: v.array(v.string()),
+    lastActiveAt: v.optional(v.number()),
+  })
+    .index("by_app", ["appId"])
+    .index("by_user", ["endUserId"])
+    .index("by_app_user", ["appId", "endUserId"])
+    .index("by_chat", ["chatId"]),
+
   chats: defineTable({
     chatId: v.string(),
     title: v.string(),
     userId: v.string(), // Still the end-user who owns the data
-    chatType: v.string(), // "user_direct" or "app_subchat"
+    chatType: v.optional(v.string()), // "user_direct" or "app_subchat"
     parentAppId: v.optional(v.string()), // If this is a sub-chat under an app
     isArchived: v.boolean(),
 

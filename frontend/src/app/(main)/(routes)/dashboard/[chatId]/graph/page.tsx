@@ -18,10 +18,10 @@ const GraphVisualizationNVL = dynamic(
     loading: () => (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Network className="w-8 h-8 text-white" />
           </div>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-zinc-600 dark:text-zinc-400">
             Loading graph visualization...
           </p>
         </div>
@@ -51,12 +51,12 @@ export default function GraphPage({ params }: GraphPageProps) {
 
   if (!user) {
     return (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+      <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+          <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
         </div>
       </div>
     );
@@ -64,12 +64,12 @@ export default function GraphPage({ params }: GraphPageProps) {
 
   if (!chatId) {
     return (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+      <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Network className="w-8 h-8 text-white" />
           </div>
-          <p className="text-slate-600 dark:text-slate-400">Loading graph...</p>
+          <p className="text-zinc-600 dark:text-zinc-400">Loading graph...</p>
         </div>
       </div>
     );
@@ -78,7 +78,7 @@ export default function GraphPage({ params }: GraphPageProps) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000/";
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <Toaster position="top-center" richColors />
       {/* Resizable Sidebar */}
       <ResizableSidebar chatId={chatId} />
@@ -95,18 +95,18 @@ export default function GraphPage({ params }: GraphPageProps) {
 
         {/* Graph Container */}
         <div className="flex-1 p-6">
-          <div className="h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden flex flex-col">
+          <div className="h-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur-xl rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-2xl overflow-hidden flex flex-col">
             {/* Graph Header */}
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 flex-shrink-0">
+            <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-900/50 flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center">
                   <Network className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                  <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
                     Knowledge Graph
                   </h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     Visual representation of your knowledge relationships
                   </p>
                 </div>

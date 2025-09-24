@@ -28,8 +28,10 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   const variantClasses = {
-    primary: "border-trainlymainlight/30 border-t-trainlymainlight",
-    secondary: "border-slate-300 border-t-slate-600 dark:border-slate-600 dark:border-t-slate-300",
+    primary:
+      "border-amber-600/30 border-t-amber-600 dark:border-amber-400/30 dark:border-t-amber-400",
+    secondary:
+      "border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300",
     white: "border-white/30 border-t-white",
   };
 
@@ -46,21 +48,23 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         className={cn(
           "border-2 rounded-full animate-spin",
           sizeClasses[size],
-          variantClasses[variant]
+          variantClasses[variant],
         )}
       />
       {text && (
-        <p className={cn(
-          "text-slate-600 dark:text-slate-400",
-          textSizeClasses[size]
-        )}>
+        <p
+          className={cn(
+            "text-zinc-600 dark:text-zinc-400",
+            textSizeClasses[size],
+          )}
+        >
           {text}
         </p>
       )}
       {showProgress && (
-        <div className="w-32 bg-slate-200 dark:bg-slate-700 rounded-full h-1">
+        <div className="w-32 bg-zinc-200 dark:bg-zinc-700 rounded-full h-1">
           <div
-            className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-1 rounded-full transition-all duration-300"
+            className="bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 h-1 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -87,24 +91,26 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className={cn(
-      "absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center",
-      className
-    )}>
+    <div
+      className={cn(
+        "absolute inset-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-50 flex items-center justify-center",
+        className,
+      )}
+    >
       <div className="text-center">
-        <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <LoadingSpinner size="md" variant="white" />
         </div>
-        <p className="text-slate-600 dark:text-slate-400 mb-2">{text}</p>
+        <p className="text-zinc-600 dark:text-zinc-400 mb-2">{text}</p>
         {showProgress && (
           <>
-            <div className="w-48 bg-slate-200 dark:bg-slate-700 rounded-full h-2 mx-auto">
+            <div className="w-48 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 mx-auto">
               <div
-                className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-2 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
               {progress}%
             </p>
           </>
@@ -126,18 +132,20 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
   className,
 }) => {
   return (
-    <div className={cn(
-      "bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 text-center",
-      className
-    )}>
-      <div className="w-12 h-12 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+    <div
+      className={cn(
+        "bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-6 text-center",
+        className,
+      )}
+    >
+      <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 rounded-xl flex items-center justify-center mx-auto mb-4">
         <LoadingSpinner size="sm" variant="white" />
       </div>
-      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+      <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
         {title}
       </h3>
       {description && (
-        <p className="text-slate-600 dark:text-slate-400 text-sm">
+        <p className="text-zinc-600 dark:text-zinc-400 text-sm">
           {description}
         </p>
       )}
@@ -160,7 +168,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height,
   lines = 1,
 }) => {
-  const baseClasses = "bg-slate-200 dark:bg-slate-700 animate-pulse";
+  const baseClasses = "bg-zinc-200 dark:bg-zinc-700 animate-pulse";
 
   const variantClasses = {
     text: "rounded h-4",
@@ -183,7 +191,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
               baseClasses,
               variantClasses[variant],
               i === lines - 1 ? "w-3/4" : "w-full",
-              i > 0 && "mt-2"
+              i > 0 && "mt-2",
             )}
             style={i === 0 ? style : undefined}
           />
@@ -194,11 +202,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
   return (
     <div
-      className={cn(
-        baseClasses,
-        variantClasses[variant],
-        className
-      )}
+      className={cn(baseClasses, variantClasses[variant], className)}
       style={style}
     />
   );

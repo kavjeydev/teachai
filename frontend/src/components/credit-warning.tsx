@@ -92,7 +92,7 @@ export function CreditWarning({ onDismiss }: CreditWarningProps) {
                   onClick={handleUpgrade}
                   disabled={isUpgrading}
                   size="sm"
-                  className="bg-trainlymainlight hover:bg-trainlymainlight/90"
+                  className="bg-amber-400 hover:bg-amber-400/90"
                 >
                   {isUpgrading ? (
                     <>
@@ -110,7 +110,7 @@ export function CreditWarning({ onDismiss }: CreditWarningProps) {
                 <Button
                   onClick={() => window.open('/billing', '_blank')}
                   size="sm"
-                  className="bg-trainlymainlight hover:bg-trainlymainlight/90"
+                  className="bg-amber-400 hover:bg-amber-400/90"
                 >
                   <CreditCard className="w-3 h-3 mr-2" />
                   Buy More Credits

@@ -10,21 +10,21 @@ const HeavyDashboard = dynamic(() => import("./heavy-dashboard"), {
   loading: () => (
     <div className="h-screen flex">
       {/* Sidebar Loading */}
-      <div className="w-80 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="w-80 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4">
         <div className="space-y-4 animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="h-8 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div key={i} className="h-12 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
           ))}
         </div>
       </div>
-      
+
       {/* Main Chat Loading */}
       <div className="flex-1 flex flex-col">
-        <div className="border-b border-gray-200 dark:border-gray-800 p-4">
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 animate-pulse"></div>
+        <div className="border-b border-zinc-200 dark:border-zinc-800 p-4">
+          <div className="h-6 bg-zinc-200 dark:bg-zinc-700 rounded w-48 animate-pulse"></div>
         </div>
-        
+
         <div className="flex-1 p-6 space-y-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="space-y-4">
@@ -34,17 +34,17 @@ const HeavyDashboard = dynamic(() => import("./heavy-dashboard"), {
               <div className="flex items-start space-x-3">
                 <div className="w-8 h-8 bg-blue-500 rounded-lg"></div>
                 <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full animate-pulse"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6 animate-pulse"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-4/5 animate-pulse"></div>
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-full animate-pulse"></div>
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-5/6 animate-pulse"></div>
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-4/5 animate-pulse"></div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-        
-        <div className="border-t border-gray-200 dark:border-gray-800 p-4">
-          <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse"></div>
+
+        <div className="border-t border-zinc-200 dark:border-zinc-800 p-4">
+          <div className="h-24 bg-zinc-200 dark:bg-zinc-700 rounded-xl animate-pulse"></div>
         </div>
       </div>
     </div>
@@ -126,20 +126,20 @@ function MinimalDashboardShell({ params }: ChatIdPageProps) {
 
   return (
     <div className="h-screen flex">
-      <div className="w-80 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="w-80 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4">
         <div className="text-lg font-semibold mb-4">Trainly</div>
-        <div className="text-sm text-gray-600 dark:text-gray-400">Loading chat...</div>
+        <div className="text-sm text-zinc-600 dark:text-zinc-400">Loading chat...</div>
       </div>
-      
+
       <div className="flex-1 flex flex-col">
-        <div className="border-b border-gray-200 dark:border-gray-800 p-4">
+        <div className="border-b border-zinc-200 dark:border-zinc-800 p-4">
           <h1 className="text-xl font-semibold">Chat {chatId}</h1>
         </div>
-        
+
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading your chat...</p>
+            <p className="text-zinc-600 dark:text-zinc-400">Loading your chat...</p>
           </div>
         </div>
       </div>
@@ -531,7 +531,7 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
       {msg.sender === "user" ? (
         // User message - improved bubble style with better padding
         <div className="flex justify-end gap-4 mb-6">
-          <div className="bg-trainlymainlight text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed max-w-[75%] shadow-lg shadow-trainlymainlight/20 font-inter selectable">
+          <div className="bg-amber-400 text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed max-w-[75%] shadow-lg shadow-amber-400/20 font-inter selectable">
             <div
               dangerouslySetInnerHTML={{
                 __html: sanitizeHTML(msg.text),
@@ -550,10 +550,10 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
       ) : (
         // AI response - improved formatting for better readability
         <div className="flex gap-4 mb-6">
-          <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
+          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-amber-400/20">
             <span className="text-white font-bold text-xs">T</span>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable">
+          <div className="bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable">
             <CitationMarkdown
               content={msg.text}
               reasoningContext={msg.reasoningContext || []}
@@ -977,12 +977,12 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
 
   if (user === undefined) {
     return (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+      <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-zinc-600 dark:text-zinc-400">
             Loading your dashboard...
           </p>
         </div>
@@ -992,12 +992,12 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
 
   if (!effectiveChatId) {
     return (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+      <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <p className="text-slate-600 dark:text-slate-400">Loading chat...</p>
+          <p className="text-zinc-600 dark:text-zinc-400">Loading chat...</p>
         </div>
       </div>
     );
@@ -1007,7 +1007,7 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
   const isLoadingFreshData = !displayContent && chatContent === undefined;
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <Toaster position="top-center" richColors />
 
       {/* Resizable Sidebar */}
@@ -1040,10 +1040,10 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
             {isLoadingInitialData && (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   </div>
-                  <p className="text-slate-600 dark:text-slate-400 animate-pulse">
+                  <p className="text-zinc-600 dark:text-zinc-400 animate-pulse">
                     Loading your chat...
                   </p>
                 </div>
@@ -1053,7 +1053,7 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
             {/* Empty state */}
             {!isLoadingInitialData && displayContent?.length === 0 && !isStreaming && (
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-trainlymainlight/20">
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-400/20">
                   <svg
                     className="w-8 h-8 text-white"
                     fill="none"
@@ -1068,10 +1068,10 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
                     />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-viaoda font-normal text-slate-900 dark:text-white mb-3">
+                <h3 className="text-2xl font-viaoda font-normal text-zinc-900 dark:text-white mb-3">
                   Start Your GraphRAG Chat
                 </h3>
-                <p className="text-base text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto leading-relaxed font-inter">
+                <p className="text-base text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto leading-relaxed font-inter">
                   Upload documents and ask questions to build your knowledge
                   graph. Watch as relationships form and your AI becomes more
                   intelligent.
@@ -1090,29 +1090,29 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
                 className="mb-8"
               >
                 <div className="flex gap-4 mb-6">
-                  <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
+                  <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-amber-400/20">
                     <span className="text-white font-bold text-xs">T</span>
                   </div>
                   <div
                     ref={streamingRef}
-                    className="bg-slate-50 dark:bg-slate-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable"
+                    className="bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable"
                   >
                     {streamingContent ? (
-                      <div className="whitespace-pre-wrap text-slate-900 dark:text-white text-sm leading-relaxed font-inter">
+                      <div className="whitespace-pre-wrap text-zinc-900 dark:text-white text-sm leading-relaxed font-inter">
                         {streamingContent}
                         {/* Blinking cursor to show active streaming */}
-                        <span className="inline-block w-0.5 h-5 bg-trainlymainlight ml-1 animate-pulse"></span>
+                        <span className="inline-block w-0.5 h-5 bg-amber-400 ml-1 animate-pulse"></span>
                       </div>
                     ) : (
-                      <div className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                      <div className="text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
                         <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
                           <div
-                            className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"
+                            className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
                             style={{ animationDelay: "0.1s" }}
                           ></div>
                           <div
-                            className="w-2 h-2 bg-trainlymainlight rounded-full animate-bounce"
+                            className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
                             style={{ animationDelay: "0.2s" }}
                           ></div>
                         </div>
@@ -1131,7 +1131,7 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
 
         {/* Enhanced Input Area */}
         <div className="px-12 pb-8 pt-4 max-w-5xl mx-auto w-full">
-          <div className="bg-gradient-to-br from-white via-white to-slate-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-br from-white via-white to-zinc-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-900 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-2xl rounded-3xl overflow-hidden">
             {/* Context Files - Elegant Collapsible Design */}
             {displayChat?.context?.length ? (
               <ContextFilesSection
@@ -1147,18 +1147,18 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
               <div className="relative group">
                 {/* Input Container */}
                 <div
-                  className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 group-focus-within:border-trainlymainlight/50 group-focus-within:shadow-lg group-focus-within:shadow-trainlymainlight/10 transition-all duration-300 cursor-text"
+                  className="relative bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700 group-focus-within:border-amber-400/50 group-focus-within:shadow-lg group-focus-within:shadow-amber-400/10 transition-all duration-300 cursor-text"
                   onClick={() => editor?.commands.focus()}
                 >
                   <EditorContent
                     editor={editor}
-                    className="text-slate-900 dark:text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none"
+                    className="text-zinc-900 dark:text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none"
                   />
 
                   {/* Enhanced Placeholder */}
                   {editor?.getHTML() === "<p></p>" && (
                     <div className="absolute top-3 left-3 pointer-events-none">
-                      <div className="flex items-center gap-2 text-slate-400">
+                      <div className="flex items-center gap-2 text-zinc-400">
                         <Sparkles className="w-3.5 h-3.5 opacity-50" />
                         <span className="text-sm">
                           Ask anything about your documents...
@@ -1214,13 +1214,13 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
                     <button
                       onClick={triggerFileInput}
                       disabled={fileQueue.isProcessing || isStreaming}
-                      className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
+                      className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
                       title={fileQueue.isProcessing ? "Processing files..." : "Upload documents"}
                     >
                       {fileQueue.isProcessing ? (
-                        <div className="w-3.5 h-3.5 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                        <div className="w-3.5 h-3.5 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
                       ) : (
-                        <Paperclip className="w-3.5 h-3.5 text-slate-400 group-hover/upload:text-trainlymainlight transition-colors" />
+                        <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover/upload:text-amber-400 transition-colors" />
                       )}
                     </button>
 
@@ -1228,13 +1228,13 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
                     <button
                       onClick={triggerFolderInput}
                       disabled={fileQueue.isProcessing || isStreaming}
-                      className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/folder"
+                      className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/folder"
                       title={fileQueue.isProcessing ? "Processing files..." : "Upload folder"}
                     >
                       {fileQueue.isProcessing ? (
-                        <div className="w-3.5 h-3.5 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                        <div className="w-3.5 h-3.5 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
                       ) : (
-                        <FolderOpen className="w-3.5 h-3.5 text-slate-400 group-hover/folder:text-trainlymainlight transition-colors" />
+                        <FolderOpen className="w-3.5 h-3.5 text-zinc-400 group-hover/folder:text-amber-400 transition-colors" />
                       )}
                     </button>
 
@@ -1242,7 +1242,7 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
                     <button
                       onClick={handleSendMessage}
                       disabled={!editor?.getText()?.trim() || isStreaming || isProcessingMessage || fileQueue.isProcessing}
-                      className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-trainlymainlight/25 disabled:shadow-none"
+                      className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-amber-400/25 disabled:shadow-none"
                     >
                       {isStreaming || isProcessingMessage ? (
                         <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1255,18 +1255,18 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
 
                 {/* Progress Indicator */}
                 {showProgress && (
-                  <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-5 h-5 bg-trainlymainlight/10 rounded-md flex items-center justify-center">
-                        <Sparkles className="h-3 w-3 text-trainlymainlight animate-pulse" />
+                      <div className="w-5 h-5 bg-amber-400/10 rounded-md flex items-center justify-center">
+                        <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
                       </div>
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                         {progressText}
                       </span>
                     </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-trainlymainlight to-purple-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-amber-400 to-amber-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
@@ -1285,18 +1285,18 @@ function OriginalDashboard({ params }: ChatIdPageProps) {
 
                 {/* Quick Actions */}
                 <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                     <span>Press</span>
-                    <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">
                       Enter
                     </kbd>
                     <span>to send,</span>
-                    <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">
                       Shift+Enter
                     </kbd>
                     <span>for new line</span>
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-zinc-400">
                     <span>Supports PDF, DOC, TXT files</span>
                   </div>
                 </div>

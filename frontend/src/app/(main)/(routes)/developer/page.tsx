@@ -146,7 +146,7 @@ export default function DeveloperDashboard() {
           <h1 className="text-3xl font-bold">
             Privacy-First Developer Dashboard
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-zinc-600 mt-2">
             Build apps with complete user data isolation - you can't see user
             files or raw data
           </p>
@@ -189,14 +189,14 @@ export default function DeveloperDashboard() {
                 </Badge>
               </div>
               {app.description && (
-                <p className="text-sm text-gray-600">{app.description}</p>
+                <p className="text-sm text-zinc-600">{app.description}</p>
               )}
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">App ID:</span>
-                  <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  <code className="text-xs bg-zinc-100 px-2 py-1 rounded">
                     {app.appId}
                   </code>
                 </div>
@@ -246,7 +246,7 @@ export default function DeveloperDashboard() {
                         <span className="font-medium">Total Users</span>
                       </div>
                       <p className="text-2xl font-bold">0</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-zinc-600">
                         Each gets their own private chat
                       </p>
                     </CardContent>
@@ -258,7 +258,7 @@ export default function DeveloperDashboard() {
                         <span className="font-medium">API Calls</span>
                       </div>
                       <p className="text-2xl font-bold">0</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-zinc-600">
                         Only AI responses, no raw data
                       </p>
                     </CardContent>
@@ -266,11 +266,11 @@ export default function DeveloperDashboard() {
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-purple-500" />
+                        <Shield className="h-4 w-4 text-amber-500" />
                         <span className="font-medium">Blocked Attempts</span>
                       </div>
                       <p className="text-2xl font-bold">0</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-zinc-600">
                         Privacy violations prevented
                       </p>
                     </CardContent>
@@ -292,7 +292,7 @@ export default function DeveloperDashboard() {
                       App Secret
                     </label>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 bg-gray-100 p-2 rounded text-sm">
+                      <code className="flex-1 bg-zinc-100 p-2 rounded text-sm">
                         {showSecret
                           ? newAppSecret || "as_****_****"
                           : "as_****_****"}
@@ -328,7 +328,7 @@ export default function DeveloperDashboard() {
                     <label className="block text-sm font-medium mb-2">
                       Example Integration
                     </label>
-                    <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
+                    <pre className="bg-zinc-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
                       {`// 1. Provision a user (creates their private sub-chat)
 const response = await fetch('/v1/privacy/apps/users/provision', {
   method: 'POST',
@@ -443,7 +443,7 @@ const queryResponse = await fetch('/v1/privacy/query', {
               </TabsContent>
 
               <TabsContent value="audit" className="space-y-4">
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-zinc-500">
                   <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No audit logs yet</p>
                   <p className="text-sm">
@@ -470,7 +470,7 @@ const queryResponse = await fetch('/v1/privacy/query', {
                 <Users className="h-8 w-8 text-blue-600" />
               </div>
               <h3 className="font-semibold mb-2">Per-User Sub-Chats</h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-zinc-600">
                 Each end-user gets their own isolated chat under your app. No
                 cross-user data access possible.
               </p>
@@ -480,17 +480,17 @@ const queryResponse = await fetch('/v1/privacy/query', {
                 <Shield className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="font-semibold mb-2">Capability Scoping</h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-zinc-600">
                 Your tokens are limited to specific actions (ask, upload). No
                 raw file access capabilities are ever granted.
               </p>
             </div>
             <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Activity className="h-8 w-8 text-purple-600" />
+              <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Activity className="h-8 w-8 text-amber-600" />
               </div>
               <h3 className="font-semibold mb-2">Comprehensive Auditing</h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-zinc-600">
                 Every access attempt is logged. Users can see when and how their
                 data was accessed by your app.
               </p>

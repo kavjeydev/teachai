@@ -188,7 +188,7 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
               >
                 <option value="gpt-4o-mini">GPT-4o Mini</option>
                 <option value="gpt-4o">GPT-4o</option>
@@ -302,8 +302,8 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
                 {/* Answer */}
                 <div>
                   <Label className="text-sm font-semibold">Answer</Label>
-                  <div className="mt-1 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                    <p className="text-slate-900 dark:text-white whitespace-pre-wrap">
+                  <div className="mt-1 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                    <p className="text-zinc-900 dark:text-white whitespace-pre-wrap">
                       {response.answer}
                     </p>
                   </div>
@@ -317,7 +317,7 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
                     </Label>
                     <div className="mt-1 space-y-2">
                       {response.context.slice(0, 3).map((citation: any, index: number) => (
-                        <div key={index} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <div key={index} className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant="secondary" className="text-xs">
                               {citation.chunk_id}
@@ -326,13 +326,13 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
                               Score: {citation.score.toFixed(2)}
                             </Badge>
                           </div>
-                          <p className="text-sm text-slate-700 dark:text-slate-300">
+                          <p className="text-sm text-zinc-700 dark:text-zinc-300">
                             {citation.chunk_text.substring(0, 200)}...
                           </p>
                         </div>
                       ))}
                       {response.context.length > 3 && (
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
                           ... and {response.context.length - 3} more citations
                         </p>
                       )}
@@ -344,27 +344,27 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
                 <div>
                   <Label className="text-sm font-semibold">Usage Statistics</Label>
                   <div className="mt-1 grid grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                    <div className="text-center p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                      <div className="text-lg font-semibold text-zinc-900 dark:text-white">
                         {response.usage?.prompt_tokens || 0}
                       </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400">
                         Prompt Tokens
                       </div>
                     </div>
-                    <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                    <div className="text-center p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                      <div className="text-lg font-semibold text-zinc-900 dark:text-white">
                         {response.usage?.completion_tokens || 0}
                       </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400">
                         Response Tokens
                       </div>
                     </div>
-                    <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                    <div className="text-center p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                      <div className="text-lg font-semibold text-zinc-900 dark:text-white">
                         {response.usage?.total_tokens || 0}
                       </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400">
                         Total Tokens
                       </div>
                     </div>
@@ -374,8 +374,8 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
                 {/* Raw Response */}
                 <div>
                   <Label className="text-sm font-semibold">Raw JSON Response</Label>
-                  <div className="mt-1 bg-slate-900 dark:bg-slate-950 rounded-lg p-4 relative">
-                    <pre className="text-sm text-slate-300 overflow-x-auto">
+                  <div className="mt-1 bg-zinc-900 dark:bg-zinc-950 rounded-lg p-4 relative">
+                    <pre className="text-sm text-zinc-300 overflow-x-auto">
                       <code>{JSON.stringify(response, null, 2)}</code>
                     </pre>
                   </div>
@@ -395,14 +395,14 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 relative">
+          <div className="bg-zinc-900 dark:bg-zinc-950 rounded-lg p-4 relative">
             <pre className="text-sm text-green-400 overflow-x-auto">
               <code>{generateCurlCommand()}</code>
             </pre>
             <Button
               variant="ghost"
               size="sm"
-              className="absolute top-2 right-2 text-slate-400 hover:text-white"
+              className="absolute top-2 right-2 text-zinc-400 hover:text-white"
               onClick={() => {
                 navigator.clipboard.writeText(generateCurlCommand());
                 toast.success("cURL command copied");

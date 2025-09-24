@@ -30,8 +30,8 @@ export const FileQueueToggle: React.FC<FileQueueToggleProps> = ({
       size="sm"
       onClick={onClick}
       className={cn(
-        "relative p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group/queue",
-        isActive && "bg-slate-200 dark:bg-slate-700",
+        "relative p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/queue",
+        isActive && "bg-zinc-200 dark:bg-zinc-700",
         className
       )}
       title={
@@ -42,15 +42,15 @@ export const FileQueueToggle: React.FC<FileQueueToggleProps> = ({
     >
       {hasActivity ? (
         <>
-          <Activity className="w-3.5 h-3.5 text-trainlymainlight animate-pulse" />
+          <Activity className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
           {activeQueues.length > 0 && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-trainlymainlight text-white rounded-full flex items-center justify-center text-xs font-bold">
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-white rounded-full flex items-center justify-center text-xs font-bold">
               {activeQueues.length}
             </div>
           )}
         </>
       ) : (
-        <FileText className="w-3.5 h-3.5 text-slate-400 group-hover/queue:text-trainlymainlight transition-colors" />
+        <FileText className="w-3.5 h-3.5 text-zinc-400 group-hover/queue:text-amber-400 transition-colors" />
       )}
     </Button>
   );

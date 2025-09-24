@@ -149,7 +149,7 @@ export function ContextList({
                       </div>
                     </div>
                     <Button
-                      className="x-[9999999] rounded-full dark:hover:bg-gray-800 hover:bg-white"
+                      className="x-[9999999] rounded-full dark:hover:bg-zinc-800 hover:bg-white"
                       onClick={() => {
                         handleErase(chatId, item.fileId);
                       }}
@@ -167,7 +167,7 @@ export function ContextList({
               ))
             ) : (
               <CommandItem disabled>
-                <span className="text-slate-500">No context files</span>
+                <span className="text-zinc-500">No context files</span>
               </CommandItem>
             )}
           </CommandGroup>

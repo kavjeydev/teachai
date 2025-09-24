@@ -103,7 +103,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
   };
 
   return (
-    <div className="code-block relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 my-3">
+    <div className="code-block relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 my-3">
       <SyntaxHighlighter
         language={language}
         style={theme === "dark" ? vscDarkPlus : customVscLightPlus}
@@ -129,7 +129,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
       </SyntaxHighlighter>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 flex items-center justify-center bg-gray-700 bg-opacity-50 text-white rounded px-2 py-1 hover:bg-opacity-75 transition"
+        className="absolute top-2 right-2 flex items-center justify-center bg-zinc-700 bg-opacity-50 text-white rounded px-2 py-1 hover:bg-opacity-75 transition"
         aria-label="Copy code"
       >
         {isCopied ? (

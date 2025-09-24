@@ -100,17 +100,17 @@ export default function ApiDocsRedesigned() {
       content: (
         <div className="space-y-8">
           {/* Hero */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl p-8 border border-blue-200 dark:border-blue-800">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+          <div className="bg-gradient-to-r from-blue-50 to-amber-50 dark:from-blue-950/30 dark:to-amber-950/30 rounded-xl p-8 border border-blue-200 dark:border-blue-800">
+            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
               Welcome to Trainly API
             </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
               Build AI applications with complete user privacy. Users control their authentication tokens and data access.
             </p>
             <div className="flex gap-3">
               <Badge className="bg-green-100 text-green-800 border-green-200">🔒 User-Controlled Auth</Badge>
               <Badge className="bg-blue-100 text-blue-800 border-blue-200">📱 Each Chat = App</Badge>
-              <Badge className="bg-purple-100 text-purple-800 border-purple-200">🛡️ Privacy-First</Badge>
+              <Badge className="bg-amber-100 text-amber-800 border-amber-200">🛡️ Privacy-First</Badge>
             </div>
           </div>
 
@@ -124,10 +124,10 @@ export default function ApiDocsRedesigned() {
                 <CardTitle className="text-lg">Get Chat API Key</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                   Enable API access for your chat in the Trainly dashboard
                 </p>
-                <code className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
                   Chat Settings → API Access → Generate Key
                 </code>
               </CardContent>
@@ -141,27 +141,27 @@ export default function ApiDocsRedesigned() {
                 <CardTitle className="text-lg">Token Exchange</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                   Exchange user's Clerk token for secure Trainly token
                 </p>
-                <code className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
                   POST /oauth/token → Bearer token
                 </code>
               </CardContent>
             </Card>
 
-            <Card className="border border-purple-200 dark:border-purple-800">
+            <Card className="border border-amber-200 dark:border-amber-800">
               <CardHeader>
-                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center mb-2">
+                <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mb-2">
                   <span className="text-white font-bold">3</span>
                 </div>
                 <CardTitle className="text-lg">Query User Data</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                   Users query their private data with complete privacy protection
                 </p>
-                <code className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
                   POST /me/chats/query → AI responses only
                 </code>
               </CardContent>
@@ -181,7 +181,7 @@ export default function ApiDocsRedesigned() {
             <p className="text-green-700 dark:text-green-300 mb-6">
               Our privacy-first architecture ensures developers can build powerful AI apps while users maintain complete control over their data.
             </p>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-semibold text-green-800 dark:text-green-200 mb-3">✅ What Developers Get:</h4>
@@ -227,10 +227,10 @@ export default function ApiDocsRedesigned() {
       content: (
         <div className="space-y-8">
           <div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
               RFC 8693 Token Exchange
             </h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
+            <p className="text-zinc-600 dark:text-zinc-400 mb-6">
               Exchange user's Clerk ID token for a short-lived Trainly access token. This enables user-controlled authentication without OAuth complexity.
             </p>
           </div>
@@ -245,8 +245,8 @@ export default function ApiDocsRedesigned() {
                   <Badge className="bg-blue-600 text-white">POST</Badge>
                   <code className="font-mono">/oauth/token</code>
                 </div>
-                
-                <div className="bg-slate-900 rounded-lg p-4">
+
+                <div className="bg-zinc-900 rounded-lg p-4">
                   <pre className="text-green-400 text-sm">
 {`{
   "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -266,7 +266,7 @@ export default function ApiDocsRedesigned() {
               <CardTitle>Response</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-slate-900 rounded-lg p-4">
+              <div className="bg-zinc-900 rounded-lg p-4">
                 <pre className="text-blue-400 text-sm">
 {`{
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -292,10 +292,10 @@ export default function ApiDocsRedesigned() {
       content: (
         <div className="space-y-8">
           <div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
               React Integration Guide
             </h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
+            <p className="text-zinc-600 dark:text-zinc-400 mb-6">
               Complete React component for Trainly integration with user-controlled authentication.
             </p>
           </div>
@@ -305,7 +305,7 @@ export default function ApiDocsRedesigned() {
               <CardTitle>TrainlyAuth Component</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-slate-900 rounded-lg p-6">
+              <div className="bg-zinc-900 rounded-lg p-6">
                 <pre className="text-green-400 text-sm overflow-x-auto">
 {`import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
@@ -330,7 +330,7 @@ function TrainlyAuth({ chatId, onConnected }) {
   // Simple token exchange
   const connect = async () => {
     const clerkToken = await getToken();
-    
+
     const response = await fetch('/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -344,7 +344,7 @@ function TrainlyAuth({ chatId, onConnected }) {
     });
 
     const tokenData = await response.json();
-    
+
     // Store on user's device
     localStorage.setItem(\`trainly_token_\${chatId}\`, JSON.stringify({
       access_token: tokenData.access_token,
@@ -392,9 +392,9 @@ function TrainlyAuth({ chatId, onConnected }) {
 }`}
                 </pre>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="mt-4"
                 onClick={() => copyToClipboard(`// React Trainly Integration`, "React Component")}
               >
@@ -411,21 +411,21 @@ function TrainlyAuth({ chatId, onConnected }) {
   const currentSection = sectionContent[selectedSection as keyof typeof sectionContent];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
       <div className="flex">
         {/* Sidebar Navigation */}
-        <div className="w-80 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-y-auto h-screen sticky top-0">
+        <div className="w-80 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 overflow-y-auto h-screen sticky top-0">
           {/* Header */}
-          <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-amber-600 rounded-xl flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
                   Trainly API
                 </h1>
-                <p className="text-sm text-slate-500">Privacy-First Documentation</p>
+                <p className="text-sm text-zinc-500">Privacy-First Documentation</p>
               </div>
             </div>
           </div>
@@ -434,7 +434,7 @@ function TrainlyAuth({ chatId, onConnected }) {
           <nav className="p-4 space-y-6">
             {navigation.map((section) => (
               <div key={section.title}>
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
                   <section.icon className="w-4 h-4" />
                   {section.title}
                 </div>
@@ -444,17 +444,17 @@ function TrainlyAuth({ chatId, onConnected }) {
                       key={item.id}
                       onClick={() => setSelectedSection(item.id)}
                       className={cn(
-                        "w-full text-left flex items-center justify-between p-3 rounded-lg transition-all hover:bg-slate-100 dark:hover:bg-slate-800",
+                        "w-full text-left flex items-center justify-between p-3 rounded-lg transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800",
                         selectedSection === item.id
                           ? "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800"
-                          : "text-slate-700 dark:text-slate-300"
+                          : "text-zinc-700 dark:text-zinc-300"
                       )}
                     >
                       <span className="font-medium">{item.title}</span>
                       <div className="flex items-center gap-2">
                         {item.badge && (
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={cn(
                               "text-xs",
                               item.badge === "New" ? "border-green-200 text-green-700" :
@@ -475,7 +475,7 @@ function TrainlyAuth({ chatId, onConnected }) {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 mt-8">
+          <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 mt-8">
             <div className="space-y-2">
               <Button variant="outline" size="sm" className="w-full justify-start" asChild>
                 <a href="/dashboard" className="flex items-center gap-2">
@@ -496,20 +496,20 @@ function TrainlyAuth({ chatId, onConnected }) {
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto">
           {/* Top Bar */}
-          <div className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40">
+          <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-40">
             <div className="flex items-center justify-between p-6">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
                   {currentSection?.title || "Documentation"}
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-zinc-500">
                   Privacy-first API with user-controlled authentication
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-slate-600 dark:text-slate-400">API Operational</span>
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">API Operational</span>
                 </div>
                 <Button variant="outline" size="sm" asChild>
                   <a href="https://status.trainly.com" target="_blank">
@@ -524,11 +524,11 @@ function TrainlyAuth({ chatId, onConnected }) {
           <div className="p-8 max-w-4xl">
             {currentSection?.content || (
               <div className="text-center py-12">
-                <BookOpen className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                <BookOpen className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
                   Documentation Section
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-zinc-600 dark:text-zinc-400">
                   Select a section from the sidebar to view documentation.
                 </p>
               </div>

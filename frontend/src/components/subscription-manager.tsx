@@ -102,9 +102,9 @@ export function SubscriptionManager() {
   const getTierColor = (tier: string) => {
     switch (tier) {
       case 'pro': return 'from-blue-500 to-cyan-600';
-      case 'team': return 'from-purple-500 to-pink-600';
+      case 'team': return 'from-amber-500 to-amber-600';
       case 'startup': return 'from-orange-500 to-red-600';
-      default: return 'from-slate-500 to-slate-600';
+      default: return 'from-zinc-500 to-zinc-600';
     }
   };
 
@@ -157,18 +157,18 @@ export function SubscriptionManager() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
+              <p className="text-2xl font-bold text-zinc-900 dark:text-white">
                 {credits ? formatCredits(credits.usedCredits) : '0'} / {credits ? formatCredits(credits.totalCredits) : '0'}
               </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Credits used ({credits ? formatTokens(credits.totalCredits) : '0'} equivalent)
               </p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-semibold text-slate-900 dark:text-white">
+              <p className="text-lg font-semibold text-zinc-900 dark:text-white">
                 {credits ? formatCredits(credits.remainingCredits || 0) : '0'} remaining
               </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Credits left
               </p>
             </div>
@@ -185,7 +185,7 @@ export function SubscriptionManager() {
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
             <span>
               Period: {credits?.periodStart ? new Date(credits.periodStart).toLocaleDateString() : ''} - {credits?.periodEnd ? new Date(credits.periodEnd).toLocaleDateString() : ''}
             </span>
@@ -208,14 +208,14 @@ export function SubscriptionManager() {
           <CardContent>
             <div className="grid md:grid-cols-3 gap-4">
               {Object.entries(PRICING_TIERS).filter(([key]) => key !== 'FREE').map(([key, tier]) => (
-                <div key={key} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:border-trainlymainlight/50 transition-colors">
+                <div key={key} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 hover:border-amber-400/50 transition-colors">
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-8 h-8 bg-gradient-to-br ${getTierColor(tier.id)} rounded-lg flex items-center justify-center text-white`}>
                       {getTierIcon(tier.id)}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white">{tier.name}</h3>
-                      <p className="text-2xl font-bold text-slate-900 dark:text-white">${tier.price}<span className="text-sm font-normal text-slate-500">/mo</span></p>
+                      <h3 className="font-semibold text-zinc-900 dark:text-white">{tier.name}</h3>
+                      <p className="text-2xl font-bold text-zinc-900 dark:text-white">${tier.price}<span className="text-sm font-normal text-zinc-500">/mo</span></p>
                     </div>
                   </div>
 

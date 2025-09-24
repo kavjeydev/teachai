@@ -60,20 +60,20 @@ const ChatItem = React.memo(
       <button
         onClick={handleClick}
         className={cn(
-          "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 group",
+          "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 group",
           isActive &&
-            "bg-trainlymainlight/10 border border-trainlymainlight/20",
-          isNavigatingTo && "bg-trainlymainlight/5", // Immediate feedback
+            "bg-amber-400/10 border border-amber-400/20",
+          isNavigatingTo && "bg-amber-400/5", // Immediate feedback
         )}
       >
         <div
           className={cn(
             "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
             isActive
-              ? "bg-trainlymainlight text-white"
+              ? "bg-amber-400 text-white"
               : isNavigatingTo
-                ? "bg-trainlymainlight/50 text-white"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+                ? "bg-amber-400/50 text-white"
+                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
           )}
         >
           <MessageSquare className="h-3 w-3" />
@@ -83,21 +83,21 @@ const ChatItem = React.memo(
             className={cn(
               "text-sm font-medium truncate",
               isActive
-                ? "text-trainlymainlight"
+                ? "text-amber-400"
                 : isNavigatingTo
-                  ? "text-trainlymainlight/70"
-                  : "text-slate-900 dark:text-white",
+                  ? "text-amber-400/70"
+                  : "text-zinc-900 dark:text-white",
             )}
           >
             {chat.title}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
             {chat.context?.length || 0} docs •{" "}
             {new Date(chat._creationTime).toLocaleDateString()}
           </div>
         </div>
         {isNavigatingTo && !isActive && (
-          <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+          <div className="w-3 h-3 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
         )}
       </button>
     );
@@ -253,7 +253,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className="fixed left-0 top-0 h-full z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-r border-slate-200/50 dark:border-slate-800/50"
+        className="fixed left-0 top-0 h-full z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border-r border-zinc-200/50 dark:border-zinc-800/50"
         style={{
           width: `${currentWidth}px`,
           transition: isResizing ? "none" : "width 300ms ease-out",
@@ -263,21 +263,21 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
           {/* Header */}
           <div
             className={cn(
-              "border-b border-slate-200/50 dark:border-slate-800/50",
+              "border-b border-zinc-200/50 dark:border-zinc-800/50",
               isCollapsed ? "p-2" : "p-3",
             )}
           >
             {!isCollapsed ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
                     <span className="text-white font-bold text-xs">T</span>
                   </div>
                   <div>
-                    <h2 className="font-bold text-slate-900 dark:text-white text-sm">
+                    <h2 className="font-bold text-zinc-900 dark:text-white text-sm">
                       trainly
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-none">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-none">
                       GraphRAG Platform
                     </p>
                   </div>
@@ -285,24 +285,24 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
                 <button
                   onClick={toggleCollapse}
-                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   title="Collapse sidebar"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5 text-slate-500" />
+                  <ChevronLeft className="h-3.5 w-3.5 text-zinc-500" />
                 </button>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
                   <span className="text-white font-bold text-sm">T</span>
                 </div>
 
                 <button
                   onClick={toggleCollapse}
-                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   title="Expand sidebar"
                 >
-                  <ChevronRight className="h-3 w-3 text-slate-500" />
+                  <ChevronRight className="h-3 w-3 text-zinc-500" />
                 </button>
               </div>
             )}
@@ -317,7 +317,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   <div className="mb-6">
                     <Button
                       onClick={onCreate}
-                      className="w-full bg-gradient-to-r from-trainlymainlight to-purple-600 hover:from-trainlymainlight/90 hover:to-purple-600/90 text-white rounded-xl shadow-lg hover:shadow-trainlymainlight/25 transition-all duration-200 flex items-center gap-2 mb-4"
+                      className="w-full bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white rounded-xl shadow-lg hover:shadow-amber-400/25 transition-all duration-200 flex items-center gap-2 mb-4"
                     >
                       <PlusCircle className="h-4 w-4" />
                       New Chat
@@ -329,10 +329,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     <div className="space-y-1">
                       <button
                         onClick={() => router.push("/")}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
                       >
-                        <Home className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
-                        <span className="text-sm font-medium text-slate-900 dark:text-white group-hover:text-trainlymainlight">
+                        <Home className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
+                        <span className="text-sm font-medium text-zinc-900 dark:text-white group-hover:text-amber-400">
                           Home
                         </span>
                       </button>
@@ -348,24 +348,24 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             navigation.finish();
                           }, 1000);
                         }}
-                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
                         disabled={isNavigatingToManage}
                       >
                         <div className="flex items-center gap-3">
-                          <LayoutGrid className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
-                          <span className="text-sm font-medium text-slate-900 dark:text-white group-hover:text-trainlymainlight">
+                          <LayoutGrid className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
+                          <span className="text-sm font-medium text-zinc-900 dark:text-white group-hover:text-amber-400">
                             My Chats
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
                           {isNavigatingToManage ? (
-                            <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                            <div className="w-3 h-3 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
                           ) : (
                             <>
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-zinc-400">
                                 {chats?.length || 0}
                               </span>
-                              <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-trainlymainlight" />
+                              <ChevronRight className="w-3 h-3 text-zinc-400 group-hover:text-amber-400" />
                             </>
                           )}
                         </div>
@@ -376,7 +376,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   {/* Pinned Chats */}
                   {pinnedChats.length > 0 && (
                     <div className="mb-6">
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-semibold mb-3 text-sm">
+                      <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 font-semibold mb-3 text-sm">
                         <Star className="h-3 w-3" />
                         <span>Pinned</span>
                       </div>
@@ -399,7 +399,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
                   {/* Recent Chats */}
                   <div className="mb-6">
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-semibold mb-3 text-sm">
+                    <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 font-semibold mb-3 text-sm">
                       <Clock className="h-3 w-3" />
                       <span>Recent</span>
                     </div>
@@ -411,10 +411,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                               key={index}
                               className="flex items-center gap-3 p-2 animate-pulse"
                             >
-                              <div className="w-6 h-6 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                              <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-lg"></div>
                               <div className="flex-1 space-y-1">
-                                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-                                <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded w-1/2"></div>
+                                <div className="h-3 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4"></div>
+                                <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded w-1/2"></div>
                               </div>
                             </div>
                           ))
@@ -442,18 +442,18 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                               1000,
                             );
                           }}
-                          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group mt-2"
+                          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group mt-2"
                           disabled={isNavigatingToManage}
                         >
-                          <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight">
+                          <span className="text-sm text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
                             {isNavigatingToManage
                               ? "Loading..."
                               : "View all chats"}
                           </span>
                           {isNavigatingToManage ? (
-                            <div className="w-3 h-3 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                            <div className="w-3 h-3 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
                           ) : (
-                            <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-trainlymainlight" />
+                            <ChevronRight className="w-3 h-3 text-zinc-400 group-hover:text-amber-400" />
                           )}
                         </button>
                       </div>
@@ -468,21 +468,21 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                           currentChatId &&
                           router.push(`/dashboard/${currentChatId}/graph`)
                         }
-                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
+                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
                         disabled={!currentChatId}
                       >
-                        <Network className="h-4 w-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
-                        <span className="text-xs text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight">
+                        <Network className="h-4 w-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
+                        <span className="text-xs text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
                           Graph
                         </span>
                       </button>
 
                       <button
                         onClick={() => window.open("/api-docs", "_blank")}
-                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
+                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
                       >
-                        <Code className="h-4 w-4 text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight" />
-                        <span className="text-xs text-slate-600 dark:text-slate-400 group-hover:text-trainlymainlight">
+                        <Code className="h-4 w-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
+                        <span className="text-xs text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
                           API
                         </span>
                       </button>
@@ -497,7 +497,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                 <div className="space-y-2 w-full">
                   <button
                     onClick={onCreate}
-                    className="w-10 h-10 bg-trainlymainlight hover:bg-trainlymainlight/90 text-white rounded-lg shadow-md hover:shadow-trainlymainlight/25 transition-all duration-200 flex items-center justify-center mx-auto"
+                    className="w-10 h-10 bg-amber-400 hover:bg-amber-400/90 text-white rounded-lg shadow-md hover:shadow-amber-400/25 transition-all duration-200 flex items-center justify-center mx-auto"
                     title="New Chat"
                   >
                     <PlusCircle className="h-4 w-4" />
@@ -505,10 +505,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
                   <button
                     onClick={() => router.push("/")}
-                    className="w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center mx-auto"
+                    className="w-10 h-10 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center mx-auto"
                     title="Home"
                   >
-                    <Home className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    <Home className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                   </button>
 
                   <button
@@ -517,17 +517,17 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       router.push("/dashboard/manage");
                       setTimeout(() => setIsNavigatingToManage(false), 1000);
                     }}
-                    className="w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center relative mx-auto"
+                    className="w-10 h-10 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center relative mx-auto"
                     title={`My Chats (${chats?.length || 0})`}
                     disabled={isNavigatingToManage}
                   >
                     {isNavigatingToManage ? (
-                      <div className="w-4 h-4 border border-trainlymainlight/50 border-t-trainlymainlight rounded-full animate-spin" />
+                      <div className="w-4 h-4 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
                     ) : (
                       <>
-                        <LayoutGrid className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                        <LayoutGrid className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                         {chats && chats.length > 0 && (
-                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-trainlymainlight text-white text-xs rounded-full flex items-center justify-center">
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-white text-xs rounded-full flex items-center justify-center">
                             {chats.length > 9 ? "9" : chats.length}
                           </div>
                         )}
@@ -537,7 +537,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                 </div>
 
                 {/* Divider */}
-                <div className="w-6 h-px bg-slate-200 dark:bg-slate-700 mx-auto"></div>
+                <div className="w-6 h-px bg-zinc-200 dark:bg-zinc-700 mx-auto"></div>
 
                 {/* Recent Chats - Collapsed */}
                 <div className="space-y-2 w-full">
@@ -546,9 +546,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       key={chat._id}
                       onClick={() => router.push(`/dashboard/${chat._id}`)}
                       className={cn(
-                        "w-10 h-10 rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center mx-auto",
+                        "w-10 h-10 rounded-lg transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center mx-auto",
                         chat._id === currentChatId &&
-                          "bg-trainlymainlight/10 ring-2 ring-trainlymainlight/30",
+                          "bg-amber-400/10 ring-2 ring-amber-400/30",
                       )}
                       title={chat.title}
                     >
@@ -556,8 +556,8 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         className={cn(
                           "w-5 h-5 rounded-md flex items-center justify-center",
                           chat._id === currentChatId
-                            ? "bg-trainlymainlight text-white"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+                            ? "bg-amber-400 text-white"
+                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
                         )}
                       >
                         <MessageSquare className="h-3 w-3" />
@@ -573,10 +573,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       onClick={() =>
                         router.push(`/dashboard/${currentChatId}/graph`)
                       }
-                      className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center mx-auto"
+                      className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center mx-auto"
                       title="Graph View"
                     >
-                      <Network className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                      <Network className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                     </button>
                   </div>
                 )}
@@ -586,23 +586,23 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
           {/* Footer */}
           {!isCollapsed ? (
-            <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700">
+            <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-700">
                 <button
                   onClick={() => router.push("/profile")}
                   className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.imageUrl} className="rounded-full" />
-                    <AvatarFallback className="bg-trainlymainlight text-white text-sm">
+                    <AvatarFallback className="bg-amber-400 text-white text-sm">
                       {user?.firstName?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 text-left">
-                    <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
+                    <div className="font-medium text-sm text-zinc-900 dark:text-white truncate">
                       {user?.firstName}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                       View Profile & Usage
                     </div>
                   </div>
@@ -612,7 +612,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     variant="ghost"
                     size="sm"
                     onClick={() => router.push("/profile")}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-trainlymainlight rounded-lg"
+                    className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-amber-400 rounded-lg"
                     title="Profile Settings"
                   >
                     <Settings className="h-4 w-4" />
@@ -621,7 +621,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 rounded-lg"
+                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-zinc-500 hover:text-red-600 rounded-lg"
                       title="Sign Out"
                     >
                       <LogOut className="h-4 w-4" />
@@ -631,10 +631,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
               </div>
             </div>
           ) : (
-            <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
+            <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
               <button
                 onClick={() => router.push("/profile")}
-                className="w-full flex justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg p-2 transition-colors"
+                className="w-full flex justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg p-2 transition-colors"
                 title="View Profile & Usage"
               >
                 <Avatar className="h-10 w-10">
@@ -642,7 +642,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     src={user?.imageUrl}
                     className="rounded-full"
                   />
-                  <AvatarFallback className="bg-trainlymainlight text-white text-sm">
+                  <AvatarFallback className="bg-amber-400 text-white text-sm">
                     {user?.firstName?.[0]}
                   </AvatarFallback>
                 </Avatar>
@@ -654,11 +654,11 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
         {/* Resize Handle */}
         {!isCollapsed && (
           <div
-            className="absolute top-0 right-0 w-1 h-full cursor-col-resize group hover:bg-trainlymainlight/20 transition-colors"
+            className="absolute top-0 right-0 w-1 h-full cursor-col-resize group hover:bg-amber-400/20 transition-colors"
             onMouseDown={handleMouseDown}
           >
             <div className="absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="bg-trainlymainlight text-white p-1 rounded-md shadow-lg">
+              <div className="bg-amber-400 text-white p-1 rounded-md shadow-lg">
                 <GripVertical className="h-3 w-3" />
               </div>
             </div>

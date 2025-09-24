@@ -348,16 +348,16 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   if (currentChat?.visibility === "public" && currentChat.userId !== user.id) {
     return (
       <div>
-        <div className="h-screen w-screen dark:bg-gray-900 bg-white font-geist">
+        <div className="h-screen w-screen dark:bg-zinc-900 bg-white font-geist">
           <Toaster position="top-center" richColors />
-          <div className="h-screen w-screen flex flex-col pb-8 dark:bg-gray-900 bg-white">
+          <div className="h-screen w-screen flex flex-col pb-8 dark:bg-zinc-900 bg-white">
             <div className="flex h-full justify-center overflow-y-auto w-full scrollbar-none">
               <div className="absolute top-4 left-72 flex items-center gap-2"></div>
               <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white">
                 <ChatNavbar chatId={chatId} />
                 <PublicNav />
                 {chatContent?.length === 0 && (
-                  <p className="text-center text-gray-500">
+                  <p className="text-center text-zinc-500">
                     No messages yet. Ask something!
                   </p>
                 )}
@@ -469,7 +469,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     );
   }
   return (
-    <div className="h-screen w-screen dark:bg-gray-900 bg-white font-geist">
+    <div className="h-screen w-screen dark:bg-zinc-900 bg-white font-geist">
       <Toaster position="top-center" richColors />
 
       <div className="h-screen w-screen flex flex-col pb-8">
@@ -493,7 +493,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
           </div>
           <div className="w-full max-w-3xl mx-auto p-4 mt-12 rounded-2xl text-white">
             {chatContent?.length === 0 && (
-              <p className="text-center text-gray-500">
+              <p className="text-center text-zinc-500">
                 No messages yet. Ask something!
               </p>
             )}

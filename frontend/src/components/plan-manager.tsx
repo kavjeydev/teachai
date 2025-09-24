@@ -256,19 +256,19 @@ export function PlanManager() {
               key={plan.id}
               className={cn(
                 "relative overflow-hidden transition-all duration-200",
-                isCurrent && "ring-2 ring-trainlymainlight bg-blue-50/50 dark:bg-blue-900/10",
+                isCurrent && "ring-2 ring-amber-400 bg-blue-50/50 dark:bg-blue-900/10",
                 isPending && "ring-2 ring-orange-400 bg-orange-50/50 dark:bg-orange-900/10",
-                plan.popular && !isCurrent && "ring-2 ring-purple-400"
+                plan.popular && !isCurrent && "ring-2 ring-amber-400"
               )}
             >
               {plan.popular && !isCurrent && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-trainlymainlight text-white text-xs font-medium text-center py-1">
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-600 to-amber-400 text-white text-xs font-medium text-center py-1">
                   Most Popular
                 </div>
               )}
 
               {isCurrent && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-trainlymainlight to-blue-600 text-white text-xs font-medium text-center py-1">
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-400 to-blue-600 text-white text-xs font-medium text-center py-1">
                   Current Plan
                 </div>
               )}
@@ -287,16 +287,16 @@ export function PlanManager() {
                 <div className="space-y-1">
                   <div className="text-2xl font-bold">
                     {plan.price}
-                    {plan.id !== 'free' && <span className="text-sm font-normal text-slate-500">/month</span>}
+                    {plan.id !== 'free' && <span className="text-sm font-normal text-zinc-500">/month</span>}
                   </div>
                   <CardDescription className="text-xs">{plan.description}</CardDescription>
                 </div>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="text-center p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <div className="font-semibold text-trainlymainlight">{plan.credits} credits</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">per month</div>
+                <div className="text-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                  <div className="font-semibold text-amber-400">{plan.credits} credits</div>
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">per month</div>
                 </div>
 
                 <div className="space-y-2">
@@ -305,10 +305,10 @@ export function PlanManager() {
                       {feature.included ? (
                         <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
                       ) : (
-                        <X className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <X className="w-4 h-4 text-zinc-400 flex-shrink-0" />
                       )}
                       <span className={cn(
-                        feature.included ? "text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"
+                        feature.included ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"
                       )}>
                         {feature.text}
                       </span>
@@ -355,7 +355,7 @@ export function PlanManager() {
             Plan Change Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+        <CardContent className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
           <div className="flex items-start gap-2">
             <ArrowRight className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
             <span><strong>Upgrades</strong> take effect immediately and you'll be charged the prorated amount.</span>
@@ -369,7 +369,7 @@ export function PlanManager() {
             <span><strong>Change your mind?</strong> You can cancel any scheduled plan change anytime before it takes effect.</span>
           </div>
           <div className="flex items-start gap-2">
-            <Zap className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+            <Zap className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
             <span><strong>Credits</strong> are adjusted based on your new plan at the next billing cycle.</span>
           </div>
         </CardContent>

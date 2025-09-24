@@ -27,11 +27,11 @@ export const apiDocsSections = {
     content: (
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl p-8 border border-blue-200 dark:border-blue-800">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+        <div className="bg-gradient-to-r from-blue-50 to-amber-50 dark:from-blue-950/30 dark:to-amber-950/30 rounded-xl p-8 border border-blue-200 dark:border-blue-800">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
             Welcome to Trainly API
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">
+          <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
             Build AI applications with complete user privacy. Users control
             their authentication tokens and data access.
           </p>
@@ -42,7 +42,7 @@ export const apiDocsSections = {
             <Badge className="bg-blue-100 text-blue-800 border-blue-200">
               📱 Each Chat = App
             </Badge>
-            <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+            <Badge className="bg-amber-100 text-amber-800 border-amber-200">
               🛡️ Privacy-First
             </Badge>
           </div>
@@ -58,10 +58,10 @@ export const apiDocsSections = {
               <CardTitle className="text-lg">Get Chat API Key</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                 Enable API access for your chat in the Trainly dashboard
               </p>
-              <code className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+              <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
                 Chat Settings → API Access → Generate Key
               </code>
             </CardContent>
@@ -75,27 +75,27 @@ export const apiDocsSections = {
               <CardTitle className="text-lg">Token Exchange</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                 Exchange user's Clerk token for secure Trainly token
               </p>
-              <code className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+              <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
                 POST /oauth/token → Bearer token
               </code>
             </CardContent>
           </Card>
 
-          <Card className="border border-purple-200 dark:border-purple-800">
+          <Card className="border border-amber-200 dark:border-amber-800">
             <CardHeader>
-              <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center mb-2">
+              <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mb-2">
                 <span className="text-white font-bold">3</span>
               </div>
               <CardTitle className="text-lg">Query User Data</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                 Users query their private data with complete privacy protection
               </p>
-              <code className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+              <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
                 POST /me/chats/query → AI responses only
               </code>
             </CardContent>
@@ -113,10 +113,10 @@ export const apiDocsSections = {
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">
+                <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3">
                   For Your Users:
                 </h4>
-                <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500" />
                     Complete control over their data and authentication
@@ -132,10 +132,10 @@ export const apiDocsSections = {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">
+                <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3">
                   For Developers:
                 </h4>
-                <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-blue-500" />
                     Zero liability for user data security
@@ -162,10 +162,10 @@ export const apiDocsSections = {
     content: (
       <div className="space-y-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
             User-Controlled Authentication
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             Trainly uses a token exchange system where users control their own
             authentication tokens. Developers never see or control user tokens,
             ensuring complete privacy protection.
@@ -208,15 +208,15 @@ export const apiDocsSections = {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
-                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center text-white font-bold">
+              <div className="flex items-start gap-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white font-bold">
                   3
                 </div>
                 <div>
-                  <h4 className="font-semibold text-purple-800 dark:text-purple-200">
+                  <h4 className="font-semibold text-amber-800 dark:text-amber-200">
                     Secure Storage
                   </h4>
-                  <p className="text-sm text-purple-700 dark:text-purple-300">
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
                     Trainly token stored on user's device only - you never see
                     it
                   </p>
@@ -275,10 +275,10 @@ export const apiDocsSections = {
     content: (
       <div className="space-y-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
             Privacy Protection System
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             Our multi-layered privacy protection ensures users can trust
             uploading sensitive documents while developers can still build
             powerful AI applications.
@@ -295,11 +295,11 @@ export const apiDocsSections = {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                 Each user gets their own completely isolated subchat. Cross-user
                 data access is impossible.
               </p>
-              <div className="bg-slate-900 rounded-lg p-4">
+              <div className="bg-zinc-900 rounded-lg p-4">
                 <pre className="text-green-400 text-sm">
                   {`// Database queries automatically scoped
 WHERE subchat_id = 'subchat_chatid_userid'
@@ -318,7 +318,7 @@ AND external_user_id = 'verified_user_from_token'
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                 Developers get AI responses only. Detailed citations are
                 filtered to prevent content reconstruction.
               </p>
@@ -356,10 +356,10 @@ AND external_user_id = 'verified_user_from_token'
     content: (
       <div className="space-y-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
             RFC 8693 Token Exchange
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             Exchange user's Clerk ID token for a short-lived Trainly access
             token. This enables user-controlled authentication without OAuth
             complexity.
@@ -374,7 +374,7 @@ AND external_user_id = 'verified_user_from_token'
             <div className="space-y-6">
               <div>
                 <h4 className="font-semibold mb-3">Request</h4>
-                <div className="bg-slate-900 rounded-lg p-4">
+                <div className="bg-zinc-900 rounded-lg p-4">
                   <pre className="text-green-400 text-sm">
                     {`{
   "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -389,7 +389,7 @@ AND external_user_id = 'verified_user_from_token'
 
               <div>
                 <h4 className="font-semibold mb-3">Response</h4>
-                <div className="bg-slate-900 rounded-lg p-4">
+                <div className="bg-zinc-900 rounded-lg p-4">
                   <pre className="text-blue-400 text-sm">
                     {`{
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -433,10 +433,10 @@ AND external_user_id = 'verified_user_from_token'
     content: (
       <div className="space-y-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
             User-Private Chat Queries
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             Users query their private chat data using secure tokens. Citations
             are filtered for privacy protection.
           </p>
@@ -456,7 +456,7 @@ AND external_user_id = 'verified_user_from_token'
                     Authorization: Bearer &lt;trainly_token&gt;
                   </code>
                 </div>
-                <div className="bg-slate-900 rounded-lg p-4">
+                <div className="bg-zinc-900 rounded-lg p-4">
                   <pre className="text-green-400 text-sm">
                     {`{
   "question": "What are the key concepts from my study materials?",
@@ -468,7 +468,7 @@ AND external_user_id = 'verified_user_from_token'
 
               <div>
                 <h4 className="font-semibold mb-3">Response</h4>
-                <div className="bg-slate-900 rounded-lg p-4">
+                <div className="bg-zinc-900 rounded-lg p-4">
                   <pre className="text-blue-400 text-sm">
                     {`{
   "answer": "Based on your study materials, the key concepts are...",
@@ -507,10 +507,10 @@ AND external_user_id = 'verified_user_from_token'
     content: (
       <div className="space-y-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
             React Integration Guide
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             Complete React integration with hooks and components for Trainly's
             privacy-first API.
           </p>
@@ -521,7 +521,7 @@ AND external_user_id = 'verified_user_from_token'
             <CardTitle>useTrainlyAuth Hook</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-slate-900 rounded-lg p-6">
+            <div className="bg-zinc-900 rounded-lg p-6">
               <pre className="text-green-400 text-sm overflow-x-auto">
                 {`import { useUser } from '@clerk/clerk-react';
 import { useState, useEffect } from 'react';

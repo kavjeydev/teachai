@@ -78,10 +78,10 @@ export function ChatStatsWidget({ stats, chatType, className = "" }: ChatStatsWi
 
   // For main app chats, show comprehensive analytics
   return (
-    <Card className={`shadow-lg border border-slate-200 dark:border-slate-800 ${className}`}>
+    <Card className={`shadow-lg border border-zinc-200 dark:border-zinc-800 ${className}`}>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+          <CardTitle className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200">
             <Activity className="w-5 h-5" />
             App Analytics
           </CardTitle>
@@ -139,10 +139,10 @@ export function ChatStatsWidget({ stats, chatType, className = "" }: ChatStatsWi
             </div>
           </div>
 
-          <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
-            <HardDrive className="w-5 h-5 text-purple-600 mx-auto mb-1" />
-            <div className="text-lg font-bold text-purple-800 dark:text-purple-200">{stats.storageFormatted}</div>
-            <div className="text-xs text-purple-600 dark:text-purple-400">
+          <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            <HardDrive className="w-5 h-5 text-amber-600 mx-auto mb-1" />
+            <div className="text-lg font-bold text-amber-800 dark:text-amber-200">{stats.storageFormatted}</div>
+            <div className="text-xs text-amber-600 dark:text-amber-400">
               Storage used
             </div>
           </div>
@@ -157,15 +157,15 @@ export function ChatStatsWidget({ stats, chatType, className = "" }: ChatStatsWi
         </div>
 
         {/* Activity Summary */}
-        <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-slate-500" />
-              <span className="text-slate-600 dark:text-slate-400">
+              <Activity className="w-4 h-4 text-zinc-500" />
+              <span className="text-zinc-600 dark:text-zinc-400">
                 {stats.totalQueries} total queries
               </span>
             </div>
-            <div className="text-slate-500">
+            <div className="text-zinc-500">
               {stats.lastActivityAt > 0 ? formatTimeAgo(stats.lastActivityAt) : 'No activity'}
             </div>
           </div>
@@ -187,11 +187,11 @@ export function ChatStatsCompact({ stats, chatType }: ChatStatsWidgetProps) {
   const isPrivacyFirst = stats.privacyMode === "privacy_first";
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-slate-500" />
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Stats</span>
+          <Activity className="w-4 h-4 text-zinc-500" />
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Stats</span>
         </div>
         {isPrivacyFirst && (
           <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
@@ -204,15 +204,15 @@ export function ChatStatsCompact({ stats, chatType }: ChatStatsWidgetProps) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
           <div className="text-sm font-bold text-blue-700 dark:text-blue-300">{stats.totalUsers}</div>
-          <div className="text-xs text-slate-500">Users</div>
+          <div className="text-xs text-zinc-500">Users</div>
         </div>
         <div>
           <div className="text-sm font-bold text-green-700 dark:text-green-300">{stats.totalFiles}</div>
-          <div className="text-xs text-slate-500">Files</div>
+          <div className="text-xs text-zinc-500">Files</div>
         </div>
         <div>
-          <div className="text-sm font-bold text-purple-700 dark:text-purple-300">{stats.storageFormatted}</div>
-          <div className="text-xs text-slate-500">Storage</div>
+          <div className="text-sm font-bold text-amber-700 dark:text-amber-300">{stats.storageFormatted}</div>
+          <div className="text-xs text-zinc-500">Storage</div>
         </div>
       </div>
 

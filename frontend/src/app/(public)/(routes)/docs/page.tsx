@@ -261,18 +261,18 @@ print('Total:', data['total'])`
   const categories = Array.from(new Set(endpoints.map(e => e.category)));
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
       {/* Header */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl sticky top-0 z-50">
+      <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-amber-600 rounded-xl flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">API Documentation</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Build with the Trainly API</p>
+                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">API Documentation</h1>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">Build with the Trainly API</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -296,10 +296,10 @@ print('Total:', data['total'])`
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">
+          <h1 className="text-5xl font-bold text-zinc-900 dark:text-white mb-6">
             Build AI-powered applications
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+          <p className="text-xl text-zinc-600 dark:text-zinc-300 max-w-3xl mx-auto mb-8">
             The Trainly API gives you access to powerful knowledge graphs and AI capabilities.
             Query documents, extract insights, and build intelligent experiences.
           </p>
@@ -322,37 +322,37 @@ print('Total:', data['total'])`
 
         {/* Feature Cards */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <Card className="border border-gray-200 dark:border-gray-800 hover:shadow-lg transition-all duration-200">
+          <Card className="border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-200">
             <CardContent className="p-8">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-xl flex items-center justify-center mb-6">
                 <MessageSquare className="w-6 h-6 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Natural Language Queries</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">Natural Language Queries</h3>
+              <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
                 Ask questions in natural language and get intelligent responses powered by your knowledge base.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 dark:border-gray-800 hover:shadow-lg transition-all duration-200">
+          <Card className="border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-200">
             <CardContent className="p-8">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-xl flex items-center justify-center mb-6">
-                <Database className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/20 rounded-xl flex items-center justify-center mb-6">
+                <Database className="w-6 h-6 text-amber-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Knowledge Graphs</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">Knowledge Graphs</h3>
+              <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
                 Access structured representations of your data with entities, relationships, and rich metadata.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 dark:border-gray-800 hover:shadow-lg transition-all duration-200">
+          <Card className="border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-all duration-200">
             <CardContent className="p-8">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-xl flex items-center justify-center mb-6">
                 <FileText className="w-6 h-6 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Document Processing</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">Document Processing</h3>
+              <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
                 Upload and process documents automatically with entity extraction and relationship mapping.
               </p>
             </CardContent>
@@ -362,20 +362,20 @@ print('Total:', data['total'])`
         {/* Quick Start Section */}
         <div id="quickstart" className="mb-16">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Quick Start</h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300">Get up and running in under 5 minutes</p>
+            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">Quick Start</h2>
+            <p className="text-lg text-zinc-600 dark:text-zinc-300">Get up and running in under 5 minutes</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            <Card className="border border-gray-200 dark:border-gray-800">
-              <CardHeader className="border-b border-gray-200 dark:border-gray-800">
+            <Card className="border border-zinc-200 dark:border-zinc-800">
+              <CardHeader className="border-b border-zinc-200 dark:border-zinc-800">
                 <CardTitle className="flex items-center gap-2">
                   <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
                   Get your API key
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-zinc-600 dark:text-zinc-300 mb-4">
                   Generate your API key from your dashboard to authenticate requests.
                 </p>
                 <Button variant="outline" asChild>
@@ -387,19 +387,19 @@ print('Total:', data['total'])`
               </CardContent>
             </Card>
 
-            <Card className="border border-gray-200 dark:border-gray-800">
-              <CardHeader className="border-b border-gray-200 dark:border-gray-800">
+            <Card className="border border-zinc-200 dark:border-zinc-800">
+              <CardHeader className="border-b border-zinc-200 dark:border-zinc-800">
                 <CardTitle className="flex items-center gap-2">
                   <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
                   Make your first request
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-zinc-600 dark:text-zinc-300 mb-4">
                   Try the API with a simple question to your knowledge base.
                 </p>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-sm font-mono">
-                  <code className="text-gray-800 dark:text-gray-200">
+                <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4 text-sm font-mono">
+                  <code className="text-zinc-800 dark:text-zinc-200">
                     curl -X POST api.trainlyai.com/v1/your-chat-id/answer_question
                   </code>
                 </div>
@@ -411,14 +411,14 @@ print('Total:', data['total'])`
         {/* API Reference Section */}
         <div className="mb-16">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">API Reference</h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300">Complete documentation for all endpoints</p>
+            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">API Reference</h2>
+            <p className="text-lg text-zinc-600 dark:text-zinc-300">Complete documentation for all endpoints</p>
           </div>
 
           <div className="grid lg:grid-cols-4 gap-8">
             {/* Sidebar Navigation */}
             <div className="lg:col-span-1">
-              <Card className="border border-gray-200 dark:border-gray-800 sticky top-24">
+              <Card className="border border-zinc-200 dark:border-zinc-800 sticky top-24">
                 <CardHeader>
                   <CardTitle className="text-lg">Endpoints</CardTitle>
                 </CardHeader>
@@ -426,7 +426,7 @@ print('Total:', data['total'])`
                   <div className="space-y-1">
                     {categories.map((category) => (
                       <div key={category}>
-                        <div className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
+                        <div className="px-4 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
                           {category}
                         </div>
                         {endpoints.filter(e => e.category === category).map((endpoint) => (
@@ -434,7 +434,7 @@ print('Total:', data['total'])`
                             key={endpoint.id}
                             onClick={() => setSelectedEndpoint(endpoint.id)}
                             className={cn(
-                              "w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2",
+                              "w-full text-left px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2",
                               selectedEndpoint === endpoint.id && "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600"
                             )}
                           >
@@ -454,8 +454,8 @@ print('Total:', data['total'])`
             {/* Main Content */}
             <div className="lg:col-span-3">
               {endpoints.filter(e => e.id === selectedEndpoint).map((endpoint) => (
-                <Card key={endpoint.id} className="border border-gray-200 dark:border-gray-800">
-                  <CardHeader className="border-b border-gray-200 dark:border-gray-800">
+                <Card key={endpoint.id} className="border border-zinc-200 dark:border-zinc-800">
+                  <CardHeader className="border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-2xl flex items-center gap-3">
@@ -464,11 +464,11 @@ print('Total:', data['total'])`
                           </Badge>
                           {endpoint.title}
                         </CardTitle>
-                        <p className="text-gray-600 dark:text-gray-300 mt-2">{endpoint.description}</p>
+                        <p className="text-zinc-600 dark:text-zinc-300 mt-2">{endpoint.description}</p>
                       </div>
                     </div>
-                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg font-mono text-sm">
-                      <code className="text-gray-800 dark:text-gray-200">
+                    <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg font-mono text-sm">
+                      <code className="text-zinc-800 dark:text-zinc-200">
                         {endpoint.method} https://api.trainlyai.com{endpoint.path}
                       </code>
                       <Button
@@ -486,12 +486,12 @@ print('Total:', data['total'])`
                       {/* Parameters */}
                       {endpoint.parameters.length > 0 && (
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Parameters</h3>
+                          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Parameters</h3>
                           <div className="space-y-4">
                             {endpoint.parameters.map((param, idx) => (
-                              <div key={idx} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                              <div key={idx} className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
                                 <div className="flex items-center gap-3 mb-2">
-                                  <code className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono">
+                                  <code className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-sm font-mono">
                                     {param.name}
                                   </code>
                                   <Badge variant="outline" className="text-xs">
@@ -503,12 +503,12 @@ print('Total:', data['total'])`
                                     </Badge>
                                   )}
                                   {param.default && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
                                       Default: {param.default}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-gray-600 dark:text-gray-300 text-sm">
+                                <p className="text-zinc-600 dark:text-zinc-300 text-sm">
                                   {param.description}
                                 </p>
                               </div>
@@ -519,7 +519,7 @@ print('Total:', data['total'])`
 
                       {/* Code Examples */}
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Code Examples</h3>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Code Examples</h3>
                         <Tabs value={selectedLanguage} onValueChange={setSelectedLanguage}>
                           <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="javascript">JavaScript</TabsTrigger>
@@ -529,13 +529,13 @@ print('Total:', data['total'])`
                           {Object.entries(codeExamples).map(([lang, examples]) => (
                             <TabsContent key={lang} value={lang} className="mt-4">
                               <div className="relative">
-                                <pre className="bg-gray-900 text-gray-100 p-6 rounded-lg overflow-x-auto text-sm leading-relaxed">
+                                <pre className="bg-zinc-900 text-zinc-100 p-6 rounded-lg overflow-x-auto text-sm leading-relaxed">
                                   <code>{examples[endpoint.id as keyof typeof examples]}</code>
                                 </pre>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                                  className="absolute top-4 right-4 text-zinc-400 hover:text-white"
                                   onClick={() => copyToClipboard(
                                     examples[endpoint.id as keyof typeof examples],
                                     "Code example"
@@ -558,7 +558,7 @@ print('Total:', data['total'])`
 
         {/* Authentication & Rate Limits */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">
-          <Card className="border border-gray-200 dark:border-gray-800">
+          <Card className="border border-zinc-200 dark:border-zinc-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="w-5 h-5 text-orange-600" />
@@ -566,11 +566,11 @@ print('Total:', data['total'])`
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
+              <p className="text-zinc-600 dark:text-zinc-300 mb-4">
                 All API requests require authentication using your API key in the Authorization header.
               </p>
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 font-mono text-sm">
-                <code className="text-gray-800 dark:text-gray-200">
+              <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4 font-mono text-sm">
+                <code className="text-zinc-800 dark:text-zinc-200">
                   Authorization: Bearer YOUR_API_KEY
                 </code>
               </div>
@@ -585,7 +585,7 @@ print('Total:', data['total'])`
             </CardContent>
           </Card>
 
-          <Card className="border border-gray-200 dark:border-gray-800">
+          <Card className="border border-zinc-200 dark:border-zinc-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-blue-600" />
@@ -594,16 +594,16 @@ print('Total:', data['total'])`
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
-                  <span className="text-gray-600 dark:text-gray-300">Requests per minute</span>
+                <div className="flex justify-between items-center py-2 border-b border-zinc-100 dark:border-zinc-800">
+                  <span className="text-zinc-600 dark:text-zinc-300">Requests per minute</span>
                   <Badge variant="secondary">60</Badge>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
-                  <span className="text-gray-600 dark:text-gray-300">Requests per hour</span>
+                <div className="flex justify-between items-center py-2 border-b border-zinc-100 dark:border-zinc-800">
+                  <span className="text-zinc-600 dark:text-zinc-300">Requests per hour</span>
                   <Badge variant="secondary">1,000</Badge>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600 dark:text-gray-300">File uploads per day</span>
+                  <span className="text-zinc-600 dark:text-zinc-300">File uploads per day</span>
                   <Badge variant="secondary">100</Badge>
                 </div>
               </div>
@@ -612,10 +612,10 @@ print('Total:', data['total'])`
         </div>
 
         {/* Support Section */}
-        <Card className="border border-gray-200 dark:border-gray-800">
+        <Card className="border border-zinc-200 dark:border-zinc-800">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Need Help?</CardTitle>
-            <p className="text-gray-600 dark:text-gray-300">Get support and connect with our community</p>
+            <p className="text-zinc-600 dark:text-zinc-300">Get support and connect with our community</p>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-3 gap-4">

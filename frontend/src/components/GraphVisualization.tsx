@@ -632,7 +632,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               setCurrentLayout(e.target.value as any)
             }
-            className="px-3 py-1 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 text-sm"
+            className="px-3 py-1 border rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 text-sm"
           >
             <option value="dagre">Hierarchical</option>
             <option value="cose-bilkent">Force-directed</option>
@@ -644,26 +644,28 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         {/* Graph Container */}
         <div
           ref={cyRef}
-          className="w-full h-full bg-gray-50 dark:bg-gray-900 relative"
+          className="w-full h-full bg-zinc-50 dark:bg-zinc-900 relative"
           style={{ minHeight: "600px" }}
         >
           {/* Loading Overlay */}
           {(isInitializing || isLoading) && (
-            <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-amber-600 dark:from-blue-500 dark:to-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400 mb-2">
-                  {isInitializing ? "Initializing graph..." : "Loading graph data..."}
+                <p className="text-zinc-600 dark:text-zinc-400 mb-2">
+                  {isInitializing
+                    ? "Initializing graph..."
+                    : "Loading graph data..."}
                 </p>
-                <div className="w-48 bg-slate-200 dark:bg-slate-700 rounded-full h-2 mx-auto">
+                <div className="w-48 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 mx-auto">
                   <div
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-blue-600 to-amber-600 dark:from-blue-500 dark:to-amber-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${loadingProgress}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                   {loadingProgress}%
                 </p>
               </div>
@@ -673,7 +675,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
       </div>
 
       {/* Side Panel */}
-      <div className="w-80 border-l bg-white dark:bg-gray-800 p-4 overflow-y-auto">
+      <div className="w-80 border-l bg-white dark:bg-zinc-800 p-4 overflow-y-auto">
         {/* Edit Node Panel - Show at top when editing */}
         {editingNode && (
           <Card className="mb-4">
@@ -724,7 +726,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             <CardContent className="space-y-4">
               <div>
                 <Label>Source Node</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   {sourceNode
                     ? `Node ${sourceNode}`
                     : "Click a node to select source"}
@@ -733,7 +735,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
 
               <div>
                 <Label>Target Node</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   {targetNode
                     ? `Node ${targetNode}`
                     : "Click another node to select target"}
@@ -809,7 +811,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             <CardContent className="space-y-4">
               <div>
                 <Label>ID</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   {selectedNode.id}
                 </p>
               </div>
@@ -832,7 +834,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                     ([key, value]) => (
                       <div key={key}>
                         <Label className="text-xs">{key}</Label>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 break-words">
+                        <p className="text-sm text-zinc-600 dark:text-zinc-300 break-words">
                           {typeof value === "string" && value.length > 100
                             ? `${value.substring(0, 100)}...`
                             : String(value)}
@@ -854,14 +856,14 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             <CardContent className="space-y-4">
               <div>
                 <Label>Type</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   {selectedRelationship.type}
                 </p>
               </div>
 
               <div>
                 <Label>From → To</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   {selectedRelationship.source} → {selectedRelationship.target}
                 </p>
               </div>
@@ -874,7 +876,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                       ([key, value]) => (
                         <div key={key}>
                           <Label className="text-xs">{key}</Label>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                          <p className="text-sm text-zinc-600 dark:text-zinc-300">
                             {String(value)}
                           </p>
                         </div>
@@ -901,7 +903,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                   <strong>Relationships:</strong>{" "}
                   {graphData.relationships.length}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-4">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-4">
                   Click on nodes or relationships to view details and perform
                   operations.
                 </p>
@@ -928,7 +930,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                       <span>ELABORATES - Additional details</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-0.5 bg-gray-400 border-dashed"></div>
+                      <div className="w-4 h-0.5 bg-zinc-400 border-dashed"></div>
                       <span>NEXT - Sequential order</span>
                     </div>
                   </div>

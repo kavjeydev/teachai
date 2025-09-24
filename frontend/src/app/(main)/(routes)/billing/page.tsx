@@ -15,7 +15,7 @@ export default function BillingPage() {
   const { sidebarWidth } = useSidebarWidth();
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       {/* Resizable Sidebar */}
       <ResizableSidebar />
 
@@ -28,7 +28,7 @@ export default function BillingPage() {
         }}
       >
         {/* Header */}
-        <div className="border-b border-slate-200/50 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl px-6 py-4">
+        <div className="border-b border-zinc-200/50 dark:border-zinc-800/50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl px-6 py-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -39,10 +39,10 @@ export default function BillingPage() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
                 Billing & Plans
               </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Manage your subscription, billing, and plan changes
               </p>
             </div>
@@ -54,16 +54,16 @@ export default function BillingPage() {
           <div className="max-w-6xl mx-auto space-y-8">
 
             {/* Navigation Tabs */}
-            <div className="flex gap-4 border-b border-slate-200 dark:border-slate-700">
-              <button className="px-4 py-2 border-b-2 border-trainlymainlight text-trainlymainlight font-medium">
+            <div className="flex gap-4 border-b border-zinc-200 dark:border-zinc-700">
+              <button className="px-4 py-2 border-b-2 border-amber-400 text-amber-400 font-medium">
                 <Settings className="w-4 h-4 inline mr-2" />
                 Plan Management
               </button>
-              <button className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+              <button className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
                 <CreditCard className="w-4 h-4 inline mr-2" />
                 Billing Details
               </button>
-              <button className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+              <button className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
                 <History className="w-4 h-4 inline mr-2" />
                 Usage History
               </button>
@@ -72,10 +72,10 @@ export default function BillingPage() {
             {/* Plan Management Section */}
             <div className="space-y-6">
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
                   Choose Your Plan
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-zinc-600 dark:text-zinc-400">
                   Upgrade or downgrade your plan anytime. Changes take effect at your next billing cycle for downgrades,
                   or immediately for upgrades.
                 </p>
@@ -87,10 +87,10 @@ export default function BillingPage() {
             {/* Billing Dashboard */}
             <div className="space-y-6">
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
                   Current Usage & Billing
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-zinc-600 dark:text-zinc-400">
                   Monitor your current usage and billing information.
                 </p>
               </div>

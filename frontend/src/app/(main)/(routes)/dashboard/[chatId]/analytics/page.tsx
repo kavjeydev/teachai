@@ -154,12 +154,12 @@ export default function ChatAnalyticsPage({ params }: ChatAnalyticsPageProps) {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex h-screen bg-zinc-50 dark:bg-zinc-900">
       <ResizableSidebar chatId={chatId} />
 
       <div className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: `${sidebarWidth}px` }}>
         {/* Header */}
-        <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+        <div className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
@@ -172,10 +172,10 @@ export default function ChatAnalyticsPage({ params }: ChatAnalyticsPageProps) {
                 Back to Chat
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
                   Chat Analytics
                 </h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   {currentChat.title} • Privacy-First Insights
                 </p>
               </div>
@@ -322,7 +322,7 @@ export default function ChatAnalyticsPage({ params }: ChatAnalyticsPageProps) {
                 </div>
 
                 {/* Privacy Advantage */}
-                <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+                <div className="mt-8 bg-gradient-to-r from-blue-50 to-amber-50 dark:from-blue-950/30 dark:to-amber-950/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
                   <div className="text-center">
                     <Sparkles className="w-8 h-8 text-blue-600 mx-auto mb-3" />
                     <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">

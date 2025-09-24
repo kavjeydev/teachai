@@ -4,7 +4,13 @@ import React, { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -20,9 +26,14 @@ import {
   ArrowRight,
   Plus,
   Sparkles,
-  Star
+  Star,
 } from "lucide-react";
-import { PRICING_TIERS, CREDIT_PACKS, formatCredits, formatTokens } from "@/lib/stripe";
+import {
+  PRICING_TIERS,
+  CREDIT_PACKS,
+  formatCredits,
+  formatTokens,
+} from "@/lib/stripe";
 import { toast } from "sonner";
 import { getStripe } from "@/lib/stripe";
 
@@ -41,16 +52,16 @@ export function BillingDashboard() {
     setIsLoading(priceId);
 
     try {
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ priceId, mode: 'subscription' }),
+        body: JSON.stringify({ priceId, mode: "subscription" }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        throw new Error("Failed to create checkout session");
       }
 
       const { sessionId, url } = await response.json();
@@ -62,8 +73,8 @@ export function BillingDashboard() {
         await stripe?.redirectToCheckout({ sessionId });
       }
     } catch (error) {
-      console.error('Checkout failed:', error);
-      toast.error('Failed to start checkout process');
+      console.error("Checkout failed:", error);
+      toast.error("Failed to start checkout process");
     } finally {
       setIsLoading(null);
     }
@@ -73,16 +84,16 @@ export function BillingDashboard() {
     setIsLoading(priceId);
 
     try {
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ priceId, mode: 'payment' }),
+        body: JSON.stringify({ priceId, mode: "payment" }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        throw new Error("Failed to create checkout session");
       }
 
       const { sessionId, url } = await response.json();
@@ -94,34 +105,44 @@ export function BillingDashboard() {
         await stripe?.redirectToCheckout({ sessionId });
       }
     } catch (error) {
-      console.error('Credit purchase failed:', error);
-      toast.error('Failed to purchase credits');
+      console.error("Credit purchase failed:", error);
+      toast.error("Failed to purchase credits");
     } finally {
       setIsLoading(null);
     }
   };
 
-  const currentTier = subscription?.tier || 'free';
-  const tierConfig = PRICING_TIERS[currentTier.toUpperCase() as keyof typeof PRICING_TIERS];
+  const currentTier = subscription?.tier || "free";
+  const tierConfig =
+    PRICING_TIERS[currentTier.toUpperCase() as keyof typeof PRICING_TIERS];
 
-  const creditsUsagePercent = credits ?
-    Math.round((credits.usedCredits / credits.totalCredits) * 100) : 0;
+  const creditsUsagePercent = credits
+    ? Math.round((credits.usedCredits / credits.totalCredits) * 100)
+    : 0;
 
   const getTierIcon = (tier: string) => {
     switch (tier) {
-      case 'pro': return <Zap className="w-5 h-5 text-white" />;
-      case 'team': return <Users className="w-5 h-5 text-white" />;
-      case 'startup': return <Rocket className="w-5 h-5 text-white" />;
-      default: return <Crown className="w-5 h-5 text-white" />;
+      case "pro":
+        return <Zap className="w-5 h-5 text-white" />;
+      case "team":
+        return <Users className="w-5 h-5 text-white" />;
+      case "startup":
+        return <Rocket className="w-5 h-5 text-white" />;
+      default:
+        return <Crown className="w-5 h-5 text-white" />;
     }
   };
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case 'pro': return 'from-blue-500 to-cyan-600';
-      case 'team': return 'from-purple-500 to-pink-600';
-      case 'startup': return 'from-orange-500 to-red-600';
-      default: return 'from-slate-500 to-slate-600';
+      case "pro":
+        return "from-blue-500 to-cyan-600";
+      case "team":
+        return "from-amber-500 to-amber-600";
+      case "startup":
+        return "from-orange-500 to-red-600";
+      default:
+        return "from-zinc-500 to-zinc-600";
     }
   };
 
@@ -129,10 +150,10 @@ export function BillingDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">
           Billing & Usage
         </h1>
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-zinc-600 dark:text-zinc-400">
           Manage your subscription and monitor your AI credit usage
         </p>
       </div>
@@ -142,25 +163,28 @@ export function BillingDashboard() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 bg-gradient-to-br ${getTierColor(currentTier)} rounded-xl flex items-center justify-center shadow-lg`}>
+              <div
+                className={`w-12 h-12 bg-gradient-to-br ${getTierColor(currentTier)} rounded-xl flex items-center justify-center shadow-lg`}
+              >
                 {getTierIcon(currentTier)}
               </div>
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  {tierConfig?.name || 'Free'} Plan
-                  <Badge variant={currentTier === 'free' ? 'secondary' : 'default'}>
-                    {subscription?.status || 'Active'}
+                  {tierConfig?.name || "Free"} Plan
+                  <Badge
+                    variant={currentTier === "free" ? "secondary" : "default"}
+                  >
+                    {subscription?.status || "Active"}
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  {currentTier === 'free'
-                    ? 'Get started with basic features • Upgrade anytime'
-                    : `$${tierConfig?.price}/month • Next billing: ${subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : ''}`
-                  }
+                  {currentTier === "free"
+                    ? "Get started with basic features • Upgrade anytime"
+                    : `$${tierConfig?.price}/month • Next billing: ${subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : ""}`}
                 </CardDescription>
               </div>
             </div>
-            {currentTier !== 'free' && (
+            {currentTier !== "free" && (
               <Button variant="outline" size="sm">
                 <CreditCard className="w-4 h-4 mr-2" />
                 Manage Billing
@@ -185,19 +209,24 @@ export function BillingDashboard() {
           {/* Usage Overview */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {credits ? formatCredits(credits.usedCredits) : '0'}
-                <span className="text-lg font-normal text-slate-500"> / {credits ? formatCredits(credits.totalCredits) : '0'}</span>
+              <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                {credits ? formatCredits(credits.usedCredits) : "0"}
+                <span className="text-lg font-normal text-zinc-500">
+                  {" "}
+                  / {credits ? formatCredits(credits.totalCredits) : "0"}
+                </span>
               </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Credits used • {credits ? formatTokens(credits.totalCredits) : '0'} equivalent on GPT-4o-mini
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Credits used •{" "}
+                {credits ? formatTokens(credits.totalCredits) : "0"} equivalent
+                on GPT-4o-mini
               </p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-semibold text-trainlymainlight">
-                {credits ? formatCredits(credits.remainingCredits || 0) : '0'}
+              <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400">
+                {credits ? formatCredits(credits.remainingCredits || 0) : "0"}
               </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Credits remaining
               </p>
             </div>
@@ -207,21 +236,30 @@ export function BillingDashboard() {
 
           {/* Usage Alert */}
           {creditsUsagePercent > 80 && (
-            <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-start gap-3 p-4 bg-amber-100 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-lg">
               <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
               <div>
-                <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                <h4 className="font-medium text-amber-900 dark:text-amber-200 mb-1">
                   Running Low on Credits
                 </h4>
-                <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
-                  You've used {creditsUsagePercent}% of your monthly credits. Consider upgrading or purchasing additional credits to avoid interruptions.
+                <p className="text-sm text-amber-800 dark:text-amber-300 mb-3">
+                  You've used {creditsUsagePercent}% of your monthly credits.
+                  Consider upgrading or purchasing additional credits to avoid
+                  interruptions.
                 </p>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-100">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-amber-400 text-amber-900 hover:bg-amber-200 dark:border-amber-300 dark:text-amber-800 dark:hover:bg-amber-100"
+                  >
                     <Plus className="w-3 h-3 mr-1" />
                     Buy Credits
                   </Button>
-                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+                  <Button
+                    size="sm"
+                    className="bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white"
+                  >
                     <ArrowRight className="w-3 h-3 mr-1" />
                     Upgrade Plan
                   </Button>
@@ -231,15 +269,28 @@ export function BillingDashboard() {
           )}
 
           {/* Billing Period */}
-          <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400 pt-2 border-t border-zinc-200 dark:border-zinc-700">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span>
-                Billing period: {credits?.periodStart ? new Date(credits.periodStart).toLocaleDateString() : ''} - {credits?.periodEnd ? new Date(credits.periodEnd).toLocaleDateString() : ''}
+                Billing period:{" "}
+                {credits?.periodStart
+                  ? new Date(credits.periodStart).toLocaleDateString()
+                  : ""}{" "}
+                -{" "}
+                {credits?.periodEnd
+                  ? new Date(credits.periodEnd).toLocaleDateString()
+                  : ""}
               </span>
             </div>
             <span>
-              Resets in {credits?.periodEnd ? Math.ceil((credits.periodEnd - Date.now()) / (1000 * 60 * 60 * 24)) : 0} days
+              Resets in{" "}
+              {credits?.periodEnd
+                ? Math.ceil(
+                    (credits.periodEnd - Date.now()) / (1000 * 60 * 60 * 24),
+                  )
+                : 0}{" "}
+              days
             </span>
           </div>
         </CardContent>
@@ -259,39 +310,56 @@ export function BillingDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {Object.entries(PRICING_TIERS).filter(([key]) => key !== 'FREE' && key !== currentTier.toUpperCase()).map(([key, tier]) => (
-              <div key={key} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-trainlymainlight/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 bg-gradient-to-br ${getTierColor(tier.id)} rounded-lg flex items-center justify-center`}>
-                    {getTierIcon(tier.id)}
+            {Object.entries(PRICING_TIERS)
+              .filter(
+                ([key]) => key !== "FREE" && key !== currentTier.toUpperCase(),
+              )
+              .map(([key, tier]) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-amber-600/50 dark:hover:border-amber-400/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-8 h-8 bg-gradient-to-br ${getTierColor(tier.id)} rounded-lg flex items-center justify-center`}
+                    >
+                      {getTierIcon(tier.id)}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-zinc-900 dark:text-white">
+                        {tier.name}
+                      </h3>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        {formatTokens(tier.features.credits)} •{" "}
+                        {tier.features.chats} chats • {tier.features.storage}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white">{tier.name}</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {formatTokens(tier.features.credits)} • {tier.features.chats} chats • {tier.features.storage}
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-zinc-900 dark:text-white">
+                      ${tier.price}
+                      <span className="text-sm font-normal text-zinc-500">
+                        /mo
+                      </span>
                     </p>
+                    <Button
+                      size="sm"
+                      onClick={() => handleUpgrade(tier.priceId!, tier.name)}
+                      disabled={!!isLoading}
+                      className="mt-2"
+                    >
+                      {isLoading === tier.priceId ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1" />
+                          Processing...
+                        </>
+                      ) : (
+                        `Upgrade to ${tier.name}`
+                      )}
+                    </Button>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">${tier.price}<span className="text-sm font-normal text-slate-500">/mo</span></p>
-                  <Button
-                    size="sm"
-                    onClick={() => handleUpgrade(tier.priceId!, tier.name)}
-                    disabled={!!isLoading}
-                    className="mt-2"
-                  >
-                    {isLoading === tier.priceId ? (
-                      <>
-                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1" />
-                        Processing...
-                      </>
-                    ) : (
-                      `Upgrade to ${tier.name}`
-                    )}
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))}
           </CardContent>
         </Card>
 
@@ -308,13 +376,18 @@ export function BillingDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             {Object.entries(CREDIT_PACKS).map(([key, pack]) => (
-              <div key={key} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-trainlymainlight/50 transition-colors">
+              <div
+                key={key}
+                className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-amber-600/50 dark:hover:border-amber-400/50 transition-colors"
+              >
                 <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-white">{pack.name}</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                  <h3 className="font-semibold text-zinc-900 dark:text-white">
+                    {pack.name}
+                  </h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     {pack.description}
                   </p>
-                  {'popular' in pack && pack.popular && (
+                  {"popular" in pack && pack.popular && (
                     <Badge variant="default" className="mt-1">
                       <Star className="w-3 h-3 mr-1" />
                       Popular
@@ -322,7 +395,9 @@ export function BillingDashboard() {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">${pack.price}</p>
+                  <p className="text-xl font-bold text-zinc-900 dark:text-white">
+                    ${pack.price}
+                  </p>
                   <Button
                     size="sm"
                     variant="outline"
@@ -336,7 +411,7 @@ export function BillingDashboard() {
                         Processing...
                       </>
                     ) : (
-                      'Buy Now'
+                      "Buy Now"
                     )}
                   </Button>
                 </div>
@@ -356,7 +431,7 @@ export function BillingDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="text-sm text-slate-600 dark:text-slate-400">
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
               <strong>Credit Rates:</strong>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -377,8 +452,9 @@ export function BillingDashboard() {
                 <span className="font-mono">8x</span>
               </div>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              1 credit = 1,000 tokens on GPT-4o-mini. Other models use credits based on their relative cost.
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+              1 credit = 1,000 tokens on GPT-4o-mini. Other models use credits
+              based on their relative cost.
             </p>
           </div>
         </CardContent>

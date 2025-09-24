@@ -101,14 +101,14 @@ export default function AppAuthorizePage() {
 
   if (!appId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">
               Invalid Authorization Request
             </h2>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-zinc-600 dark:text-zinc-400">
               Missing app ID in authorization request.
             </p>
           </CardContent>
@@ -118,17 +118,17 @@ export default function AppAuthorizePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-purple-950/20 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-amber-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-amber-950/20 flex items-center justify-center p-6">
       <div className="max-w-2xl w-full">
         {!user ? (
           /* Not Signed In */
           <Card className="border-2 border-blue-200 dark:border-blue-800 shadow-2xl">
             <CardHeader className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-8 h-8 text-white" />
               </div>
               <CardTitle className="text-2xl">Authorize App Access</CardTitle>
-              <p className="text-slate-600 dark:text-slate-400">
+              <p className="text-zinc-600 dark:text-zinc-400">
                 Sign in to Trainly to authorize <strong>{appInfo.name}</strong>
               </p>
             </CardHeader>
@@ -169,7 +169,7 @@ export default function AppAuthorizePage() {
                   app.
                 </p>
 
-                <div className="bg-slate-900 rounded-lg p-4 mb-4">
+                <div className="bg-zinc-900 rounded-lg p-4 mb-4">
                   <div className="flex items-center justify-between">
                     <code className="text-green-400 font-mono text-sm">
                       {showToken
@@ -234,12 +234,12 @@ export default function AppAuthorizePage() {
                   </ul>
                 </div>
 
-                <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-                  <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2">
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2 flex items-center gap-2">
                     <Shield className="w-4 h-4" />
                     What's Protected
                   </h4>
-                  <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                  <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
                     <li>• Developer cannot see your token</li>
                     <li>• Your files stay in private sub-chat</li>
                     <li>• No cross-user data access</li>
@@ -250,10 +250,10 @@ export default function AppAuthorizePage() {
 
               {/* Next Steps */}
               <div className="text-center">
-                <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">
+                <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3">
                   Next Steps
                 </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                   Use your private auth token to securely access your data
                   through {appInfo.name}
                 </p>
@@ -272,7 +272,7 @@ export default function AppAuthorizePage() {
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-zinc-500">
                     Return to the app and use your private token to access your
                     data
                   </p>
@@ -285,14 +285,14 @@ export default function AppAuthorizePage() {
           <Card className="border-2 border-blue-200 dark:border-blue-800 shadow-2xl">
             <CardHeader>
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-amber-600 rounded-2xl flex items-center justify-center">
                   <Shield className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-2xl">
                     Authorize App Access
                   </CardTitle>
-                  <p className="text-slate-600 dark:text-slate-400">
+                  <p className="text-zinc-600 dark:text-zinc-400">
                     <strong>{appInfo.name}</strong> wants to access your private
                     data
                   </p>
@@ -301,7 +301,7 @@ export default function AppAuthorizePage() {
             </CardHeader>
             <CardContent>
               {/* App Information */}
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 mb-6">
+              <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold mb-2">App Details</h3>
                 <div className="space-y-2 text-sm">
                   <div>
@@ -413,7 +413,7 @@ export default function AppAuthorizePage() {
                 <Button
                   variant="outline"
                   onClick={() => window.close()}
-                  className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                  className="border-zinc-300 text-zinc-700 hover:bg-zinc-100"
                 >
                   Cancel
                 </Button>
@@ -421,7 +421,7 @@ export default function AppAuthorizePage() {
 
               {/* Security Notice */}
               <div className="mt-6 text-center">
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-zinc-500">
                   By authorizing this app, you're creating a private workspace
                   that only you control. You can revoke access anytime from your
                   Trainly dashboard.

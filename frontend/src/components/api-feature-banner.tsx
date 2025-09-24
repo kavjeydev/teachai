@@ -14,24 +14,24 @@ import {
 
 export function ApiFeatureBanner() {
   return (
-    <Card className="bg-gradient-to-br from-blue-600/5 via-purple-50/50 to-blue-50/50 dark:from-blue-500/5 dark:via-purple-900/20 dark:to-blue-900/20 border-blue-600/20 dark:border-blue-500/20">
+    <Card className="bg-gradient-to-br from-blue-600/5 via-amber-50/50 to-blue-50/50 dark:from-blue-500/5 dark:via-amber-900/20 dark:to-blue-900/20 border-blue-600/20 dark:border-blue-500/20">
       <CardContent className="p-8">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-amber-600 dark:from-blue-500 dark:to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
                 <Globe className="w-6 h-6 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
                     Turn Your Chats Into APIs
                   </h3>
                   <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                     New
                   </Badge>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-zinc-600 dark:text-zinc-400">
                   Each chat becomes a secure API endpoint that external applications can query
                 </p>
               </div>
@@ -43,10 +43,10 @@ export function ApiFeatureBanner() {
                   <Code className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900 dark:text-white text-sm">
+                  <div className="font-medium text-zinc-900 dark:text-white text-sm">
                     Simple Integration
                   </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
                     One API call to query your knowledge
                   </div>
                 </div>
@@ -57,31 +57,31 @@ export function ApiFeatureBanner() {
                   <Zap className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900 dark:text-white text-sm">
+                  <div className="font-medium text-zinc-900 dark:text-white text-sm">
                     Real-time Streaming
                   </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
                     Perfect for chatbots and live apps
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900 dark:text-white text-sm">
+                  <div className="font-medium text-zinc-900 dark:text-white text-sm">
                     Secure & Scoped
                   </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
                     Each API key works only for its chat
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 mb-4">
+            <div className="bg-zinc-900 dark:bg-zinc-950 rounded-lg p-4 mb-4">
               <code className="text-sm text-green-400 font-mono">
                 {`curl -X POST api.trainlyai.com/v1/{chatId}/answer_question \\
   -H "Authorization: Bearer tk_your_key" \\

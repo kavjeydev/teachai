@@ -81,7 +81,7 @@ export const MentionList = memo(
         {currentContext.length ? (
           currentContext.map((item, index) => (
             <button
-              className="flex items-center bg-transparent gap-1 text-left w-full p-2 rounded-lg hover:bg-gray-100 focus:bg-gray-200
+              className="flex items-center bg-transparent gap-1 text-left w-full p-2 rounded-lg hover:bg-zinc-100 focus:bg-zinc-200
             dark:hover:bg-default-100 dark:focus:bg-default-200"
               key={index}
               onClick={() => selectItem(index)}

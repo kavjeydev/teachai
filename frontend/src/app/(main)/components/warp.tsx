@@ -26,7 +26,7 @@ function CyclingText({ responses, displayDuration = 3000 }: CyclingTextProps) {
   return (
     <span className=" overflow-hidden inline-block h-22 pt-8 pb-3 -mt-6">
       <span
-        className={`inline-block transform transition-all duration-700 text-trainlymainlight ${
+        className={`inline-block transform transition-all duration-700 text-amber-400 ${
           animate
             ? "translate-y-0 opacity-100"
             : "translate-y-[120%] opacity-100"

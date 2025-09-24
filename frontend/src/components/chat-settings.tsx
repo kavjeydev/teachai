@@ -183,17 +183,17 @@ export function ChatSettings({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="h-8 w-8 p-0 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
           title="Advanced Settings"
         >
-          <Settings className="h-4 w-4 text-slate-500 hover:text-trainlymainlight transition-colors" />
+          <Settings className="h-4 w-4 text-zinc-500 hover:text-amber-400 transition-colors" />
         </Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-trainlymainlight" />
+            <Settings className="h-5 w-5 text-amber-400" />
             Advanced Settings
           </DialogTitle>
         </DialogHeader>
@@ -230,11 +230,11 @@ export function ChatSettings({
 
             {/* Default Prompt Preview */}
             {isUsingDefaultPrompt && (
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border">
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 font-medium">
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2 font-medium">
                   Default System Prompt:
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-500 whitespace-pre-wrap font-mono">
+                <p className="text-xs text-zinc-500 dark:text-zinc-500 whitespace-pre-wrap font-mono">
                   {DEFAULT_SYSTEM_PROMPT.substring(0, 200)}...
                 </p>
               </div>
@@ -249,7 +249,7 @@ export function ChatSettings({
                   placeholder="Enter your custom system prompt here..."
                   className="min-h-[120px] text-sm font-mono"
                 />
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   This prompt will be used as the system message for this chat.
                   Make sure to include instructions for how the AI should behave
                   and use context.
@@ -273,13 +273,13 @@ export function ChatSettings({
                 step={0.1}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-slate-500">
+              <div className="flex justify-between text-xs text-zinc-500">
                 <span>0.0 (Focused)</span>
                 <span>0.5 (Balanced)</span>
                 <span>1.0 (Creative)</span>
               </div>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Controls randomness in responses. Lower values make output more focused and deterministic.
             </p>
           </div>
@@ -299,13 +299,13 @@ export function ChatSettings({
                 step={100}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-slate-500">
+              <div className="flex justify-between text-xs text-zinc-500">
                 <span>100 (Short)</span>
                 <span>1000 (Medium)</span>
                 <span>4000 (Long)</span>
               </div>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Maximum length of AI responses. Higher values allow longer, more detailed answers.
             </p>
           </div>
@@ -318,7 +318,7 @@ export function ChatSettings({
             <Button
               onClick={handlePromptSave}
               disabled={isUpdating}
-              className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-trainlymainlight/50 disabled:cursor-not-allowed"
+              className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed"
             >
               {isUpdating ? (
                 <>

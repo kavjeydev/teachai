@@ -41,19 +41,19 @@ export default function ApiDocsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-purple-50/10 dark:from-slate-950 dark:via-blue-950/20 dark:to-purple-950/10">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-blue-50/20 to-amber-50/10 dark:from-zinc-950 dark:via-blue-950/20 dark:to-amber-950/10">
       {/* Premium Background */}
-      <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-blue-100/20 to-purple-100/20 dark:from-blue-900/10 dark:to-purple-900/10"></div>
+      <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-blue-100/20 to-amber-100/20 dark:from-blue-900/10 dark:to-amber-900/10"></div>
 
       <div className="relative max-w-7xl mx-auto px-6 py-12">
         {/* Premium Header */}
         <div className="text-center mb-16">
           <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-green-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/25">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-amber-600 to-green-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/25">
               <Shield className="w-10 h-10 text-white" />
             </div>
             <div className="text-left">
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-900 via-blue-700 to-purple-700 dark:from-white dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-zinc-900 via-blue-700 to-amber-700 dark:from-white dark:via-blue-300 dark:to-amber-300 bg-clip-text text-transparent">
                 Trainly API
               </h1>
               <div className="flex items-center gap-2 mt-2">
@@ -66,7 +66,7 @@ export default function ApiDocsPage() {
           </div>
 
           <div className="max-w-4xl mx-auto">
-            <p className="text-2xl text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+            <p className="text-2xl text-zinc-600 dark:text-zinc-300 leading-relaxed mb-6">
               Build AI applications where users <span className="text-green-700 dark:text-green-300 font-semibold">trust uploading sensitive documents</span> because developers cannot access raw files.
             </p>
 
@@ -77,8 +77,8 @@ export default function ApiDocsPage() {
               <div className="bg-blue-100 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-full px-4 py-2">
                 <span className="text-sm font-medium text-blue-800 dark:text-blue-200">🛡️ Zero Raw Data Access</span>
               </div>
-              <div className="bg-purple-100 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded-full px-4 py-2">
-                <span className="text-sm font-medium text-purple-800 dark:text-purple-200">✅ GDPR/CCPA Ready</span>
+              <div className="bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-full px-4 py-2">
+                <span className="text-sm font-medium text-amber-800 dark:text-amber-200">✅ GDPR/CCPA Ready</span>
               </div>
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function ApiDocsPage() {
           </CardHeader>
           <CardContent className="p-8">
             {/* Hero Section */}
-            <div className="bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-green-950/30 dark:via-blue-950/30 dark:to-purple-950/30 rounded-2xl p-8 mb-8 border border-green-200 dark:border-green-800">
+            <div className="bg-gradient-to-br from-green-50 via-blue-50 to-amber-50 dark:from-green-950/30 dark:via-blue-950/30 dark:to-amber-950/30 rounded-2xl p-8 mb-8 border border-green-200 dark:border-green-800">
               <div className="grid md:grid-cols-3 gap-6 items-center">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
@@ -119,19 +119,19 @@ export default function ApiDocsPage() {
                   <p className="text-sm text-blue-700 dark:text-blue-300">Developers get AI responses, never raw files</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+                  <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
                     <CheckCircle className="w-8 h-8 text-white" />
                   </div>
-                  <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-2">Enterprise Ready</h4>
-                  <p className="text-sm text-purple-700 dark:text-purple-300">GDPR/CCPA compliant by design</p>
+                  <h4 className="font-bold text-amber-800 dark:text-amber-200 mb-2">Enterprise Ready</h4>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">GDPR/CCPA compliant by design</p>
                 </div>
               </div>
 
               <div className="text-center mt-8">
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">
+                <h3 className="text-2xl font-bold text-zinc-800 dark:text-zinc-200 mb-3">
                   🚀 The Trust Advantage
                 </h3>
-                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
+                <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-3xl mx-auto">
                   Users confidently upload sensitive documents because they know developers cannot access their files -
                   only AI-generated insights are available, leading to higher engagement and enterprise adoption.
                 </p>
@@ -184,7 +184,7 @@ export default function ApiDocsPage() {
             </div>
 
             {/* Quick Integration Example */}
-            <div className="bg-slate-900 rounded-2xl p-6 shadow-2xl">
+            <div className="bg-zinc-900 rounded-2xl p-6 shadow-2xl">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
                   <BookOpen className="w-4 h-4 text-white" />
@@ -249,10 +249,10 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
         </Card>
 
         {/* API Endpoints */}
-        <Card className="mb-12 shadow-xl shadow-slate-500/10">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 dark:from-slate-900/50 dark:to-blue-950/30 border-b border-slate-200/50 dark:border-slate-800/50">
+        <Card className="mb-12 shadow-xl shadow-zinc-500/10">
+          <CardHeader className="bg-gradient-to-r from-zinc-50 to-blue-50/50 dark:from-zinc-900/50 dark:to-blue-950/30 border-b border-zinc-200/50 dark:border-zinc-800/50">
             <CardTitle className="flex items-center gap-3 text-xl">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               Privacy-First API Endpoints
@@ -261,15 +261,15 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
           <CardContent className="p-6">
             <div className="grid gap-4">
               {/* User Provisioning */}
-              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-6 bg-gradient-to-r from-blue-50/50 to-green-50/50 dark:from-blue-950/30 dark:to-green-950/30">
+              <div className="border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-gradient-to-r from-blue-50/50 to-green-50/50 dark:from-blue-950/30 dark:to-green-950/30">
                 <div className="flex items-center gap-3 mb-3">
                   <Badge className="bg-blue-600 text-white">POST</Badge>
                   <code className="font-mono text-lg">/v1/privacy/apps/users/provision</code>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400 mb-3">
+                <p className="text-zinc-600 dark:text-zinc-400 mb-3">
                   Create isolated sub-chat for a user. <strong>Requires app secret</strong> - each user gets their own private namespace.
                 </p>
-                <div className="bg-slate-900 rounded-lg p-4">
+                <div className="bg-zinc-900 rounded-lg p-4">
                   <pre className="text-green-400 text-sm">
 {`{
   "end_user_id": "user_123",
@@ -280,15 +280,15 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
               </div>
 
               {/* Privacy Query */}
-              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-6 bg-gradient-to-r from-green-50/50 to-purple-50/50 dark:from-green-950/30 dark:to-purple-950/30">
+              <div className="border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-gradient-to-r from-green-50/50 to-amber-50/50 dark:from-green-950/30 dark:to-amber-950/30">
                 <div className="flex items-center gap-3 mb-3">
                   <Badge className="bg-green-600 text-white">POST</Badge>
                   <code className="font-mono text-lg">/v1/privacy/query</code>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400 mb-3">
+                <p className="text-zinc-600 dark:text-zinc-400 mb-3">
                   Query user's private data. <strong>Returns AI responses only</strong> - never raw files or content.
                 </p>
-                <div className="bg-slate-900 rounded-lg p-4">
+                <div className="bg-zinc-900 rounded-lg p-4">
                   <pre className="text-blue-400 text-sm">
 {`{
   "end_user_id": "user_123",
@@ -300,16 +300,16 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
               </div>
 
               {/* Direct Upload */}
-              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-6 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-950/30 dark:to-pink-950/30">
+              <div className="border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-gradient-to-r from-amber-50/50 to-amber-50/50 dark:from-amber-950/30 dark:to-amber-950/30">
                 <div className="flex items-center gap-3 mb-3">
-                  <Badge className="bg-purple-600 text-white">POST</Badge>
+                  <Badge className="bg-amber-600 text-white">POST</Badge>
                   <code className="font-mono text-lg">/v1/privacy/upload/presigned-url</code>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400 mb-3">
+                <p className="text-zinc-600 dark:text-zinc-400 mb-3">
                   Get direct upload URL. <strong>Files bypass your servers</strong> - uploaded directly to user's private namespace.
                 </p>
-                <div className="bg-slate-900 rounded-lg p-4">
-                  <pre className="text-purple-400 text-sm">
+                <div className="bg-zinc-900 rounded-lg p-4">
+                  <pre className="text-amber-400 text-sm">
 {`{
   "end_user_id": "user_123",
   "filename": "document.pdf",
@@ -324,9 +324,9 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
 
         {/* Privacy Testing */}
         <Card className="mb-12 border-2 border-blue-200 dark:border-blue-800 shadow-xl shadow-blue-500/10">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border-b border-blue-200 dark:border-blue-800">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-amber-50 dark:from-blue-950/50 dark:to-amber-950/50 border-b border-blue-200 dark:border-blue-800">
             <CardTitle className="flex items-center gap-3 text-blue-800 dark:text-blue-200 text-xl">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
                 <Shield className="w-5 h-5 text-white" />
               </div>
               🧪 Test Privacy Protection
@@ -446,10 +446,10 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
         {/* Call to Action */}
         <Card className="border-2 border-green-200 dark:border-green-800 shadow-xl shadow-green-500/10">
           <CardContent className="p-8 text-center">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
               🚀 Ready to Build Privacy-First Apps?
             </h3>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto">
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6 max-w-2xl mx-auto">
               Start building applications where users trust uploading sensitive documents because they know you can't access their files.
             </p>
             <div className="flex gap-4 justify-center">

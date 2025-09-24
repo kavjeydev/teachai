@@ -166,13 +166,13 @@ export default function InputMock({
           variant="solid"
           color="primary"
           startContent={<UploadIcon />}
-          className="bg-white text-black hover:bg-gray-100"
+          className="bg-white text-black hover:bg-zinc-100"
         />
         <Button
           variant="solid"
           color="primary"
           startContent={<SendIcon />}
-          className="bg-white text-black hover:bg-gray-100"
+          className="bg-white text-black hover:bg-zinc-100"
           onClick={handleClick}
         >
           {loading ? "Loading..." : "Send"}

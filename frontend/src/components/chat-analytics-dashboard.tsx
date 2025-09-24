@@ -106,8 +106,8 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
       pdf: 'bg-red-100 text-red-800 border-red-200',
       docx: 'bg-blue-100 text-blue-800 border-blue-200',
       txt: 'bg-green-100 text-green-800 border-green-200',
-      images: 'bg-purple-100 text-purple-800 border-purple-200',
-      other: 'bg-gray-100 text-gray-800 border-gray-200',
+      images: 'bg-amber-100 text-amber-800 border-amber-200',
+      other: 'bg-zinc-100 text-zinc-800 border-zinc-200',
     };
     return colors[type as keyof typeof colors] || colors.other;
   };
@@ -121,10 +121,10 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
       {/* Header with Privacy Status */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
             Chat Analytics
           </h2>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-zinc-600 dark:text-zinc-400">
             {analytics.title} • {analytics.chatType === "user_direct" ? "App Chat" : "Sub-Chat"}
           </p>
         </div>
@@ -166,8 +166,8 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
                 <div className="text-sm text-blue-600 dark:text-blue-400">Private Files (No Access)</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-purple-800 dark:text-purple-200">{analytics.apiStats.totalQueries}</div>
-                <div className="text-sm text-purple-600 dark:text-purple-400">AI Queries (Responses Only)</div>
+                <div className="text-lg font-bold text-amber-800 dark:text-amber-200">{analytics.apiStats.totalQueries}</div>
+                <div className="text-sm text-amber-600 dark:text-amber-400">AI Queries (Responses Only)</div>
               </div>
             </div>
           </CardContent>
@@ -228,22 +228,22 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
         </Card>
 
         {/* Storage */}
-        <Card className="border border-purple-200 dark:border-purple-800 shadow-lg shadow-purple-500/10">
+        <Card className="border border-amber-200 dark:border-amber-800 shadow-lg shadow-amber-500/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
+            <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300">
               Storage
             </CardTitle>
-            <HardDrive className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <HardDrive className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+            <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
               {analytics.fileStats.totalStorage.formatted}
             </div>
-            <p className="text-xs text-purple-600 dark:text-purple-400">
+            <p className="text-xs text-amber-600 dark:text-amber-400">
               Private user namespaces
             </p>
             <div className="mt-2">
-              <div className="text-xs text-purple-700 dark:text-purple-300">
+              <div className="text-xs text-amber-700 dark:text-amber-300">
                 🔒 Developer cannot access
               </div>
             </div>
@@ -280,7 +280,7 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieChart className="w-5 h-5 text-slate-600" />
+              <PieChart className="w-5 h-5 text-zinc-600" />
               File Type Distribution
             </CardTitle>
           </CardHeader>
@@ -294,7 +294,7 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
                     </Badge>
                     <span className="text-sm font-medium">{count} files</span>
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-zinc-500">
                     {analytics.fileStats.totalFiles > 0
                       ? Math.round((count / analytics.fileStats.totalFiles) * 100)
                       : 0}%
@@ -309,7 +309,7 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-slate-600" />
+              <BarChart3 className="w-5 h-5 text-zinc-600" />
               User Activity Distribution
             </CardTitle>
           </CardHeader>
@@ -349,9 +349,9 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
                 <span className="text-sm font-medium">Heavy Users (50+ queries)</span>
                 <div className="flex items-center gap-2">
                   <span className="text-sm">{analytics.userInsights.activityDistribution.heavyUsers}</span>
-                  <div className="w-16 h-2 bg-purple-200 rounded-full">
+                  <div className="w-16 h-2 bg-amber-200 rounded-full">
                     <div
-                      className="h-2 bg-purple-500 rounded-full"
+                      className="h-2 bg-amber-500 rounded-full"
                       style={{
                         width: `${(analytics.userInsights.activityDistribution.heavyUsers / analytics.userStats.totalUsers) * 100}%`
                       }}
@@ -368,32 +368,32 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-slate-600" />
+            <Activity className="w-5 h-5 text-zinc-600" />
             Top User Activity (Privacy-Safe)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {analytics.userInsights.topUsersByActivity.map((user, index) => (
-              <div key={user.userIdHash} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div key={user.userIdHash} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-amber-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                     #{index + 1}
                   </div>
                   <div>
                     <div className="font-medium text-sm">{user.userIdHash}</div>
-                    <div className="text-xs text-slate-500">Last active: {formatDate(user.lastActive)}</div>
+                    <div className="text-xs text-zinc-500">Last active: {formatDate(user.lastActive)}</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-medium">{user.queriesMade} queries</div>
-                  <div className="text-xs text-slate-500">{user.filesUploaded} files • {user.storageUsed}</div>
+                  <div className="text-xs text-zinc-500">{user.filesUploaded} files • {user.storageUsed}</div>
                 </div>
               </div>
             ))}
 
             {analytics.userInsights.topUsersByActivity.length === 0 && (
-              <div className="text-center py-8 text-slate-500">
+              <div className="text-center py-8 text-zinc-500">
                 <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No user activity yet</p>
                 <p className="text-xs">Activity will appear here as users interact with your app</p>
@@ -429,10 +429,10 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
               </div>
             </div>
 
-            <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
-              <Database className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-              <div className="text-sm font-medium text-purple-800 dark:text-purple-200">Data Isolation</div>
-              <div className="text-xs text-purple-600 dark:text-purple-400">
+            <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+              <Database className="w-6 h-6 text-amber-600 mx-auto mb-2" />
+              <div className="text-sm font-medium text-amber-800 dark:text-amber-200">Data Isolation</div>
+              <div className="text-xs text-amber-600 dark:text-amber-400">
                 {analytics.privacyCompliance.dataIsolationConfirmed ? 'Active' : 'Not Active'}
               </div>
             </div>
@@ -454,7 +454,7 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-slate-600" />
+              <TrendingUp className="w-5 h-5 text-zinc-600" />
               API Performance
             </CardTitle>
           </CardHeader>
@@ -494,17 +494,17 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-slate-600" />
+              <Database className="w-5 h-5 text-zinc-600" />
               Storage Breakdown
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="text-center mb-4">
-                <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                <div className="text-3xl font-bold text-zinc-900 dark:text-white">
                   {analytics.fileStats.totalStorage.formatted}
                 </div>
-                <div className="text-sm text-slate-500">Total Storage Used</div>
+                <div className="text-sm text-zinc-500">Total Storage Used</div>
               </div>
 
               <div className="space-y-2">
@@ -520,14 +520,14 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
                           type === 'pdf' ? 'bg-red-500' :
                           type === 'docx' ? 'bg-blue-500' :
                           type === 'txt' ? 'bg-green-500' :
-                          type === 'images' ? 'bg-purple-500' :
-                          'bg-gray-500'
+                          type === 'images' ? 'bg-amber-500' :
+                          'bg-zinc-500'
                         }`}></div>
                         <span className="text-sm font-medium capitalize">{type}</span>
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-bold">{count}</div>
-                        <div className="text-xs text-slate-500">{Math.round(percentage)}%</div>
+                        <div className="text-xs text-zinc-500">{Math.round(percentage)}%</div>
                       </div>
                     </div>
                   );
@@ -539,7 +539,7 @@ export function ChatAnalyticsDashboard({ analytics }: ChatAnalyticsDashboardProp
       </div>
 
       {/* Last Updated */}
-      <div className="text-center text-sm text-slate-500">
+      <div className="text-center text-sm text-zinc-500">
         <Clock className="w-4 h-4 inline mr-1" />
         Last updated: {formatDate(analytics.lastUpdated)}
       </div>

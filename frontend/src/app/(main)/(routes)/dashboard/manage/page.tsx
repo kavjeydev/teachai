@@ -112,14 +112,14 @@ export default function ChatManagementPage() {
         id: "all",
         name: "All Chats",
         icon: MessageSquare,
-        color: "text-slate-600",
+        color: "text-zinc-600",
       },
       { id: "recent", name: "Recent", icon: Clock, color: "text-blue-600" },
       {
         id: "uncategorized",
         name: "Uncategorized",
         icon: Folder,
-        color: "text-gray-600",
+        color: "text-zinc-600",
       },
     ];
 
@@ -128,7 +128,7 @@ export default function ChatManagementPage() {
         id: folder._id,
         name: folder.name,
         icon: Folder,
-        color: folder.color || "text-purple-600",
+        color: folder.color || "text-amber-600",
       })) || [];
 
     return [...defaultFolders, ...customFolders];
@@ -319,24 +319,24 @@ export default function ChatManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
+      <div className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push("/dashboard")}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
-                <ArrowLeft className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                <ArrowLeft className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
               </button>
 
               <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
                   My Knowledge Graphs
                 </h1>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-zinc-600 dark:text-zinc-400">
                   Manage and organize your GraphRAG conversations
                 </p>
               </div>
@@ -345,19 +345,19 @@ export default function ChatManagementPage() {
             <div className="flex items-center gap-3">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 <Input
                   placeholder="Search chats..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-80 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-trainlymainlight/50"
+                  className="pl-10 w-80 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus:border-amber-400/50"
                 />
               </div>
 
               {/* Create Chat */}
               <Button
                 onClick={onCreate}
-                className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white shadow-lg hover:shadow-trainlymainlight/25 transition-all duration-200"
+                className="bg-amber-400 hover:bg-amber-400/90 text-white shadow-lg hover:shadow-amber-400/25 transition-all duration-200"
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 New Chat
@@ -375,8 +375,8 @@ export default function ChatManagementPage() {
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm",
                     showFilters
-                      ? "bg-trainlymainlight/10 text-trainlymainlight"
-                      : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700",
+                      ? "bg-amber-400/10 text-amber-400"
+                      : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700",
                   )}
                 >
                   <Filter className="h-3 w-3" />
@@ -386,7 +386,7 @@ export default function ChatManagementPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-trainlymainlight/50"
+                  className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50"
                 >
                   <option value="date">📅 Date</option>
                   <option value="name">🔤 Name</option>
@@ -398,7 +398,7 @@ export default function ChatManagementPage() {
                   onClick={() =>
                     setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                   }
-                  className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
                 >
                   {sortOrder === "asc" ? (
                     <SortAsc className="h-4 w-4" />
@@ -411,14 +411,14 @@ export default function ChatManagementPage() {
 
             <div className="flex items-center gap-2">
               {/* View Toggle */}
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+              <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("grid")}
                   className={cn(
                     "p-2 rounded-md transition-colors",
                     viewMode === "grid"
-                      ? "bg-white dark:bg-slate-700 shadow-sm"
-                      : "hover:bg-slate-200 dark:hover:bg-slate-700",
+                      ? "bg-white dark:bg-zinc-700 shadow-sm"
+                      : "hover:bg-zinc-200 dark:hover:bg-zinc-700",
                   )}
                 >
                   <Grid3X3 className="h-4 w-4" />
@@ -428,15 +428,15 @@ export default function ChatManagementPage() {
                   className={cn(
                     "p-2 rounded-md transition-colors",
                     viewMode === "list"
-                      ? "bg-white dark:bg-slate-700 shadow-sm"
-                      : "hover:bg-slate-200 dark:hover:bg-slate-700",
+                      ? "bg-white dark:bg-zinc-700 shadow-sm"
+                      : "hover:bg-zinc-200 dark:hover:bg-zinc-700",
                   )}
                 >
                   <List className="h-4 w-4" />
                 </button>
               </div>
 
-              <span className="text-sm text-slate-500 dark:text-slate-400">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">
                 {filteredAndSortedChats.length} of {chats?.length || 0} chats
               </span>
             </div>
@@ -449,7 +449,7 @@ export default function ChatManagementPage() {
         <div className="flex gap-6">
           {/* Sidebar Folders */}
           <div className="w-64 space-y-2">
-            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-4">
+            <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide mb-4">
               Folders
             </h3>
 
@@ -459,8 +459,8 @@ export default function ChatManagementPage() {
                 className={cn(
                   "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group",
                   selectedFolder === folder.id
-                    ? "bg-trainlymainlight/10 border border-trainlymainlight/20 text-trainlymainlight"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                    ? "bg-amber-400/10 border border-amber-400/20 text-amber-400"
+                    : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300",
                 )}
               >
                 <button
@@ -469,7 +469,7 @@ export default function ChatManagementPage() {
                 >
                   <folder.icon className={cn("h-4 w-4", folder.color)} />
                   <span className="text-sm font-medium">{folder.name}</span>
-                  <span className="text-xs text-slate-400 ml-auto">
+                  <span className="text-xs text-zinc-400 ml-auto">
                     {folderCounts[folder.id] || 0}
                   </span>
                 </button>
@@ -488,8 +488,8 @@ export default function ChatManagementPage() {
 
             {/* Create Folder */}
             {isCreatingFolder ? (
-              <div className="w-full flex items-center gap-2 p-3 rounded-lg border-2 border-trainlymainlight/50 bg-trainlymainlight/5">
-                <FolderPlus className="h-4 w-4 text-trainlymainlight" />
+              <div className="w-full flex items-center gap-2 p-3 rounded-lg border-2 border-amber-400/50 bg-amber-400/5">
+                <FolderPlus className="h-4 w-4 text-amber-400" />
                 <input
                   type="text"
                   value={newFolderName}
@@ -503,14 +503,14 @@ export default function ChatManagementPage() {
                   }}
                   onBlur={handleCreateFolder}
                   placeholder="Folder name..."
-                  className="flex-1 text-sm bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder-slate-400"
+                  className="flex-1 text-sm bg-transparent border-none outline-none text-zinc-900 dark:text-white placeholder-zinc-400"
                   autoFocus
                 />
               </div>
             ) : (
               <button
                 onClick={() => setIsCreatingFolder(true)}
-                className="w-full flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-trainlymainlight/50 transition-colors text-slate-500 dark:text-slate-400 hover:text-trainlymainlight"
+                className="w-full flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-amber-400/50 transition-colors text-zinc-500 dark:text-zinc-400 hover:text-amber-400"
               >
                 <FolderPlus className="h-4 w-4" />
                 <span className="text-sm">New Folder</span>
@@ -522,17 +522,17 @@ export default function ChatManagementPage() {
           <div className="flex-1">
             {filteredAndSortedChats.length === 0 ? (
               <div className="text-center py-16">
-                <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <div className="w-24 h-24 bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   {searchQuery ? (
-                    <Search className="w-12 h-12 text-slate-400" />
+                    <Search className="w-12 h-12 text-zinc-400" />
                   ) : (
-                    <MessageSquare className="w-12 h-12 text-slate-400" />
+                    <MessageSquare className="w-12 h-12 text-zinc-400" />
                   )}
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
+                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-4">
                   {searchQuery ? "No chats found" : "No chats in this folder"}
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
+                <p className="text-zinc-600 dark:text-zinc-400 mb-6">
                   {searchQuery
                     ? "Try adjusting your search terms or browse all chats"
                     : "Create your first chat to start building your knowledge graph"}
@@ -541,14 +541,14 @@ export default function ChatManagementPage() {
                   <Button
                     onClick={() => setSearchQuery("")}
                     variant="outline"
-                    className="border-trainlymainlight/30 text-trainlymainlight hover:bg-trainlymainlight/10"
+                    className="border-amber-400/30 text-amber-400 hover:bg-amber-400/10"
                   >
                     Clear Search
                   </Button>
                 ) : (
                   <Button
                     onClick={onCreate}
-                    className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white"
+                    className="bg-amber-400 hover:bg-amber-400/90 text-white"
                   >
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Create Chat
@@ -567,18 +567,18 @@ export default function ChatManagementPage() {
                   <div
                     key={chat._id}
                     className={cn(
-                      "group bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-trainlymainlight/30 transition-all duration-200 hover:shadow-lg hover:shadow-trainlymainlight/5",
+                      "group bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-200 hover:shadow-lg hover:shadow-amber-400/5",
                       viewMode === "list" && "flex items-center",
                       selectedChats.has(chat._id) &&
-                        "ring-2 ring-trainlymainlight/20 border-trainlymainlight/30",
+                        "ring-2 ring-amber-400/20 border-amber-400/30",
                     )}
                   >
                     {viewMode === "grid" ? (
                       // Grid View - Document Card Style
                       <div className="p-6">
                         <div className="flex items-start justify-between mb-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-trainlymainlight/20 to-purple-100 dark:from-trainlymainlight/20 dark:to-slate-700 rounded-xl flex items-center justify-center">
-                            <MessageSquare className="w-6 h-6 text-trainlymainlight" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-amber-400/20 to-amber-100 dark:from-amber-400/20 dark:to-zinc-700 rounded-xl flex items-center justify-center">
+                            <MessageSquare className="w-6 h-6 text-amber-400" />
                           </div>
 
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -586,27 +586,27 @@ export default function ChatManagementPage() {
                               onClick={() =>
                                 router.push(`/dashboard/${chat._id}/graph`)
                               }
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                               title="View Graph"
                             >
-                              <Eye className="w-3 h-3 text-slate-500" />
+                              <Eye className="w-3 h-3 text-zinc-500" />
                             </button>
                             <button
                               onClick={() => {
                                 setChatToMove(chat._id);
                                 setShowMoveModal(true);
                               }}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                               title="Move to Folder"
                             >
-                              <Folder className="w-3 h-3 text-slate-500" />
+                              <Folder className="w-3 h-3 text-zinc-500" />
                             </button>
                             <button
                               onClick={() => startEditing(chat)}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                               title="Rename"
                             >
-                              <Edit3 className="w-3 h-3 text-slate-500" />
+                              <Edit3 className="w-3 h-3 text-zinc-500" />
                             </button>
                             <button
                               onClick={() => onDelete(chat._id)}
@@ -635,12 +635,12 @@ export default function ChatManagementPage() {
                               autoFocus
                             />
                           ) : (
-                            <h4 className="font-semibold text-slate-900 dark:text-white group-hover:text-trainlymainlight transition-colors truncate mb-4">
+                            <h4 className="font-semibold text-zinc-900 dark:text-white group-hover:text-amber-400 transition-colors truncate mb-4">
                               {chat.title}
                             </h4>
                           )}
 
-                          <div className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
+                          <div className="space-y-3 text-sm text-zinc-500 dark:text-zinc-400">
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4" />
                               <span>{chat.context?.length || 0} documents</span>
@@ -679,7 +679,7 @@ export default function ChatManagementPage() {
                                 {chat.isFavorited ? (
                                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 hover:text-yellow-600" />
                                 ) : (
-                                  <Star className="w-4 h-4 text-slate-300 hover:text-yellow-500" />
+                                  <Star className="w-4 h-4 text-zinc-300 hover:text-yellow-500" />
                                 )}
                               </button>
                             </div>
@@ -693,8 +693,8 @@ export default function ChatManagementPage() {
                           className="flex items-center gap-4 flex-1 cursor-pointer"
                           onClick={() => router.push(`/dashboard/${chat._id}`)}
                         >
-                          <div className="w-10 h-10 bg-gradient-to-br from-trainlymainlight/20 to-purple-100 dark:from-trainlymainlight/20 dark:to-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <MessageSquare className="w-5 h-5 text-trainlymainlight" />
+                          <div className="w-10 h-10 bg-gradient-to-br from-amber-400/20 to-amber-100 dark:from-amber-400/20 dark:to-zinc-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <MessageSquare className="w-5 h-5 text-amber-400" />
                           </div>
 
                           <div className="flex-1 min-w-0">
@@ -715,13 +715,13 @@ export default function ChatManagementPage() {
                                 autoFocus
                               />
                             ) : (
-                              <h4 className="font-semibold text-slate-900 dark:text-white group-hover:text-trainlymainlight transition-colors truncate">
+                              <h4 className="font-semibold text-zinc-900 dark:text-white group-hover:text-amber-400 transition-colors truncate">
                                 {chat.title}
                               </h4>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+                          <div className="flex items-center gap-6 text-sm text-zinc-500 dark:text-zinc-400">
                             <div className="flex items-center gap-1">
                               <FileText className="w-3 h-3" />
                               <span>{chat.context?.length || 0} docs</span>
@@ -751,40 +751,40 @@ export default function ChatManagementPage() {
                               e.stopPropagation();
                               handleToggleFavorite(chat._id);
                             }}
-                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                             title={chat.isFavorited ? "Unfavorite" : "Favorite"}
                           >
                             {chat.isFavorited ? (
                               <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 hover:text-yellow-600" />
                             ) : (
-                              <Star className="w-4 h-4 text-slate-300 hover:text-yellow-500" />
+                              <Star className="w-4 h-4 text-zinc-300 hover:text-yellow-500" />
                             )}
                           </button>
                           <button
                             onClick={() =>
                               router.push(`/dashboard/${chat._id}/graph`)
                             }
-                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                             title="View Graph"
                           >
-                            <Eye className="w-4 h-4 text-slate-500" />
+                            <Eye className="w-4 h-4 text-zinc-500" />
                           </button>
                           <button
                             onClick={() => {
                               setChatToMove(chat._id);
                               setShowMoveModal(true);
                             }}
-                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                             title="Move to Folder"
                           >
-                            <Folder className="w-4 h-4 text-slate-500" />
+                            <Folder className="w-4 h-4 text-zinc-500" />
                           </button>
                           <button
                             onClick={() => startEditing(chat)}
-                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                             title="Rename"
                           >
-                            <Edit3 className="w-4 h-4 text-slate-500" />
+                            <Edit3 className="w-4 h-4 text-zinc-500" />
                           </button>
                           <button
                             onClick={() => onDelete(chat._id)}
@@ -805,37 +805,37 @@ export default function ChatManagementPage() {
 
         {/* Stats Footer */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <div className="text-2xl font-bold text-trainlymainlight mb-2">
+          <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+            <div className="text-2xl font-bold text-amber-400 mb-2">
               {chats?.length || 0}
             </div>
-            <div className="text-slate-600 dark:text-slate-400">
+            <div className="text-zinc-600 dark:text-zinc-400">
               Total Chats
             </div>
           </div>
-          <div className="text-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <div className="text-2xl font-bold text-trainlymainlight mb-2">
+          <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+            <div className="text-2xl font-bold text-amber-400 mb-2">
               {chats?.reduce(
                 (total, chat) => total + (chat.context?.length || 0),
                 0,
               ) || 0}
             </div>
-            <div className="text-slate-600 dark:text-slate-400">Documents</div>
+            <div className="text-zinc-600 dark:text-zinc-400">Documents</div>
           </div>
-          <div className="text-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <div className="text-2xl font-bold text-trainlymainlight mb-2">
+          <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+            <div className="text-2xl font-bold text-amber-400 mb-2">
               {chats?.filter((chat) => chat.visibility === "public").length ||
                 0}
             </div>
-            <div className="text-slate-600 dark:text-slate-400">
+            <div className="text-zinc-600 dark:text-zinc-400">
               Public APIs
             </div>
           </div>
-          <div className="text-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <div className="text-2xl font-bold text-trainlymainlight mb-2">
+          <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+            <div className="text-2xl font-bold text-amber-400 mb-2">
               {Math.round(((chats?.length || 0) / 100) * 100) || 0}%
             </div>
-            <div className="text-slate-600 dark:text-slate-400">
+            <div className="text-zinc-600 dark:text-zinc-400">
               Knowledge Built
             </div>
           </div>
@@ -845,9 +845,9 @@ export default function ChatManagementPage() {
       {/* Move to Folder Modal */}
       {showMoveModal && chatToMove && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-md">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-2xl w-full max-w-md">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
                 Move Chat to Folder
               </h3>
               <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -855,9 +855,9 @@ export default function ChatManagementPage() {
                   onClick={() =>
                     handleMoveToFolder(chatToMove as Id<"chats">, undefined)
                   }
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left"
                 >
-                  <Folder className="h-4 w-4 text-slate-500" />
+                  <Folder className="h-4 w-4 text-zinc-500" />
                   <span className="text-sm">Uncategorized</span>
                 </button>
                 {userFolders?.map((folder) => (
@@ -866,9 +866,9 @@ export default function ChatManagementPage() {
                     onClick={() =>
                       handleMoveToFolder(chatToMove as Id<"chats">, folder._id)
                     }
-                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left"
                   >
-                    <Folder className="h-4 w-4 text-purple-500" />
+                    <Folder className="h-4 w-4 text-amber-500" />
                     <span className="text-sm">{folder.name}</span>
                   </button>
                 ))}
@@ -893,17 +893,17 @@ export default function ChatManagementPage() {
       {/* Delete Folder Modal */}
       {showDeleteFolderModal && folderToDelete && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-md">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-2xl w-full max-w-md">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
                   <Trash className="w-6 h-6 text-red-500" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
                     Delete Folder
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
                     {userFolders?.find((f) => f._id === folderToDelete)?.name}
                   </p>
                 </div>
@@ -927,7 +927,7 @@ export default function ChatManagementPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
                   This folder is empty and can be safely deleted.
                 </p>
               )}

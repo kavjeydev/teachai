@@ -320,20 +320,20 @@ curl https://api.trainlyai.com/v1/health`,
     ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-purple-50/10 dark:from-slate-950 dark:via-blue-950/20 dark:to-purple-950/10">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-blue-50/20 to-amber-50/10 dark:from-zinc-950 dark:via-blue-950/20 dark:to-amber-950/10">
       {/* Premium Background Pattern */}
-      <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-blue-100/20 to-purple-100/20 dark:from-blue-900/10 dark:to-purple-900/10"></div>
+      <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-blue-100/20 to-amber-100/20 dark:from-blue-900/10 dark:to-amber-900/10"></div>
 
       <div className="relative max-w-7xl mx-auto px-6 py-12">
         {/* Premium Header */}
         <div className="text-center mb-16">
           {/* Logo and Badge */}
           <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-green-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/25">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-amber-600 to-green-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/25">
               <Shield className="w-10 h-10 text-white" />
             </div>
             <div className="text-left">
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-900 via-blue-700 to-purple-700 dark:from-white dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-zinc-900 via-blue-700 to-amber-700 dark:from-white dark:via-blue-300 dark:to-amber-300 bg-clip-text text-transparent">
                 Trainly API
               </h1>
               <div className="flex items-center gap-2 mt-2">
@@ -347,7 +347,7 @@ curl https://api.trainlyai.com/v1/health`,
 
           {/* Hero Description */}
           <div className="max-w-4xl mx-auto">
-            <p className="text-2xl text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+            <p className="text-2xl text-zinc-600 dark:text-zinc-300 leading-relaxed mb-6">
               Build AI applications where users <span className="text-green-700 dark:text-green-300 font-semibold">trust uploading sensitive documents</span> because developers cannot access raw files.
             </p>
 
@@ -359,18 +359,18 @@ curl https://api.trainlyai.com/v1/health`,
               <div className="bg-blue-100 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-full px-4 py-2">
                 <span className="text-sm font-medium text-blue-800 dark:text-blue-200">🛡️ Zero Raw Data Access</span>
               </div>
-              <div className="bg-purple-100 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded-full px-4 py-2">
-                <span className="text-sm font-medium text-purple-800 dark:text-purple-200">✅ GDPR/CCPA Ready</span>
+              <div className="bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-full px-4 py-2">
+                <span className="text-sm font-medium text-amber-800 dark:text-amber-200">✅ GDPR/CCPA Ready</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Quick Start */}
-        <Card className="mb-12 shadow-xl shadow-slate-500/10 border border-slate-200/50 dark:border-slate-800/50">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 dark:from-slate-900/50 dark:to-blue-950/30 border-b border-slate-200/50 dark:border-slate-800/50">
+        <Card className="mb-12 shadow-xl shadow-zinc-500/10 border border-zinc-200/50 dark:border-zinc-800/50">
+          <CardHeader className="bg-gradient-to-r from-zinc-50 to-blue-50/50 dark:from-zinc-900/50 dark:to-blue-950/30 border-b border-zinc-200/50 dark:border-zinc-800/50">
             <CardTitle className="flex items-center gap-3 text-xl">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               Quick Start Guide
@@ -384,10 +384,10 @@ curl https://api.trainlyai.com/v1/health`,
                     1
                   </span>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
+                <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
                   Create & Upload
                 </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   Create a chat and upload your documents to build a knowledge
                   base
                 </p>
@@ -398,23 +398,23 @@ curl https://api.trainlyai.com/v1/health`,
                     2
                   </span>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
+                <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
                   Get API Key
                 </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   Generate an API key for your chat in the settings panel
                 </p>
               </div>
               <div className="text-center">
-                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                     3
                   </span>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
+                <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
                   Start Querying
                 </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   Use the API endpoint to query your knowledge base from any app
                 </p>
               </div>
@@ -440,7 +440,7 @@ curl https://api.trainlyai.com/v1/health`,
           </CardHeader>
           <CardContent className="p-8">
             {/* Premium Hero Section */}
-            <div className="bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-green-950/30 dark:via-blue-950/30 dark:to-purple-950/30 rounded-2xl p-8 mb-8 border border-green-200 dark:border-green-800">
+            <div className="bg-gradient-to-br from-green-50 via-blue-50 to-amber-50 dark:from-green-950/30 dark:via-blue-950/30 dark:to-amber-950/30 rounded-2xl p-8 mb-8 border border-green-200 dark:border-green-800">
               <div className="grid md:grid-cols-3 gap-6 items-center">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
@@ -457,19 +457,19 @@ curl https://api.trainlyai.com/v1/health`,
                   <p className="text-sm text-blue-700 dark:text-blue-300">Developers get AI responses, never raw files</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+                  <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
                     <CheckCircle className="w-8 h-8 text-white" />
                   </div>
-                  <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-2">Enterprise Ready</h4>
-                  <p className="text-sm text-purple-700 dark:text-purple-300">GDPR/CCPA compliant by design</p>
+                  <h4 className="font-bold text-amber-800 dark:text-amber-200 mb-2">Enterprise Ready</h4>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">GDPR/CCPA compliant by design</p>
                 </div>
               </div>
 
               <div className="text-center mt-8">
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">
+                <h3 className="text-2xl font-bold text-zinc-800 dark:text-zinc-200 mb-3">
                   🚀 The Trust Advantage
                 </h3>
-                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
+                <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-3xl mx-auto">
                   Users confidently upload sensitive documents because they know developers cannot access their files -
                   only AI-generated insights are available, leading to higher engagement and enterprise adoption.
                 </p>
@@ -512,11 +512,11 @@ curl https://api.trainlyai.com/v1/health`,
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="font-semibold mb-3">1. App Registration</h4>
-                    <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+                    <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-4">
                       <p className="text-sm mb-2">
                         Register your app in the Trainly developer dashboard:
                       </p>
-                      <code className="text-xs block bg-slate-200 dark:bg-slate-700 p-2 rounded">
+                      <code className="text-xs block bg-zinc-200 dark:bg-zinc-700 p-2 rounded">
                         App ID: app_yourapp_123
                         <br />
                         App Secret: as_yourapp_secret_xyz789
@@ -525,11 +525,11 @@ curl https://api.trainlyai.com/v1/health`,
                   </div>
                   <div>
                     <h4 className="font-semibold mb-3">2. User Provisioning</h4>
-                    <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+                    <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-4">
                       <p className="text-sm mb-2">
                         Each user gets their own isolated sub-chat:
                       </p>
-                      <code className="text-xs block bg-slate-200 dark:bg-slate-700 p-2 rounded">
+                      <code className="text-xs block bg-zinc-200 dark:bg-zinc-700 p-2 rounded">
                         POST /v1/privacy/apps/users/provision
                         <br />→ Creates private sub-chat for user
                       </code>
@@ -540,41 +540,41 @@ curl https://api.trainlyai.com/v1/health`,
 
               <TabsContent value="endpoints" className="space-y-4">
                 <div className="space-y-4">
-                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                  <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge className="bg-blue-100 text-blue-800">POST</Badge>
                       <code className="text-sm">
                         /v1/privacy/apps/users/provision
                       </code>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Create isolated sub-chat for a user (requires app secret)
                     </p>
                   </div>
 
-                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                  <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge className="bg-green-100 text-green-800">
                         POST
                       </Badge>
                       <code className="text-sm">/v1/privacy/query</code>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Query user's private data (AI responses only, requires
                       scoped token)
                     </p>
                   </div>
 
-                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                  <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-purple-100 text-purple-800">
+                      <Badge className="bg-amber-100 text-amber-800">
                         POST
                       </Badge>
                       <code className="text-sm">
                         /v1/privacy/upload/presigned-url
                       </code>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Get direct upload URL (files bypass your servers entirely)
                     </p>
                   </div>
@@ -587,7 +587,7 @@ curl https://api.trainlyai.com/v1/health`,
                     <h4 className="font-semibold mb-3">
                       Backend Integration (Node.js)
                     </h4>
-                    <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
+                    <pre className="bg-zinc-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
                       {`// 1. Provision user (creates private sub-chat)
 const response = await fetch('/v1/privacy/apps/users/provision', {
   method: 'POST',
@@ -649,7 +649,7 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                     <h4 className="font-semibold mb-3">
                       Frontend React Component
                     </h4>
-                    <pre className="bg-slate-900 text-blue-400 p-4 rounded-lg text-sm overflow-x-auto">
+                    <pre className="bg-zinc-900 text-blue-400 p-4 rounded-lg text-sm overflow-x-auto">
                       {`function PrivateAIAssistant({ userId }) {
   const [answer, setAnswer] = useState('');
   const [isOnboarded, setIsOnboarded] = useState(false);
@@ -759,8 +759,8 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                       className={cn(
                         "p-4 rounded-lg border cursor-pointer transition-all",
                         selectedEndpoint === endpoint.id
-                          ? "border-trainlymainlight bg-trainlymainlight/5"
-                          : "border-slate-200 dark:border-slate-700 hover:border-trainlymainlight/50",
+                          ? "border-amber-400 bg-amber-400/5"
+                          : "border-zinc-200 dark:border-zinc-700 hover:border-amber-400/50",
                       )}
                       onClick={() => setSelectedEndpoint(endpoint.id)}
                     >
@@ -772,14 +772,14 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                         >
                           {endpoint.method}
                         </Badge>
-                        <code className="text-sm font-mono text-slate-700 dark:text-slate-300">
+                        <code className="text-sm font-mono text-zinc-700 dark:text-zinc-300">
                           {endpoint.path}
                         </code>
                       </div>
-                      <h4 className="font-semibold text-slate-900 dark:text-white">
+                      <h4 className="font-semibold text-zinc-900 dark:text-white">
                         {endpoint.title}
                       </h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
                         {endpoint.description}
                       </p>
                     </div>
@@ -871,10 +871,10 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                         {error.code}
                       </Badge>
                       <div>
-                        <div className="font-medium text-slate-900 dark:text-white text-sm">
+                        <div className="font-medium text-zinc-900 dark:text-white text-sm">
                           {error.status}
                         </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
                           {error.description}
                         </div>
                       </div>
@@ -921,21 +921,21 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                       >
                         {currentEndpoint.method}
                       </Badge>
-                      <code className="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                      <code className="text-sm font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
                         {currentEndpoint.path}
                       </code>
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
                       {currentEndpoint.title}
                     </h3>
-                    <p className="text-slate-600 dark:text-slate-400 mb-4">
+                    <p className="text-zinc-600 dark:text-zinc-400 mb-4">
                       {currentEndpoint.description}
                     </p>
 
                     {/* Parameters */}
                     {currentEndpoint.parameters.length > 0 && (
                       <div className="mb-4">
-                        <h4 className="font-medium text-slate-900 dark:text-white mb-2">
+                        <h4 className="font-medium text-zinc-900 dark:text-white mb-2">
                           Parameters
                         </h4>
                         <div className="space-y-2">
@@ -944,7 +944,7 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                               key={param.name}
                               className="flex items-start gap-2 text-sm"
                             >
-                              <code className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-mono">
+                              <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded font-mono">
                                 {param.name}
                               </code>
                               <Badge
@@ -955,7 +955,7 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                               >
                                 {param.required ? "required" : "optional"}
                               </Badge>
-                              <span className="text-slate-600 dark:text-slate-400">
+                              <span className="text-zinc-600 dark:text-zinc-400">
                                 {param.type} - {param.description}
                               </span>
                             </div>
@@ -969,14 +969,14 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                 {/* Code Example */}
                 {currentCode && (
                   <div className="relative">
-                    <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 relative">
-                      <pre className="text-sm text-slate-300 overflow-x-auto">
+                    <div className="bg-zinc-900 dark:bg-zinc-950 rounded-lg p-4 relative">
+                      <pre className="text-sm text-zinc-300 overflow-x-auto">
                         <code>{currentCode}</code>
                       </pre>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                        className="absolute top-2 right-2 text-zinc-400 hover:text-white"
                         onClick={() =>
                           copyToClipboard(currentCode, "Code example")
                         }
@@ -995,7 +995,7 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                 <CardTitle>Response Format</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4">
+                <div className="bg-zinc-900 dark:bg-zinc-950 rounded-lg p-4">
                   <pre className="text-sm text-green-400 overflow-x-auto">
                     <code>
                       {JSON.stringify(
@@ -1054,7 +1054,7 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                         "Add intelligent search to your documentation websites",
                     },
                     {
-                      icon: <Globe className="w-5 h-5 text-purple-600" />,
+                      icon: <Globe className="w-5 h-5 text-amber-600" />,
                       title: "Mobile Apps",
                       description:
                         "Integrate AI-powered Q&A into your mobile applications",
@@ -1068,14 +1068,14 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                   ].map((useCase, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                      className="flex items-start gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
                     >
                       {useCase.icon}
                       <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white">
+                        <h4 className="font-medium text-zinc-900 dark:text-white">
                           {useCase.title}
                         </h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
                           {useCase.description}
                         </p>
                       </div>
@@ -1103,17 +1103,17 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
         {/* Get Started CTA */}
         <Card className="mt-8">
           <CardContent className="text-center py-8">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
               Ready to Get Started?
             </h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto">
+            <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-2xl mx-auto">
               Create your first chat, upload some documents, and generate an API
               key to start building with TeachAI.
             </p>
             <div className="flex gap-4 justify-center">
               <Button
                 onClick={() => (window.location.href = "/dashboard")}
-                className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white"
+                className="bg-amber-400 hover:bg-amber-400/90 text-white"
               >
                 Create Your First Chat
               </Button>
@@ -1239,9 +1239,9 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
         </Card>
 
         {/* Security Best Practices */}
-        <Card className="mt-8 border-purple-200 dark:border-purple-800">
+        <Card className="mt-8 border-amber-200 dark:border-amber-800">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-purple-800 dark:text-purple-200">
+            <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
               <Lock className="w-5 h-5" />
               🔐 Security Best Practices
             </CardTitle>
@@ -1306,16 +1306,16 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
               </div>
             </div>
 
-            <div className="mt-6 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 rounded-lg p-4">
-              <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">
+            <div className="mt-6 bg-gradient-to-r from-amber-50 to-blue-50 dark:from-amber-950/30 dark:to-blue-950/30 rounded-lg p-4">
+              <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">
                 🎯 Privacy-First Integration Checklist
               </h4>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                     ✅ Implementation:
                   </p>
-                  <ul className="text-xs text-purple-600 dark:text-purple-400 space-y-1 ml-3">
+                  <ul className="text-xs text-amber-600 dark:text-amber-400 space-y-1 ml-3">
                     <li>• Each user gets isolated sub-chat</li>
                     <li>• Use scoped tokens for user operations</li>
                     <li>• Only request safe capabilities</li>
@@ -1323,10 +1323,10 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
                   </ul>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                     🧪 Testing:
                   </p>
-                  <ul className="text-xs text-purple-600 dark:text-purple-400 space-y-1 ml-3">
+                  <ul className="text-xs text-amber-600 dark:text-amber-400 space-y-1 ml-3">
                     <li>• Verify cross-user access is blocked</li>
                     <li>• Test dangerous capabilities are rejected</li>
                     <li>• Confirm only AI responses returned</li>
@@ -1343,16 +1343,16 @@ const response = await fetch('/v1/privacy/apps/users/provision', {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium text-slate-900 dark:text-white">
+                <div className="font-medium text-zinc-900 dark:text-white">
                   Base URL
                 </div>
-                <code className="text-sm text-slate-600 dark:text-slate-400">
+                <code className="text-sm text-zinc-600 dark:text-zinc-400">
                   https://api.trainlyai.com
                 </code>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-slate-600 dark:text-slate-400">
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">
                   Operational
                 </span>
               </div>

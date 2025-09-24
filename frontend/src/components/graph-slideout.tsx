@@ -14,10 +14,10 @@ const GraphVisualizationNVL = dynamic(
     loading: () => (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Network className="w-8 h-8 text-white" />
           </div>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-zinc-600 dark:text-zinc-400">
             Loading graph visualization...
           </p>
         </div>
@@ -80,22 +80,22 @@ export function GraphSlideout({
   return (
     <div
       className={cn(
-        "absolute inset-0 bg-white dark:bg-slate-900 shadow-2xl z-50 transition-transform duration-500 ease-in-out overflow-hidden flex flex-col",
+        "absolute inset-0 bg-white dark:bg-zinc-900 shadow-2xl z-50 transition-transform duration-500 ease-in-out overflow-hidden flex flex-col",
         isAnimating ? "translate-x-0" : "translate-x-full"
       )}
     >
       {/* Header */}
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-6 py-4 z-10 flex-shrink-0">
+      <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50 px-6 py-4 z-10 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
               <Network className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
                 Knowledge Graph
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Explore your knowledge relationships
               </p>
             </div>
@@ -104,7 +104,7 @@ export function GraphSlideout({
             variant="ghost"
             size="sm"
             onClick={handleClose}
-            className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="h-8 w-8 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -113,7 +113,7 @@ export function GraphSlideout({
 
       {/* Graph Content */}
       <div className="flex-1 overflow-hidden p-6">
-        <div className="h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg">
+        <div className="h-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-lg">
           <GraphVisualizationNVL
             chatId={chatId as string}
             baseUrl={baseUrl}

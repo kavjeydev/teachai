@@ -93,13 +93,13 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800">
-      <SidebarHeader className="p-6 border-b border-slate-200 dark:border-slate-800">
+    <Sidebar className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-r border-zinc-200 dark:border-zinc-800">
+      <SidebarHeader className="p-6 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center">
             <span className="text-white font-bold text-sm">T</span>
           </div>
-          <span className="text-xl font-bold text-slate-900 dark:text-white">
+          <span className="text-xl font-bold text-zinc-900 dark:text-white">
             trainly
           </span>
         </div>
@@ -111,7 +111,7 @@ export function AppSidebar({
           <SidebarGroupContent>
             <Button
               onClick={onCreate}
-              className="w-full bg-trainlymainlight hover:bg-trainlymainlight/90 text-white rounded-xl shadow-lg hover:shadow-trainlymainlight/25 transition-all duration-200 flex items-center gap-2 mb-6"
+              className="w-full bg-amber-400 hover:bg-amber-400/90 text-white rounded-xl shadow-lg hover:shadow-amber-400/25 transition-all duration-200 flex items-center gap-2 mb-6"
             >
               <PlusCircle className="h-4 w-4" />
               New Chat
@@ -121,7 +121,7 @@ export function AppSidebar({
 
         {/* Chat List */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-semibold mb-3">
+          <SidebarGroupLabel className="text-zinc-600 dark:text-zinc-400 font-semibold mb-3">
             Recent Chats
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -129,11 +129,11 @@ export function AppSidebar({
               {chats?.map((chat) => (
                 <SidebarMenuItem key={chat._id}>
                   <div className={cn(
-                    "group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800",
-                    chat._id === chatId && "bg-trainlymainlight/10 border border-trainlymainlight/20"
+                    "group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    chat._id === chatId && "bg-amber-400/10 border border-amber-400/20"
                   )}>
-                    <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                    <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MessageSquare className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -146,7 +146,7 @@ export function AppSidebar({
                             if (e.key === "Escape") setEditingChatId(null);
                           }}
                           onBlur={() => finishEditing(chat._id)}
-                          className="h-8 text-sm border-slate-200 dark:border-slate-700"
+                          className="h-8 text-sm border-zinc-200 dark:border-zinc-700"
                           autoFocus
                         />
                       ) : (
@@ -158,12 +158,12 @@ export function AppSidebar({
                           <div className={cn(
                             "font-medium text-sm truncate",
                             chat._id === chatId
-                              ? "text-trainlymainlight"
-                              : "text-slate-900 dark:text-white group-hover:text-trainlymainlight"
+                              ? "text-amber-400"
+                              : "text-zinc-900 dark:text-white group-hover:text-amber-400"
                           )}>
                             {chat.title}
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                             {chat.context?.length || 0} documents
                           </div>
                         </button>
@@ -185,23 +185,23 @@ export function AppSidebar({
 
         {/* Quick Actions */}
         <SidebarGroup className="mt-8">
-          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-semibold mb-3">
+          <SidebarGroupLabel className="text-zinc-600 dark:text-zinc-400 font-semibold mb-3">
             Quick Actions
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <div className="space-y-2">
               <button
                 onClick={() => router.push(`/dashboard/${chatId}/graph`)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-trainlymainlight/10 rounded-lg flex items-center justify-center">
-                  <Network className="w-4 h-4 text-trainlymainlight" />
+                <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
+                  <Network className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="font-medium text-sm text-slate-900 dark:text-white group-hover:text-trainlymainlight">
+                  <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-amber-400">
                     Graph View
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
                     Visualize knowledge
                   </div>
                 </div>
@@ -209,16 +209,16 @@ export function AppSidebar({
 
               <button
                 onClick={() => window.open('https://docs.trainlyai.com', '_blank')}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-trainlymainlight/10 rounded-lg flex items-center justify-center">
-                  <Code className="w-4 h-4 text-trainlymainlight" />
+                <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
+                  <Code className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="font-medium text-sm text-slate-900 dark:text-white group-hover:text-trainlymainlight">
+                  <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-amber-400">
                     API Docs
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
                     Integration guide
                   </div>
                 </div>
@@ -228,19 +228,19 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
+      <SidebarFooter className="p-4 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.imageUrl} className="rounded-full" />
-            <AvatarFallback className="bg-trainlymainlight text-white text-sm">
+            <AvatarFallback className="bg-amber-400 text-white text-sm">
               {user?.firstName?.[0]}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
+            <div className="font-medium text-sm text-zinc-900 dark:text-white truncate">
               {user?.firstName} {user?.lastName}
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
               {user?.primaryEmailAddress?.emailAddress}
             </div>
           </div>
@@ -248,7 +248,7 @@ export function AppSidebar({
             <Button
               variant="ghost"
               size="sm"
-              className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600"
+              className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-zinc-500 hover:text-red-600"
             >
               <Settings className="h-4 w-4" />
             </Button>

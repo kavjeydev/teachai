@@ -18,7 +18,7 @@ export default function VideoModal() {
       <Button
         onClick={onOpen}
         variant="faded"
-        className="hover:bg-trainlymainlight/10 hover:text-black border-1 dark:text-white text-black
+        className="hover:bg-amber-400/10 hover:text-black border-1 dark:text-white text-black
          font-darkerGrotesque font-medium bg-[#f9f9f9] dark:bg-[#222222]"
       >
         <h1 className="mb-0.5">

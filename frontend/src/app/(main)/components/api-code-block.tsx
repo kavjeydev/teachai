@@ -26,7 +26,7 @@ const APICodeBlock: React.FC<CodeBlockProps> = ({
   };
 
   return (
-    <div className="relative h-[21rem] bg-gray-800 rounded-md overflow-scroll">
+    <div className="relative h-[21rem] bg-zinc-800 rounded-md overflow-scroll">
       <SyntaxHighlighter
         language={language}
         style={vscDarkPlus}
@@ -37,7 +37,7 @@ const APICodeBlock: React.FC<CodeBlockProps> = ({
       </SyntaxHighlighter>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md p-2 focus:outline-none transition"
+        className="absolute top-2 right-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-md p-2 focus:outline-none transition"
         aria-label="Copy code"
       >
         {isCopied ? <Check /> : <Clipboard />}

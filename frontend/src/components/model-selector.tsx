@@ -101,7 +101,7 @@ export function ModelSelector({
         <Select value={selectedModel} onValueChange={handleModelChange}>
           <SelectTrigger className="h-auto w-auto p-0 border-none bg-transparent hover:bg-transparent focus:ring-0 focus:ring-offset-0 shadow-none">
             <SelectValue>
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200 cursor-pointer">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-all duration-200 cursor-pointer">
                 {selectedModelInfo && (
                   <>
                     <selectedModelInfo.icon className="h-3 w-3" />
@@ -120,7 +120,7 @@ export function ModelSelector({
                   <model.icon className="h-4 w-4" />
                   <div className="flex flex-col">
                     <span className="font-medium">{model.name}</span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-zinc-500">
                       {model.description}
                     </span>
                   </div>
@@ -143,7 +143,7 @@ export function ModelSelector({
                 <>
                   <selectedModelInfo.icon className="h-4 w-4" />
                   <span>{selectedModelInfo.name}</span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-zinc-500">
                     - {selectedModelInfo.description}
                   </span>
                 </>
@@ -158,7 +158,7 @@ export function ModelSelector({
                 <model.icon className="h-4 w-4" />
                 <div className="flex flex-col">
                   <span className="font-medium">{model.name}</span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-zinc-500">
                     {model.description}
                   </span>
                 </div>

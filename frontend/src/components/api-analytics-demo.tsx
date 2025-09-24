@@ -28,7 +28,7 @@ export function ApiAnalyticsDemo() {
           <BarChart3 className="w-5 h-5" />
           Chat Analytics & Insights
         </CardTitle>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Privacy-first analytics - you can see usage patterns but never raw
           user data
         </p>
@@ -66,10 +66,10 @@ export function ApiAnalyticsDemo() {
               </div>
             </div>
             <div>
-              <div className="text-lg font-bold text-purple-800 dark:text-purple-200">
+              <div className="text-lg font-bold text-amber-800 dark:text-amber-200">
                 1.8K
               </div>
-              <div className="text-xs text-purple-600 dark:text-purple-400">
+              <div className="text-xs text-amber-600 dark:text-amber-400">
                 AI Queries Only
               </div>
             </div>
@@ -86,7 +86,7 @@ export function ApiAnalyticsDemo() {
             <div className="text-xs text-blue-600 dark:text-blue-400">
               Total Users
             </div>
-            <div className="text-xs text-slate-500 mt-1">23 active (7d)</div>
+            <div className="text-xs text-zinc-500 mt-1">23 active (7d)</div>
           </div>
 
           <div className="text-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
@@ -97,18 +97,18 @@ export function ApiAnalyticsDemo() {
             <div className="text-xs text-green-600 dark:text-green-400">
               Files Uploaded
             </div>
-            <div className="text-xs text-slate-500 mt-1">149.5 MB total</div>
+            <div className="text-xs text-zinc-500 mt-1">149.5 MB total</div>
           </div>
 
-          <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
-            <Activity className="w-5 h-5 text-purple-600 mx-auto mb-2" />
-            <div className="text-lg font-bold text-purple-800 dark:text-purple-200">
+          <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            <Activity className="w-5 h-5 text-amber-600 mx-auto mb-2" />
+            <div className="text-lg font-bold text-amber-800 dark:text-amber-200">
               98.2%
             </div>
-            <div className="text-xs text-purple-600 dark:text-purple-400">
+            <div className="text-xs text-amber-600 dark:text-amber-400">
               Success Rate
             </div>
-            <div className="text-xs text-slate-500 mt-1">1,847 queries</div>
+            <div className="text-xs text-zinc-500 mt-1">1,847 queries</div>
           </div>
 
           <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
@@ -119,13 +119,13 @@ export function ApiAnalyticsDemo() {
             <div className="text-xs text-orange-600 dark:text-orange-400">
               Avg Response
             </div>
-            <div className="text-xs text-slate-500 mt-1">45/day avg</div>
+            <div className="text-xs text-zinc-500 mt-1">45/day avg</div>
           </div>
         </div>
 
         {/* File Type Distribution */}
         <div className="mb-6">
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+          <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3 flex items-center gap-2">
             <HardDrive className="w-4 h-4" />
             File Type Breakdown
           </h4>
@@ -134,7 +134,7 @@ export function ApiAnalyticsDemo() {
               { type: "PDF", count: 156, color: "bg-red-500", percentage: 67 },
               { type: "DOCX", count: 45, color: "bg-blue-500", percentage: 19 },
               { type: "TXT", count: 23, color: "bg-green-500", percentage: 10 },
-              { type: "Other", count: 10, color: "bg-gray-500", percentage: 4 },
+              { type: "Other", count: 10, color: "bg-zinc-500", percentage: 4 },
             ].map((item) => (
               <div
                 key={item.type}
@@ -143,11 +143,11 @@ export function ApiAnalyticsDemo() {
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
                   <span className="text-sm font-medium">{item.type}</span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-zinc-500">
                     {item.count} files
                   </span>
                 </div>
-                <div className="text-xs text-slate-500">{item.percentage}%</div>
+                <div className="text-xs text-zinc-500">{item.percentage}%</div>
               </div>
             ))}
           </div>
@@ -155,7 +155,7 @@ export function ApiAnalyticsDemo() {
 
         {/* Top User Activity (Privacy-Safe) */}
         <div className="mb-6">
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+          <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3 flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Top Users (Privacy-Safe)
           </h4>
@@ -182,24 +182,24 @@ export function ApiAnalyticsDemo() {
             ].map((user, index) => (
               <div
                 key={user.userHash}
-                className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-amber-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
                     #{index + 1}
                   </div>
                   <div>
                     <div className="font-medium text-sm">{user.userHash}</div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-zinc-500">
                       {user.queries} queries
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
                     {user.files} files
                   </div>
-                  <div className="text-xs text-slate-500">{user.storage}</div>
+                  <div className="text-xs text-zinc-500">{user.storage}</div>
                 </div>
               </div>
             ))}
@@ -251,7 +251,7 @@ export function ApiAnalyticsDemo() {
 
         {/* Call to Action */}
         <div className="mt-6 text-center">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+          <div className="bg-gradient-to-r from-blue-50 to-amber-50 dark:from-blue-950/30 dark:to-amber-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
             <Sparkles className="w-6 h-6 text-blue-600 mx-auto mb-2" />
             <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
               🚀 Privacy Advantage

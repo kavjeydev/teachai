@@ -85,16 +85,21 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   const [relationshipProperties, setRelationshipProperties] = useState<
     Record<string, any>
   >({});
-  const [customRelationshipTypes, setCustomRelationshipTypes] = useState<string[]>([]);
+  const [customRelationshipTypes, setCustomRelationshipTypes] = useState<
+    string[]
+  >([]);
 
   // Load custom relationship types from localStorage on mount
   useEffect(() => {
-    const savedTypes = localStorage.getItem('customRelationshipTypes');
+    const savedTypes = localStorage.getItem("customRelationshipTypes");
     if (savedTypes) {
       try {
         setCustomRelationshipTypes(JSON.parse(savedTypes));
       } catch (error) {
-        console.warn('Failed to parse custom relationship types from localStorage:', error);
+        console.warn(
+          "Failed to parse custom relationship types from localStorage:",
+          error,
+        );
       }
     }
   }, []);
@@ -261,7 +266,10 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   const handleNodeClick = (nodeEventData: any) => {
     console.log("🖱️ Node clicked:", nodeEventData);
     console.log("🔗 Creating relationship (state):", creatingRelationship);
-    console.log("🔗 Creating relationship (ref):", creatingRelationshipRef.current);
+    console.log(
+      "🔗 Creating relationship (ref):",
+      creatingRelationshipRef.current,
+    );
 
     // For single clicks, the node data might be in different places
     let nodeData, nodeId;
@@ -426,7 +434,10 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     const fullRelData = graphData.relationships.find((r) => r.id === relId);
 
     console.log("🔍 Looking for relationship with ID:", relId);
-    console.log("🔍 Available relationships:", graphData.relationships.map(r => ({ id: r.id, type: r.type })));
+    console.log(
+      "🔍 Available relationships:",
+      graphData.relationships.map((r) => ({ id: r.id, type: r.type })),
+    );
     console.log("🔍 Found relationship data:", fullRelData);
 
     if (fullRelData) {
@@ -437,13 +448,16 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       toast.success("Relationship selected - view details in sidebar");
     } else {
       // If we can't find it in our graph data, create a temporary one from NVL data
-      console.log("⚠️ Relationship not found in graphData, creating from NVL data");
+      console.log(
+        "⚠️ Relationship not found in graphData, creating from NVL data",
+      );
       const tempRelData = {
         id: relId,
         source: relData.from,
         target: relData.to,
-        type: relData.captions?.[0]?.value || relData.properties?.type || "UNKNOWN",
-        properties: relData.properties || {}
+        type:
+          relData.captions?.[0]?.value || relData.properties?.type || "UNKNOWN",
+        properties: relData.properties || {},
       };
       console.log("🔧 Created temporary relationship data:", tempRelData);
       setSelectedRelationship(tempRelData);
@@ -463,7 +477,10 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     console.log("🎯 Current targetNode (ref):", targetNodeRef.current);
     console.log("🎯 Checking conditions:");
     console.log("🎯   !sourceNodeRef.current =", !sourceNodeRef.current);
-    console.log("🎯   sourceNodeRef.current !== nodeId =", sourceNodeRef.current !== nodeId);
+    console.log(
+      "🎯   sourceNodeRef.current !== nodeId =",
+      sourceNodeRef.current !== nodeId,
+    );
 
     if (!sourceNodeRef.current) {
       console.log("🔵 Setting source node to:", nodeId);
@@ -766,7 +783,10 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   const cancelRelationshipCreation = () => {
     // Reset visual feedback
-    if (nvlInstance.current && (sourceNodeRef.current || targetNodeRef.current)) {
+    if (
+      nvlInstance.current &&
+      (sourceNodeRef.current || targetNodeRef.current)
+    ) {
       nvlInstance.current.deselectAll();
       // Don't reload the graph - just reset the colors manually
       // The graph reload was causing the state to reset
@@ -803,18 +823,33 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP ${response.status}: Failed to create relationship`);
+        throw new Error(
+          errorData.detail ||
+            `HTTP ${response.status}: Failed to create relationship`,
+        );
       }
 
       const newRelationship = await response.json();
 
       // Add custom relationship type to the list if it's not already there
-      const defaultTypes = ["RELATES_TO", "DEPENDS_ON", "CONTAINS", "REFERENCES", "SIMILAR_TO"];
-      if (!defaultTypes.includes(relationshipType) && !customRelationshipTypes.includes(relationshipType)) {
+      const defaultTypes = [
+        "RELATES_TO",
+        "DEPENDS_ON",
+        "CONTAINS",
+        "REFERENCES",
+        "SIMILAR_TO",
+      ];
+      if (
+        !defaultTypes.includes(relationshipType) &&
+        !customRelationshipTypes.includes(relationshipType)
+      ) {
         const newCustomTypes = [...customRelationshipTypes, relationshipType];
         setCustomRelationshipTypes(newCustomTypes);
         // Save to localStorage for persistence
-        localStorage.setItem('customRelationshipTypes', JSON.stringify(newCustomTypes));
+        localStorage.setItem(
+          "customRelationshipTypes",
+          JSON.stringify(newCustomTypes),
+        );
       }
 
       // Update local state
@@ -845,7 +880,8 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       cancelRelationshipCreation();
     } catch (error) {
       console.error("Error creating relationship:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       toast.error(`Failed to create relationship: ${errorMessage}`);
     }
   };
@@ -1049,7 +1085,10 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete relationship`);
+        throw new Error(
+          errorData.detail ||
+            `HTTP ${response.status}: Failed to delete relationship`,
+        );
       }
 
       // Update local state
@@ -1071,7 +1110,8 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       setSelectedRelationship(null);
     } catch (error) {
       console.error("Error deleting relationship:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       toast.error(`Failed to delete relationship: ${errorMessage}`);
     }
   };
@@ -1279,7 +1319,12 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Debug state changes
   useEffect(() => {
-    console.log("🔄 State changed - sourceNode:", sourceNode, "targetNode:", targetNode);
+    console.log(
+      "🔄 State changed - sourceNode:",
+      sourceNode,
+      "targetNode:",
+      targetNode,
+    );
   }, [sourceNode, targetNode]);
 
   return (
@@ -1341,7 +1386,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               handleLayout(e.target.value)
             }
-            className="px-3 py-1 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 text-sm"
+            className="px-3 py-1 border rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 text-sm"
           >
             <option value="hierarchical">Hierarchical</option>
             <option value="force">Force-directed</option>
@@ -1353,7 +1398,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         {/* Graph Container */}
         <div
           ref={nvlRef}
-          className="w-full h-full bg-gray-50 dark:bg-gray-900 relative"
+          className="w-full h-full bg-zinc-50 dark:bg-zinc-900 relative"
           style={{
             minHeight: "600px",
             height: "100%",
@@ -1367,21 +1412,23 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         >
           {/* Loading Overlay */}
           {(isInitializing || isLoading) && (
-            <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-amber-600 dark:from-blue-500 dark:to-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400 mb-2">
-                  {isInitializing ? "Initializing graph..." : "Loading graph data..."}
+                <p className="text-zinc-600 dark:text-zinc-400 mb-2">
+                  {isInitializing
+                    ? "Initializing graph..."
+                    : "Loading graph data..."}
                 </p>
-                <div className="w-48 bg-slate-200 dark:bg-slate-700 rounded-full h-2 mx-auto">
+                <div className="w-48 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 mx-auto">
                   <div
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-blue-600 to-amber-600 dark:from-blue-500 dark:to-amber-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${loadingProgress}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                   {loadingProgress}%
                 </p>
               </div>
@@ -1390,7 +1437,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
           {/* Status Panel - Bottom Right */}
           <div className="absolute bottom-4 right-4 z-10">
-            <Card className="w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border shadow-lg">
+            <Card className="w-64 bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm border shadow-lg">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <div
@@ -1464,7 +1511,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       </div>
 
       {/* Side Panel */}
-      <div className="w-80 border-l bg-white dark:bg-gray-800 p-4 overflow-y-auto">
+      <div className="w-80 border-l bg-white dark:bg-zinc-800 p-4 overflow-y-auto">
         {/* Edit Node Panel - Show at top when editing */}
         {editingNode && (
           <Card className="mb-4">
@@ -1505,39 +1552,73 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         {creatingRelationship && (
           <Card className="mb-4 border-green-200 dark:border-green-800">
             <CardHeader className="bg-green-50 dark:bg-green-900/20">
-              <CardTitle className="text-green-800 dark:text-green-200">Create Relationship</CardTitle>
+              <CardTitle className="text-green-800 dark:text-green-200">
+                Create Relationship
+              </CardTitle>
               <p className="text-sm text-green-600 dark:text-green-300">
-                {!sourceNode && !targetNode && "Step 1: Click on a node to select as source"}
-                {sourceNode && !targetNode && "Step 2: Click on another node to select as target"}
-                {sourceNode && targetNode && "Step 3: Configure and create the relationship"}
+                {!sourceNode &&
+                  !targetNode &&
+                  "Step 1: Click on a node to select as source"}
+                {sourceNode &&
+                  !targetNode &&
+                  "Step 2: Click on another node to select as target"}
+                {sourceNode &&
+                  targetNode &&
+                  "Step 3: Configure and create the relationship"}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className={`p-3 rounded border ${sourceNode ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'}`}>
+              <div
+                className={`p-3 rounded border ${sourceNode ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800" : "bg-zinc-50 dark:bg-zinc-900/20 border-zinc-200 dark:border-zinc-700"}`}
+              >
                 <Label className="flex items-center gap-2">
                   Source Node
-                  {sourceNode && <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Selected</Badge>}
+                  {sourceNode && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    >
+                      Selected
+                    </Badge>
+                  )}
                 </Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-1">
                   {sourceNode
                     ? (() => {
-                        const node = graphData.nodes.find(n => n.id === sourceNode);
-                        return node ? `${node.properties.text?.substring(0, 30) || node.properties.id || sourceNode}...` : `Node ${sourceNode}`;
+                        const node = graphData.nodes.find(
+                          (n) => n.id === sourceNode,
+                        );
+                        return node
+                          ? `${node.properties.text?.substring(0, 30) || node.properties.id || sourceNode}...`
+                          : `Node ${sourceNode}`;
                       })()
                     : "Click a node to select source"}
                 </p>
               </div>
 
-              <div className={`p-3 rounded border ${targetNode ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'}`}>
+              <div
+                className={`p-3 rounded border ${targetNode ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-zinc-50 dark:bg-zinc-900/20 border-zinc-200 dark:border-zinc-700"}`}
+              >
                 <Label className="flex items-center gap-2">
                   Target Node
-                  {targetNode && <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Selected</Badge>}
+                  {targetNode && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                    >
+                      Selected
+                    </Badge>
+                  )}
                 </Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-1">
                   {targetNode
                     ? (() => {
-                        const node = graphData.nodes.find(n => n.id === targetNode);
-                        return node ? `${node.properties.text?.substring(0, 30) || node.properties.id || targetNode}...` : `Node ${targetNode}`;
+                        const node = graphData.nodes.find(
+                          (n) => n.id === targetNode,
+                        );
+                        return node
+                          ? `${node.properties.text?.substring(0, 30) || node.properties.id || targetNode}...`
+                          : `Node ${targetNode}`;
                       })()
                     : "Click another node to select target"}
                 </p>
@@ -1555,24 +1636,34 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                     />
                     <div className="flex flex-wrap gap-1 mt-2">
                       {[
-                        ...["RELATES_TO", "DEPENDS_ON", "CONTAINS", "REFERENCES", "SIMILAR_TO"],
-                        ...customRelationshipTypes
-                      ].map(type => (
+                        ...[
+                          "RELATES_TO",
+                          "DEPENDS_ON",
+                          "CONTAINS",
+                          "REFERENCES",
+                          "SIMILAR_TO",
+                        ],
+                        ...customRelationshipTypes,
+                      ].map((type) => (
                         <Button
                           key={type}
                           variant="outline"
                           size="sm"
                           className={`h-6 text-xs ${
                             customRelationshipTypes.includes(type)
-                              ? 'border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-600 dark:text-purple-300 dark:hover:bg-purple-900/20'
-                              : ''
+                              ? "border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                              : ""
                           }`}
                           onClick={() => setRelationshipType(type)}
-                          title={customRelationshipTypes.includes(type) ? 'Custom relationship type' : 'Default relationship type'}
+                          title={
+                            customRelationshipTypes.includes(type)
+                              ? "Custom relationship type"
+                              : "Default relationship type"
+                          }
                         >
                           {type}
                           {customRelationshipTypes.includes(type) && (
-                            <span className="ml-1 text-purple-500">✨</span>
+                            <span className="ml-1 text-amber-500">✨</span>
                           )}
                         </Button>
                       ))}
@@ -1636,7 +1727,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             <CardContent className="space-y-4 max-h-96 overflow-y-auto">
               <div>
                 <Label className="font-semibold">Neo4j ID</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300 font-mono">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300 font-mono">
                   {selectedNode.id}
                 </p>
               </div>
@@ -1656,7 +1747,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
               {selectedNode.properties.chatId && (
                 <div>
                   <Label className="font-semibold">Chat ID</Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 font-mono">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-300 font-mono">
                     {selectedNode.properties.chatId}
                   </p>
                 </div>
@@ -1666,7 +1757,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
               {selectedNode.properties.id && (
                 <div>
                   <Label className="font-semibold">Node ID</Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 font-mono">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-300 font-mono">
                     {selectedNode.properties.id}
                   </p>
                 </div>
@@ -1676,7 +1767,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
               {selectedNode.properties.text && (
                 <div>
                   <Label className="font-semibold">Text Content</Label>
-                  <div className="mt-1 p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm max-h-32 overflow-y-auto">
+                  <div className="mt-1 p-2 bg-zinc-100 dark:bg-zinc-700 rounded text-sm max-h-32 overflow-y-auto">
                     {selectedNode.properties.text}
                   </div>
                 </div>
@@ -1686,7 +1777,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
               {selectedNode.properties.embedding && (
                 <div>
                   <Label className="font-semibold">Embedding Vector</Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     [
                     {Array.isArray(selectedNode.properties.embedding)
                       ? `${selectedNode.properties.embedding
@@ -1713,7 +1804,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                     .map(([key, value]) => (
                       <div key={key}>
                         <Label className="text-xs font-medium">{key}</Label>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 break-words">
+                        <p className="text-sm text-zinc-600 dark:text-zinc-300 break-words">
                           {typeof value === "string" && value.length > 100
                             ? `${value.substring(0, 100)}...`
                             : String(value)}
@@ -1806,14 +1897,14 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             <CardContent className="space-y-4">
               <div>
                 <Label>Type</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   {selectedRelationship.type}
                 </p>
               </div>
 
               <div>
                 <Label>From → To</Label>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   {selectedRelationship.source} → {selectedRelationship.target}
                 </p>
               </div>
@@ -1826,7 +1917,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                       ([key, value]) => (
                         <div key={key}>
                           <Label className="text-xs">{key}</Label>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                          <p className="text-sm text-zinc-600 dark:text-zinc-300">
                             {String(value)}
                           </p>
                         </div>
@@ -1857,11 +1948,11 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                     <strong>Relationships:</strong>{" "}
                     {graphData.relationships.length}
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-4">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-4">
                     <strong>Single-click</strong> nodes or relationships to view
                     details.
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-2">
                     <strong>Double-click</strong> nodes to edit their properties
                     directly.
                   </p>
@@ -1872,8 +1963,20 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                     </Label>
                     <div className="mt-2 space-y-1 text-xs">
                       {/* Default Types */}
-                      {["RELATES_TO", "DEPENDS_ON", "CONTAINS", "REFERENCES", "SIMILAR_TO"].map((type, index) => {
-                        const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-red-500"];
+                      {[
+                        "RELATES_TO",
+                        "DEPENDS_ON",
+                        "CONTAINS",
+                        "REFERENCES",
+                        "SIMILAR_TO",
+                      ].map((type, index) => {
+                        const colors = [
+                          "bg-blue-500",
+                          "bg-green-500",
+                          "bg-amber-500",
+                          "bg-orange-500",
+                          "bg-red-500",
+                        ];
                         return (
                           <div key={type} className="flex items-center gap-2">
                             <div className={`w-4 h-0.5 ${colors[index]}`}></div>
@@ -1884,10 +1987,14 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
                       {/* Custom Types */}
                       {customRelationshipTypes.map((type, index) => (
-                        <div key={`custom-${type}`} className="flex items-center gap-2">
-                          <div className="w-4 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                        <div
+                          key={`custom-${type}`}
+                          className="flex items-center gap-2"
+                        >
+                          <div className="w-4 h-0.5 bg-gradient-to-r from-amber-500 to-amber-500"></div>
                           <span className="flex items-center gap-1">
-                            {type} - Custom type <span className="text-purple-500">✨</span>
+                            {type} - Custom type{" "}
+                            <span className="text-amber-500">✨</span>
                           </span>
                         </div>
                       ))}
@@ -1895,29 +2002,42 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                       {/* AI-Generated Types */}
                       {graphData.relationships.length > 0 && (
                         <>
-                          {Array.from(new Set(graphData.relationships.map(r => r.type)))
-                            .filter(type =>
-                              !["RELATES_TO", "DEPENDS_ON", "CONTAINS", "REFERENCES", "SIMILAR_TO"].includes(type) &&
-                              !customRelationshipTypes.includes(type)
+                          {Array.from(
+                            new Set(graphData.relationships.map((r) => r.type)),
+                          )
+                            .filter(
+                              (type) =>
+                                ![
+                                  "RELATES_TO",
+                                  "DEPENDS_ON",
+                                  "CONTAINS",
+                                  "REFERENCES",
+                                  "SIMILAR_TO",
+                                ].includes(type) &&
+                                !customRelationshipTypes.includes(type),
                             )
-                            .map(type => (
-                              <div key={`ai-${type}`} className="flex items-center gap-2">
+                            .map((type) => (
+                              <div
+                                key={`ai-${type}`}
+                                className="flex items-center gap-2"
+                              >
                                 <div className="w-4 h-0.5 bg-gradient-to-r from-green-400 to-blue-500"></div>
                                 <span className="flex items-center gap-1">
-                                  {type} - AI-generated <span className="text-green-500">🤖</span>
+                                  {type} - AI-generated{" "}
+                                  <span className="text-green-500">🤖</span>
                                 </span>
                               </div>
-                            ))
-                          }
+                            ))}
                         </>
                       )}
 
                       {/* Show message if no types exist */}
-                      {customRelationshipTypes.length === 0 && graphData.relationships.length === 0 && (
-                        <div className="text-gray-500 italic">
-                          Create relationships to see your custom types here
-                        </div>
-                      )}
+                      {customRelationshipTypes.length === 0 &&
+                        graphData.relationships.length === 0 && (
+                          <div className="text-zinc-500 italic">
+                            Create relationships to see your custom types here
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>

@@ -129,21 +129,21 @@ export const ChatNavbar = ({
   }
 
   return (
-    <div className="flex items-center justify-between w-full h-12 px-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
+    <div className="flex items-center justify-between w-full h-12 px-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50">
       <div className="flex items-center gap-4">
         <Dialog>
           <DialogTrigger>
             <div className="flex items-center gap-2 group cursor-pointer">
-              <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-trainlymainlight transition-colors" />
-              <h1 className="text-lg font-semibold text-slate-900 dark:text-white group-hover:text-trainlymainlight transition-colors">
+              <Edit3 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-400 transition-colors" />
+              <h1 className="text-lg font-semibold text-zinc-900 dark:text-white group-hover:text-amber-400 transition-colors">
                 {currentChat?.title}
               </h1>
             </div>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-[425px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <DialogContent className="sm:max-w-[425px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
             <DialogHeader>
-              <DialogTitle className="text-slate-900 dark:text-white">
+              <DialogTitle className="text-zinc-900 dark:text-white">
                 Rename Chat
               </DialogTitle>
             </DialogHeader>
@@ -151,12 +151,12 @@ export const ChatNavbar = ({
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label
                   htmlFor="name"
-                  className="text-right text-slate-700 dark:text-slate-300"
+                  className="text-right text-zinc-700 dark:text-zinc-300"
                 >
                   Chat Name
                 </Label>
                 <Input
-                  className="col-span-3 border-slate-200 dark:border-slate-700 focus:border-trainlymainlight dark:focus:border-trainlymainlight"
+                  className="col-span-3 border-zinc-200 dark:border-zinc-700 focus:border-amber-400 dark:focus:border-amber-400"
                   autoFocus
                   defaultValue={currentChat?.title}
                   value={editingTitle}
@@ -173,7 +173,7 @@ export const ChatNavbar = ({
             <DialogFooter>
               <DialogClose asChild>
                 <Button
-                  className="bg-trainlymainlight hover:bg-trainlymainlight/90 disabled:bg-trainlymainlight/50 disabled:cursor-not-allowed text-white"
+                  className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed text-white"
                   disabled={isRenaming}
                   onClick={() => finishEditing(chatId)}
                 >
@@ -199,7 +199,7 @@ export const ChatNavbar = ({
             onClick={handleUpgrade}
             disabled={isUpgrading}
             size="sm"
-            className="h-8 px-3 gap-2 bg-gradient-to-r from-trainlymainlight to-purple-600 hover:from-trainlymainlight/90 hover:to-purple-600/90 text-white shadow-lg hover:shadow-trainlymainlight/25 transition-all duration-300"
+            className="h-8 px-3 gap-2 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white shadow-lg hover:shadow-amber-400/25 transition-all duration-300"
           >
             {isUpgrading ? (
               <>
@@ -218,9 +218,9 @@ export const ChatNavbar = ({
 
         {/* Credit Counter - Show for paid users */}
         {subscription?.tier !== 'free' && credits && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
-            <Sparkles className="w-3.5 h-3.5 text-trainlymainlight" />
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
               {(credits.remainingCredits || 0).toFixed(1)} credits
             </span>
           </div>
@@ -231,7 +231,7 @@ export const ChatNavbar = ({
           variant="ghost"
           size="sm"
           onClick={onApiSettingsToggle}
-          className="h-8 px-3 gap-2 transition-colors text-sm hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-trainlymainlight"
+          className="h-8 px-3 gap-2 transition-colors text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-amber-400"
           title={subscription?.tier === 'free' ? "Chat Settings & API Access (Pro Feature)" : "Chat Settings & API Access"}
         >
           <Settings className="h-3.5 w-3.5" />
@@ -247,8 +247,8 @@ export const ChatNavbar = ({
             className={cn(
               "h-8 px-3 gap-2 transition-colors text-sm relative",
               isGraphOpen
-                ? "bg-trainlymainlight/10 text-trainlymainlight border-trainlymainlight/20 border"
-                : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400",
+                ? "bg-amber-400/10 text-amber-400 border-amber-400/20 border"
+                : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
             )}
           >
             <Network className="h-3.5 w-3.5" />
@@ -263,27 +263,27 @@ export const ChatNavbar = ({
         )}
 
         <Select onValueChange={handleVisibilityChange}>
-          <SelectTrigger className="w-[120px] h-8 text-sm border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-trainlymainlight/50 transition-colors">
+          <SelectTrigger className="w-[120px] h-8 text-sm border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-amber-400/50 transition-colors">
             <SelectValue
               placeholder={
                 currentChat?.visibility === "public" ? "Public" : "Private"
               }
             />
           </SelectTrigger>
-          <SelectContent className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <SelectContent className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
             <SelectGroup>
               <SelectItem
                 value="private"
-                className="hover:bg-slate-50 dark:hover:bg-slate-700"
+                className="hover:bg-zinc-50 dark:hover:bg-zinc-700"
               >
                 <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-slate-500" />
+                  <Lock className="h-4 w-4 text-zinc-500" />
                   <span>Private</span>
                 </div>
               </SelectItem>
               <SelectItem
                 value="public"
-                className="hover:bg-slate-50 dark:hover:bg-slate-700"
+                className="hover:bg-zinc-50 dark:hover:bg-zinc-700"
               >
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-green-500" />
@@ -299,7 +299,7 @@ export const ChatNavbar = ({
             "border font-medium",
             currentChat?.visibility === "public"
               ? "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400"
-              : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
+              : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700",
           )}
           variant="outline"
         >

@@ -22,7 +22,7 @@ export function AuthWrapper({
   // Show loading state while auth is initializing
   if (isLoading || !isLoaded) {
     return fallback || (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+      <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <LoadingCard
           title="Initializing Authentication..."
           description="Please wait while we verify your session"
@@ -34,20 +34,20 @@ export function AuthWrapper({
   // Show error state if auth failed
   if (error && showError) {
     return (
-      <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-8 text-center max-w-md mx-4">
+      <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
+        <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-8 text-center max-w-md mx-4">
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+          <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
             Authentication Error
           </h3>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             {error}
           </p>
           <Button
             onClick={() => window.location.reload()}
-            className="bg-trainlymainlight hover:bg-trainlymainlight/90 text-white flex items-center gap-2"
+            className="bg-amber-400 hover:bg-amber-400/90 text-white flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh Page
@@ -69,7 +69,7 @@ export function AuthWrapper({
 
   // Fallback loading state
   return fallback || (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+    <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
       <LoadingCard
         title="Loading..."
         description="Preparing your dashboard"
