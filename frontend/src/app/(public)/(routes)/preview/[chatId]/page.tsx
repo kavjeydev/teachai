@@ -26,7 +26,7 @@ import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
-import { sanitizeHTML } from "@/app/(main)/components/sanitizeHtml";
+import { sanitizeHTML, sanitizeUserMessage, sanitizeText } from "@/lib/sanitization";
 import { Badge } from "@/components/ui/badge";
 import { Toaster, toast } from "sonner";
 
@@ -301,12 +301,19 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
-    // 1) Add user’s message
+    // Sanitize the user message before processing
+    const sanitizedMessage = sanitizeUserMessage(input.trim());
+    if (!sanitizedMessage) {
+      toast.error("Invalid message content detected.");
+      return;
+    }
+
+    // 1) Add user's message
     const userMsg: ChatMessage = {
       sender: "user",
-      text: input.trim(),
+      text: sanitizedMessage,
     };
-    onWrite("user", input.trim());
+    onWrite("user", sanitizedMessage);
     setInput("");
 
     // 2) Make the API call
@@ -393,21 +400,23 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                                 className || "",
                               );
                               const language = match ? match[1] : "";
+                              // Sanitize code content
+                              const sanitizedCode = sanitizeText(String(children).replace(/\n$/, ""));
                               return language ? (
                                 <CodeBlock
                                   language={language}
-                                  value={String(children).replace(/\n$/, "")}
+                                  value={sanitizedCode}
                                   {...props}
                                 />
                               ) : (
                                 <code className={className} {...props}>
-                                  {children}
+                                  {sanitizeText(String(children))}
                                 </code>
                               );
                             },
                           }}
                         >
-                          {msg.text}
+                          {sanitizeText(msg.text)}
                         </ReactMarkdown>
                       ) : (
                         <div className="flex gap-4 items-center">

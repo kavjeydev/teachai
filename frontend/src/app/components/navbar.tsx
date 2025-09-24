@@ -14,7 +14,8 @@ import { Spinner } from "@nextui-org/spinner";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, Loader2 } from "lucide-react";
+import { useNavigationLoading } from "@/hooks/useNavigationLoading";
 
 export default function Navbar() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function Navbar() {
   const { theme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isNavigating, navigateTo } = useNavigationLoading();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -54,7 +56,7 @@ export default function Navbar() {
               {/* Logo */}
               <div
                 className="flex items-center gap-3 cursor-pointer group"
-                onClick={() => router.push("/")}
+                onClick={() => navigateTo("/")}
               >
                 <div className="relative">
                   <div className="w-10 h-10 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg shadow-trainlymainlight/25">
@@ -70,16 +72,20 @@ export default function Navbar() {
               {/* Desktop Navigation Links */}
               <div className="hidden lg:flex items-center gap-8">
                 <button
-                  className="relative text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white font-medium transition-all duration-300 group py-2"
-                  onClick={() => router.push("/")}
+                  className="relative text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white font-medium transition-all duration-300 group py-2 flex items-center gap-2"
+                  onClick={() => navigateTo("/")}
+                  disabled={isNavigating}
                 >
+                  {isNavigating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : null}
                   Home
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-trainlymainlight to-purple-400 transition-all duration-300 group-hover:w-full rounded-full"></span>
                   <div className="absolute inset-0 bg-slate-100 dark:bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 -z-10"></div>
                 </button>
                 <button
                   className="relative text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white font-medium transition-all duration-300 group py-2"
-                  onClick={() => router.push("/pricing")}
+                  onClick={() => navigateTo("/pricing")}
                 >
                   Pricing
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-trainlymainlight to-purple-400 transition-all duration-300 group-hover:w-full rounded-full"></span>
@@ -97,7 +103,7 @@ export default function Navbar() {
                 </button>
                 <button
                   className="relative text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white font-medium transition-all duration-300 group py-2"
-                  onClick={() => router.push("/community")}
+                  onClick={() => navigateTo("/community")}
                 >
                   Community
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-trainlymainlight to-purple-400 transition-all duration-300 group-hover:w-full rounded-full"></span>
@@ -184,8 +190,12 @@ export default function Navbar() {
                           <Button
                             variant="outline"
                             className="w-full justify-start glass bg-trainlymainlight/20 text-slate-900 dark:text-white border-trainlymainlight/30 hover:bg-trainlymainlight/30 hover:border-trainlymainlight/50 transition-all duration-300"
-                            onClick={() => router.push("/dashboard")}
+                            onClick={() => navigateTo("/dashboard")}
+                            disabled={isNavigating}
                           >
+                            {isNavigating && (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            )}
                             Dashboard
                           </Button>
 
@@ -231,18 +241,22 @@ export default function Navbar() {
             <div className="p-6">
               <div className="flex flex-col gap-4">
                 <button
-                  className="text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white font-medium text-left py-3 px-4 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-300"
+                  className="text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white font-medium text-left py-3 px-4 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-300 flex items-center gap-2"
                   onClick={() => {
-                    router.push("/");
+                    navigateTo("/");
                     setIsMobileMenuOpen(false);
                   }}
+                  disabled={isNavigating}
                 >
+                  {isNavigating && (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
                   Home
                 </button>
                 <button
                   className="text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white font-medium text-left py-3 px-4 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-300"
                   onClick={() => {
-                    router.push("/pricing");
+                    navigateTo("/pricing");
                     setIsMobileMenuOpen(false);
                   }}
                 >
@@ -260,7 +274,7 @@ export default function Navbar() {
                 <button
                   className="text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white font-medium text-left py-3 px-4 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-300"
                   onClick={() => {
-                    router.push("/community");
+                    navigateTo("/community");
                     setIsMobileMenuOpen(false);
                   }}
                 >

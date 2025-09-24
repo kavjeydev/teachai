@@ -37,6 +37,8 @@ import {
   MoreHorizontal,
   Clock,
   FileText,
+  Users,
+  Shield,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -321,6 +323,18 @@ export function DashSidebar() {
                                 <FileText className="w-3 h-3" />
                                 <span>{chat.context?.length || 0} docs</span>
                               </div>
+                              {chat.metadata && (
+                                <div className="flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  <span>{chat.metadata.totalUsers || 0} users</span>
+                                </div>
+                              )}
+                              {chat.metadata && chat.metadata.privacyMode === "privacy_first" && (
+                                <div className="flex items-center gap-1">
+                                  <Shield className="w-3 h-3 text-green-500" />
+                                  <span className="text-green-600 dark:text-green-400">Privacy</span>
+                                </div>
+                              )}
                               <div className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 <span>

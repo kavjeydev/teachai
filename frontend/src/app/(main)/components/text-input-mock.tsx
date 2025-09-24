@@ -2,6 +2,7 @@
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import React, { useState } from "react";
+import { sanitizeUserMessage } from "@/lib/sanitization";
 
 // Placeholder icons
 const UploadIcon = () => (
@@ -120,7 +121,15 @@ export default function InputMock({
       setError("Name cannot be empty.");
       return;
     }
-    await fetchData(name);
+
+    // Sanitize user input before processing
+    const sanitizedName = sanitizeUserMessage(name.trim());
+    if (!sanitizedName) {
+      setError("Invalid input detected.");
+      return;
+    }
+
+    await fetchData(sanitizedName);
   };
 
   const handleClear = () => {

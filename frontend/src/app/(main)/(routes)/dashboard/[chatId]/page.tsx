@@ -10,18 +10,63 @@ import { useMutation, useQuery } from "convex/react";
 import { Id } from "../../../../../../convex/_generated/dataModel";
 import { api } from "../../../../../../convex/_generated/api";
 import { ResizableSidebar } from "@/app/(main)/components/resizable-sidebar";
-import React from "react";
+import React, { Suspense } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useSidebarWidth } from "@/hooks/use-sidebar-width";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import CodeBlock from "@/app/(main)/components/code-block";
-import { CitationMarkdown } from "@/components/citation-markdown";
-import { CitationInspector } from "@/components/citation-inspector";
-import { ContextList } from "@/app/(main)/components/context-list";
-import { ContextFilesSection } from "@/app/(main)/components/context-files-section";
-import { ChatSettings } from "@/components/chat-settings";
-import { ModelSelector } from "@/components/model-selector";
+import dynamic from "next/dynamic";
+import DashboardLoading from "./loading";
+
+// CRITICAL: Aggressively lazy load ALL heavy components to reduce initial bundle
+const CitationMarkdown = dynamic(() => import("@/components/citation-markdown").then(mod => ({ default: mod.CitationMarkdown })), {
+  ssr: false, // Changed to false for faster loading
+  loading: () => <div className="animate-pulse h-20 bg-gray-100 rounded-lg"></div>
+});
+
+const CitationInspector = dynamic(() => import("@/components/citation-inspector").then(mod => ({ default: mod.CitationInspector })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-32 bg-gray-100 rounded-lg"></div>
+});
+
+const ContextList = dynamic(() => import("@/app/(main)/components/context-list").then(mod => ({ default: mod.ContextList })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-24 bg-gray-100 rounded-lg"></div>
+});
+
+const ContextFilesSection = dynamic(() => import("@/app/(main)/components/context-files-section").then(mod => ({ default: mod.ContextFilesSection })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-16 bg-gray-100 rounded-lg"></div>
+});
+
+const ChatSettings = dynamic(() => import("@/components/chat-settings").then(mod => ({ default: mod.ChatSettings })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-40 bg-gray-100 rounded-lg"></div>
+});
+
+const ModelSelector = dynamic(() => import("@/components/model-selector").then(mod => ({ default: mod.ModelSelector })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-10 bg-gray-100 rounded-lg"></div>
+});
+
+// Load graph components only when needed (major performance impact)
+const GraphSlideout = dynamic(() => import("@/components/graph-slideout").then(mod => ({ default: mod.GraphSlideout })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-screen bg-gray-100"></div>
+});
+
+const ApiSettingsSlideout = dynamic(() => import("@/components/api-settings-slideout").then(mod => ({ default: mod.ApiSettingsSlideout })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-screen bg-gray-100"></div>
+});
+
+const FileQueueMonitor = dynamic(() => import("@/components/file-queue-monitor").then(mod => ({ default: mod.FileQueueMonitor })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-16 bg-gray-100 rounded-lg"></div>
+});
+
+const CreditWarning = dynamic(() => import("@/components/credit-warning").then(mod => ({ default: mod.CreditWarning })), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-8 bg-yellow-100 rounded"></div>
+});
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import "../../../components/styles.scss";
 import Document from "@tiptap/extension-document";
@@ -32,19 +77,16 @@ import HardBreak from "@tiptap/extension-hard-break";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
 import suggestion from "../../../components/suggestion";
-import { sanitizeHTML } from "@/app/(main)/components/sanitizeHtml";
+import { sanitizeHTML, sanitizeUserMessage, sanitizeText } from "@/lib/sanitization";
 import { Toaster, toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
-import { GraphSlideout } from "@/components/graph-slideout";
-import { ApiSettingsSlideout } from "@/components/api-settings-slideout";
-import { CreditWarning } from "@/components/credit-warning";
 import { flushSync } from "react-dom";
 import { useCreditConsumption } from "@/hooks/use-credit-consumption";
 import { startTransition } from "react";
 import { MessageSquare, FolderOpen } from "lucide-react";
 import { useFileQueue } from "@/hooks/use-file-queue";
-import { FileQueueMonitor } from "@/components/file-queue-monitor";
+import { usePerformanceMonitor, useRenderPerformance } from "@/hooks/usePerformanceMonitor";
 
 // Extend window object for global cache
 declare global {
@@ -89,7 +131,11 @@ interface AnswerQuestionPayload {
   max_tokens?: number;
 }
 
-export default function Dashboard({ params }: ChatIdPageProps) {
+function Dashboard({ params }: ChatIdPageProps) {
+  // Performance monitoring
+  const { logPageLoad, logUserAction } = usePerformanceMonitor();
+  const { startMeasure, endMeasure } = useRenderPerformance('Dashboard');
+
   const skeletonData = [
     { sender: "user", text: "        " },
     { sender: "bot", text: "              " },
@@ -126,8 +172,10 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   useEffect(() => {
     if (chatId) {
       setCachedChatId(chatId);
+      // Log page load performance
+      logPageLoad(`dashboard_${chatId}`);
     }
-  }, [chatId]);
+  }, [chatId, logPageLoad]);
 
   // Use cached chatId if current one is undefined (during navigation)
   const effectiveChatId = chatId || cachedChatId;
@@ -456,68 +504,60 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     }
   }, [streamingContent]);
 
-  // Memoize chat content rendering for performance
-  const memoizedChatContent = React.useMemo(
-    () =>
-      displayContent?.map((msg: any, index: number) => (
-        <div
-          key={`${index}-${msg.sender}-${msg.text?.substring(0, 20)}`}
-          className="mb-8"
-        >
-          {msg.sender === "user" ? (
-            // User message - improved bubble style with better padding
-            <div className="flex justify-end gap-4 mb-6">
-              <div className="bg-trainlymainlight text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed max-w-[75%] shadow-lg shadow-trainlymainlight/20 font-inter selectable">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: sanitizeHTML(msg.text),
-                  }}
-                />
-              </div>
-              {user?.imageUrl && (
-                <img
-                  src={user.imageUrl}
-                  className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
-                />
-              )}
-            </div>
-          ) : (
-            // AI response - improved formatting for better readability
-            <div className="flex gap-4 mb-6">
-              <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
-                <span className="text-white font-bold text-xs">T</span>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable">
-                <CitationMarkdown
-                  content={msg.text}
-                  reasoningContext={msg.reasoningContext || []}
-                  onCitationClick={(chunkIndex) => {
-                    handleCitationClick(chunkIndex, msg.reasoningContext || []);
-                  }}
-                />
-              </div>
-            </div>
+  // Optimized message component with React.memo for performance
+  const MessageComponent = React.memo(({ msg, index, user, onCitationClick }: {
+    msg: any;
+    index: number;
+    user: any;
+    onCitationClick: (chunkIndex: number, context: any[]) => void;
+  }) => (
+    <div className="mb-8">
+      {msg.sender === "user" ? (
+        // User message - improved bubble style with better padding
+        <div className="flex justify-end gap-4 mb-6">
+          <div className="bg-trainlymainlight text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed max-w-[75%] shadow-lg shadow-trainlymainlight/20 font-inter selectable">
+            <div
+              dangerouslySetInnerHTML={{
+                __html: sanitizeHTML(msg.text),
+              }}
+            />
+          </div>
+          {user?.imageUrl && (
+            <img
+              src={user.imageUrl}
+              className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
+              alt="User avatar"
+              loading="lazy"
+            />
           )}
         </div>
-      )),
-    [displayContent, user?.imageUrl],
-  );
+      ) : (
+        // AI response - improved formatting for better readability
+        <div className="flex gap-4 mb-6">
+          <div className="w-8 h-8 bg-gradient-to-br from-trainlymainlight to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-trainlymainlight/20">
+            <span className="text-white font-bold text-xs">T</span>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable">
+            <CitationMarkdown
+              content={msg.text}
+              reasoningContext={msg.reasoningContext || []}
+              onCitationClick={(chunkIndex) => {
+                onCitationClick(chunkIndex, msg.reasoningContext || []);
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  ));
 
-  // Function to trigger graph refresh
-  const triggerGraphRefresh = () => {
-    const newTrigger = graphRefreshTrigger + 1;
-    console.log(
-      `🔄 Dashboard: Triggering graph refresh (${graphRefreshTrigger} → ${newTrigger})`,
-    );
-    setGraphRefreshTrigger(newTrigger);
-  };
+  MessageComponent.displayName = 'MessageComponent';
 
-  // Handle citation clicks to open inspector
-  const handleCitationClick = (
+  // Handle citation clicks to open inspector - MOVED BEFORE useMemo
+  const handleCitationClick = React.useCallback((
     chunkIndex: number,
     messageReasoningContext: any[],
   ) => {
-
     if (messageReasoningContext[chunkIndex]) {
       const clickedChunk = messageReasoningContext[chunkIndex];
 
@@ -574,6 +614,30 @@ export default function Dashboard({ params }: ChatIdPageProps) {
         `Citation [^${chunkIndex}] not available. Only ${messageReasoningContext.length} chunks provided.`,
       );
     }
+  }, []);
+
+  // Virtualized chat content for better performance with many messages
+  const memoizedChatContent = React.useMemo(() => {
+    if (!displayContent || displayContent.length === 0) return null;
+
+    return displayContent.map((msg: any, index: number) => (
+      <MessageComponent
+        key={`${index}-${msg.sender}-${msg._id || msg.text?.substring(0, 20)}`}
+        msg={msg}
+        index={index}
+        user={user}
+        onCitationClick={handleCitationClick}
+      />
+    ));
+  }, [displayContent, user?.imageUrl, handleCitationClick]);
+
+  // Function to trigger graph refresh
+  const triggerGraphRefresh = () => {
+    const newTrigger = graphRefreshTrigger + 1;
+    console.log(
+      `🔄 Dashboard: Triggering graph refresh (${graphRefreshTrigger} → ${newTrigger})`,
+    );
+    setGraphRefreshTrigger(newTrigger);
   };
 
   // Handle opening specific node in full graph view
@@ -779,12 +843,14 @@ export default function Dashboard({ params }: ChatIdPageProps) {
   }
 
   const handleSendMessage = async () => {
+    const messageStart = performance.now();
+    logUserAction('send_message_start');
+
     const editorContent = editor?.getHTML() || "";
     if (!editorContent.trim() || editorContent === "<p></p>") {
       toast.error("Message cannot be empty.");
       return;
     }
-
 
     if (isStreaming || isProcessingMessage) {
       toast.error("Please wait for the current response to complete.");
@@ -792,6 +858,15 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     }
 
     const userMessage = editor?.getText() || "";
+
+    // Sanitize the user message before processing
+    const sanitizedMessage = sanitizeUserMessage(userMessage);
+    if (!sanitizedMessage) {
+      toast.error("Invalid message content detected.");
+      logUserAction('send_message_error', performance.now() - messageStart);
+      return;
+    }
+
     if (editor) {
       editor.commands.setContent("");
     }
@@ -801,16 +876,16 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     // Add message optimistically for instant display
     const optimisticMessage = {
       sender: "user",
-      text: userMessage,
+      text: sanitizedMessage,
       user: user?.id || "user",
       _id: `optimistic-${Date.now()}`, // Temporary ID
     };
 
-    console.log("📝 Adding optimistic user message:", userMessage);
+    console.log("📝 Adding optimistic user message:", sanitizedMessage);
     setOptimisticMessages((prev) => [...prev, optimisticMessage]);
 
     // Send user message to database (will be filtered out once persisted)
-    onWrite("user", userMessage);
+    onWrite("user", sanitizedMessage);
 
     setIsStreaming(true);
     setStreamingContent("");
@@ -823,7 +898,7 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       let finalContext: any[] = [];
 
       await answerQuestionStream(
-        userMessage,
+        sanitizedMessage,
         // onContent callback - update the streaming content
         (content: string) => {
           setStreamingContent((prev) => prev + content);
@@ -1242,3 +1317,5 @@ export default function Dashboard({ params }: ChatIdPageProps) {
     </div>
   );
 }
+export default Dashboard;
+

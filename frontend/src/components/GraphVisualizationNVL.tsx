@@ -1868,29 +1868,56 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
                   <div className="mt-4">
                     <Label className="text-sm font-semibold">
-                      AI Relationship Types:
+                      Relationship Types:
                     </Label>
                     <div className="mt-2 space-y-1 text-xs">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-0.5 bg-green-500"></div>
-                        <span>EXPLAINS - Explanatory relationship</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-0.5 bg-blue-500"></div>
-                        <span>SUPPORTS - Supporting evidence</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-0.5 bg-red-500"></div>
-                        <span>CONTRADICTS - Opposing information</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-0.5 bg-orange-500"></div>
-                        <span>ELABORATES - Additional details</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-0.5 bg-gray-400"></div>
-                        <span>NEXT - Sequential (fallback only)</span>
-                      </div>
+                      {/* Default Types */}
+                      {["RELATES_TO", "DEPENDS_ON", "CONTAINS", "REFERENCES", "SIMILAR_TO"].map((type, index) => {
+                        const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-red-500"];
+                        return (
+                          <div key={type} className="flex items-center gap-2">
+                            <div className={`w-4 h-0.5 ${colors[index]}`}></div>
+                            <span>{type} - Default type</span>
+                          </div>
+                        );
+                      })}
+
+                      {/* Custom Types */}
+                      {customRelationshipTypes.map((type, index) => (
+                        <div key={`custom-${type}`} className="flex items-center gap-2">
+                          <div className="w-4 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                          <span className="flex items-center gap-1">
+                            {type} - Custom type <span className="text-purple-500">✨</span>
+                          </span>
+                        </div>
+                      ))}
+
+                      {/* AI-Generated Types */}
+                      {graphData.relationships.length > 0 && (
+                        <>
+                          {Array.from(new Set(graphData.relationships.map(r => r.type)))
+                            .filter(type =>
+                              !["RELATES_TO", "DEPENDS_ON", "CONTAINS", "REFERENCES", "SIMILAR_TO"].includes(type) &&
+                              !customRelationshipTypes.includes(type)
+                            )
+                            .map(type => (
+                              <div key={`ai-${type}`} className="flex items-center gap-2">
+                                <div className="w-4 h-0.5 bg-gradient-to-r from-green-400 to-blue-500"></div>
+                                <span className="flex items-center gap-1">
+                                  {type} - AI-generated <span className="text-green-500">🤖</span>
+                                </span>
+                              </div>
+                            ))
+                          }
+                        </>
+                      )}
+
+                      {/* Show message if no types exist */}
+                      {customRelationshipTypes.length === 0 && graphData.relationships.length === 0 && (
+                        <div className="text-gray-500 italic">
+                          Create relationships to see your custom types here
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

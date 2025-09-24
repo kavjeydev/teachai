@@ -3,11 +3,121 @@ import { v } from "convex/values";
 import { UserIdentity } from "convex/server";
 
 export default defineSchema({
+  // App registration table for developers
+  apps: defineTable({
+    appId: v.string(), // Unique app identifier (app_xxx)
+    name: v.string(),
+    description: v.optional(v.string()),
+    developerId: v.string(), // The developer who created the app
+    appSecret: v.string(), // Server-to-server secret for creating users and tokens
+    iconUrl: v.optional(v.string()),
+    websiteUrl: v.optional(v.string()),
+    privacyPolicyUrl: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    settings: v.object({
+      allowDirectUploads: v.boolean(), // Whether users can upload directly
+      maxUsersPerApp: v.optional(v.number()),
+      allowedCapabilities: v.array(v.string()), // ["ask", "upload", "export_summaries"]
+    }),
+  })
+    .index("by_developer", ["developerId"])
+    .index("by_appId", ["appId"]),
+
+  // User authentication tokens (user-controlled, developers cannot access)
+  user_auth_tokens: defineTable({
+    userAuthToken: v.string(), // Secure token only the user knows (uat_xxx)
+    trainlyUserId: v.string(), // The user's Trainly account ID (from Clerk)
+    appId: v.optional(v.string()), // Which app this token is for (if app-specific)
+    chatId: v.id("chats"), // Their private chat
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()), // Optional expiry
+    isRevoked: v.boolean(),
+    lastUsed: v.optional(v.number()),
+    capabilities: v.array(v.string()), // What this token can do
+  })
+    .index("by_token", ["userAuthToken"])
+    .index("by_user", ["trainlyUserId"])
+    .index("by_app", ["appId"])
+    .index("by_chat", ["chatId"]),
+
+  // User-app relationships (OAuth-style authorization)
+  user_app_authorizations: defineTable({
+    trainlyUserId: v.string(), // User's Trainly account ID
+    appId: v.string(),
+    chatId: v.id("chats"),
+    userAuthToken: v.string(), // Reference to the user's auth token
+    authorizedAt: v.number(),
+    isRevoked: v.boolean(),
+    capabilities: v.array(v.string()),
+    lastActiveAt: v.optional(v.number()),
+  })
+    .index("by_user", ["trainlyUserId"])
+    .index("by_app", ["appId"])
+    .index("by_user_app", ["trainlyUserId", "appId"])
+    .index("by_token", ["userAuthToken"])
+    .index("by_chat", ["chatId"]),
+
   chats: defineTable({
     chatId: v.string(),
     title: v.string(),
-    userId: v.string(),
+    userId: v.string(), // Still the end-user who owns the data
+    chatType: v.string(), // "user_direct" or "app_subchat"
+    parentAppId: v.optional(v.string()), // If this is a sub-chat under an app
     isArchived: v.boolean(),
+
+    // Enhanced metadata for privacy-first analytics
+    metadata: v.optional(
+      v.object({
+        // User and subchat statistics
+        totalSubchats: v.number(), // Number of user subchats under this app
+        activeUsers: v.number(), // Users active in last 7 days
+        totalUsers: v.number(), // Total users ever provisioned
+
+        // File and storage analytics
+        totalFiles: v.number(), // Total files uploaded across all subchats
+        totalStorageBytes: v.number(), // Total storage used in bytes
+        averageFileSize: v.number(), // Average file size in bytes
+
+        // API usage statistics
+        totalQueries: v.number(), // Total API queries made
+        queriesLast7Days: v.number(), // Recent query activity
+        lastActivityAt: v.number(), // Last API activity timestamp
+
+        // Privacy-safe user activity (no personal data)
+        userActivitySummary: v.array(
+          v.object({
+            userIdHash: v.string(), // Hashed user ID for privacy
+            lastActiveAt: v.number(),
+            filesUploaded: v.number(),
+            queriesMade: v.number(),
+            storageUsedBytes: v.number(),
+          }),
+        ),
+
+        // File type distribution (helps developers understand usage patterns)
+        fileTypeStats: v.object({
+          pdf: v.number(),
+          docx: v.number(),
+          txt: v.number(),
+          images: v.number(),
+          other: v.number(),
+        }),
+
+        // Performance metrics
+        averageResponseTime: v.number(), // Average API response time in ms
+        successRate: v.number(), // Percentage of successful API calls
+
+        // Compliance and audit info
+        privacyMode: v.string(), // "privacy_first" or "legacy"
+        lastMetadataUpdate: v.number(),
+        complianceFlags: v.object({
+          gdprCompliant: v.boolean(),
+          ccpaCompliant: v.boolean(),
+          auditLogEnabled: v.boolean(),
+        }),
+      }),
+    ),
     isFavorited: v.optional(v.boolean()),
     folderId: v.optional(v.string()),
     // AI model selection for this chat
@@ -66,21 +176,54 @@ export default defineSchema({
 
   integration_keys: defineTable({
     keyId: v.string(),
-    chatId: v.id("chats"),
-    userId: v.string(),
-    scopes: v.array(v.string()),
+    keyType: v.string(), // "app_secret", "scoped_user", "direct_chat"
+    chatId: v.optional(v.id("chats")), // For direct chat keys
+    userId: v.string(), // The owner of the key
+    appId: v.optional(v.string()), // For app-level keys
+    endUserId: v.optional(v.string()), // For scoped user tokens
+    capabilities: v.array(v.string()), // ["ask", "upload", "export_summaries", "list_files"]
     allowedOrigins: v.array(v.string()),
     rateLimitRpm: v.number(),
     description: v.string(),
     isRevoked: v.boolean(),
     createdAt: v.number(),
+    expiresAt: v.optional(v.number()), // For short-lived scoped tokens
     lastUsed: v.optional(v.number()),
     usageCount: v.number(),
     revokedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_chat", ["chatId"])
-    .index("by_key_id", ["keyId"]),
+    .index("by_key_id", ["keyId"])
+    .index("by_app", ["appId"])
+    .index("by_end_user", ["endUserId"])
+    .index("by_type", ["keyType"]),
+
+  // Audit logs for all app->user data access
+  app_audit_logs: defineTable({
+    appId: v.string(),
+    endUserId: v.string(),
+    chatId: v.string(),
+    action: v.string(), // "ask", "upload", "export", "list_files", "download_file"
+    requestedCapability: v.string(),
+    allowed: v.boolean(),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    usedNodeIds: v.optional(v.array(v.string())), // Which chunks were accessed
+    timestamp: v.number(),
+    metadata: v.optional(
+      v.object({
+        question: v.optional(v.string()),
+        filename: v.optional(v.string()),
+        errorReason: v.optional(v.string()),
+      }),
+    ),
+  })
+    .index("by_app", ["appId"])
+    .index("by_user", ["endUserId"])
+    .index("by_app_user", ["appId", "endUserId"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_action", ["action"]),
 
   api_usage_logs: defineTable({
     integrationKeyId: v.id("integration_keys"),
@@ -129,8 +272,7 @@ export default defineSchema({
     periodEnd: v.number(), // When current billing period ends
     lastResetAt: v.number(), // When credits were last reset
     updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"]),
+  }).index("by_user", ["userId"]),
 
   credit_transactions: defineTable({
     userId: v.string(),

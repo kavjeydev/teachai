@@ -25,6 +25,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
 import suggestion from "../../../components/suggestion";
 import { sanitizeHTML } from "@/app/(main)/components/sanitizeHtml";
+import { sanitizeUserMessage, sanitizeWithXSSDetection } from "@/lib/sanitization";
 import { Toaster, toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
@@ -423,12 +424,19 @@ export default function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
-    // 1) Add user’s message
+    // Sanitize the user message before processing
+    const sanitizedMessage = sanitizeUserMessage(input.trim());
+    if (!sanitizedMessage) {
+      toast.error("Invalid message content detected.");
+      return;
+    }
+
+    // 1) Add user's message
     const userMsg: ChatMessage = {
       sender: "user",
-      text: input.trim(),
+      text: sanitizedMessage,
     };
-    onWrite("user", input.trim());
+    onWrite("user", sanitizedMessage);
     setInput("");
 
     // 2) Make the API call

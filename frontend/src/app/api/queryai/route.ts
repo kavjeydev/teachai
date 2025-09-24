@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeUserMessage, sanitizeChatId, sanitizeApiKey } from "@/lib/sanitization";
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
   const convexUrl =
     "https://agile-ermine-199.convex.cloud/api/run/chats/getChatByIdExposed";
 
-  const { question, chatId } = await req.json();
+  const body = await req.json();
 
-  if (!question || !chatId) {
+  // Sanitize all inputs
+  const sanitizedQuestion = sanitizeUserMessage(body.question || "");
+  const sanitizedChatId = sanitizeChatId(body.chatId || "");
+  const sanitizedApiKey = sanitizeApiKey(apiKey || "");
+
+  if (!sanitizedQuestion || !sanitizedChatId) {
     return NextResponse.json(
-      { error: "Missing question or chatId" },
+      { error: "Invalid question or chatId format" },
       { status: 400 },
     );
   }
 
   const currentChatRequest = {
-    args: { id: chatId },
+    args: { id: sanitizedChatId },
     format: "json",
   };
 
@@ -56,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not a valid chat ID" }, { status: 401 });
   }
 
-  if (!apiKey || apiKey !== chatAPIKey) {
+  if (!sanitizedApiKey || sanitizedApiKey !== chatAPIKey) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -79,7 +85,7 @@ export async function POST(req: NextRequest) {
               }
             }
           `,
-      variables: { question, chatId },
+      variables: { question: sanitizedQuestion, chatId: sanitizedChatId },
     }),
   });
 

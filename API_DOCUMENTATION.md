@@ -1,14 +1,53 @@
-# TeachAI Chat API Documentation
+# Trainly API Documentation
 
-## Overview
+## 🔒 **NEW: Privacy-First API (Recommended)**
 
-The TeachAI Chat API allows you to integrate your knowledge graphs and RAG (Retrieval-Augmented Generation) capabilities into any application. Each chat becomes a secure, scoped API that can be accessed by third-party applications.
+**For apps with multiple users**: Use our **Privacy-First API** where each user gets their own isolated sub-chat. Developers can only access AI responses, never raw user files.
+
+👉 **[Complete Privacy-First API Documentation →](./PRIVACY_FIRST_API_DOCS.md)**
+
+### **Quick Privacy-First Integration:**
+
+```javascript
+// 1. Provision user (creates private sub-chat)
+const { scoped_token } = await fetch("/v1/privacy/apps/users/provision", {
+  method: "POST",
+  headers: { Authorization: "Bearer your_app_secret" },
+  body: JSON.stringify({
+    end_user_id: "user_123",
+    capabilities: ["ask", "upload"],
+  }),
+}).then((r) => r.json());
+
+// 2. Query user's private data (AI responses only)
+const result = await fetch("/v1/privacy/query", {
+  method: "POST",
+  headers: { "x-scoped-token": scoped_token },
+  body: JSON.stringify({
+    end_user_id: "user_123",
+    question: "What did I upload?",
+  }),
+}).then((r) => r.json());
+
+// You get AI answer, never raw files! 🔒
+```
+
+---
+
+## 📚 **Legacy Chat API (Single User Apps)**
+
+The legacy Chat API allows you to integrate your knowledge graphs and RAG capabilities into single-user applications. **Note**: For multi-user apps, use the Privacy-First API above.
+
+### **⚠️ Privacy Notice**
+
+The legacy API is suitable for single-user or internal applications only. For apps with multiple users, use the Privacy-First API to ensure user data isolation.
 
 ## 🚀 Quick Start
 
 ### 1. Create an Integration Key
 
 In your TeachAI dashboard:
+
 1. Open the chat you want to expose as an API
 2. Go to **Settings** → **API Access**
 3. Click **Generate Integration Key**
@@ -17,6 +56,7 @@ In your TeachAI dashboard:
 ### 2. Install the SDK
 
 **JavaScript/TypeScript:**
+
 ```bash
 npm install @teachai/sdk
 # or
@@ -24,6 +64,7 @@ yarn add @teachai/sdk
 ```
 
 **Python:**
+
 ```bash
 pip install teachai-sdk
 ```
@@ -31,20 +72,24 @@ pip install teachai-sdk
 ### 3. Start Querying
 
 **JavaScript:**
+
 ```javascript
-import { TeachAIClient } from '@teachai/sdk';
+import { TeachAIClient } from "@teachai/sdk";
 
 const client = new TeachAIClient({
-  integrationKey: 'cik_your_integration_key',
-  chatId: 'your_chat_id',
-  baseUrl: 'https://api.teachai.com'
+  integrationKey: "cik_your_integration_key",
+  chatId: "your_chat_id",
+  baseUrl: "https://api.teachai.com",
 });
 
-const response = await client.ask('What are the main topics in this knowledge base?');
+const response = await client.ask(
+  "What are the main topics in this knowledge base?",
+);
 console.log(response);
 ```
 
 **Python:**
+
 ```python
 from teachai_sdk import TeachAIClient
 
@@ -80,6 +125,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -93,6 +139,7 @@ Content-Type: application/json
 ## 📡 API Endpoints
 
 ### Base URL
+
 ```
 https://api.teachai.com
 ```
@@ -100,6 +147,7 @@ https://api.teachai.com
 ### Core Endpoints
 
 #### 1. Query Chat
+
 Query your knowledge base with natural language.
 
 ```http
@@ -119,6 +167,7 @@ Idempotency-Key: {unique_key}
 ```
 
 **Response:**
+
 ```json
 {
   "answer": "Machine learning is a subset of artificial intelligence...",
@@ -142,6 +191,7 @@ Idempotency-Key: {unique_key}
 ```
 
 #### 2. Stream Chat Response
+
 Get real-time streaming responses.
 
 ```http
@@ -157,6 +207,7 @@ Accept: text/event-stream
 ```
 
 **Response (Server-Sent Events):**
+
 ```
 data: {"type": "context", "data": [...]}
 
@@ -168,6 +219,7 @@ data: {"type": "end", "run_id": "run_xyz789"}
 ```
 
 #### 3. Get Graph Data
+
 Access the knowledge graph structure.
 
 ```http
@@ -176,6 +228,7 @@ Authorization: Bearer {jwt_token}
 ```
 
 **Response:**
+
 ```json
 {
   "nodes": [
@@ -207,6 +260,7 @@ Authorization: Bearer {jwt_token}
 ```
 
 #### 4. Get Specific Nodes
+
 Fetch nodes by IDs for citations and tooltips.
 
 ```http
@@ -217,22 +271,27 @@ Authorization: Bearer {jwt_token}
 ## 🛡️ Security Features
 
 ### Automatic Scoping
+
 - All data access is automatically scoped to your specific chat
 - No risk of accessing other users' data
 - Tenant isolation enforced at the database level
 
 ### Rate Limiting
+
 - **Default**: 60 requests per minute
 - **Burst**: Up to 10 requests in quick succession
 - **Headers**: `Retry-After` provided when rate limited
 
 ### CORS Protection
+
 - Configure allowed origins in your dashboard
 - Supports wildcard (`*`) for development
 - Strict origin validation for production
 
 ### Audit Logging
+
 All API usage is logged for security and billing:
+
 - Request timestamp and IP address
 - Tokens used and model selected
 - Response status and run ID
@@ -242,45 +301,45 @@ All API usage is logged for security and billing:
 ### JavaScript/TypeScript SDK
 
 #### Basic Usage
+
 ```typescript
-import { TeachAIClient } from '@teachai/sdk';
+import { TeachAIClient } from "@teachai/sdk";
 
 const client = new TeachAIClient({
-  integrationKey: 'cik_your_key',
-  chatId: 'your_chat_id',
-  baseUrl: 'https://api.teachai.com', // optional
+  integrationKey: "cik_your_key",
+  chatId: "your_chat_id",
+  baseUrl: "https://api.teachai.com", // optional
   timeout: 30000, // optional
-  debug: true // optional
+  debug: true, // optional
 });
 
 // Simple question
-const answer = await client.ask('What is AI?');
+const answer = await client.ask("What is AI?");
 
 // Detailed query
 const response = await client.query({
-  messages: [
-    { role: 'user', content: 'Explain machine learning' }
-  ],
-  model: 'gpt-4o',
-  temperature: 0.3
+  messages: [{ role: "user", content: "Explain machine learning" }],
+  model: "gpt-4o",
+  temperature: 0.3,
 });
 
 // Streaming
 await client.askStream(
-  'Tell me about neural networks',
+  "Tell me about neural networks",
   (content) => process.stdout.write(content),
-  (fullAnswer) => console.log(`\nComplete: ${fullAnswer.length} chars`)
+  (fullAnswer) => console.log(`\nComplete: ${fullAnswer.length} chars`),
 );
 
 // Graph access
 const graph = await client.getGraph({
-  centerNode: 'chunk_123',
+  centerNode: "chunk_123",
   hops: 2,
-  limit: 50
+  limit: 50,
 });
 ```
 
 #### React Hook
+
 ```typescript
 import { useTeachAI } from '@teachai/sdk';
 
@@ -305,6 +364,7 @@ function MyComponent() {
 ### Python SDK
 
 #### Basic Usage
+
 ```python
 from teachai_sdk import TeachAIClient
 
@@ -345,6 +405,7 @@ print(f"Graph: {len(graph.nodes)} nodes, {len(graph.relationships)} relationship
 ```
 
 #### Async Usage
+
 ```python
 import asyncio
 
@@ -367,6 +428,7 @@ asyncio.run(main())
 ## 🔧 Advanced Features
 
 ### Idempotency
+
 Prevent duplicate operations by including an `Idempotency-Key` header:
 
 ```http
@@ -375,39 +437,42 @@ Idempotency-Key: user_action_12345
 ```
 
 ### Custom Models
+
 Support for different AI models:
 
 ```json
 {
-  "model": "gpt-4o",           // OpenAI GPT-4
-  "model": "gpt-4o-mini",      // OpenAI GPT-4 Mini
-  "model": "claude-3-sonnet",  // Anthropic Claude
-  "model": "gemini-pro"        // Google Gemini
+  "model": "gpt-4o", // OpenAI GPT-4
+  "model": "gpt-4o-mini", // OpenAI GPT-4 Mini
+  "model": "claude-3-sonnet", // Anthropic Claude
+  "model": "gemini-pro" // Google Gemini
 }
 ```
 
 ### Temperature Control
+
 Control response creativity:
 
 ```json
 {
-  "temperature": 0.0,  // Deterministic, factual
-  "temperature": 0.7,  // Balanced (default)
-  "temperature": 1.0   // Creative, varied
+  "temperature": 0.0, // Deterministic, factual
+  "temperature": 0.7, // Balanced (default)
+  "temperature": 1.0 // Creative, varied
 }
 ```
 
 ### Citation Access
+
 Get detailed information about citations:
 
 ```javascript
 // Get nodes referenced in citations
-const nodes = await client.getNodes(['chunk_123', 'chunk_124']);
+const nodes = await client.getNodes(["chunk_123", "chunk_124"]);
 
 // Get neighborhood around a citation
 const graph = await client.getGraph({
-  centerNode: 'chunk_123',
-  hops: 1
+  centerNode: "chunk_123",
+  hops: 1,
 });
 ```
 
@@ -415,17 +480,18 @@ const graph = await client.getGraph({
 
 ### Error Types
 
-| Status | Type | Description |
-|--------|------|-------------|
-| 400 | `validation_error` | Invalid request parameters |
-| 401 | `authentication_error` | Invalid or expired token |
-| 403 | `permission_error` | Insufficient scopes |
-| 404 | `not_found` | Chat or resource not found |
-| 409 | `conflict_error` | Version mismatch (optimistic updates) |
-| 429 | `rate_limit_error` | Too many requests |
-| 500 | `server_error` | Internal server error |
+| Status | Type                   | Description                           |
+| ------ | ---------------------- | ------------------------------------- |
+| 400    | `validation_error`     | Invalid request parameters            |
+| 401    | `authentication_error` | Invalid or expired token              |
+| 403    | `permission_error`     | Insufficient scopes                   |
+| 404    | `not_found`            | Chat or resource not found            |
+| 409    | `conflict_error`       | Version mismatch (optimistic updates) |
+| 429    | `rate_limit_error`     | Too many requests                     |
+| 500    | `server_error`         | Internal server error                 |
 
 ### Error Response Format
+
 ```json
 {
   "error": "Token has expired",
@@ -440,16 +506,17 @@ const graph = await client.getGraph({
 ### SDK Error Handling
 
 **JavaScript:**
+
 ```typescript
 try {
   const response = await client.query({
-    messages: [{ role: 'user', content: 'Hello' }]
+    messages: [{ role: "user", content: "Hello" }],
   });
 } catch (error) {
   if (error instanceof TeachAIError) {
     console.error(`API Error (${error.status}): ${error.message}`);
 
-    if (error.code === 'TOKEN_EXPIRED') {
+    if (error.code === "TOKEN_EXPIRED") {
       // SDK automatically handles token refresh
       // Retry the request
     }
@@ -458,6 +525,7 @@ try {
 ```
 
 **Python:**
+
 ```python
 from teachai_sdk import TeachAIClient, TeachAIError
 
@@ -475,22 +543,26 @@ except TeachAIError as e:
 ## 🔒 Security Best Practices
 
 ### 1. Integration Key Management
+
 - **Never expose integration keys in client-side code**
 - Store keys in environment variables or secure key management
 - Rotate keys regularly (every 90 days recommended)
 - Revoke unused keys immediately
 
 ### 2. Scoping
+
 - Each integration key is scoped to a single chat
 - No access to other chats or tenant data
 - Automatic tenant isolation at database level
 
 ### 3. Rate Limiting
+
 - Implement client-side rate limiting to avoid 429 errors
 - Use exponential backoff for retries
 - Monitor usage in your dashboard
 
 ### 4. CORS Configuration
+
 - Configure specific allowed origins (avoid `*` in production)
 - Use HTTPS only for production
 - Validate referrer headers when possible
@@ -498,20 +570,22 @@ except TeachAIError as e:
 ## 💡 Use Cases
 
 ### 1. Customer Support Chatbot
+
 ```javascript
 // Integrate your knowledge base into customer support
 const client = new TeachAIClient({
   integrationKey: process.env.SUPPORT_CHAT_KEY,
-  chatId: 'support_knowledge_base'
+  chatId: "support_knowledge_base",
 });
 
-app.post('/api/support/query', async (req, res) => {
+app.post("/api/support/query", async (req, res) => {
   const answer = await client.ask(req.body.question);
   res.json({ answer });
 });
 ```
 
 ### 2. Documentation Search
+
 ```python
 # Add intelligent search to your docs
 client = TeachAIClient(
@@ -533,17 +607,18 @@ def search_docs():
 ```
 
 ### 3. Slack Bot Integration
+
 ```javascript
 // Slack bot that queries your knowledge base
-const { App } = require('@slack/bolt');
+const { App } = require("@slack/bolt");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
 });
 
 app.message(/ask (.*)/, async ({ message, say }) => {
-  const question = message.text.replace('ask ', '');
+  const question = message.text.replace("ask ", "");
 
   const answer = await teachAIClient.ask(question);
 
@@ -551,15 +626,16 @@ app.message(/ask (.*)/, async ({ message, say }) => {
     text: answer,
     blocks: [
       {
-        type: 'section',
-        text: { type: 'mrkdwn', text: answer }
-      }
-    ]
+        type: "section",
+        text: { type: "mrkdwn", text: answer },
+      },
+    ],
   });
 });
 ```
 
 ### 4. Mobile App Integration
+
 ```swift
 // iOS Swift example
 import Foundation
@@ -585,21 +661,27 @@ class TeachAIService {
 ## 📈 Monitoring and Analytics
 
 ### Usage Tracking
+
 Monitor your API usage in the TeachAI dashboard:
+
 - Request volume and patterns
 - Token usage and costs
 - Error rates and types
 - Response times
 
 ### Audit Logs
+
 All API calls are logged with:
+
 - Timestamp and IP address
 - User agent and request details
 - Response status and tokens used
 - Run ID for debugging
 
 ### Billing
+
 Usage-based billing with:
+
 - Token consumption tracking
 - Model-specific pricing
 - Monthly usage reports
@@ -607,13 +689,14 @@ Usage-based billing with:
 
 ## 🚨 Rate Limits
 
-| Plan | Requests/Minute | Burst | Max Tokens/Day |
-|------|----------------|-------|----------------|
-| Free | 20 | 5 | 10,000 |
-| Pro | 60 | 10 | 100,000 |
-| Enterprise | 300 | 30 | 1,000,000 |
+| Plan       | Requests/Minute | Burst | Max Tokens/Day |
+| ---------- | --------------- | ----- | -------------- |
+| Free       | 20              | 5     | 10,000         |
+| Pro        | 60              | 10    | 100,000        |
+| Enterprise | 300             | 30    | 1,000,000      |
 
 ### Rate Limit Headers
+
 ```http
 X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 45
@@ -635,6 +718,7 @@ POST /v1/chats/{chat_id}/webhooks
 ```
 
 **Webhook Payload:**
+
 ```json
 {
   "event": "node.created",
@@ -651,6 +735,7 @@ POST /v1/chats/{chat_id}/webhooks
 ## 🧪 Testing
 
 ### Test with cURL
+
 ```bash
 # 1. Exchange token
 curl -X POST https://api.teachai.com/v1/tokens/exchange \
@@ -668,26 +753,28 @@ curl -X POST https://api.teachai.com/v1/chats/your_chat_id/query \
 ```
 
 ### SDK Testing
+
 ```javascript
 // Test your integration
 const client = new TeachAIClient({
-  integrationKey: 'cik_test_key',
-  chatId: 'test_chat',
-  debug: true
+  integrationKey: "cik_test_key",
+  chatId: "test_chat",
+  debug: true,
 });
 
 // Health check
 try {
   const info = await client.getChatInfo();
-  console.log('✅ Connection successful:', info);
+  console.log("✅ Connection successful:", info);
 } catch (error) {
-  console.error('❌ Connection failed:', error.message);
+  console.error("❌ Connection failed:", error.message);
 }
 ```
 
 ## 🚀 Production Deployment
 
 ### Environment Variables
+
 ```bash
 # Required
 TEACHAI_INTEGRATION_KEY=cik_your_production_key
@@ -700,22 +787,24 @@ TEACHAI_DEBUG=false
 ```
 
 ### Error Monitoring
+
 Integrate with your monitoring service:
 
 ```javascript
-import * as Sentry from '@sentry/node';
+import * as Sentry from "@sentry/node";
 
-client.on('error', (error) => {
+client.on("error", (error) => {
   Sentry.captureException(error, {
     tags: {
-      service: 'teachai-api',
-      chat_id: client.chatId
-    }
+      service: "teachai-api",
+      chat_id: client.chatId,
+    },
   });
 });
 ```
 
 ### Caching
+
 Implement caching for better performance:
 
 ```javascript
@@ -741,6 +830,7 @@ async function cachedQuery(question) {
 ## 🆘 Support
 
 ### Getting Help
+
 - **Documentation**: [docs.teachai.com](https://docs.teachai.com)
 - **Discord**: [discord.gg/teachai](https://discord.gg/teachai)
 - **Email**: support@teachai.com
@@ -761,6 +851,7 @@ A: Verify the chat ID and ensure the chat hasn't been deleted or archived.
 A: Configure allowed origins in your dashboard. Use `*` only for development.
 
 ### Feature Requests
+
 Submit feature requests and bug reports at [github.com/teachai/api-feedback](https://github.com/teachai/api-feedback).
 
 ---
@@ -772,6 +863,7 @@ The TeachAI SDK is MIT licensed. See [LICENSE](LICENSE) for details.
 ## 🔄 Changelog
 
 ### v1.0.0 (2024-01-15)
+
 - Initial release
 - JWT-based authentication
 - Core query and graph endpoints

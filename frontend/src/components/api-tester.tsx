@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { sanitizeUserInput, sanitizeApiKey } from "@/lib/sanitization";
 
 interface ApiTesterProps {
   chatId?: string;
@@ -38,18 +39,23 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
   const [error, setError] = useState<string | null>(null);
 
   const testApi = async () => {
-    if (!apiKey.trim()) {
-      toast.error("Please enter an API key");
+    // Sanitize inputs
+    const sanitizedApiKey = sanitizeApiKey(apiKey.trim());
+    const sanitizedChatId = sanitizeUserInput(testChatId.trim(), 'chat-id', { maxLength: 50 });
+    const sanitizedQuestion = sanitizeUserInput(question.trim(), 'test-question', { maxLength: 2000 });
+
+    if (!sanitizedApiKey) {
+      toast.error("Please enter a valid API key");
       return;
     }
 
-    if (!testChatId.trim()) {
-      toast.error("Please enter a chat ID");
+    if (!sanitizedChatId) {
+      toast.error("Please enter a valid chat ID");
       return;
     }
 
-    if (!question.trim()) {
-      toast.error("Please enter a question");
+    if (!sanitizedQuestion) {
+      toast.error("Please enter a valid question");
       return;
     }
 
@@ -67,11 +73,11 @@ export function ApiTester({ chatId, defaultApiKey }: ApiTesterProps) {
       const response = await fetch(`${apiBaseUrl}/v1/${testChatId}/answer_question`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${sanitizedApiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          question,
+          question: sanitizedQuestion,
           selected_model: model === "gpt-4o-mini" ? undefined : model, // Let API use chat defaults
           temperature: temperature === 0.7 ? undefined : temperature,   // Let API use chat defaults
           max_tokens: maxTokens === 1000 ? undefined : maxTokens        // Let API use chat defaults

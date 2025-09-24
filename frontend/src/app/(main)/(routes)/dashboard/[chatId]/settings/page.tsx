@@ -9,7 +9,7 @@ import { ResizableSidebar } from "@/app/(main)/components/resizable-sidebar";
 import { useSidebarWidth } from "@/hooks/use-sidebar-width";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Settings, Key, Zap, Shield, BookOpen, ExternalLink, Crown } from "lucide-react";
+import { ArrowLeft, Settings, Key, Zap, Shield, BookOpen, ExternalLink, Crown, BarChart3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getStripe } from "@/lib/stripe";
@@ -126,7 +126,19 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
             {/* Quick Actions */}
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="grid md:grid-cols-4 gap-6 mb-8">
+              <Card className="border-0 shadow-lg bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer" onClick={() => router.push(`/dashboard/${chatId}/analytics`)}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <BarChart3 className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Analytics</h3>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm">
+                    View privacy-first usage analytics and user metrics
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card className="border-0 shadow-lg bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer" onClick={() => window.open('/docs', '_blank')}>
                 <CardContent className="p-6 text-center">
                   <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">

@@ -1,8 +1,4 @@
-import DOMPurify from "dompurify";
+// This file is deprecated. Use /src/lib/sanitization.ts instead
+import { sanitizeHTML } from "@/lib/sanitization";
 
-export function sanitizeHTML(dirty: string) {
-  if (typeof window === "undefined") {
-    return "";
-  }
-  return DOMPurify.sanitize(dirty);
-}
+export { sanitizeHTML };
