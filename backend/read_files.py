@@ -651,31 +651,35 @@ MODEL_MULTIPLIERS = {
     'mixtral-8x7b': 0.8,      # 0.8x of 4o-mini
 }
 
-def calculate_credits_used(tokens: int, model: str) -> int:
-    """Calculate credits used based on tokens and model"""
+def calculate_credits_used(tokens: int, model: str) -> float:
+    """
+    Calculate credits used based on tokens and model.
+    Uses the EXACT same calculation as frontend: (tokens / 1000) * multiplier
+    Returns fractional credits, NOT rounded.
+    """
     multiplier = MODEL_MULTIPLIERS.get(model, 1)
-    return max(1, int((tokens / 1000) * multiplier))  # At least 1 credit
+    return (tokens / 1000) * multiplier
 
 class InsufficientCreditsError(Exception):
     """Raised when user doesn't have enough credits"""
-    def __init__(self, required: int, available: int):
+    def __init__(self, required: float, available: float):
         self.required = required
         self.available = available
         super().__init__(f"Insufficient credits: need {required}, have {available}")
 
-async def check_user_credits(user_id: str, required_credits: int) -> dict:
+async def check_user_credits(user_id: str, required_credits: float) -> dict:
     """Check if user has enough credits and return credit info"""
     try:
         logger.info(f"💳 Checking credits for user {user_id}: need {required_credits}")
 
-        # Call Convex to get actual credit information
-        convex_url = "https://colorless-finch-681.convex.cloud"  # Your dev deployment
+        # Use backend-safe credit checking function
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{convex_url}/api/run/subscriptions/getUserCredits",
+                f"{convex_url}/api/run/backend_credits/checkDeveloperCredits",
                 json={
-                    "args": {"userId": user_id},
+                    "args": {"developerId": user_id},
                     "format": "json"
                 },
                 headers={"Content-Type": "application/json"}
@@ -683,38 +687,30 @@ async def check_user_credits(user_id: str, required_credits: int) -> dict:
 
             if response.status_code == 200:
                 result = response.json()
-                if result.get("value"):
-                    credits = result["value"]
-                    remaining = credits.get("remainingCredits", 0)
-                    total = credits.get("totalCredits", 0)
-                    used = credits.get("usedCredits", 0)
+                credit_data = result.get("value")
+
+                if credit_data and credit_data.get("found"):
+                    remaining = credit_data.get("remainingCredits", 0)
+                    total = credit_data.get("totalCredits", 0)
+                    used = credit_data.get("usedCredits", 0)
 
                     has_sufficient = remaining >= required_credits
 
-                    logger.info(f"💳 Credit check result: {remaining}/{total} remaining, need {required_credits}, sufficient: {has_sufficient}")
+                    logger.info(f"💳 Real credit check: {remaining}/{total} remaining, need {required_credits}, sufficient: {has_sufficient}")
 
                     return {
                         "has_sufficient": has_sufficient,
                         "remaining": remaining,
                         "total": total,
-                        "used": used
+                        "used": used,
+                        "required": required_credits
                     }
                 else:
-                    logger.warning(f"💳 No credit data returned for user {user_id}")
-                    return {
-                        "has_sufficient": False,
-                        "remaining": 0,
-                        "total": 0,
-                        "used": 0
-                    }
+                    logger.warning(f"💳 No credits found for developer {user_id}")
+                    return {"has_sufficient": False, "remaining": 0, "total": 0, "used": 0, "required": required_credits}
             else:
-                logger.error(f"💳 Credit check failed: {response.status_code} - {response.text}")
-                return {
-                    "has_sufficient": False,
-                    "remaining": 0,
-                    "total": 0,
-                    "used": 0
-                }
+                logger.error(f"💳 Credit check failed: {response.status_code}")
+                return {"has_sufficient": False, "remaining": 0, "total": 0, "used": 0, "required": required_credits}
 
     except Exception as e:
         logger.error(f"Error checking user credits: {e}")
@@ -727,7 +723,7 @@ async def check_user_credits(user_id: str, required_credits: int) -> dict:
 
 async def consume_user_credits(
     user_id: str,
-    credits: int,
+    credits: float,
     model: str,
     tokens_used: int,
     chat_id: str = None,
@@ -738,39 +734,142 @@ async def consume_user_credits(
         logger.info(f"💳 Attempting to consume {credits} credits for user {user_id}: {description}")
         logger.info(f"   Model: {model}, Tokens: {tokens_used}, Chat: {chat_id}")
 
-        # Call Convex to actually consume credits
-        convex_url = "https://colorless-finch-681.convex.cloud"  # Your dev deployment
+        # Use the backend-safe updateUserCredits function to consume credits
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
 
         async with httpx.AsyncClient() as client:
-            # Call the consumeCredits mutation
+            # First get current credits by querying user_credits table directly
+            # We'll use a more direct approach since we can't use the auth-based functions
+
+            # Use the backend-safe credit consumption function
             response = await client.post(
-                f"{convex_url}/api/run/subscriptions/consumeCredits",
+                f"{convex_url}/api/run/backend_credits/consumeDeveloperCredits",
                 json={
                     "args": {
+                        "developerId": user_id,
                         "credits": credits,
                         "model": model,
                         "tokensUsed": tokens_used,
-                        "chatId": chat_id,
-                        "description": description
+                        "description": description,
+                        "chatId": chat_id
                     },
                     "format": "json"
                 },
-                headers={
-                    "Content-Type": "application/json",
-                }
+                headers={"Content-Type": "application/json"}
             )
 
             if response.status_code == 200:
                 result = response.json()
-                logger.info(f"✅ Successfully consumed {credits} credits via Convex")
-                return True
+                value = result.get("value", {})
+
+                if value.get("success"):
+                    credits_consumed = value.get("creditsUsed", credits)
+                    remaining = value.get("remainingCredits", 0)
+                    was_initialized = value.get("wasInitialized", False)
+
+                    if was_initialized:
+                        logger.info(f"✅ Initialized developer {user_id} with credits and consumed {credits_consumed}")
+                    else:
+                        logger.info(f"✅ Successfully deducted {credits_consumed} credits from developer {user_id}")
+
+                    logger.info(f"💳 Developer {user_id} now has {remaining} credits remaining")
+                    return True
+                else:
+                    error_msg = value.get("error", "Unknown error")
+                    required = value.get("required", credits)
+                    available = value.get("remainingCredits", 0)
+                    logger.error(f"❌ Credit consumption failed: {error_msg}")
+                    logger.error(f"💳 Required: {required}, Available: {available}")
+                    return False
             else:
-                logger.error(f"❌ Failed to consume credits via Convex: {response.status_code} - {response.text}")
+                logger.error(f"❌ Failed to consume credits: {response.status_code} - {response.text}")
                 return False
 
     except Exception as e:
         logger.error(f"Error consuming user credits: {e}")
         return False
+
+async def get_developer_id_from_chat(chat_id: str) -> str:
+    """
+    Get the developer ID responsible for a chat's API costs.
+    Returns the developer ID or the original chat owner ID as fallback.
+    """
+    try:
+        logger.info(f"🔍 Looking up developer ID for chat {chat_id}")
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+
+        async with httpx.AsyncClient() as client:
+            # First get the chat data
+            chat_response = await client.post(
+                f"{convex_url}/api/run/backend_credits/getChatWithApp",
+                json={
+                    "args": {"chatId": chat_id},
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            if chat_response.status_code == 200:
+                chat_data = chat_response.json()
+                value = chat_data.get("value")
+
+                if value:
+                    # If chat has a parentAppId, get the developer from that app
+                    if value.get("parentAppId"):
+                        app_id = value["parentAppId"]
+                        logger.info(f"🔍 Chat {chat_id} is linked to app {app_id}")
+
+                        # Get app info to find developer
+                        app_response = await client.post(
+                            f"{convex_url}/api/run/app_management/getAppWithSettings",
+                            json={
+                                "args": {"appId": app_id},
+                                "format": "json"
+                            },
+                            headers={"Content-Type": "application/json"}
+                        )
+
+                        if app_response.status_code == 200:
+                            app_data = app_response.json()
+                            app_value = app_data.get("value")
+                            if app_value and app_value.get("developerId"):
+                                developer_id = app_value["developerId"]
+                                logger.info(f"✅ Found developer ID {developer_id} for chat {chat_id} via app {app_id}")
+                                return developer_id
+
+                    # If no app association, check if this chat has apps created from it
+                    chat_owner_id = value.get("userId")
+                    if chat_owner_id:
+                        # Check if there are any apps with this chat as parentChatId
+                        apps_response = await client.post(
+                            f"{convex_url}/api/run/backend_credits/getAppsForParentChat",
+                            json={
+                                "args": {"parentChatId": chat_id},
+                                "format": "json"
+                            },
+                            headers={"Content-Type": "application/json"}
+                        )
+
+                        if apps_response.status_code == 200:
+                            apps_data = apps_response.json()
+                            apps_value = apps_data.get("value", [])
+                            if apps_value and len(apps_value) > 0:
+                                # Use the developer ID from the first app (they should all be the same developer)
+                                developer_id = apps_value[0].get("developerId")
+                                if developer_id:
+                                    logger.info(f"✅ Found developer ID {developer_id} for chat {chat_id} as chat owner with apps")
+                                    return developer_id
+
+                        # Fallback: use the chat owner as the one responsible for credits
+                        logger.info(f"💡 Using chat owner {chat_owner_id} as developer for chat {chat_id}")
+                        return chat_owner_id
+
+    except Exception as e:
+        logger.error(f"❌ Error looking up developer for chat {chat_id}: {e}")
+
+    # Ultimate fallback: use chat_id as user_id
+    logger.warning(f"⚠️ Using chat_id {chat_id} as fallback developer ID")
+    return chat_id
 
 async def validate_and_consume_credits(
     user_id: str,
@@ -784,25 +883,132 @@ async def validate_and_consume_credits(
     """
     required_credits = calculate_credits_used(estimated_tokens, model)
 
-    # Check if user has enough credits
-    credit_info = await check_user_credits(user_id, required_credits)
-    if not credit_info["has_sufficient"]:
-        raise InsufficientCreditsError(required_credits, credit_info["remaining"])
+    # Determine who should be charged for the credits
+    actual_user_id = user_id
+    if chat_id:
+        # Try to get the developer ID who should be charged
+        developer_id = await get_developer_id_from_chat(chat_id)
+        if developer_id != chat_id:  # Only use if we found a real developer ID
+            actual_user_id = developer_id
+            logger.info(f"💳 Charging developer {developer_id} instead of original user {user_id}")
 
-    # Consume the credits
+    # Try to consume the credits (this will auto-initialize if user doesn't exist)
     success = await consume_user_credits(
-        user_id,
+        actual_user_id,
         required_credits,
         model,
         estimated_tokens,
         chat_id,
-        f"AI response using {model}"
+        f"AI response using {model} (chat: {chat_id})"
     )
 
     if not success:
-        raise Exception("Failed to consume credits")
+        # If consumption failed, check why and provide helpful error
+        credit_info = await check_user_credits(actual_user_id, required_credits)
+        if not credit_info["has_sufficient"]:
+            raise InsufficientCreditsError(required_credits, credit_info["remaining"])
+        else:
+            raise Exception("Failed to consume credits for unknown reason")
 
     return required_credits
+
+async def consume_credits_for_actual_usage(
+    user_id: str,
+    model: str,
+    question: str,
+    response: str,
+    chat_id: str = None
+) -> float:
+    """
+    Consume credits based on actual token usage from AI response.
+    Uses the EXACT same calculation as the frontend Trainly chat.
+    Returns the number of credits consumed.
+    """
+    # Calculate actual tokens used (EXACT same method as frontend)
+    # Frontend: Math.ceil(question.length / 4) + Math.ceil(response.length / 4)
+    import math
+    question_tokens = math.ceil(len(question) / 4)
+    response_tokens = math.ceil(len(response) / 4)
+    total_actual_tokens = question_tokens + response_tokens
+
+    # Calculate credits based on actual usage (EXACT same method as frontend)
+    # Frontend: (tokens / 1000) * multiplier (NO Math.ceil!)
+    multiplier = MODEL_MULTIPLIERS.get(model, 1)
+    actual_credits = (total_actual_tokens / 1000) * multiplier
+
+    # Determine who should be charged for the credits
+    actual_user_id = user_id
+    if chat_id:
+        # Try to get the developer ID who should be charged
+        developer_id = await get_developer_id_from_chat(chat_id)
+        if developer_id != chat_id:  # Only use if we found a real developer ID
+            actual_user_id = developer_id
+            logger.info(f"💳 Charging developer {developer_id} instead of original user {user_id}")
+
+    # Consume the credits based on actual usage
+    success = await consume_user_credits(
+        actual_user_id,
+        actual_credits,
+        model,
+        total_actual_tokens,
+        chat_id,
+        f"AI response using {model} - {total_actual_tokens} tokens (chat: {chat_id})"
+    )
+
+    if not success:
+        # If consumption failed, check why and provide helpful error
+        credit_info = await check_user_credits(actual_user_id, actual_credits)
+        if not credit_info["has_sufficient"]:
+            raise InsufficientCreditsError(actual_credits, credit_info["remaining"])
+        else:
+            raise Exception("Failed to consume credits for unknown reason")
+
+    logger.info(f"💳 Consumed {actual_credits} credits for {total_actual_tokens} actual tokens ({model})")
+    return actual_credits
+
+async def ensure_developer_has_credits(developer_user_id: str, min_credits: int = 1000):
+    """Ensure developer has credits, initialize with default amount if needed"""
+    try:
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+
+        async with httpx.AsyncClient() as client:
+            # Check current credits
+            response = await client.post(
+                f"{convex_url}/api/run/subscriptions/getUserCredits",
+                json={
+                    "args": {"userId": developer_user_id},
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            current_credits = 0
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("value"):
+                    current_credits = result["value"].get("remainingCredits", 0)
+
+            # If no credits, initialize with default amount
+            if current_credits == 0:
+                logger.info(f"💳 Initializing credits for developer {developer_user_id} with {min_credits} credits")
+                init_response = await client.post(
+                    f"{convex_url}/api/run/subscriptions/initializeUserCredits",
+                    json={
+                        "args": {"userId": developer_user_id, "initialCredits": min_credits},
+                        "format": "json"
+                    },
+                    headers={"Content-Type": "application/json"}
+                )
+
+                if init_response.status_code == 200:
+                    logger.info(f"✅ Developer {developer_user_id} initialized with {min_credits} credits")
+                else:
+                    logger.warning(f"⚠️ Could not initialize credits for developer: {init_response.status_code}")
+            else:
+                logger.info(f"💳 Developer {developer_user_id} has {current_credits} credits")
+
+    except Exception as e:
+        logger.error(f"Error ensuring developer credits: {e}")
 
 def sanitize_for_neo4j(text: str) -> str:
     safe_text = text
@@ -1749,21 +1955,7 @@ async def answer_question(payload: QuestionRequest):
                     logger.warning(f"Failed to get user ID from chat: {e}, using chat_id as fallback")
                     user_id = chat_id
 
-                # Validate and consume credits before making AI call
-                try:
-                    credits_consumed = await validate_and_consume_credits(
-                        user_id=user_id,
-                        model=selected_model,
-                        estimated_tokens=estimated_tokens,
-                        chat_id=chat_id
-                    )
-                    logger.info(f"💳 Consumed {credits_consumed} credits for {selected_model}")
-                except InsufficientCreditsError as e:
-                    raise HTTPException(
-                        status_code=402,  # Payment Required
-                        detail=f"Insufficient credits: need {e.required}, have {e.available}. Please upgrade your plan or purchase more credits."
-                    )
-
+                # Make AI call first to get actual token usage
                 completion = openai.chat.completions.create(
                     model=selected_model,
                     messages=[
@@ -1775,6 +1967,27 @@ async def answer_question(payload: QuestionRequest):
                 )
 
                 answer = completion.choices[0].message.content.strip()
+
+                # Now consume credits based on actual usage
+                try:
+                    credits_consumed = await consume_credits_for_actual_usage(
+                        user_id=user_id,
+                        model=selected_model,
+                        question=question,
+                        response=answer,
+                        chat_id=chat_id
+                    )
+                    logger.info(f"💳 Consumed {credits_consumed} credits for {selected_model} based on actual usage")
+                except InsufficientCreditsError as e:
+                    # Note: This is unusual since we've already made the AI call
+                    # But we still need to handle the case where the developer runs out of credits
+                    logger.error(f"💳 CREDIT ERROR after API call: need {e.required}, have {e.available}")
+                    # We could either:
+                    # 1. Return the answer anyway (developer gets a free response)
+                    # 2. Return an error (lose the API response)
+                    # For now, we'll return the answer but log the issue
+                    logger.warning(f"💳 Allowing response due to insufficient credits - this should be monitored")
+
                 return AnswerWithContext(answer=answer, context=top_chunks_for_citations)
 
     except Exception as e:
@@ -2949,14 +3162,6 @@ async def privacy_first_query(
         logger.info(f"📋 Final settings: model={model}, temp={temperature}, custom_prompt={bool(custom_prompt)}")
         logger.info(f"💳 Credit consumption target: {developer_user_id}")
 
-        # Estimate tokens and validate credits
-        estimated_tokens = len(sanitized_question) // 4 + max_tokens
-
-        # Credit consumption temporarily disabled for development
-        # TODO: Set up proper developer credit system
-        credits_consumed = 0
-        logger.info(f"💳 SKIPPED: Credit consumption disabled for development (developer: {developer_user_id})")
-
         # Call the privacy-aware answer function with request settings
         # This ensures data is scoped to the user's specific chat
         result = await answer_question_with_privacy_scope(
@@ -2969,6 +3174,26 @@ async def privacy_first_query(
             max_tokens=max_tokens,
             custom_prompt=custom_prompt
         )
+
+        # Now consume credits based on actual usage (after getting the response)
+        try:
+            credits_consumed = await consume_credits_for_actual_usage(
+                user_id=developer_user_id,
+                model=model,
+                question=sanitized_question,
+                response=result.get("answer", ""),
+                chat_id=claims.chat_id  # Use the user's chat ID for tracking
+            )
+            logger.info(f"💳 SUCCESS: Consumed {credits_consumed} credits from developer {developer_user_id} for end user {claims.end_user_id} based on actual usage")
+        except InsufficientCreditsError as e:
+            logger.error(f"💳 CREDIT ERROR after API call: need {e.required}, have {e.available}")
+            # Since we've already made the AI call, we'll allow the response but log the issue
+            logger.warning(f"💳 Allowing response due to insufficient credits - this should be monitored")
+            credits_consumed = 0
+        except Exception as e:
+            logger.error(f"💳 ERROR: Credit consumption failed: {str(e)}")
+            logger.warning(f"💳 Allowing response despite credit error - this should be monitored")
+            credits_consumed = 0
 
         # Calculate response time and track metrics
         response_time = (time.time() - query_start_time) * 1000  # Convert to milliseconds

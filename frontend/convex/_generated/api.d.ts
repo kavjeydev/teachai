@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as api_keys from "../api_keys.js";
 import type * as app_management from "../app_management.js";
+import type * as backend_credits from "../backend_credits.js";
 import type * as chat_analytics from "../chat_analytics.js";
 import type * as chats from "../chats.js";
 import type * as convexClient from "../convexClient.js";
@@ -35,6 +36,7 @@ import type * as user_auth_system from "../user_auth_system.js";
 declare const fullApi: ApiFromModules<{
   api_keys: typeof api_keys;
   app_management: typeof app_management;
+  backend_credits: typeof backend_credits;
   chat_analytics: typeof chat_analytics;
   chats: typeof chats;
   convexClient: typeof convexClient;

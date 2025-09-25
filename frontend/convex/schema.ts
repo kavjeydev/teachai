@@ -299,7 +299,7 @@ export default defineSchema({
     model: v.optional(v.string()), // Model used for usage transactions
     tokensUsed: v.optional(v.number()), // Actual tokens consumed for usage transactions
     stripePaymentIntentId: v.optional(v.string()), // For purchase transactions
-    relatedChatId: v.optional(v.id("chats")), // For usage transactions
+    relatedChatId: v.optional(v.string()), // For usage transactions (chat string ID, not document ID)
     timestamp: v.number(),
   })
     .index("by_user_timestamp", ["userId", "timestamp"])
