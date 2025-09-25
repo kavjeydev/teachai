@@ -1,0 +1,53 @@
+{
+  "name": "@trainly/react",
+  "version": "1.0.3",
+  "description": "Dead simple RAG integration for React apps",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "rag",
+    "ai",
+    "chatbot",
+    "documents",
+    "react",
+    "trainly",
+    "retrieval-augmented-generation",
+    "semantic-search",
+    "document-chat"
+  ],
+  "author": "Trainly",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trainly/react-sdk.git"
+  },
+  "homepage": "https://trainly.com/docs/react-sdk",
+  "bugs": {
+    "url": "https://github.com/trainly/react-sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

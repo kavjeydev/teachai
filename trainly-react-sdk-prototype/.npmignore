@@ -1,0 +1,15 @@
+# Source files
+src/
+examples/
+*.md
+!README.md
+
+# Development files
+tsconfig.json
+.git
+.gitignore
+node_modules/
+.DS_Store
+
+# Build artifacts (only include dist)
+# Everything else is excluded by default

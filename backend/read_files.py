@@ -1,5 +1,5 @@
 #!/home/kavinjey/.virtualenvs/myvenv/bin/python
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Header, Depends, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Header, Depends, Form, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -1308,6 +1308,11 @@ async def api_answer_question(
         # Verify API key and chat access first
         api_key = credentials.credentials
 
+        # Sanitize chat_id first
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
         # Rate limiting
         if not check_rate_limit(api_key, request.client.host):
             raise HTTPException(
@@ -1419,6 +1424,11 @@ async def api_answer_question_stream(
     try:
         # Verify API key and chat access first
         api_key = credentials.credentials
+
+        # Sanitize chat_id first
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
 
         # Rate limiting
         if not check_rate_limit(api_key, request.client.host):
@@ -1830,7 +1840,10 @@ async def answer_question(payload: QuestionRequest):
                     filename = record["filename"] or ""
 
                     # Calculate semantic similarity
-                    semantic_score = cosine_similarity(np.array(question_embedding), chunk_embedding)
+                    # Ensure both are numpy arrays with correct dimensions
+                    q_emb = np.array(question_embedding)
+                    c_emb = np.array(chunk_embedding) if isinstance(chunk_embedding, list) else chunk_embedding
+                    semantic_score = cosine_similarity(q_emb, c_emb)
 
                     # Add filename relevance boost
                     filename_boost = 0.0
@@ -1915,8 +1928,7 @@ async def answer_question(payload: QuestionRequest):
                     3. Pay attention to the document names shown in parentheses - if the user asks about a specific document by name, use the content from that document
                     4. When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
                     5. Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
-                    6. If the user asks about a document by name (like "grant assignment", "ecology report", etc.), and you see content from a document with a similar name in the context, you MUST use that content
-                    7. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
+                    6. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
 
                     For example:
                     - "According to the Grant Assignment document [^0], ecology research involves..."
@@ -2029,7 +2041,10 @@ async def answer_question_stream(payload: QuestionRequest):
                     filename = record["filename"] or ""
 
                     # Calculate semantic similarity
-                    semantic_score = cosine_similarity(np.array(question_embedding), chunk_embedding)
+                    # Ensure both are numpy arrays with correct dimensions
+                    q_emb = np.array(question_embedding)
+                    c_emb = np.array(chunk_embedding) if isinstance(chunk_embedding, list) else chunk_embedding
+                    semantic_score = cosine_similarity(q_emb, c_emb)
 
                     # Add filename relevance boost
                     filename_boost = 0.0
@@ -3303,11 +3318,11 @@ async def get_presigned_upload_url(
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     try:
-        # Generate presigned URL for user's namespace
-        # This would integrate with your storage system (S3, etc.)
-        # ensuring files are stored under the user's isolated namespace
-
-        upload_url = f"https://your-storage.com/upload/{claims.app_id}/{claims.end_user_id}/{sanitized_filename}"
+        # Generate upload URL for user's namespace
+        # Routes to a privacy-aware upload endpoint that processes files completely
+        # Files are processed securely and isolated per user/app
+        base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+        upload_url = f"{base_url}/v1/privacy/upload/process"
 
         # Log upload request
         await log_app_access(
@@ -3327,7 +3342,15 @@ async def get_presigned_upload_url(
             "upload_url": upload_url,
             "filename": sanitized_filename,
             "expires_in": 3600,  # 1 hour
-            "privacy_note": "File will be uploaded directly to user's private namespace"
+            "privacy_note": "File will be uploaded directly to user's private namespace",
+            "upload_method": "POST",  # Indicates to use POST with FormData instead of PUT
+            "content_type": "multipart/form-data",
+            "field_name": "file",  # The form field name to use
+            "upload_headers": {  # Headers to include in the upload request
+                "x-chat-id": claims.chat_id,
+                "x-user-id": claims.end_user_id,
+                "x-app-id": claims.app_id
+            }
         }
 
     except Exception as e:
@@ -3343,6 +3366,107 @@ async def get_presigned_upload_url(
             filename=sanitized_filename
         )
         raise HTTPException(status_code=500, detail="Failed to generate upload URL")
+
+@app.post("/v1/privacy/upload/process")
+async def privacy_upload_process(
+    file: UploadFile = File(...),
+    chat_id: str = Header(None, alias="x-chat-id"),
+    user_id: str = Header(None, alias="x-user-id"),
+    app_id: str = Header(None, alias="x-app-id")
+):
+    """
+    🔒 PRIVACY-FIRST: Complete file upload processing
+
+    This endpoint:
+    1. Extracts text from uploaded files
+    2. Creates embeddings and associates them with the user's sub-chat
+    3. Ensures complete privacy isolation
+    """
+
+    # Validate file
+    file_size = read_files.get_file_size(file)
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded.")
+
+    # Validate required headers
+    if not chat_id or not user_id or not app_id:
+        raise HTTPException(status_code=400, detail="Missing required headers: x-chat-id, x-user-id, x-app-id")
+
+    # Sanitize inputs
+    sanitized_filename = sanitize_filename(file.filename)
+    sanitized_chat_id = sanitize_chat_id(chat_id)
+    sanitized_user_id = sanitize_api_key(user_id)  # Reuse sanitization function
+    sanitized_app_id = sanitize_api_key(app_id)    # Reuse sanitization function
+
+    if not sanitized_filename or not sanitized_chat_id or not sanitized_user_id or not sanitized_app_id:
+        raise HTTPException(status_code=400, detail="Invalid input parameters")
+
+    try:
+        # Step 1: Extract text from file
+        text = read_files.extract_text(file)
+
+        # Sanitize extracted text
+        sanitized_text = sanitize_with_xss_detection(
+            text,
+            allow_html=False,
+            max_length=1000000,
+            context="privacy_file_extraction"
+        )
+
+        if not sanitized_text and text:
+            raise HTTPException(status_code=400, detail="File contains potentially malicious content.")
+
+        # Step 2: Create embeddings and nodes for the user's sub-chat
+        # Generate unique PDF ID for this upload
+        pdf_id = f"{sanitized_user_id}_{sanitized_filename}_{int(time.time())}"
+
+        # Create embeddings using the same logic as the regular flow
+        # but scoped to the user's sub-chat
+        create_payload = CreateNodesAndEmbeddingsRequest(
+            pdf_text=sanitized_text,
+            pdf_id=pdf_id,
+            chat_id=sanitized_chat_id,  # This is the user's sub-chat ID
+            filename=sanitized_filename
+        )
+
+        # Call the existing embeddings creation function
+        await create_nodes_and_embeddings(create_payload)
+
+        # Track the upload for analytics
+        await track_file_upload(
+            sanitized_app_id,
+            sanitized_user_id,
+            sanitized_filename,
+            file_size,
+            sanitized_chat_id
+        )
+
+        return {
+            "success": True,
+            "message": "File uploaded and processed successfully",
+            "filename": sanitized_filename,
+            "chat_id": sanitized_chat_id,
+            "pdf_id": pdf_id,
+            "privacy_note": "File processed and stored in your isolated workspace"
+        }
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Privacy upload processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process upload: {str(e)}")
+
+@app.get("/debug/api-base-url")
+async def debug_api_base_url():
+    """Debug endpoint to check what API base URL is being used"""
+    base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+    return {
+        "api_base_url": base_url,
+        "environment_var": os.getenv("API_BASE_URL"),
+        "default_used": os.getenv("API_BASE_URL") is None
+    }
 
 @app.get("/debug/chat-settings/{chat_id}")
 async def debug_chat_settings(chat_id: str):
@@ -3430,92 +3554,160 @@ async def answer_question_with_privacy_scope(
                 # Enhanced query that includes user/chat isolation + parent chat access
                 # This searches BOTH user's private data AND parent app knowledge base
                 # Note: This implements the hybrid model you described
+
+                # First, let's see what documents exist for this chat
+                doc_query = f"""
+                MATCH (d:Document)
+                WHERE d.chatId = '{chat_id}' OR (d.chatId = '{app_id}' AND '{app_id}' <> 'direct')
+                RETURN d.filename AS filename, d.chatId AS docChatId
+                """
+                doc_result = session.run(doc_query)
+                doc_list = [(record["filename"], record["docChatId"]) for record in doc_result]
+                logger.info(f"🔍 DEBUG: Found {len(doc_list)} documents: {doc_list}")
+
                 query = f"""
                 MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
                 WHERE c.chatId = '{chat_id}' OR (c.chatId = '{app_id}' AND '{app_id}' <> 'direct')
-                RETURN c.id AS chunk_id, c.text AS chunk_text, c.embedding AS embedding
-                LIMIT 20
+                RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
                 """
 
                 result = session.run(query)
                 chunks = []
 
+                question_lower = question.lower()
+
+                # Calculate similarities with filename boost - EXACT SAME AS MAIN CHAT
+                chunk_scores = []
+
                 for record in result:
+                    chunk_id = record["id"]
+                    chunk_text = record["text"]
                     chunk_embedding = record["embedding"]
-                    if chunk_embedding:
-                        similarity = cosine_similarity([question_embedding], [chunk_embedding])[0][0]
-                        chunks.append({
-                            "chunk_id": record["chunk_id"],
-                            "chunk_text": record["chunk_text"],
-                            "score": float(similarity)
-                        })
+                    filename = record["filename"] or ""
 
-                # Sort by similarity score
-                chunks.sort(key=lambda x: x["score"], reverse=True)
-                top_chunks = chunks[:5]
+                    # Calculate semantic similarity
+                    # Ensure both are numpy arrays with correct dimensions
+                    q_emb = np.array(question_embedding)
+                    c_emb = np.array(chunk_embedding) if isinstance(chunk_embedding, list) else chunk_embedding
+                    semantic_score = cosine_similarity(q_emb, c_emb)
 
-                if not top_chunks:
-                    # For general conversational questions, provide a normal AI response
-                    # without requiring document context
-                    system_content = custom_prompt or "You are a helpful AI assistant. Respond naturally to the user's question. If they're asking for specific information about documents or data, let them know you'd need them to upload relevant documents first."
+                    # Add filename relevance boost (same logic as main chat)
+                    filename_boost = 0.0
+                    if filename:
+                        filename_lower = filename.lower()
+                        # Remove file extension for better matching
+                        filename_base = filename_lower.replace('.pdf', '').replace('.docx', '').replace('.txt', '')
 
-                    messages = [
-                        {
-                            "role": "system",
-                            "content": system_content
-                        },
-                        {"role": "user", "content": question}
-                    ]
+                        # Check for filename mentions in question
+                        filename_words = filename_base.replace('_', ' ').replace('-', ' ').split()
+                        question_words = question_lower.replace('_', ' ').replace('-', ' ').split()
 
-                    response = openai.chat.completions.create(
-                        model=model,
-                        messages=messages,
-                        max_tokens=max_tokens,
-                        temperature=temperature
-                    )
+                        # Boost score if filename words appear in question
+                        for fname_word in filename_words:
+                            if len(fname_word) > 2:  # Skip very short words
+                                for q_word in question_words:
+                                    if fname_word in q_word or q_word in fname_word:
+                                        filename_boost += 0.1
 
-                    answer = response.choices[0].message.content
+                        # Additional boost for exact filename matches
+                        if any(fname_word in question_lower for fname_word in filename_words if len(fname_word) > 3):
+                            filename_boost += 0.2
 
-                    return {
-                        "answer": answer,
-                        "context": [],
-                        "privacy_scope": {
-                            "app_id": app_id,
-                            "end_user_id": end_user_id,
-                            "chat_id": chat_id,
-                            "isolation_confirmed": True
-                        }
-                    }
+                    # Combine semantic similarity with filename relevance
+                    final_score = semantic_score + filename_boost
 
-                # Generate response using OpenAI with custom settings
-                context_text = "\n\n".join([chunk["chunk_text"] for chunk in top_chunks])
+                    chunk_scores.append({
+                        "chunk_id": chunk_id,
+                        "chunk_text": chunk_text,
+                        "score": float(final_score),
+                        "filename": filename
+                    })
 
-                # Use custom prompt if provided, otherwise use default system prompt
+                # Sort and get top chunks - EXACT SAME AS MAIN CHAT
+                chunk_scores.sort(key=lambda x: x["score"], reverse=True)
+                top_k = 50  # Same as main chat
+                top_chunks = chunk_scores[:top_k]
+
+                # Generate answer using GPT-4 with citations - EXACT SAME AS MAIN CHAT
+                # Limit to top 10 chunks for cleaner citations
+                top_chunks_for_citations = top_chunks[:10]
+
+                # Get document information for each chunk to provide better context - EXACT SAME AS MAIN CHAT
+                chunk_document_info = {}
+                for chunk in top_chunks_for_citations:
+                    doc_query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk {{id: '{chunk["chunk_id"]}'}})
+                    RETURN d.filename AS filename
+                    """
+                    doc_result = session.run(doc_query)
+                    doc_record = doc_result.single()
+                    if doc_record:
+                        chunk_document_info[chunk["chunk_id"]] = doc_record['filename']
+
+                context_with_ids = "\n\n---\n\n".join([
+                    f"[CHUNK_{i}] (from document: {chunk_document_info.get(chunk['chunk_id'], 'Unknown')}) {chunk['chunk_text']}"
+                    for i, chunk in enumerate(top_chunks_for_citations)
+                ])
+
+                # Use custom prompt if provided, otherwise use default system prompt - EXACT SAME AS MAIN CHAT
                 if custom_prompt:
-                    system_content = f"{custom_prompt}\n\nContext from user {end_user_id}'s documents: {context_text}"
+                    # Use custom prompt but ensure context is included
+                    system_prompt = f"""
+                    {custom_prompt}
+
+                    You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
+
+                    {context_with_ids}
+
+                    When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
+                    Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
+                    """.strip()
                 else:
-                    system_content = f"You are an AI assistant answering questions based on user {end_user_id}'s private documents. Only use the provided context. If the context doesn't contain relevant information, say so clearly. Context: {context_text}"
+                    # Default system prompt - EXACT SAME AS MAIN CHAT
+                    system_prompt = f"""
+                    You are a helpful assistant. You have the following context with chunk IDs (0-{len(top_chunks_for_citations)-1}):
 
-                messages = [
-                    {
-                        "role": "system",
-                        "content": system_content
-                    },
-                    {"role": "user", "content": question}
-                ]
+                    {context_with_ids}
 
-                response = openai.chat.completions.create(
+                    IMPORTANT INSTRUCTIONS:
+                    1. ALWAYS prioritize using the provided context to answer the user's question
+                    2. If the context contains relevant information, you MUST use it and cite it properly
+                    3. Pay attention to the document names shown in parentheses - if the user asks about a specific document by name, use the content from that document
+                    4. When you reference information from the context, add a citation using this format: [^{{i}}] where {{i}} is the chunk number (0-{len(top_chunks_for_citations)-1})
+                    5. Only use citations [^0] through [^{len(top_chunks_for_citations)-1}]. Do not use citation numbers higher than {len(top_chunks_for_citations)-1}
+                    6. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
+
+                    For example:
+                    - "According to the Grant Assignment document [^0], ecology research involves..."
+                    - "The document shows [^2] that species interactions..."
+
+                    RESPOND IN MARKDOWN FORMAT WITH CITATIONS
+                    """.strip()
+
+                completion = openai.chat.completions.create(
                     model=model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    temperature=temperature
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": question}
+                    ],
+                    temperature=temperature,
+                    max_tokens=max_tokens
                 )
 
-                answer = response.choices[0].message.content
+                answer = completion.choices[0].message.content.strip()
+
+                # Convert to same format as main chat
+                context_chunks = []
+                for chunk in top_chunks_for_citations:
+                    context_chunks.append({
+                        "chunk_id": chunk["chunk_id"],
+                        "chunk_text": chunk["chunk_text"],
+                        "score": chunk["score"]
+                    })
 
                 return {
                     "answer": answer,
-                    "context": top_chunks,
+                    "context": context_chunks,
                     "privacy_scope": {
                         "app_id": app_id,
                         "end_user_id": end_user_id,

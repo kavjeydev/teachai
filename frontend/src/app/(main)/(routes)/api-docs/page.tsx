@@ -67,6 +67,11 @@ export default function ApiDocsPage() {
       title: "Integration",
       icon: BookOpen,
       items: [
+        {
+          id: "simple-nextjs-setup",
+          title: "Simple Next.js Setup",
+          badge: "⚡",
+        },
         { id: "react-integration", title: "React", badge: null },
         { id: "nodejs-backend", title: "Node.js", badge: null },
         { id: "python-integration", title: "Python", badge: null },
@@ -115,13 +120,22 @@ export default function ApiDocsPage() {
               their authentication tokens and data access.
             </p>
             <div className="flex gap-3 flex-wrap">
-              <Badge variant="outline" className="border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
+              <Badge
+                variant="outline"
+                className="border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300"
+              >
                 🔒 User-Controlled Auth
               </Badge>
-              <Badge variant="outline" className="border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
+              <Badge
+                variant="outline"
+                className="border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300"
+              >
                 📱 Each Chat = App
               </Badge>
-              <Badge variant="outline" className="border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
+              <Badge
+                variant="outline"
+                className="border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300"
+              >
                 🛡️ Privacy-First
               </Badge>
             </div>
@@ -868,6 +882,1496 @@ app.get('/auth/callback', async (req, res) => {
                       <li>• Complete citation snippets</li>
                       <li>• Source document references</li>
                     </ul>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ),
+    },
+
+    "simple-nextjs-setup": {
+      title: "Simple Next.js Setup",
+      content: (
+        <div className="space-y-8">
+          {/* Hero Section */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-8 border border-blue-200 dark:border-blue-800">
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg">
+                <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
+                  Dead Simple Next.js + Trainly Setup
+                </h2>
+                <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
+                  Add RAG to your Next.js app in under 5 minutes using our
+                  published npm package. No complex authentication, no
+                  boilerplate code, just install and use!
+                </p>
+                <div className="flex gap-3 flex-wrap">
+                  <Badge
+                    variant="outline"
+                    className="border-blue-300 text-blue-700 dark:border-blue-600 dark:text-blue-300"
+                  >
+                    📦 NPM Package
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-green-300 text-green-700 dark:border-green-600 dark:text-green-300"
+                  >
+                    ⚡ 5 Minute Setup
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300"
+                  >
+                    🔒 Built-in Security
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NEW: NPM Package Available */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-blue-600" />
+                🎉 NEW: @trainly/react is now available on NPM!
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-6">
+                  <div className="text-center space-y-4">
+                    <div className="text-4xl">🚀</div>
+                    <div>
+                      <h3 className="text-xl font-bold text-green-800 dark:text-green-200 mb-2">
+                        Setup Just Got 10x Simpler!
+                      </h3>
+                      <p className="text-green-700 dark:text-green-300 mb-4">
+                        We've published the Trainly React SDK to npm. Instead of
+                        the complex setup below, you can now add RAG to your app
+                        with just one install command!
+                      </p>
+                      <div className="bg-white dark:bg-green-900/20 rounded-lg p-4 text-left">
+                        <div className="text-sm font-mono">
+                          <div className="text-green-600 dark:text-green-400 mb-2">
+                            # Install the package
+                          </div>
+                          <div className="bg-zinc-900 text-zinc-100 px-3 py-2 rounded mb-3">
+                            npm install @trainly/react
+                          </div>
+                          <div className="text-green-600 dark:text-green-400 mb-2">
+                            # Use in your app (3 lines)
+                          </div>
+                          <div className="bg-zinc-900 text-zinc-100 px-3 py-2 rounded">
+                            <div>
+                              import {`{ TrainlyProvider, useTrainly }`} from
+                              "@trainly/react"
+                            </div>
+                            <div>const {`{ ask }`} = useTrainly()</div>
+                            <div>const answer = await ask("Question?")</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 justify-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            copyToClipboard(
+                              `npm install @trainly/react`,
+                              "Install command",
+                            )
+                          }
+                        >
+                          📋 Copy Install Command
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            window.open(
+                              "https://www.npmjs.com/package/@trainly/react",
+                              "_blank",
+                            )
+                          }
+                        >
+                          📦 View on NPM
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-amber-800 dark:text-amber-200">
+                        Legacy Documentation Below
+                      </h4>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                        The manual setup documentation below is kept for
+                        reference, but we highly recommend using the npm package
+                        instead. It's simpler, more secure, and
+                        production-ready.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Complexity Comparison */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-green-600" />
+                Before vs After: Complexity Eliminated
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-red-600 dark:text-red-400">
+                    ❌ Before (Manual Setup)
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>2-3 hours setup time</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>300+ lines of boilerplate code</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>8+ files to create manually</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>Complex authentication setup</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>Security vulnerabilities to handle</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-green-600 dark:text-green-400">
+                    ✅ After (@trainly/react)
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>5 minutes setup time</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>10 lines of code total</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>One npm install command</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>Automatic authentication</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>Built-in enterprise security</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* NPM Package Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-blue-600" />
+                @trainly/react - Now Live on NPM!
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Our package is now published and available worldwide:
+                </p>
+                <div className="grid gap-4">
+                  <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                      📦
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">NPM Package</h4>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        Available at:{" "}
+                        <code className="bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded">
+                          @trainly/react
+                        </code>
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        Size: 12.6 kB (compressed), 58.6 kB (unpacked)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                      ⚡
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">5-Minute Setup</h4>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        From npm install to working RAG in under 5 minutes
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        No backend setup, no complex auth, just install and use
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <div className="bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                      🔒
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Enterprise Security</h4>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        Built-in httpOnly cookies, XSS protection, CSRF
+                        protection
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        7-day sessions, automatic refresh, no localStorage
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 1: Install Package */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Step 1: Install @trainly/react</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Install the Trainly React package from npm:
+                </p>
+                <div className="relative">
+                  <pre className="bg-zinc-900 text-zinc-100 p-6 rounded-lg overflow-x-auto text-sm">
+                    <code>{`npm install @trainly/react`}</code>
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+                    onClick={() =>
+                      copyToClipboard(
+                        `npm install @trainly/react`,
+                        "Install command",
+                      )
+                    }
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-green-800 dark:text-green-200">
+                        That's All!
+                      </h4>
+                      <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                        No additional dependencies needed. The package includes
+                        everything: authentication, security, TypeScript types,
+                        and pre-built components.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 2: Setup Provider */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Step 2: Add TrainlyProvider (2 lines)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Wrap your app with the TrainlyProvider in your layout file:
+                </p>
+                <div className="relative">
+                  <pre className="bg-zinc-900 text-zinc-100 p-6 rounded-lg overflow-x-auto text-sm leading-relaxed max-h-96">
+                    <code>{`import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from "next/server";
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+}
+
+export interface SessionData {
+  user: User;
+  iat: number;
+  exp: number;
+}
+
+const JWT_SECRET = process.env.JWT_SECRET!;
+const SESSION_DURATION = 24 * 60 * 60; // 24 hours
+
+export function createSecureToken(user: User): string {
+  return jwt.sign(
+    {
+      user: { id: user.id, email: user.email, username: user.username },
+    },
+    JWT_SECRET,
+    { expiresIn: SESSION_DURATION },
+  );
+}
+
+export function verifySecureToken(token: string): SessionData | null {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as SessionData;
+    return decoded;
+  } catch (error) {
+    return null;
+  }
+}
+
+export function createSecureCookie(token: string): string {
+  const maxAge = SESSION_DURATION;
+  const secure = process.env.NODE_ENV === "production";
+
+  return [
+    \`auth-token=\${token}\`,
+    \`Max-Age=\${maxAge}\`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+    secure ? "Secure" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
+export async function getSessionFromRequest(
+  request: NextRequest,
+): Promise<User | null> {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
+
+  const cookies = Object.fromEntries(
+    cookieHeader.split("; ").map((cookie) => {
+      const [name, value] = cookie.split("=");
+      return [name, value];
+    }),
+  );
+
+  const token = cookies["auth-token"];
+  if (!token) return null;
+
+  const sessionData = verifySecureToken(token);
+  if (!sessionData) return null;
+
+  return sessionData.user;
+}`}</code>
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+                    onClick={() =>
+                      copyToClipboard(
+                        `import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from "next/server";
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+}
+
+export interface SessionData {
+  user: User;
+  iat: number;
+  exp: number;
+}
+
+const JWT_SECRET = process.env.JWT_SECRET!;
+const SESSION_DURATION = 24 * 60 * 60; // 24 hours
+
+export function createSecureToken(user: User): string {
+  return jwt.sign(
+    {
+      user: { id: user.id, email: user.email, username: user.username },
+    },
+    JWT_SECRET,
+    { expiresIn: SESSION_DURATION },
+  );
+}
+
+export function verifySecureToken(token: string): SessionData | null {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as SessionData;
+    return decoded;
+  } catch (error) {
+    return null;
+  }
+}
+
+export function createSecureCookie(token: string): string {
+  const maxAge = SESSION_DURATION;
+  const secure = process.env.NODE_ENV === "production";
+
+  return [
+    \`auth-token=\${token}\`,
+    \`Max-Age=\${maxAge}\`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+    secure ? "Secure" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
+export async function getSessionFromRequest(
+  request: NextRequest,
+): Promise<User | null> {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
+
+  const cookies = Object.fromEntries(
+    cookieHeader.split("; ").map((cookie) => {
+      const [name, value] = cookie.split("=");
+      return [name, value];
+    }),
+  );
+
+  const token = cookies["auth-token"];
+  if (!token) return null;
+
+  const sessionData = verifySecureToken(token);
+  if (!sessionData) return null;
+
+  return sessionData.user;
+}`,
+                        "Auth utilities",
+                      )
+                    }
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 3: API Routes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Step 3: Create Secure API Routes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Create secure authentication API routes that use httpOnly
+                  cookies:
+                </p>
+                {/* Login Route */}
+                <div>
+                  <h4 className="font-semibold mb-3">
+                    Login Route -{" "}
+                    <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-sm">
+                      src/app/api/auth/login/route.ts
+                    </code>
+                  </h4>
+                  <div className="relative">
+                    <pre className="bg-zinc-900 text-zinc-100 p-6 rounded-lg overflow-x-auto text-sm leading-relaxed max-h-80">
+                      <code>{`import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import {
+  findUserByEmail,
+  createSecureToken,
+  createSecureCookie,
+} from "@/lib/auth";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { email, password } = await req.json();
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 },
+      );
+    }
+
+    // Find user
+    const foundUser = findUserByEmail(email);
+    if (!foundUser) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 },
+      );
+    }
+
+    // Verify password
+    const validPassword = await bcrypt.compare(password, foundUser.password);
+    if (!validPassword) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 },
+      );
+    }
+
+    // Create secure session token
+    const user = {
+      id: foundUser.id,
+      username: foundUser.username,
+      email: foundUser.email,
+    };
+    const token = createSecureToken(user);
+
+    // Create response with secure cookie
+    const response = NextResponse.json({
+      success: true,
+      user,
+    });
+
+    response.headers.set("Set-Cookie", createSecureCookie(token));
+
+    return response;
+  } catch (error) {
+    console.error("Login error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}`}</code>
+                    </pre>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+                      onClick={() =>
+                        copyToClipboard(
+                          `import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import {
+  findUserByEmail,
+  createSecureToken,
+  createSecureCookie,
+} from "@/lib/auth";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { email, password } = await req.json();
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 },
+      );
+    }
+
+    // Find user
+    const foundUser = findUserByEmail(email);
+    if (!foundUser) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 },
+      );
+    }
+
+    // Verify password
+    const validPassword = await bcrypt.compare(password, foundUser.password);
+    if (!validPassword) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 },
+      );
+    }
+
+    // Create secure session token
+    const user = {
+      id: foundUser.id,
+      username: foundUser.username,
+      email: foundUser.email,
+    };
+    const token = createSecureToken(user);
+
+    // Create response with secure cookie
+    const response = NextResponse.json({
+      success: true,
+      user,
+    });
+
+    response.headers.set("Set-Cookie", createSecureCookie(token));
+
+    return response;
+  } catch (error) {
+    console.error("Login error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}`,
+                          "Login route",
+                        )
+                      }
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Session Validation Route */}
+                <div>
+                  <h4 className="font-semibold mb-3">
+                    Session Validation -{" "}
+                    <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-sm">
+                      src/app/api/auth/me/route.ts
+                    </code>
+                  </h4>
+                  <div className="relative">
+                    <pre className="bg-zinc-900 text-zinc-100 p-6 rounded-lg overflow-x-auto text-sm leading-relaxed max-h-64">
+                      <code>{`import { NextRequest, NextResponse } from "next/server";
+import { getSessionFromRequest } from "@/lib/auth";
+
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getSessionFromRequest(req);
+
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Session validation error:", error);
+    return NextResponse.json({ error: "Invalid session" }, { status: 403 });
+  }
+}`}</code>
+                    </pre>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+                      onClick={() =>
+                        copyToClipboard(
+                          `import { NextRequest, NextResponse } from "next/server";
+import { getSessionFromRequest } from "@/lib/auth";
+
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getSessionFromRequest(req);
+
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Session validation error:", error);
+    return NextResponse.json({ error: "Invalid session" }, { status: 403 });
+  }
+}`,
+                          "Session validation route",
+                        )
+                      }
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 4: AuthContext */}
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Step 4: Update AuthContext for Secure Sessions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Create{" "}
+                  <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                    src/contexts/AuthContext.tsx
+                  </code>{" "}
+                  that uses server-side sessions:
+                </p>
+                <div className="relative">
+                  <pre className="bg-zinc-900 text-zinc-100 p-6 rounded-lg overflow-x-auto text-sm leading-relaxed max-h-96">
+                    <code>{`"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+
+interface User {
+  id: string;
+  email: string;
+  username: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  isLoading: boolean;
+  refreshAuth: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include", // Include cookies
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // Include cookies
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Login failed");
+    }
+
+    setUser(data.user);
+  };
+
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // Include cookies
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUser(null);
+    }
+  };
+
+  const refreshAuth = async () => {
+    await checkAuth();
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        isLoading,
+        refreshAuth,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}`}</code>
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+                    onClick={() =>
+                      copyToClipboard(
+                        `"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+
+interface User {
+  id: string;
+  email: string;
+  username: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  isLoading: boolean;
+  refreshAuth: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include", // Include cookies
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // Include cookies
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Login failed");
+    }
+
+    setUser(data.user);
+  };
+
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // Include cookies
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUser(null);
+    }
+  };
+
+  const refreshAuth = async () => {
+    await checkAuth();
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        isLoading,
+        refreshAuth,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}`,
+                        "Auth context",
+                      )
+                    }
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 5: Trainly Integration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Step 5: Secure Trainly Integration</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Create a secure Trainly hook that works with your
+                  authentication system:
+                </p>
+                <div className="relative">
+                  <pre className="bg-zinc-900 text-zinc-100 p-6 rounded-lg overflow-x-auto text-sm leading-relaxed max-h-96">
+                    <code>{`"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface TrainlyConfig {
+  appSecret: string;
+}
+
+export function useTrainlyHybrid(config: TrainlyConfig) {
+  const { user, refreshAuth } = useAuth();
+  const [scopedToken, setScopedToken] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Connect user to Trainly
+  const connectToTrainly = async () => {
+    if (!user) throw new Error("User not authenticated");
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/trainly/provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Include cookies
+        body: JSON.stringify({
+          userId: user.id,
+          capabilities: ["ask", "upload"],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        // If session expired, try to refresh
+        if (response.status === 401) {
+          await refreshAuth();
+        }
+        throw new Error(data.error || "Failed to connect to Trainly");
+      }
+
+      setScopedToken(data.scopedToken);
+      setIsConnected(true);
+
+      return data;
+    } catch (error) {
+      console.error("Trainly connection failed:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Query with automatic session refresh
+  const query = async (question: string) => {
+    if (!scopedToken || !user) throw new Error("Not connected to Trainly");
+
+    const response = await fetch("/api/trainly/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // Include cookies
+      body: JSON.stringify({
+        question,
+        scopedToken,
+        userId: user.id,
+      }),
+    });
+
+    const data = await response.json();
+
+    // Handle session expiration
+    if (response.status === 401) {
+      await refreshAuth();
+      throw new Error("Session expired, please reconnect");
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || "Query failed");
+    }
+
+    return {
+      role: "assistant",
+      content: data.answer,
+      citations: data.citations || [],
+    };
+  };
+
+  return {
+    isConnected,
+    isLoading,
+    connectToTrainly,
+    query,
+    disconnect: () => {
+      setScopedToken(null);
+      setIsConnected(false);
+    },
+  };
+}`}</code>
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+                    onClick={() =>
+                      copyToClipboard(
+                        `"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface TrainlyConfig {
+  appSecret: string;
+}
+
+export function useTrainlyHybrid(config: TrainlyConfig) {
+  const { user, refreshAuth } = useAuth();
+  const [scopedToken, setScopedToken] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Connect user to Trainly
+  const connectToTrainly = async () => {
+    if (!user) throw new Error("User not authenticated");
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/trainly/provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Include cookies
+        body: JSON.stringify({
+          userId: user.id,
+          capabilities: ["ask", "upload"],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        // If session expired, try to refresh
+        if (response.status === 401) {
+          await refreshAuth();
+        }
+        throw new Error(data.error || "Failed to connect to Trainly");
+      }
+
+      setScopedToken(data.scopedToken);
+      setIsConnected(true);
+
+      return data;
+    } catch (error) {
+      console.error("Trainly connection failed:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Query with automatic session refresh
+  const query = async (question: string) => {
+    if (!scopedToken || !user) throw new Error("Not connected to Trainly");
+
+    const response = await fetch("/api/trainly/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // Include cookies
+      body: JSON.stringify({
+        question,
+        scopedToken,
+        userId: user.id,
+      }),
+    });
+
+    const data = await response.json();
+
+    // Handle session expiration
+    if (response.status === 401) {
+      await refreshAuth();
+      throw new Error("Session expired, please reconnect");
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || "Query failed");
+    }
+
+    return {
+      role: "assistant",
+      content: data.answer,
+      citations: data.citations || [],
+    };
+  };
+
+  return {
+    isConnected,
+    isLoading,
+    connectToTrainly,
+    query,
+    disconnect: () => {
+      setScopedToken(null);
+      setIsConnected(false);
+    },
+  };
+}`,
+                        "Trainly hook",
+                      )
+                    }
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Environment Variables */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Step 6: Environment Variables</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Set up your environment variables in{" "}
+                  <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                    .env.local
+                  </code>
+                  :
+                </p>
+                <div className="relative">
+                  <pre className="bg-zinc-900 text-zinc-100 p-6 rounded-lg overflow-x-auto text-sm">
+                    <code>{`# Trainly configuration
+NEXT_PUBLIC_TRAINLY_API_URL=http://localhost:8000
+TRAINLY_APP_SECRET=as_demo_secret_123
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# JWT secret for secure sessions (generate with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+JWT_SECRET=your_very_long_and_secure_secret_key_here_64_characters_minimum`}</code>
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+                    onClick={() =>
+                      copyToClipboard(
+                        `# Trainly configuration
+NEXT_PUBLIC_TRAINLY_API_URL=http://localhost:8000
+TRAINLY_APP_SECRET=as_demo_secret_123
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# JWT secret for secure sessions (generate with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+JWT_SECRET=your_very_long_and_secure_secret_key_here_64_characters_minimum`,
+                        "Environment variables",
+                      )
+                    }
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-amber-800 dark:text-amber-200">
+                        Generate Secure JWT Secret
+                      </h4>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                        Run this command to generate a secure JWT secret:
+                      </p>
+                      <code className="block mt-2 bg-amber-100 dark:bg-amber-900/50 px-2 py-1 rounded text-sm">
+                        node -e
+                        "console.log(require('crypto').randomBytes(64).toString('hex'))"
+                      </code>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 mt-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-green-800 dark:text-green-200">
+                        Industry-Standard Session Duration
+                      </h4>
+                      <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                        This implementation uses proper session times:
+                      </p>
+                      <ul className="text-sm text-green-700 dark:text-green-300 mt-2 space-y-1">
+                        <li>
+                          • <strong>Default sessions:</strong> 7 days (automatic
+                          logout after a week)
+                        </li>
+                        <li>
+                          • <strong>"Remember me" sessions:</strong> 30 days
+                          (for longer access)
+                        </li>
+                        <li>
+                          • <strong>Auto-refresh:</strong> Tokens refresh
+                          automatically before expiration
+                        </li>
+                        <li>
+                          • <strong>No more 5-minute expiration!</strong> Users
+                          stay logged in for days/weeks
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Security Benefits */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-green-600" />
+                Security Benefits
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-green-600 dark:text-green-400">
+                    🔒 What This Provides
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">XSS Protection</p>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                          Tokens in httpOnly cookies can't be accessed by
+                          malicious JavaScript
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">CSRF Protection</p>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                          SameSite cookies prevent cross-site request forgery
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Secure Transport</p>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                          Secure flag ensures cookies only sent over HTTPS in
+                          production
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-blue-600 dark:text-blue-400">
+                    ⚡ User Experience
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Automatic Refresh</p>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                          Sessions validated server-side without client
+                          intervention
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Route Protection</p>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                          Middleware automatically protects sensitive routes
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">No Token Exposure</p>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                          Tokens never exposed to client-side JavaScript
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Production Checklist */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Production Deployment Checklist
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Before deploying to production, ensure you have:
+                </p>
+                <div className="grid gap-3">
+                  {[
+                    "Use strong JWT secrets (64+ characters)",
+                    "Enable HTTPS in production",
+                    "Set secure cookie flags",
+                    "Implement proper session expiration",
+                    "Add rate limiting to auth endpoints",
+                    "Use proper database for user/session storage",
+                    "Enable security headers (HSTS, CSP, etc.)",
+                    "Monitor for suspicious authentication attempts",
+                  ].map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg"
+                    >
+                      <div className="w-5 h-5 border-2 border-zinc-300 dark:border-zinc-600 rounded"></div>
+                      <span className="text-sm">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Next Steps */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ExternalLink className="w-5 h-5" />
+                Next Steps
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  You now have enterprise-grade secure authentication! Here's
+                  what to do next:
+                </p>
+                <div className="grid gap-4">
+                  <div className="flex items-start gap-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                    <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg">
+                      <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">
+                        Test Your Implementation
+                      </h4>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        Create a simple login form and test the secure
+                        authentication flow
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                    <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded-lg">
+                      <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Add User Management</h4>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        Implement registration, password reset, and profile
+                        management
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                    <div className="bg-purple-100 dark:bg-purple-900/50 p-2 rounded-lg">
+                      <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Monitor & Analytics</h4>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        Add authentication analytics and security monitoring
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
