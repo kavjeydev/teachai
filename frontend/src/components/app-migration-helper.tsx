@@ -36,12 +36,12 @@ export function AppMigrationHelper() {
         toast.success(
           `Successfully created app ${appId} linked to chat ${chatId}`,
         );
-        console.log("App created with secrets:", result);
+        // App created successfully
       } else {
         toast.success(
           `Successfully linked existing app ${appId} to chat ${chatId}`,
         );
-        console.log("App updated:", result);
+        // App updated successfully
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to update app");

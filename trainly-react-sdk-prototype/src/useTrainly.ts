@@ -10,7 +10,7 @@ import { useTrainlyContext } from "./TrainlyProvider";
  *
  *   const handleQuestion = async () => {
  *     const answer = await ask("What is photosynthesis?");
- *     console.log(answer);
+ *     // Handle the answer response
  *   };
  *
  *   return <button onClick={handleQuestion}>Ask AI</button>;

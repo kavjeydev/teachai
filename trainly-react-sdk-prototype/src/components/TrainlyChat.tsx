@@ -63,7 +63,7 @@ export function TrainlyChat({
     const file = e.target.files?.[0];
     if (file) {
       // This would trigger upload and add a system message
-      console.log("File selected:", file.name);
+      // File selected for upload
     }
   };
 

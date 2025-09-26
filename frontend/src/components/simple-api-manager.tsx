@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { ApiTester } from "@/components/api-tester";
 
 interface SimpleApiManagerProps {
   chatId: Id<"chats">;
@@ -675,19 +674,6 @@ print(data['answer'])`}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Interactive API Tester */}
-          {apiKeyStatus?.isEnabled && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-                Test Your API
-              </h3>
-              <ApiTester
-                chatId={chatId}
-                defaultApiKey={apiKeyStatus.apiKey || undefined}
-              />
             </div>
           )}
 

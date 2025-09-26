@@ -95,11 +95,11 @@ export function ContextList({
     }
 
     const responseData = await modusResponse.json();
-    console.log("✅ Context deleted from Neo4j:", responseData);
+    // Context deleted from Neo4j successfully
 
     // Trigger graph refresh after successful deletion
     if (onContextDeleted) {
-      console.log("🔄 Triggering graph refresh after context deletion...");
+      // Triggering graph refresh after context deletion
       onContextDeleted();
     } else {
       console.warn("⚠️ No onContextDeleted callback provided");

@@ -1550,61 +1550,7 @@ async def api_get_chat_info(
         logger.error(f"Failed to get chat info: {e}")
         raise HTTPException(status_code=500, detail="Failed to get chat information")
 
-@app.get("/v1/debug/{chat_id}")
-async def debug_chat_data(chat_id: str):
-    """Debug endpoint to check chat data in Convex (no auth required)"""
-    try:
-        convex_url = "https://colorless-finch-681.convex.cloud/api/run/chats/getChatByIdExposed"
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                convex_url,
-                json={
-                    "args": {"id": chat_id},
-                    "format": "json"
-                }
-            )
-
-            return {
-                "chat_id": chat_id,
-                "convex_status": response.status_code,
-                "convex_response": response.json() if response.status_code == 200 else response.text,
-                "debug": "This endpoint shows raw Convex data for debugging"
-            }
-    except Exception as e:
-        return {
-            "error": str(e),
-            "chat_id": chat_id
-        }
-
-@app.post("/v1/test/answer_question")
-async def test_api_endpoint(payload: ApiQuestionRequest):
-    """
-    Test endpoint that bypasses authentication for development.
-    Use this to verify the API structure is working before testing with real chat IDs.
-    """
-    return {
-        "answer": f"✅ Test response for: '{payload.question}'. Your API structure is working correctly! Now use a real chat ID and API key.",
-        "context": [
-            {
-                "chunk_id": "test_chunk_1",
-                "chunk_text": "This is test content to verify the API response format is correct.",
-                "score": 0.95
-            },
-            {
-                "chunk_id": "test_chunk_2",
-                "chunk_text": "Your API endpoints are properly configured and responding.",
-                "score": 0.87
-            }
-        ],
-        "chat_id": "test_chat_id",
-        "model": payload.selected_model or "gpt-4o-mini",
-        "usage": {
-            "prompt_tokens": len(payload.question) // 4,
-            "completion_tokens": 50,
-            "total_tokens": len(payload.question) // 4 + 50
-        }
-    }
 
 @app.get("/v1/health")
 async def api_health_check():

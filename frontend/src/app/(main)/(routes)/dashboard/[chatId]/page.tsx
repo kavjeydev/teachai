@@ -380,19 +380,14 @@ function Dashboard({ params }: ChatIdPageProps) {
       );
 
       if (filteredOptimistic.length !== optimisticMessages.length) {
-        console.log("🧹 Cleaning up optimistic messages");
         setOptimisticMessages(filteredOptimistic);
       }
     }
   }, [baseContent, optimisticMessages]);
 
-  // Debug logging for display content
+  // Display content effect
   React.useEffect(() => {
-    console.log("📊 Display content updated:", {
-      baseContentLength: baseContent?.length,
-      optimisticLength: optimisticMessages.length,
-      displayContentLength: displayContent?.length,
-    });
+    // Content updated
   }, [baseContent, optimisticMessages, displayContent]);
 
   const writeContent = useMutation(api.chats.writeContent);
@@ -450,12 +445,9 @@ function Dashboard({ params }: ChatIdPageProps) {
       },
       editorProps: {
         handleKeyDown: (view, event) => {
-          console.log("Key pressed:", event.key, "Shift:", event.shiftKey);
-
           if (event.key === "Enter") {
             if (event.shiftKey) {
               // Force hard break for Shift+Enter
-              console.log("Shift+Enter detected, inserting hard break");
               view.dispatch(
                 view.state.tr
                   .replaceSelectionWith(
@@ -484,10 +476,7 @@ function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
-    console.log(`💾 Writing ${sender} message:`, {
-      text: text.substring(0, 50) + "...",
-      chatId: effectiveChatId,
-    });
+    // Writing message to chat
     writeContent({
       id: effectiveChatId,
       chat: {
@@ -600,11 +589,9 @@ function Dashboard({ params }: ChatIdPageProps) {
     [],
   );
 
-  // Minimal debug logging for performance
+  // Streaming content monitoring
   useEffect(() => {
-    if (streamingContent && streamingContent.length % 100 === 0) {
-      console.log("🎨 Streaming:", streamingContent.length, "chars");
-    }
+    // Monitor streaming progress
   }, [streamingContent]);
 
   // Optimized message component with React.memo for performance
@@ -681,15 +668,11 @@ function Dashboard({ params }: ChatIdPageProps) {
         //   chunk.chunk_id.startsWith(documentId + "-"),
         // );
 
-        console.log(
-          `Found ${relatedChunks.length} related chunks for this message`,
-        );
-        console.log("Raw related chunks:", relatedChunks);
+        // Processing related chunks
 
         // Convert chunks to CitedNode format for inspector
         try {
           const citedNodes = relatedChunks.map((chunk, index) => {
-            console.log(`Processing chunk ${index}:`, chunk);
             return {
               id: chunk.chunk_id,
               title: `Chunk ${chunk.chunk_id}`,
@@ -705,21 +688,13 @@ function Dashboard({ params }: ChatIdPageProps) {
           });
 
           // Open citation inspector
-          console.log("🔍 Setting inspected citations:", citedNodes);
           setInspectedCitations(citedNodes);
           setShowCitationInspector(true);
-
-          console.log(
-            `Opening inspector for ${citedNodes.length} related nodes`,
-          );
         } catch (error) {
           console.error("❌ Error processing citation nodes:", error);
-          console.log("Related chunks that caused error:", relatedChunks);
         }
       } else {
-        console.log(
-          `Citation ${chunkIndex} not found in context. Available: 0-${messageReasoningContext.length - 1}`,
-        );
+        // Citation not found in context
         toast.error(
           `Citation [^${chunkIndex}] not available. Only ${messageReasoningContext.length} chunks provided.`,
         );
@@ -746,9 +721,7 @@ function Dashboard({ params }: ChatIdPageProps) {
   // Function to trigger graph refresh
   const triggerGraphRefresh = () => {
     const newTrigger = graphRefreshTrigger + 1;
-    console.log(
-      `🔄 Dashboard: Triggering graph refresh (${graphRefreshTrigger} → ${newTrigger})`,
-    );
+    // Triggering graph refresh
     setGraphRefreshTrigger(newTrigger);
   };
 
@@ -986,7 +959,7 @@ function Dashboard({ params }: ChatIdPageProps) {
       _id: `optimistic-${Date.now()}`, // Temporary ID
     };
 
-    console.log("📝 Adding optimistic user message:", sanitizedMessage);
+    // Adding optimistic user message
     setOptimisticMessages((prev) => [...prev, optimisticMessage]);
 
     // Send user message to database (will be filtered out once persisted)

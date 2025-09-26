@@ -672,7 +672,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
               nvlNodes,
               nvlRelationships,
             );
-            console.log("✅ Fallback graph update successful");
+            // Fallback graph update successful
           } catch (fallbackError) {
             console.error("❌ Fallback also failed:", fallbackError);
             toast.error("Failed to render graph data");
@@ -680,7 +680,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         }
       }
 
-      // console.log("✅ Graph data loaded and rendered successfully");
+      // Graph data loaded and rendered successfully
       // Only show success toast on manual refresh, not on automatic refresh
       if (!refreshTrigger) {
         // toast.success("Graph data loaded successfully");
@@ -778,7 +778,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     setRelationshipType("RELATES_TO");
     setRelationshipProperties({});
     toast.success("Click on a node to start creating a relationship.");
-    console.log("✅ Relationship creation state set to true");
+    // Relationship creation state set to true
   };
 
   const cancelRelationshipCreation = () => {
@@ -1178,7 +1178,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       const exactMatches = usedChunkIds.filter((chunkId) =>
         graphData.nodes.some((node) => node.id === chunkId),
       );
-      console.log("✅ Exact ID matches found:", exactMatches);
+      // Exact ID matches found
 
       // Check for partial matches (in case IDs are slightly different)
       const partialMatches = usedChunkIds.map((chunkId) => {
