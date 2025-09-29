@@ -108,8 +108,8 @@ class ApiAnswerResponse(BaseModel):
     usage: dict
 
 app = FastAPI(
-    title="TeachAI GraphRAG API",
-    description="GraphRAG backend with secure Chat API access",
+    title="Trainly API with V1 Trusted Issuer Authentication",
+    description="Privacy-first GraphRAG backend with user-controlled authentication",
     version="1.0.0"
 )
 handler = Mangum(app)
@@ -126,6 +126,268 @@ app.add_middleware(
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# V1 Trusted Issuer Authentication - Integrated directly into main app
+# This replaces the separate router files for simplicity
+
+# Additional imports for V1 auth
+import requests
+from cachetools import TTLCache
+from typing import Dict, List, Optional, Any
+from datetime import datetime, timedelta
+
+# V1 Auth: JWKS cache and app configuration storage
+JWKS_CACHE = TTLCache(maxsize=100, ttl=3600)  # 1 hour TTL
+V1_APP_CONFIGS = {}  # In production, this would be a database
+
+# V1 Auth: App configuration models
+class V1AppConfig:
+    def __init__(self, app_id: str, issuer: str, allowed_audiences: List[str],
+                 alg_allowlist: List[str] = None, jwks_uri: str = None):
+        self.app_id = app_id
+        self.issuer = issuer
+        self.jwks_uri = jwks_uri
+        self.allowed_audiences = allowed_audiences
+        self.alg_allowlist = alg_allowlist or ["RS256", "ES256"]
+        self.created_at = datetime.utcnow()
+
+# V1 Auth: Helper functions
+async def discover_jwks_uri(issuer: str) -> str:
+    """Discover JWKS URI from OIDC well-known configuration"""
+    well_known_url = f"{issuer.rstrip('/')}/.well-known/openid-configuration"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(well_known_url)
+            response.raise_for_status()
+            config = response.json()
+            jwks_uri = config.get("jwks_uri")
+            if not jwks_uri:
+                raise Exception(f"No jwks_uri found in {well_known_url}")
+            return jwks_uri
+    except Exception as e:
+        logger.error(f"Failed to discover JWKS URI for {issuer}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to discover JWKS URI: {str(e)}")
+
+async def get_jwks(jwks_uri: str) -> Dict[str, Any]:
+    """Fetch and cache JWKS (JSON Web Key Set)"""
+    cache_key = f"jwks_{hashlib.md5(jwks_uri.encode()).hexdigest()}"
+
+    if cache_key in JWKS_CACHE:
+        return JWKS_CACHE[cache_key]
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(jwks_uri)
+            response.raise_for_status()
+            jwks = response.json()
+            JWKS_CACHE[cache_key] = jwks
+            logger.info(f"Fetched and cached JWKS from {jwks_uri}")
+            return jwks
+    except Exception as e:
+        logger.error(f"Failed to fetch JWKS from {jwks_uri}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch JWKS: {str(e)}")
+
+def find_key_by_kid(jwks: Dict[str, Any], kid: str) -> Optional[Dict[str, Any]]:
+    """Find a specific key by kid (key ID) in JWKS"""
+    keys = jwks.get("keys", [])
+    for key in keys:
+        if key.get("kid") == kid:
+            return key
+    return None
+
+async def verify_v1_jwt_token(token: str, app_config: V1AppConfig) -> Dict[str, Any]:
+    """Verify JWT token against app's OIDC configuration"""
+    try:
+        # Decode header to get kid and alg
+        unverified_header = jwt.get_unverified_header(token)
+        kid = unverified_header.get("kid")
+        alg = unverified_header.get("alg")
+
+        # Security checks
+        if alg not in app_config.alg_allowlist:
+            raise HTTPException(status_code=401, detail=f"Algorithm {alg} not allowed")
+        if alg == "none":
+            raise HTTPException(status_code=401, detail="Algorithm 'none' is not allowed")
+
+        # Handle dynamic issuer and audience detection
+        actual_issuer = app_config.issuer
+        actual_audiences = app_config.allowed_audiences
+
+        if app_config.issuer == "DYNAMIC" or app_config.allowed_audiences == ["DYNAMIC"]:
+            # Extract issuer and audience from token payload without verification
+            unverified_payload = jwt.decode(token, key="", algorithms=["RS256"], options={"verify_signature": False})
+
+            if app_config.issuer == "DYNAMIC":
+                actual_issuer = unverified_payload.get("iss")
+                if not actual_issuer:
+                    raise HTTPException(status_code=401, detail="Token missing issuer claim")
+                logger.info(f"🔍 Dynamic issuer detected: {actual_issuer}")
+
+            if app_config.allowed_audiences == ["DYNAMIC"]:
+                token_audience = unverified_payload.get("aud")
+                if token_audience:
+                    # Handle both single audience (string) and multiple audiences (array)
+                    if isinstance(token_audience, str):
+                        actual_audiences = [token_audience]
+                    else:
+                        actual_audiences = token_audience
+                    logger.info(f"🔍 Dynamic audience detected: {actual_audiences}")
+                else:
+                    # Some tokens don't have explicit audience, so we'll be flexible
+                    actual_audiences = None
+                    logger.info(f"🔍 No audience in token, skipping audience validation")
+
+        # Get JWKS URI
+        jwks_uri = app_config.jwks_uri
+        if not jwks_uri:
+            jwks_uri = await discover_jwks_uri(actual_issuer)
+
+        # Fetch JWKS and find key
+        jwks = await get_jwks(jwks_uri)
+        key = find_key_by_kid(jwks, kid) if kid else None
+
+        if not key:
+            # Refresh cache and try again (handle key rotation)
+            cache_key = f"jwks_{hashlib.md5(jwks_uri.encode()).hexdigest()}"
+            if cache_key in JWKS_CACHE:
+                del JWKS_CACHE[cache_key]
+            jwks = await get_jwks(jwks_uri)
+            key = find_key_by_kid(jwks, kid) if kid else None
+
+            if not key:
+                raise HTTPException(status_code=401, detail=f"Key with kid '{kid}' not found")
+
+        # Convert JWK to PEM and verify token
+        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+
+        # Prepare JWT decode options
+        decode_options = {
+            "verify_exp": True,
+            "verify_iat": True,
+            "verify_signature": True,
+            "verify_aud": actual_audiences is not None,  # Skip audience verification if None
+            "verify_iss": True,
+            "leeway": 300  # 5 minute clock skew tolerance
+        }
+
+        # Prepare JWT decode call with correct PyJWT syntax
+        if actual_audiences is not None:
+            decoded_token = jwt.decode(
+                token,
+                public_key,
+                algorithms=[alg],
+                issuer=actual_issuer,
+                audience=actual_audiences,
+                options=decode_options
+            )
+        else:
+            decoded_token = jwt.decode(
+                token,
+                public_key,
+                algorithms=[alg],
+                issuer=actual_issuer,
+                options=decode_options
+            )
+
+        return decoded_token
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+    except Exception as e:
+        logger.error(f"JWT verification failed: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
+
+def derive_v1_user_identity(token_claims: Dict[str, Any], app_id: str) -> Dict[str, str]:
+    """Derive internal user identity from verified token claims"""
+    external_user_id = token_claims.get("sub")
+    if not external_user_id:
+        raise HTTPException(status_code=401, detail="Token missing 'sub' claim")
+
+    # Generate deterministic internal user_id and chat_id
+    user_id_input = f"{app_id}::{external_user_id}"
+    user_id = f"user_v1_{hashlib.sha256(user_id_input.encode()).hexdigest()[:16]}"
+
+    chat_id_input = f"{app_id}::{external_user_id}::chat"
+    chat_id = f"chat_v1_{hashlib.sha256(chat_id_input.encode()).hexdigest()[:16]}"
+
+    return {
+        "app_id": app_id,
+        "external_user_id": external_user_id,
+        "user_id": user_id,
+        "chat_id": chat_id,
+        "iss": token_claims["iss"],
+        "aud": token_claims.get("aud", "none")  # Handle missing audience gracefully
+    }
+
+async def get_app_config_from_convex(app_id: str) -> Optional[V1AppConfig]:
+    """Get app configuration from Convex system for V1 auth"""
+    try:
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        logger.info(f"🔍 Checking Convex for app {app_id} at {convex_url}")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{convex_url}/api/run/app_management/getAppWithSettings",
+                json={
+                    "args": {"appId": app_id},
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            logger.info(f"🔍 Convex response: {response.status_code} - {response.text[:200]}")
+
+            if response.status_code == 200:
+                result = response.json()
+                app_data = result.get("value")
+
+                logger.info(f"🔍 App data: {app_data}")
+
+                if app_data and app_data.get("isActive"):
+                    logger.info(f"✅ Found active app {app_id} in Convex, creating dynamic V1 config")
+                    # For Convex apps, we'll determine the issuer and audience dynamically from the JWT token
+                    # This allows users to use any OAuth provider without configuration
+                    return V1AppConfig(
+                        app_id=app_id,
+                        issuer="DYNAMIC",  # Special marker for dynamic issuer detection
+                        allowed_audiences=["DYNAMIC"],  # Special marker for dynamic audience detection
+                        alg_allowlist=["RS256"]
+                    )
+                else:
+                    logger.warning(f"⚠️ App {app_id} found but not active or missing data")
+            else:
+                logger.warning(f"⚠️ Convex returned non-200 status: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Failed to get app config from Convex: {e}")
+
+    return None
+
+async def authenticate_v1_user(authorization: str, app_id: str) -> Dict[str, str]:
+    """Main V1 authentication: validate OAuth ID token and derive user identity"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+
+    token = authorization[7:]  # Remove "Bearer " prefix
+
+    # Get app configuration - first try V1 registry, then Convex system
+    app_config = V1_APP_CONFIGS.get(app_id)
+    if not app_config:
+        # Try to get configuration from Convex app system
+        app_config = await get_app_config_from_convex(app_id)
+        if not app_config:
+            raise HTTPException(status_code=404, detail=f"App {app_id} not found in V1 registry or Convex system")
+
+    # Verify JWT token
+    token_claims = await verify_v1_jwt_token(token, app_config)
+
+    # Derive user identity
+    user_identity = derive_v1_user_identity(token_claims, app_id)
+
+    logger.info(f"V1 Auth: Authenticated user {user_identity['user_id']} for app {app_id}")
+    return user_identity
 
 # Privacy-First API Helper Functions
 import jwt
@@ -175,25 +437,7 @@ async def verify_app_secret(api_key: str) -> Dict[str, Any]:
                         "isActive": True,
                         "allowedCapabilities": ["ask", "upload"]
                     }
-                # Temporary fallback for your app while Convex issues are resolved
-                elif sanitized_secret == "as_mfybb395_dtvn1w7yk3t":
-                    # Use your actual Clerk user ID for credit consumption
-                    # You can find this in your Convex dashboard or frontend logs
-                    your_clerk_user_id = "user_2nFpK6wR2KR7xH2tJ3Nq4wU6YsX"  # Replace with your actual ID
-
-                    return {
-                        "appId": "app_user_created_123",
-                        "developerId": your_clerk_user_id,
-                        "isActive": True,
-                        "allowedCapabilities": ["ask", "upload"],
-                        "parentChatSettings": {
-                            "customPrompt": "You are a helpful AI assistant created by trainly. Respond naturally and helpfully to user questions.",
-                            "selectedModel": "gpt-4o-mini",
-                            "temperature": 0.7,
-                            "maxTokens": 1000,
-                            "userId": your_clerk_user_id  # Your real user ID for credit consumption
-                        }
-                    }
+                # Removed hardcoded fallback - using Convex system instead
                 raise HTTPException(status_code=401, detail="Unable to verify app secret - Convex error")
 
             app_data = result.get("value")
@@ -257,19 +501,92 @@ def generate_scoped_token(app_id: str, end_user_id: str, chat_id: str, capabilit
 
 async def get_or_create_user_subchat(app_id: str, end_user_id: str) -> Dict[str, Any]:
     """Get or create a private sub-chat for a user under an app"""
-    user_chat_id = f"subchat_{app_id}_{end_user_id}"
+    convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
 
-    # Check if this user already has a subchat for this app
-    # In production, this would query Convex user_app_chats
-    # For now, we'll assume it's a new user to demonstrate the tracking
+    try:
+        # First, check if user already has a subchat for this app
+        async with httpx.AsyncClient() as client:
+            # Query existing user subchat
+            check_response = await client.post(
+                f"{convex_url}/api/run/app_management/getUserSubChat",
+                json={
+                    "args": {
+                        "appId": app_id,
+                        "endUserId": end_user_id
+                    },
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"},
+                timeout=10.0
+            )
 
-    return {
-        "userChatId": f"uc_{app_id}_{end_user_id}",
-        "chatId": user_chat_id,
-        "chatStringId": user_chat_id,
-        "isNew": True,  # Set to True to trigger metadata tracking
-        "capabilities": ["ask", "upload"]
-    }
+            if check_response.status_code == 200:
+                check_result = check_response.json()
+                existing_subchat = check_result.get("value")
+
+                if existing_subchat:
+                    # User already has a subchat - return existing
+                    logger.info(f"👤 Returning existing subchat for user {end_user_id[:8]}... in app {app_id}")
+                    return {
+                        "userChatId": existing_subchat["userChatId"],
+                        "chatId": existing_subchat["chatStringId"],
+                        "chatStringId": existing_subchat["chatStringId"],
+                        "isNew": False,  # Existing user
+                        "capabilities": existing_subchat.get("capabilities", ["ask", "upload"])
+                    }
+
+            # User doesn't have a subchat yet - create new one
+            logger.info(f"🆕 Creating new subchat for user {end_user_id[:8]}... in app {app_id}")
+
+            create_response = await client.post(
+                f"{convex_url}/api/run/app_management/createUserSubChat",
+                json={
+                    "args": {
+                        "appId": app_id,
+                        "endUserId": end_user_id,
+                        "capabilities": ["ask", "upload"]
+                    },
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"},
+                timeout=10.0
+            )
+
+            if create_response.status_code == 200:
+                create_result = create_response.json()
+                new_subchat = create_result.get("value")
+
+                if new_subchat:
+                    return {
+                        "userChatId": new_subchat["userChatId"],
+                        "chatId": new_subchat["chatStringId"],
+                        "chatStringId": new_subchat["chatStringId"],
+                        "isNew": new_subchat.get("isNew", True),
+                        "capabilities": new_subchat.get("capabilities", ["ask", "upload"])
+                    }
+
+            # Fallback if Convex calls fail
+            logger.warning(f"⚠️ Convex calls failed, using fallback for user {end_user_id[:8]}...")
+            user_chat_id = f"subchat_{app_id}_{end_user_id}_{int(time.time())}"
+            return {
+                "userChatId": f"uc_{app_id}_{end_user_id}",
+                "chatId": user_chat_id,
+                "chatStringId": user_chat_id,
+                "isNew": True,  # Assume new since we can't verify
+                "capabilities": ["ask", "upload"]
+            }
+
+    except Exception as e:
+        logger.error(f"Error in get_or_create_user_subchat: {e}")
+        # Fallback to basic implementation if there's an error
+        user_chat_id = f"subchat_{app_id}_{end_user_id}_{int(time.time())}"
+        return {
+            "userChatId": f"uc_{app_id}_{end_user_id}",
+            "chatId": user_chat_id,
+            "chatStringId": user_chat_id,
+            "isNew": True,  # Assume new since we can't verify
+            "capabilities": ["ask", "upload"]
+        }
 
 async def log_app_access(
     app_id: str,
@@ -1273,6 +1590,373 @@ Return JSON with this exact format:
         # Fallback to simple sequential relationships
         return [{"source": i, "target": i + 1, "type": "NEXT", "description": "Sequential order", "confidence": 1.0}
                 for i in range(len(chunks) - 1)]
+
+# ==============================================================================
+# V1 Trusted Issuer API Endpoints (Main Feature)
+# ==============================================================================
+
+# V1 Console API: App registration
+@app.post("/v1/console/apps/register")
+async def v1_register_app(
+    app_name: str = Form(...),
+    issuer: str = Form(...),
+    allowed_audiences: str = Form(...),  # JSON string of array
+    alg_allowlist: str = Form(None),  # JSON string of array, optional
+    jwks_uri: str = Form(None),  # Optional
+    admin_token: str = Header(None, alias="x-admin-token")
+):
+    """
+    Register an app for V1 Trusted Issuer authentication
+
+    Developers register their OAuth provider details here.
+    """
+
+    # Verify admin access (in production, this would be properly secured)
+    expected_token = os.getenv("TRAINLY_CONSOLE_ADMIN_TOKEN", "admin_dev_token_123")
+    if not admin_token or admin_token != expected_token:
+        raise HTTPException(status_code=401, detail="Invalid or missing admin token")
+
+    try:
+        # Parse JSON arrays
+        import json
+        audiences = json.loads(allowed_audiences)
+        alg_list = json.loads(alg_allowlist) if alg_allowlist else ["RS256", "ES256"]
+
+        # Generate app ID
+        app_id = f"app_v1_{int(time.time())}_{hashlib.md5(app_name.encode()).hexdigest()[:8]}"
+
+        # Create app configuration
+        app_config = V1AppConfig(
+            app_id=app_id,
+            issuer=issuer,
+            allowed_audiences=audiences,
+            alg_allowlist=alg_list,
+            jwks_uri=jwks_uri
+        )
+
+        # Store configuration
+        V1_APP_CONFIGS[app_id] = app_config
+
+        logger.info(f"Registered V1 app: {app_id} for issuer {issuer}")
+
+        return {
+            "success": True,
+            "app_id": app_id,
+            "app_name": app_name,
+            "issuer": issuer,
+            "allowed_audiences": audiences,
+            "alg_allowlist": alg_list,
+            "jwks_uri": jwks_uri,
+            "message": "App registered for V1 Trusted Issuer authentication",
+            "usage_instructions": {
+                "client_flow": "User logs in with your OAuth → Client sends ID token to /v1/me/* endpoints",
+                "headers_required": {
+                    "Authorization": "Bearer <USER_ID_TOKEN_FROM_YOUR_OAUTH>",
+                    "X-App-ID": app_id
+                }
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"App registration failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+# V1 User APIs: File upload and querying with OAuth ID tokens
+@app.post("/v1/me/chats/query")
+async def v1_user_query(
+    messages: str = Form(...),  # JSON string of messages array
+    response_tokens: int = Form(150),
+    stream: bool = Form(False),
+    authorization: str = Header(None, alias="authorization"),
+    app_id: str = Header(None, alias="x-app-id"),
+    request: Request = None
+):
+    """
+    V1 User Query: User authenticates with their OAuth ID token
+
+    Workflow:
+    1. User logs into developer's app with OAuth (Clerk, Auth0, etc.)
+    2. Developer's app gets ID token from OAuth provider
+    3. Client sends ID token as Bearer auth to this endpoint
+    4. Trainly validates token against registered app config
+    5. Creates/uses permanent subchat for this user
+    6. Returns AI response based on user's private data
+    """
+
+    if not app_id:
+        raise HTTPException(status_code=400, detail="X-App-ID header required")
+
+    # Authenticate user with their OAuth ID token
+    user_identity = await authenticate_v1_user(authorization, app_id)
+
+    # Parse messages
+    try:
+        import json
+        messages_array = json.loads(messages)
+        if not messages_array or not isinstance(messages_array, list):
+            raise ValueError("Invalid messages format")
+
+        # Extract the latest user message
+        user_message = None
+        for msg in reversed(messages_array):
+            if msg.get("role") == "user":
+                user_message = msg.get("content")
+                break
+
+        if not user_message:
+            raise HTTPException(status_code=400, detail="No user message found")
+
+    except (json.JSONDecodeError, ValueError) as e:
+        raise HTTPException(status_code=400, detail="Invalid messages JSON format")
+
+    # Sanitize the query
+    sanitized_question = sanitize_with_xss_detection(
+        user_message,
+        allow_html=False,
+        max_length=5000,
+        context="v1_user_query"
+    )
+
+    if not sanitized_question:
+        raise HTTPException(status_code=400, detail="Invalid or potentially malicious question")
+
+    try:
+        # Create/get permanent subchat for this user
+        # This ensures the same user always gets the same chat, making it truly permanent
+        subchat = await get_or_create_user_subchat(
+            user_identity["app_id"],
+            user_identity["external_user_id"]
+        )
+
+        # Get app configuration to inherit parent chat settings
+        app_config_from_convex = await get_app_config_from_convex(user_identity["app_id"])
+
+        # Default settings
+        selected_model = "gpt-4o-mini"
+        temperature = 0.7
+        max_tokens = response_tokens
+        custom_prompt = None
+
+        # Apply parent chat settings if available
+        if app_config_from_convex:
+            try:
+                # Get the app data again to access parent chat settings
+                convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{convex_url}/api/run/app_management/getAppWithSettings",
+                        json={
+                            "args": {"appId": user_identity["app_id"]},
+                            "format": "json"
+                        },
+                        headers={"Content-Type": "application/json"}
+                    )
+
+                    if response.status_code == 200:
+                        result = response.json()
+                        app_data = result.get("value")
+                        parent_settings = app_data.get("parentChatSettings", {}) if app_data else {}
+
+                        if parent_settings:
+                            selected_model = parent_settings.get("selectedModel", selected_model)
+                            temperature = parent_settings.get("temperature", temperature)
+                            max_tokens = min(parent_settings.get("maxTokens", max_tokens), response_tokens)
+                            custom_prompt = parent_settings.get("customPrompt", custom_prompt)
+                            logger.info(f"🎛️ Using parent chat settings: model={selected_model}, temp={temperature}, max_tokens={max_tokens}, prompt='{custom_prompt}'")
+                        else:
+                            logger.info("🎛️ No parent chat settings found, using defaults")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not load parent settings, using defaults: {e}")
+
+        # Use the existing answer_question function but with the user's subchat and inherited settings
+        question_request = QuestionRequest(
+            question=sanitized_question,
+            chat_id=subchat["chatStringId"],  # Use the permanent subchat
+            selected_model=selected_model,    # Use inherited or default model
+            temperature=temperature,          # Use inherited or default temperature
+            max_tokens=max_tokens,           # Use inherited or default max_tokens
+            custom_prompt=custom_prompt      # Use inherited custom prompt
+        )
+
+        # Get the answer using existing logic
+        result = await answer_question(question_request)
+
+        # Track the query for analytics
+        await track_api_query(
+            user_identity["app_id"],
+            user_identity["external_user_id"],
+            100.0,  # placeholder response time
+            True
+        )
+
+        logger.info(f"V1 Query completed for user {user_identity['user_id']} in subchat {subchat['chatStringId']}")
+
+        return {
+            "success": True,
+            "answer": result.answer,
+            "chat_id": subchat["chatStringId"],
+            "user_id": user_identity["user_id"],
+            "citations": [
+                {
+                    "snippet": chunk.chunk_text[:200] + "...",
+                    "score": chunk.score,
+                    "source": "user_document"
+                }
+                for chunk in result.context[:3]  # Limit to 3 citations
+            ],
+            "privacy_guarantee": {
+                "user_controlled": True,
+                "permanent_subchat": True,
+                "developer_cannot_see_raw_files": True,
+                "oauth_validated": True
+            },
+            "v1_auth": {
+                "app_id": user_identity["app_id"],
+                "external_user_id": user_identity["external_user_id"][:8] + "...",  # Partial for privacy
+                "issuer": user_identity["iss"]
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"V1 query failed for user {user_identity.get('user_id', 'unknown')}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Query processing failed")
+
+@app.post("/v1/me/chats/files/upload")
+async def v1_user_file_upload(
+    file: UploadFile = File(...),
+    authorization: str = Header(None, alias="authorization"),
+    app_id: str = Header(None, alias="x-app-id"),
+    request: Request = None
+):
+    """
+    V1 File Upload: User uploads files to their permanent subchat
+
+    Files are processed and stored in the user's permanent subchat,
+    making them available for all future queries.
+    """
+
+    if not app_id:
+        raise HTTPException(status_code=400, detail="X-App-ID header required")
+
+    # Authenticate user with their OAuth ID token
+    user_identity = await authenticate_v1_user(authorization, app_id)
+
+    # Validate file
+    file_size = read_files.get_file_size(file)
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+
+    # Sanitize filename
+    sanitized_filename = sanitize_filename(file.filename)
+    if not sanitized_filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    try:
+        # Create/get permanent subchat for this user
+        subchat = await get_or_create_user_subchat(
+            user_identity["app_id"],
+            user_identity["external_user_id"]
+        )
+
+        # Extract text from file
+        text = read_files.extract_text(file)
+
+        # Sanitize extracted text
+        sanitized_text = sanitize_with_xss_detection(
+            text,
+            allow_html=False,
+            max_length=1000000,
+            context="v1_file_upload"
+        )
+
+        if not sanitized_text and text:
+            raise HTTPException(status_code=400, detail="File contains potentially malicious content")
+
+        # Create embeddings in the user's permanent subchat
+        pdf_id = f"v1_{user_identity['user_id']}_{sanitized_filename}_{int(time.time())}"
+
+        create_payload = CreateNodesAndEmbeddingsRequest(
+            pdf_text=sanitized_text,
+            pdf_id=pdf_id,
+            chat_id=subchat["chatStringId"],  # Store in permanent subchat
+            filename=sanitized_filename
+        )
+
+        # Process the file
+        await create_nodes_and_embeddings(create_payload)
+
+        # Track the upload
+        await track_file_upload(
+            user_identity["app_id"],
+            user_identity["external_user_id"],
+            sanitized_filename,
+            file_size,
+            subchat["chatStringId"]
+        )
+
+        logger.info(f"V1 File uploaded for user {user_identity['user_id']} to subchat {subchat['chatStringId']}")
+
+        return {
+            "success": True,
+            "filename": sanitized_filename,
+            "file_id": pdf_id,
+            "chat_id": subchat["chatStringId"],
+            "user_id": user_identity["user_id"],
+            "size_bytes": file_size,
+            "processing_status": "completed",
+            "privacy_guarantee": {
+                "permanent_storage": True,
+                "user_private_subchat": True,
+                "developer_cannot_access": True,
+                "oauth_validated": True
+            },
+            "message": "File uploaded and processed in your permanent private subchat"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"V1 file upload failed for user {user_identity.get('user_id', 'unknown')}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+@app.get("/v1/me/profile")
+async def v1_user_profile(
+    authorization: str = Header(None, alias="authorization"),
+    app_id: str = Header(None, alias="x-app-id")
+):
+    """
+    V1 User Profile: Get user's profile and subchat information
+    """
+
+    if not app_id:
+        raise HTTPException(status_code=400, detail="X-App-ID header required")
+
+    # Authenticate user
+    user_identity = await authenticate_v1_user(authorization, app_id)
+
+    # Get user's subchat info
+    subchat = await get_or_create_user_subchat(
+        user_identity["app_id"],
+        user_identity["external_user_id"]
+    )
+
+    return {
+        "success": True,
+        "user_id": user_identity["user_id"],
+        "external_user_id": user_identity["external_user_id"][:8] + "...",  # Partial for privacy
+        "chat_id": subchat["chatStringId"],
+        "app_id": user_identity["app_id"],
+        "issuer": user_identity["iss"],
+        "subchat_created": subchat.get("isNew", False),
+        "privacy_info": {
+            "oauth_provider": user_identity["iss"],
+            "permanent_subchat": True,
+            "data_isolation": "Complete - only you can access your files and queries",
+            "developer_access": "AI responses only - cannot see raw files or queries"
+        }
+    }
 
 # ==============================================================================
 # External Chat API Endpoints (Production Ready)

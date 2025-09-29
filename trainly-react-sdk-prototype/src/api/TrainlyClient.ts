@@ -9,9 +9,49 @@ export class TrainlyClient {
   private config: TrainlyConfig;
   private scopedToken: string | null = null;
   private currentUserId: string | null = null;
+  private isV1Mode: boolean = false;
 
   constructor(config: TrainlyConfig) {
     this.config = config;
+  }
+
+  /**
+   * NEW: Connect using V1 Trusted Issuer authentication with OAuth ID token
+   * This method allows users to authenticate directly with their OAuth provider tokens
+   */
+  async connectWithOAuthToken(idToken: string): Promise<void> {
+    if (!this.config.appId) {
+      throw new Error("appId is required for V1 authentication.");
+    }
+
+    // For V1, we use the ID token directly - no need to provision
+    this.scopedToken = idToken;
+    this.isV1Mode = true;
+
+    // Get user profile to verify token works and extract user info
+    const response = await fetch(`${this.config.baseUrl}/v1/me/profile`, {
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        "X-App-ID": this.config.appId,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(
+        `V1 authentication failed: ${error.detail || response.statusText}`,
+      );
+    }
+
+    const profile = await response.json();
+    this.currentUserId = profile.user_id;
+
+    console.log(
+      "✅ Connected to Trainly with V1 Trusted Issuer authentication",
+    );
+    console.log(`📋 User ID: ${profile.user_id}`);
+    console.log(`💬 Chat ID: ${profile.chat_id}`);
+    console.log(`🔒 OAuth Provider: ${profile.issuer}`);
   }
 
   async connect(): Promise<void> {
@@ -62,9 +102,41 @@ export class TrainlyClient {
     options: { includeCitations?: boolean } = {},
   ): Promise<QueryResponse> {
     if (!this.scopedToken) {
-      throw new Error("Not connected. Call connect() first.");
+      throw new Error(
+        "Not connected. Call connect() or connectWithOAuthToken() first.",
+      );
     }
 
+    // NEW: V1 Trusted Issuer mode
+    if (this.isV1Mode && this.config.appId) {
+      const response = await fetch(`${this.config.baseUrl}/v1/me/chats/query`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.scopedToken}`,
+          "X-App-ID": this.config.appId,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          messages: JSON.stringify([{ role: "user", content: question }]),
+          response_tokens: "150",
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          `V1 query failed: ${error.detail || response.statusText}`,
+        );
+      }
+
+      const data = await response.json();
+      return {
+        answer: data.answer,
+        citations: data.citations || [],
+      };
+    }
+
+    // Original logic for API key and app secret modes
     const url = this.config.apiKey
       ? `${this.config.baseUrl}/v1/${this.extractChatId()}/answer_question`
       : `${this.config.baseUrl}/v1/privacy/query`;
@@ -106,9 +178,46 @@ export class TrainlyClient {
 
   async upload(file: File): Promise<UploadResult> {
     if (!this.scopedToken) {
-      throw new Error("Not connected. Call connect() first.");
+      throw new Error(
+        "Not connected. Call connect() or connectWithOAuthToken() first.",
+      );
     }
 
+    // NEW: V1 Trusted Issuer mode
+    if (this.isV1Mode && this.config.appId) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(
+        `${this.config.baseUrl}/v1/me/chats/files/upload`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.scopedToken}`,
+            "X-App-ID": this.config.appId,
+          },
+          body: formData,
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          `V1 upload failed: ${error.detail || response.statusText}`,
+        );
+      }
+
+      const data = await response.json();
+      return {
+        success: data.success,
+        filename: data.filename,
+        size: data.size_bytes,
+        message:
+          data.message || "File uploaded to your permanent private subchat",
+      };
+    }
+
+    // Original logic for API key and app secret modes
     if (this.config.apiKey) {
       // Direct API mode - upload to specific chat
       const formData = new FormData();

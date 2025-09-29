@@ -3,6 +3,7 @@
 export interface TrainlyConfig {
   appSecret?: string;
   apiKey?: string;
+  appId?: string; // NEW: For V1 Trusted Issuer authentication
   baseUrl?: string;
   userId?: string;
   userEmail?: string;
@@ -12,6 +13,7 @@ export interface TrainlyProviderProps {
   children: React.ReactNode;
   appSecret?: string;
   apiKey?: string;
+  appId?: string; // NEW: For V1 Trusted Issuer authentication
   baseUrl?: string;
   userId?: string;
   userEmail?: string;
@@ -52,6 +54,9 @@ export interface TrainlyContextValue {
     question: string,
   ) => Promise<{ answer: string; citations: Citation[] }>;
   upload: (file: File) => Promise<UploadResult>;
+
+  // NEW: V1 Authentication
+  connectWithOAuthToken: (idToken: string) => Promise<void>;
 
   // State
   isLoading: boolean;

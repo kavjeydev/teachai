@@ -56,4 +56,8 @@ numpy
 neo4j
 python-dotenv
 pydantic
-httpxPyJWT
+httpx
+PyJWT[crypto]
+cryptography
+requests
+cachetools

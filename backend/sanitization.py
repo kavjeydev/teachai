@@ -238,8 +238,9 @@ def sanitize_chat_id(chat_id: str) -> str:
 
     chat_id = chat_id.strip()
 
-    # Basic validation - adjust pattern based on your chat ID format
-    if re.match(r'^[a-zA-Z0-9_-]+$', chat_id) and 3 <= len(chat_id) <= 50:
+    # More permissive pattern for chat IDs (allows dots, underscores, hyphens)
+    # This supports Clerk user IDs and subchat formats like "subchat_app123_user.clerk.id_timestamp"
+    if re.match(r'^[a-zA-Z0-9._-]+$', chat_id) and 3 <= len(chat_id) <= 200:
         return chat_id
 
     return ""
@@ -260,8 +261,9 @@ def sanitize_api_key(api_key: str) -> str:
 
     api_key = api_key.strip()
 
-    # Basic validation for API key format
-    if re.match(r'^[a-zA-Z0-9_-]+$', api_key) and 10 <= len(api_key) <= 100:
+    # More permissive pattern for user IDs and app IDs (allows dots, underscores, hyphens)
+    # This supports Clerk user IDs like "user_2xxx..." and app IDs
+    if re.match(r'^[a-zA-Z0-9._-]+$', api_key) and 3 <= len(api_key) <= 200:
         return api_key
 
     return ""

@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "stripe": "^18.5.0"
+  },
+  "dependencies": {
+    "@trainly/react": "file:trainly-react-sdk-prototype"
   }
 }

@@ -1,10 +1,94 @@
 # @trainly/react
 
-**Dead simple RAG integration for React apps**
+**Dead simple RAG integration for React apps with V1 OAuth Authentication**
 
-Go from `npm install` to working AI in under 5 minutes. No backend required, no complex setup, just install and use.
+Go from `npm install` to working AI in under 5 minutes. Now supports direct OAuth integration with **permanent user subchats** and complete privacy protection.
 
-## 🚀 Quick Start
+## 🆕 **NEW: V1 Trusted Issuer Authentication**
+
+Use your existing OAuth provider (Clerk, Auth0, Cognito) directly with Trainly! Users get permanent private workspaces, and developers never see raw files or queries.
+
+### V1 Quick Start
+
+#### 1. Install
+
+```bash
+npm install @trainly/react
+```
+
+#### 2. Register Your OAuth App (One-time)
+
+```bash
+curl -X POST "http://localhost:8000/v1/console/apps/register" \
+  -H "X-Admin-Token: admin_dev_token_123" \
+  -F "app_name=My App" \
+  -F "issuer=https://clerk.myapp.com" \
+  -F 'allowed_audiences=["my-clerk-frontend-api"]'
+```
+
+Save the `app_id` from the response!
+
+#### 3. Setup with V1 (Clerk Example)
+
+```tsx
+// app/layout.tsx
+import { ClerkProvider } from "@clerk/nextjs";
+import { TrainlyProvider } from "@trainly/react";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <ClerkProvider>
+          <TrainlyProvider appId="your_app_id_from_step_2">
+            {children}
+          </TrainlyProvider>
+        </ClerkProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+#### 4. Use with OAuth Authentication
+
+```tsx
+// Any component
+import { useAuth } from "@clerk/nextjs";
+import { useTrainly } from "@trainly/react";
+
+function MyComponent() {
+  const { getToken } = useAuth();
+  const { ask, connectWithOAuthToken } = useTrainly();
+
+  React.useEffect(() => {
+    async function setupTrainly() {
+      const idToken = await getToken();
+      await connectWithOAuthToken(idToken);
+    }
+    setupTrainly();
+  }, []);
+
+  const handleClick = async () => {
+    const answer = await ask("What files do I have?");
+    console.log(answer); // AI response from user's permanent private subchat!
+  };
+
+  return <button onClick={handleClick}>Ask My AI</button>;
+}
+```
+
+## 🔒 **V1 Benefits**
+
+- ✅ **Permanent User Data**: Same user = same private subchat forever
+- ✅ **Complete Privacy**: Developer never sees user files or queries
+- ✅ **Any OAuth Provider**: Clerk, Auth0, Cognito, Firebase, custom OIDC
+- ✅ **Zero Migration**: Works with your existing OAuth setup
+- ✅ **Simple Integration**: Just add `appId` and use `connectWithOAuthToken()`
+
+---
+
+## 🚀 Original Quick Start (Legacy)
 
 ### 1. Install
 
@@ -111,18 +195,43 @@ function App() {
 ### Authentication Modes
 
 ```tsx
-// Mode 1: App Secret (recommended for multi-user apps)
+// Mode 1: V1 Trusted Issuer (NEW - recommended for OAuth apps)
+<TrainlyProvider appId="app_v1_12345" /> // Register via console API first
+
+// Mode 2: App Secret (legacy - for multi-user apps)
 <TrainlyProvider appSecret="as_secret_123" />
 
-// Mode 2: With user context
+// Mode 3: With user context (legacy)
 <TrainlyProvider
   appSecret="as_secret_123"
   userId="user_123"
   userEmail="user@example.com"
 />
 
-// Mode 3: Direct API key (simple apps)
+// Mode 4: Direct API key (legacy - simple apps)
 <TrainlyProvider apiKey="tk_chat_id_key" />
+```
+
+### V1 OAuth Provider Examples
+
+```tsx
+// With Clerk
+<TrainlyProvider
+  appId="app_v1_clerk_123"
+  baseUrl="https://api.trainly.com"
+/>
+
+// With Auth0
+<TrainlyProvider
+  appId="app_v1_auth0_456"
+  baseUrl="https://api.trainly.com"
+/>
+
+// With AWS Cognito
+<TrainlyProvider
+  appId="app_v1_cognito_789"
+  baseUrl="https://api.trainly.com"
+/>
 ```
 
 ### Component Customization
@@ -177,6 +286,9 @@ const {
   askWithCitations: (question: string) => Promise<{answer: string, citations: Citation[]}>,
   upload: (file: File) => Promise<UploadResult>,
 
+  // NEW: V1 Authentication
+  connectWithOAuthToken: (idToken: string) => Promise<void>,
+
   // State
   isLoading: boolean,
   isConnected: boolean,
@@ -198,22 +310,31 @@ const {
 ```tsx
 interface TrainlyProviderProps {
   children: React.ReactNode;
-  appSecret?: string; // App secret from Trainly dashboard
-  apiKey?: string; // Direct API key (alternative to appSecret)
+  appId?: string; // NEW: V1 app ID from console registration
+  appSecret?: string; // Legacy: App secret from Trainly dashboard
+  apiKey?: string; // Legacy: Direct API key (alternative to appSecret)
   baseUrl?: string; // Custom API URL (defaults to trainly.com)
-  userId?: string; // Your app's user ID
-  userEmail?: string; // Your app's user email
+  userId?: string; // Legacy: Your app's user ID
+  userEmail?: string; // Legacy: Your app's user email
 }
 ```
 
 ## 🔍 Examples
 
-Check out the `/examples` folder for complete implementations:
+See complete implementation examples in the [API Documentation](https://trainly.com/docs/v1-authentication).
 
-- **Simple Chat App** - Drop-in components
-- **Custom Implementation** - Build your own UI
-- **Multi-user App** - User-specific workspaces
-- **File-focused App** - Document analysis focus
+## 🆚 **V1 vs Legacy Comparison**
+
+| Feature        | V1 Trusted Issuer                | Legacy App Secret         |
+| -------------- | -------------------------------- | ------------------------- |
+| **User Auth**  | Your OAuth provider              | Trainly OAuth flow        |
+| **User Data**  | Permanent private subchat        | Temporary or shared       |
+| **Privacy**    | Complete (dev can't see files)   | Limited                   |
+| **Setup**      | Register once, use OAuth tokens  | Generate app secrets      |
+| **Migration**  | Zero (uses existing OAuth)       | Requires auth integration |
+| **Permanence** | Same user = same subchat forever | Depends on implementation |
+
+**Recommendation**: Use V1 for new apps and consider migrating existing apps for better privacy and user experience.
 
 ## 🛠️ Development
 
