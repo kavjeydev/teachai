@@ -135,7 +135,7 @@ export function ApiSettingsSlideout({
       <div className="sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800 px-6 py-5 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center">
               <Settings className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
             </div>
             <div>
@@ -166,7 +166,7 @@ export function ApiSettingsSlideout({
             <Card className="border-zinc-200 dark:border-zinc-800">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-                  <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                     <Zap className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                   </div>
                   Quick Actions
@@ -187,7 +187,7 @@ export function ApiSettingsSlideout({
                       target="_blank"
                       className="flex items-center gap-3"
                     >
-                      <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                         <BookOpen className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                       </div>
                       <div className="text-left flex-1">
@@ -212,7 +212,7 @@ export function ApiSettingsSlideout({
                       target="_blank"
                       className="flex items-center gap-3"
                     >
-                      <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                         <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                       </div>
                       <div className="text-left flex-1">
@@ -235,7 +235,7 @@ export function ApiSettingsSlideout({
               <Card className="border-zinc-200 dark:border-zinc-800">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-                    <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                    <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                       <Crown className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                     </div>
                     Current Plan:{" "}
@@ -277,7 +277,7 @@ export function ApiSettingsSlideout({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
                       <div
                         className="bg-amber-500 dark:bg-amber-400 h-2 rounded-full transition-all duration-300"
                         style={{
@@ -347,7 +347,7 @@ export function ApiSettingsSlideout({
               <Card className="border-zinc-200 dark:border-zinc-800">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-                    <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                    <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                       <Key className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                     </div>
                     API Access
@@ -358,7 +358,7 @@ export function ApiSettingsSlideout({
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-6">
+                    <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-6">
                       <Key className="w-8 h-8 text-zinc-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
@@ -421,7 +421,7 @@ export function ApiSettingsSlideout({
                 <Card className="border-zinc-200 dark:border-zinc-800">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-                      <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                         <BarChart3 className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                       </div>
                       Chat Analytics & Insights
@@ -435,7 +435,7 @@ export function ApiSettingsSlideout({
                     {/* Privacy-First Highlight */}
                     <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 mb-6">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                           <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         <div>
@@ -479,7 +479,7 @@ export function ApiSettingsSlideout({
                     {/* Key Metrics Grid */}
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mx-auto mb-2">
                           <Users className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         <div className="text-lg font-bold text-zinc-900 dark:text-white">
@@ -494,7 +494,7 @@ export function ApiSettingsSlideout({
                       </div>
 
                       <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mx-auto mb-2">
                           <Files className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         <div className="text-lg font-bold text-zinc-900 dark:text-white">
@@ -527,7 +527,7 @@ export function ApiSettingsSlideout({
                       </div>
 
                       <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mx-auto mb-2">
                           <TrendingUp className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         <div className="text-lg font-bold text-zinc-900 dark:text-white">
@@ -548,7 +548,7 @@ export function ApiSettingsSlideout({
                     {/* File Type Distribution */}
                     <div className="mb-6">
                       <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
-                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                           <HardDrive className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         File Type Breakdown
@@ -612,7 +612,7 @@ export function ApiSettingsSlideout({
                     {/* Top User Activity (Privacy-Safe) */}
                     <div className="mb-6">
                       <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
-                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                           <Activity className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         Top Users (Privacy-Safe)
@@ -629,7 +629,7 @@ export function ApiSettingsSlideout({
                                 className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800"
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-lg flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs">
+                                  <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs">
                                     #{index + 1}
                                   </div>
                                   <div>
@@ -669,7 +669,7 @@ export function ApiSettingsSlideout({
                     {/* Privacy Protection Summary */}
                     <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800">
                       <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
-                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                           <Shield className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         Privacy Protection Active
@@ -677,7 +677,7 @@ export function ApiSettingsSlideout({
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                            <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                               <CheckCircle className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                             </div>
                             <span className="text-xs font-medium text-zinc-900 dark:text-white">
@@ -693,7 +693,7 @@ export function ApiSettingsSlideout({
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                            <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                               <AlertCircle className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                             </div>
                             <span className="text-xs font-medium text-zinc-900 dark:text-white">
@@ -709,7 +709,7 @@ export function ApiSettingsSlideout({
                         </div>
                       </div>
                       <div className="mt-4 text-center">
-                        <Badge className="bg-zinc-600 dark:bg-zinc-700 text-white text-xs">
+                        <Badge className="bg-zinc-600 dark:bg-zinc-800 text-white text-xs">
                           🛡️ Complete Privacy Protection
                         </Badge>
                       </div>
@@ -723,7 +723,7 @@ export function ApiSettingsSlideout({
           // Loading state
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse">
                 <Settings className="w-8 h-8 text-zinc-400" />
               </div>
               <p className="text-zinc-500 dark:text-zinc-400">

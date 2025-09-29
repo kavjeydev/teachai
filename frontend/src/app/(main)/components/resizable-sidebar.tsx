@@ -61,8 +61,7 @@ const ChatItem = React.memo(
         onClick={handleClick}
         className={cn(
           "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 group",
-          isActive &&
-            "bg-amber-400/10 border border-amber-400/20",
+          isActive && "bg-amber-400/10 border border-amber-400/20",
           isNavigatingTo && "bg-amber-400/5", // Immediate feedback
         )}
       >
@@ -73,7 +72,7 @@ const ChatItem = React.memo(
               ? "bg-amber-400 text-white"
               : isNavigatingTo
                 ? "bg-amber-400/50 text-white"
-                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
+                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400",
           )}
         >
           <MessageSquare className="h-3 w-3" />
@@ -121,7 +120,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   }, [pathname, chatId]);
 
   const chats = useQuery(api.chats.getChats, canQuery ? undefined : skipQuery);
-  const favoriteChats = useQuery(api.chats.getFavoriteChats, canQuery ? undefined : skipQuery);
+  const favoriteChats = useQuery(
+    api.chats.getFavoriteChats,
+    canQuery ? undefined : skipQuery,
+  );
   const addChat = useMutation(api.chats.createChat);
 
   // Sidebar state
@@ -270,8 +272,17 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
             {!isCollapsed ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
-                    <span className="text-white font-bold text-xs">T</span>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center">
+                    <img
+                      src="/trainly_icon_white.png"
+                      alt="Trainly Logo"
+                      className="w-5 h-5 block dark:hidden"
+                    />
+                    <img
+                      src="/trainly_icon_black.png"
+                      alt="Trainly Logo"
+                      className="w-5 h-5 hidden dark:block"
+                    />
                   </div>
                   <div>
                     <h2 className="font-bold text-zinc-900 dark:text-white text-sm">
@@ -293,8 +304,17 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-sm">T</span>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+                  <img
+                    src="/trainly_icon_white.png"
+                    alt="Trainly Logo"
+                    className="w-6 h-6 block dark:hidden"
+                  />
+                  <img
+                    src="/trainly_icon_black.png"
+                    alt="Trainly Logo"
+                    className="w-6 h-6 hidden dark:block"
+                  />
                 </div>
 
                 <button
@@ -386,7 +406,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             <ChatItem
                               chat={chat}
                               isActive={chat._id === currentChatId}
-                              isNavigatingTo={isNavigating(`/dashboard/${chat._id}`)}
+                              isNavigatingTo={isNavigating(
+                                `/dashboard/${chat._id}`,
+                              )}
                               onClick={() =>
                                 navigateTo(`/dashboard/${chat._id}`)
                               }
@@ -411,10 +433,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                               key={index}
                               className="flex items-center gap-3 p-2 animate-pulse"
                             >
-                              <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-lg"></div>
+                              <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-800 rounded-lg"></div>
                               <div className="flex-1 space-y-1">
-                                <div className="h-3 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4"></div>
-                                <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded w-1/2"></div>
+                                <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4"></div>
+                                <div className="h-2 bg-zinc-100 dark:bg-zinc-900 rounded w-1/2"></div>
                               </div>
                             </div>
                           ))
@@ -423,7 +445,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                               <ChatItem
                                 chat={chat}
                                 isActive={chat._id === currentChatId}
-                                isNavigatingTo={isNavigating(`/dashboard/${chat._id}`)}
+                                isNavigatingTo={isNavigating(
+                                  `/dashboard/${chat._id}`,
+                                )}
                                 onClick={() =>
                                   navigateTo(`/dashboard/${chat._id}`)
                                 }
@@ -468,7 +492,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                           currentChatId &&
                           router.push(`/dashboard/${currentChatId}/graph`)
                         }
-                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
+                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
                         disabled={!currentChatId}
                       >
                         <Network className="h-4 w-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
@@ -479,7 +503,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
                       <button
                         onClick={() => window.open("/api-docs", "_blank")}
-                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
+                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
                       >
                         <Code className="h-4 w-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
                         <span className="text-xs text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
@@ -537,7 +561,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                 </div>
 
                 {/* Divider */}
-                <div className="w-6 h-px bg-zinc-200 dark:bg-zinc-700 mx-auto"></div>
+                <div className="w-6 h-px bg-zinc-200 dark:bg-zinc-800 mx-auto"></div>
 
                 {/* Recent Chats - Collapsed */}
                 <div className="space-y-2 w-full">
@@ -557,7 +581,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                           "w-5 h-5 rounded-md flex items-center justify-center",
                           chat._id === currentChatId
                             ? "bg-amber-400 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
+                            : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400",
                         )}
                       >
                         <MessageSquare className="h-3 w-3" />
@@ -573,7 +597,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       onClick={() =>
                         router.push(`/dashboard/${currentChatId}/graph`)
                       }
-                      className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center mx-auto"
+                      className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center mx-auto"
                       title="Graph View"
                     >
                       <Network className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
@@ -593,7 +617,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.imageUrl} className="rounded-full" />
+                    <AvatarImage
+                      src={user?.imageUrl}
+                      className="rounded-full"
+                    />
                     <AvatarFallback className="bg-amber-400 text-white text-sm">
                       {user?.firstName?.[0]}
                     </AvatarFallback>
@@ -638,10 +665,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                 title="View Profile & Usage"
               >
                 <Avatar className="h-10 w-10">
-                  <AvatarImage
-                    src={user?.imageUrl}
-                    className="rounded-full"
-                  />
+                  <AvatarImage src={user?.imageUrl} className="rounded-full" />
                   <AvatarFallback className="bg-amber-400 text-white text-sm">
                     {user?.firstName?.[0]}
                   </AvatarFallback>

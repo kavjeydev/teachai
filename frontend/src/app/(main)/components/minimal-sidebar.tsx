@@ -85,8 +85,17 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
       {/* Header */}
       <div className="p-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-sm">T</span>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center">
+            <img
+              src="/trainly_icon_white.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 block dark:hidden"
+            />
+            <img
+              src="/trainly_icon_black.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 hidden dark:block"
+            />
           </div>
           <div>
             <h2 className="font-bold text-zinc-900 dark:text-white">trainly</h2>
@@ -224,7 +233,7 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
                         "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
                         chat._id === chatId
                           ? "bg-amber-400 text-white"
-                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
+                          : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400",
                       )}
                     >
                       <MessageSquare className="h-3 w-3" />
@@ -269,8 +278,7 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
                     "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800",
                     chat._id === chatId &&
                       "bg-amber-400/10 border border-amber-400/20",
-                    isNavigating(`/dashboard/${chat._id}`) &&
-                      "bg-amber-400/5",
+                    isNavigating(`/dashboard/${chat._id}`) && "bg-amber-400/5",
                   )}
                 >
                   <div
@@ -278,7 +286,7 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
                       "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
                       chat._id === chatId
                         ? "bg-amber-400 text-white"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
+                        : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400",
                     )}
                   >
                     <MessageSquare className="h-3 w-3" />
@@ -329,7 +337,7 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
               onClick={() =>
                 chatId && router.push(`/dashboard/${chatId}/graph`)
               }
-              className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
+              className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
               disabled={!chatId}
             >
               <Network className="h-4 w-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
@@ -342,7 +350,7 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
               onClick={() =>
                 window.open("https://docs.trainlyai.com", "_blank")
               }
-              className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
+              className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
             >
               <Code className="h-4 w-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
               <span className="text-xs text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">

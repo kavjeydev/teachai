@@ -27,7 +27,6 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
     // Reset regex lastIndex to ensure we catch all matches
     citationRegex.lastIndex = 0;
 
-
     while ((match = citationRegex.exec(content)) !== null) {
       // Add text before citation
       if (match.index > lastIndex) {
@@ -72,7 +71,6 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
             reasoningContext &&
             part.chunkIndex !== undefined &&
             reasoningContext[part.chunkIndex];
-
 
           return (
             <span
@@ -127,17 +125,17 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
                 </p>
               ),
               h1: ({ children }) => (
-                <h1 className="text-lg font-bold mb-3 text-zinc-900 dark:text-white font-inter">
+                <h1 className="text-lg font-bold mb-3 text-zinc-900 dark:text-white font-sans">
                   {children}
                 </h1>
               ),
               h2: ({ children }) => (
-                <h2 className="text-base font-bold mb-2 text-zinc-900 dark:text-white font-inter">
+                <h2 className="text-base font-bold mb-2 text-zinc-900 dark:text-white font-sans">
                   {children}
                 </h2>
               ),
               h3: ({ children }) => (
-                <h3 className="text-sm font-bold mb-2 text-zinc-900 dark:text-white font-inter">
+                <h3 className="text-sm font-bold mb-2 text-zinc-900 dark:text-white font-sans">
                   {children}
                 </h3>
               ),
@@ -155,7 +153,7 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
                 <li className="leading-relaxed">{children}</li>
               ),
               blockquote: ({ children }) => (
-                <blockquote className="border-l-3 border-amber-400/30 pl-4 py-2 mb-3 bg-zinc-50/50 dark:bg-zinc-800/50 rounded-r-lg">
+                <blockquote className="border-l-3 border-amber-400/30 pl-4 py-2 mb-3 bg-zinc-50/50 dark:bg-zinc-900/50 rounded-r-lg">
                   {children}
                 </blockquote>
               ),
@@ -180,7 +178,7 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
                   />
                 ) : (
                   <code
-                    className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono text-zinc-800 dark:text-zinc-200"
+                    className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-xs font-mono text-zinc-800 dark:text-zinc-200"
                     {...props}
                   >
                     {children}

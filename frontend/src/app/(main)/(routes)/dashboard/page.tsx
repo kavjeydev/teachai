@@ -24,21 +24,23 @@ export default function NoChat() {
   const searchParams = useSearchParams();
 
   // Check if user just completed payment
-  const paymentSuccess = searchParams.get('success');
-  const userId = searchParams.get('user_id');
-  const priceId = searchParams.get('price_id');
+  const paymentSuccess = searchParams.get("success");
+  const userId = searchParams.get("user_id");
+  const priceId = searchParams.get("price_id");
 
   const addChat = useMutation(api.chats.createChat);
-  const manuallyActivateSubscription = useMutation(api.subscriptions.manuallyActivateSubscription);
+  const manuallyActivateSubscription = useMutation(
+    api.subscriptions.manuallyActivateSubscription,
+  );
 
   // Map price IDs to tiers
   const getTierFromPriceId = (priceId: string): string => {
     const priceMap: Record<string, string> = {
-      [process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!]: 'pro',
-      [process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID!]: 'team',
-      [process.env.NEXT_PUBLIC_STRIPE_STARTUP_PRICE_ID!]: 'startup',
+      [process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!]: "pro",
+      [process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID!]: "team",
+      [process.env.NEXT_PUBLIC_STRIPE_STARTUP_PRICE_ID!]: "startup",
     };
-    return priceMap[priceId] || 'pro';
+    return priceMap[priceId] || "pro";
   };
 
   // Handle payment success and auto-activate subscription
@@ -50,27 +52,32 @@ export default function NoChat() {
 
           await manuallyActivateSubscription({ tier });
 
-          toast.success(`🎉 Payment successful! Your ${tier.charAt(0).toUpperCase() + tier.slice(1)} subscription is now active!`);
+          toast.success(
+            `🎉 Payment successful! Your ${tier.charAt(0).toUpperCase() + tier.slice(1)} subscription is now active!`,
+          );
 
           // Clean up URL parameters
-          window.history.replaceState({}, '', '/dashboard');
+          window.history.replaceState({}, "", "/dashboard");
 
           // Refresh to show updated plan
           setTimeout(() => {
             window.location.reload();
           }, 1500);
-
         } catch (error) {
           console.error("Auto-activation failed:", error);
-          toast.error("Payment successful but activation failed. Please contact support.");
+          toast.error(
+            "Payment successful but activation failed. Please contact support.",
+          );
         }
       };
 
       activateSubscription();
     } else if (paymentSuccess && userId && user?.id === userId) {
       // Fallback for payments without price_id
-      toast.success("🎉 Payment successful! Please use manual activation below if your plan didn't update.");
-      window.history.replaceState({}, '', '/dashboard');
+      toast.success(
+        "🎉 Payment successful! Please use manual activation below if your plan didn't update.",
+      );
+      window.history.replaceState({}, "", "/dashboard");
     }
   }, [paymentSuccess, userId, user?.id, priceId, manuallyActivateSubscription]);
 
@@ -78,16 +85,16 @@ export default function NoChat() {
     setIsUpgrading(true);
 
     try {
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ priceId, mode: 'subscription' }),
+        body: JSON.stringify({ priceId, mode: "subscription" }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        throw new Error("Failed to create checkout session");
       }
 
       const { sessionId, url } = await response.json();
@@ -99,7 +106,7 @@ export default function NoChat() {
         await stripe?.redirectToCheckout({ sessionId });
       }
     } catch (error) {
-      console.error('Checkout failed:', error);
+      console.error("Checkout failed:", error);
       toast.error("Checkout failed. Please try again or contact support.");
     } finally {
       setIsUpgrading(false);
@@ -121,7 +128,9 @@ export default function NoChat() {
       await promise;
     } catch (error) {
       console.error("Failed to create chat:", error);
-      toast.error(`Failed to create chat: ${error instanceof Error ? error.message : "Please try again"}`);
+      toast.error(
+        `Failed to create chat: ${error instanceof Error ? error.message : "Please try again"}`,
+      );
     } finally {
       setIsCreating(false);
     }
@@ -162,7 +171,7 @@ export default function NoChat() {
             <Sparkles className="w-12 h-12 text-white" />
           </div>
           <div>
-            <h2 className="text-4xl font-viaoda font-normal text-zinc-900 dark:text-white mb-4">
+            <h2 className="text-4xl font-sans font-normal text-zinc-900 dark:text-white mb-4">
               Ready to build something amazing?
             </h2>
             <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
@@ -195,7 +204,12 @@ export default function NoChat() {
                 </p>
                 <div className="flex gap-3">
                   <Button
-                    onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!, "Pro")}
+                    onClick={() =>
+                      handleUpgrade(
+                        process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
+                        "Pro",
+                      )
+                    }
                     disabled={isUpgrading}
                     variant="outline"
                     className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-white transition-all duration-300"
@@ -213,14 +227,13 @@ export default function NoChat() {
                     )}
                   </Button>
                   <Button
-                    onClick={() => window.open('/billing', '_blank')}
+                    onClick={() => window.open("/billing", "_blank")}
                     variant="ghost"
                     className="text-zinc-600 hover:text-amber-400"
                   >
                     View All Plans
                   </Button>
                 </div>
-
               </div>
             </div>
           </div>

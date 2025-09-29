@@ -138,7 +138,7 @@ export default function ApiDocsRedesigned() {
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="border border-zinc-200 dark:border-zinc-800">
               <CardHeader>
-                <div className="w-10 h-10 bg-zinc-800 dark:bg-zinc-700 rounded-lg flex items-center justify-center mb-2">
+                <div className="w-10 h-10 bg-zinc-800 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-2">
                   <span className="text-white font-bold">1</span>
                 </div>
                 <CardTitle className="text-lg">Get Chat API Key</CardTitle>
@@ -147,7 +147,7 @@ export default function ApiDocsRedesigned() {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                   Enable API access for your chat in the Trainly dashboard
                 </p>
-                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded block">
                   Chat Settings → API Access → Generate Key
                 </code>
               </CardContent>
@@ -155,7 +155,7 @@ export default function ApiDocsRedesigned() {
 
             <Card className="border border-zinc-200 dark:border-zinc-800">
               <CardHeader>
-                <div className="w-10 h-10 bg-zinc-800 dark:bg-zinc-700 rounded-lg flex items-center justify-center mb-2">
+                <div className="w-10 h-10 bg-zinc-800 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-2">
                   <span className="text-white font-bold">2</span>
                 </div>
                 <CardTitle className="text-lg">Token Exchange</CardTitle>
@@ -164,7 +164,7 @@ export default function ApiDocsRedesigned() {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                   Exchange user's Clerk token for secure Trainly token
                 </p>
-                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded block">
                   POST /oauth/token → Bearer token
                 </code>
               </CardContent>
@@ -172,7 +172,7 @@ export default function ApiDocsRedesigned() {
 
             <Card className="border border-zinc-200 dark:border-zinc-800">
               <CardHeader>
-                <div className="w-10 h-10 bg-zinc-800 dark:bg-zinc-700 rounded-lg flex items-center justify-center mb-2">
+                <div className="w-10 h-10 bg-zinc-800 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-2">
                   <span className="text-white font-bold">3</span>
                 </div>
                 <CardTitle className="text-lg">Query User Data</CardTitle>
@@ -182,7 +182,7 @@ export default function ApiDocsRedesigned() {
                   Users query their private data with complete privacy
                   protection
                 </p>
-                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded block">
                   POST /me/chats/query → AI responses only
                 </code>
               </CardContent>
@@ -454,7 +454,7 @@ function TrainlyAuth({ chatId, onConnected }) {
           {/* Header */}
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-zinc-800 dark:bg-zinc-700 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-zinc-800 dark:bg-zinc-800 rounded-xl flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -484,7 +484,7 @@ function TrainlyAuth({ chatId, onConnected }) {
                       className={cn(
                         "w-full text-left flex items-center justify-between p-3 rounded-lg transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800",
                         selectedSection === item.id
-                          ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700"
+                          ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700"
                           : "text-zinc-700 dark:text-zinc-300",
                       )}
                     >

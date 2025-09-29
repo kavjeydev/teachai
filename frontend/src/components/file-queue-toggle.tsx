@@ -19,10 +19,16 @@ export const FileQueueToggle: React.FC<FileQueueToggleProps> = ({
   isActive = false,
   className,
 }) => {
-  const activeQueues = queues.filter(q => q.status === "active");
+  const activeQueues = queues.filter((q) => q.status === "active");
   const hasActivity = activeQueues.length > 0;
-  const totalActiveFiles = activeQueues.reduce((sum, queue) => sum + queue.totalFiles, 0);
-  const totalCompletedFiles = activeQueues.reduce((sum, queue) => sum + queue.completedFiles, 0);
+  const totalActiveFiles = activeQueues.reduce(
+    (sum, queue) => sum + queue.totalFiles,
+    0,
+  );
+  const totalCompletedFiles = activeQueues.reduce(
+    (sum, queue) => sum + queue.completedFiles,
+    0,
+  );
 
   return (
     <Button
@@ -31,8 +37,8 @@ export const FileQueueToggle: React.FC<FileQueueToggleProps> = ({
       onClick={onClick}
       className={cn(
         "relative p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/queue",
-        isActive && "bg-zinc-200 dark:bg-zinc-700",
-        className
+        isActive && "bg-zinc-200 dark:bg-zinc-800",
+        className,
       )}
       title={
         hasActivity

@@ -47,7 +47,7 @@ export function ContextFilesSection({
         {visibleFiles.map((contextItem: any) => (
           <div
             key={contextItem.fileId}
-            className="group flex items-center gap-3 rounded-lg p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-200 shadow-sm hover:shadow-md"
+            className="group flex items-center gap-3 rounded-lg p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             <div className="h-8 w-8 bg-gradient-to-br from-amber-400/20 to-amber-100 dark:from-amber-400/20 dark:to-zinc-700 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
               <File className="h-4 w-4 text-amber-400" />

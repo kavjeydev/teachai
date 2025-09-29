@@ -384,7 +384,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white flex items-center gap-3">
-            <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center">
               <Globe className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
             </div>
             API Access
@@ -409,7 +409,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
       <Card className="border-zinc-200 dark:border-zinc-800">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-            <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+            <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
               <Shield className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
             </div>
             Chat API Configuration
@@ -513,7 +513,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
           ) : (
             /* No API Key Yet */
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Key className="w-8 h-8 text-zinc-400" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
@@ -582,7 +582,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                   <div className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
                     Your chat is now accessible via API at:
                   </div>
-                  <code className="text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 px-2 py-1 rounded font-mono">
+                  <code className="text-xs bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 px-2 py-1 rounded font-mono">
                     https://api.trainlyai.com/v1/{chatId}/answer_question
                   </code>
                   <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
@@ -625,7 +625,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
       <Card className="border-zinc-200 dark:border-zinc-800">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-            <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+            <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
               <Users className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
             </div>
             App Secret - For Multi-User OAuth Apps
@@ -670,7 +670,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                       </div>
                       <Badge
                         variant="outline"
-                        className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
+                        className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
                       >
                         {app.isActive ? "Active" : "Inactive"}
                       </Badge>

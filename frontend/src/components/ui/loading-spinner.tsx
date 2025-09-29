@@ -62,7 +62,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         </p>
       )}
       {showProgress && (
-        <div className="w-32 bg-zinc-200 dark:bg-zinc-700 rounded-full h-1">
+        <div className="w-32 bg-zinc-200 dark:bg-zinc-800 rounded-full h-1">
           <div
             className="bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 h-1 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
@@ -104,7 +104,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         <p className="text-zinc-600 dark:text-zinc-400 mb-2">{text}</p>
         {showProgress && (
           <>
-            <div className="w-48 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 mx-auto">
+            <div className="w-48 bg-zinc-200 dark:bg-zinc-800 rounded-full h-2 mx-auto">
               <div
                 className="bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
@@ -134,7 +134,7 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-6 text-center",
+        "bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 p-6 text-center",
         className,
       )}
     >
@@ -168,7 +168,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height,
   lines = 1,
 }) => {
-  const baseClasses = "bg-zinc-200 dark:bg-zinc-700 animate-pulse";
+  const baseClasses = "bg-zinc-200 dark:bg-zinc-800 animate-pulse";
 
   const variantClasses = {
     text: "rounded h-4",

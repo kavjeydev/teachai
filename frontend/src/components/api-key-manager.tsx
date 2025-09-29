@@ -315,7 +315,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
         {!integrationKeys || integrationKeys.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
-              <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Key className="w-8 h-8 text-zinc-400" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
@@ -441,7 +441,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                 </div>
 
                 {/* Usage Stats */}
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4">
+                <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4">
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <div className="text-lg font-semibold text-zinc-900 dark:text-white">

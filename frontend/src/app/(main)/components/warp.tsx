@@ -57,7 +57,7 @@ export function Warp() {
       <h1 className="font-geist leading-[1] tracking-tight font-normal text-xl w-[48rem] text-[#292716]/60 dark:text-textmaincolor/60">
         Take control of your AI with fine-grained context control 🚀
       </h1>
-      <h1 className="font-literata leading-[1] tracking-tight font-normal text-6xl w-[48rem] dark:text-textmaincolor text-[#292716]">
+      <h1 className="font-sans leading-[1] tracking-tight font-normal text-6xl w-[48rem] dark:text-textmaincolor text-[#292716]">
         The AI training platform for &nbsp;
         <CyclingText responses={responses} displayDuration={2700} />
       </h1>

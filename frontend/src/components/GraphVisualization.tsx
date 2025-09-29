@@ -632,7 +632,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               setCurrentLayout(e.target.value as any)
             }
-            className="px-3 py-1 border rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 text-sm"
+            className="px-3 py-1 border rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 text-sm"
           >
             <option value="dagre">Hierarchical</option>
             <option value="cose-bilkent">Force-directed</option>
@@ -659,7 +659,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                     ? "Initializing graph..."
                     : "Loading graph data..."}
                 </p>
-                <div className="w-48 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 mx-auto">
+                <div className="w-48 bg-zinc-200 dark:bg-zinc-800 rounded-full h-2 mx-auto">
                   <div
                     className="bg-gradient-to-r from-blue-600 to-amber-600 dark:from-blue-500 dark:to-amber-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${loadingProgress}%` }}
@@ -675,7 +675,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
       </div>
 
       {/* Side Panel */}
-      <div className="w-80 border-l bg-white dark:bg-zinc-800 p-4 overflow-y-auto">
+      <div className="w-80 border-l bg-white dark:bg-zinc-900 p-4 overflow-y-auto">
         {/* Edit Node Panel - Show at top when editing */}
         {editingNode && (
           <Card className="mb-4">

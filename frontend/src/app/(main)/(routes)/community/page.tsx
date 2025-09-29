@@ -50,34 +50,22 @@ export default function CommunityPage() {
 
           {/* Developer Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
-            <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-300">
-              <div className="text-3xl font-bold text-amber-400 mb-2">
-                500+
-              </div>
-              <div className="text-zinc-600 dark:text-zinc-400">
-                Developers
-              </div>
+            <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-300">
+              <div className="text-3xl font-bold text-amber-400 mb-2">500+</div>
+              <div className="text-zinc-600 dark:text-zinc-400">Developers</div>
             </div>
-            <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-300">
-              <div className="text-3xl font-bold text-amber-400 mb-2">
-                50+
-              </div>
+            <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-300">
+              <div className="text-3xl font-bold text-amber-400 mb-2">50+</div>
               <div className="text-zinc-600 dark:text-zinc-400">
                 Open Projects
               </div>
             </div>
-            <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-300">
-              <div className="text-3xl font-bold text-amber-400 mb-2">
-                10k+
-              </div>
-              <div className="text-zinc-600 dark:text-zinc-400">
-                API Calls
-              </div>
+            <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-300">
+              <div className="text-3xl font-bold text-amber-400 mb-2">10k+</div>
+              <div className="text-zinc-600 dark:text-zinc-400">API Calls</div>
             </div>
-            <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-300">
-              <div className="text-3xl font-bold text-amber-400 mb-2">
-                99%
-              </div>
+            <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-300">
+              <div className="text-3xl font-bold text-amber-400 mb-2">99%</div>
               <div className="text-zinc-600 dark:text-zinc-400">Uptime</div>
             </div>
           </div>
@@ -92,7 +80,7 @@ export default function CommunityPage() {
                   window.open(`/preview/${chat._id}`, "_blank");
                 }}
               >
-                <div className="bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-amber-400/10 overflow-hidden">
+                <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-amber-400/10 overflow-hidden">
                   {/* Project Preview */}
                   <div className="h-40 bg-gradient-to-br from-amber-400/10 via-amber-50 to-amber-400/5 dark:from-amber-400/20 dark:via-zinc-700 dark:to-amber-400/10 flex items-center justify-center relative">
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent"></div>
@@ -140,7 +128,7 @@ export default function CommunityPage() {
                       <span className="px-2 py-1 bg-amber-400/10 text-amber-400 text-xs font-medium rounded-md">
                         GraphRAG
                       </span>
-                      <span className="px-2 py-1 bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-xs font-medium rounded-md">
+                      <span className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-medium rounded-md">
                         Open Source
                       </span>
                     </div>
@@ -200,7 +188,7 @@ export default function CommunityPage() {
 
             {/* Coming Soon Features */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+              <div className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
                 <div className="w-12 h-12 bg-amber-400/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
                   <Code className="w-6 h-6 text-amber-400" />
                 </div>
@@ -212,7 +200,7 @@ export default function CommunityPage() {
                 </p>
               </div>
 
-              <div className="p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+              <div className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
                 <div className="w-12 h-12 bg-amber-400/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
                   <Star className="w-6 h-6 text-amber-400" />
                 </div>
@@ -224,7 +212,7 @@ export default function CommunityPage() {
                 </p>
               </div>
 
-              <div className="p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+              <div className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
                 <div className="w-12 h-12 bg-amber-400/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
                   <GitFork className="w-6 h-6 text-amber-400" />
                 </div>

@@ -4,7 +4,17 @@ import { cn } from "@/lib/utils";
 import { NextUIProvider } from "@nextui-org/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, Zap, Code, Users, Crown, Rocket, Star, ArrowRight } from "lucide-react";
+import {
+  Check,
+  X,
+  Zap,
+  Code,
+  Users,
+  Crown,
+  Rocket,
+  Star,
+  ArrowRight,
+} from "lucide-react";
 import Navbar from "@/app/components/navbar";
 import { PRICING_TIERS, formatTokens } from "@/lib/stripe";
 import { getStripe } from "@/lib/stripe";
@@ -16,19 +26,19 @@ export default function PricingPage() {
   const handleUpgrade = async (priceId: string | null, tierName: string) => {
     if (!priceId) {
       // Free tier - redirect to sign up
-      window.location.href = '/sign-up';
+      window.location.href = "/sign-up";
       return;
     }
 
     setIsLoading(priceId);
 
     try {
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ priceId, mode: 'subscription' }),
+        body: JSON.stringify({ priceId, mode: "subscription" }),
       });
 
       const { sessionId, url } = await response.json();
@@ -40,7 +50,7 @@ export default function PricingPage() {
         await stripe?.redirectToCheckout({ sessionId });
       }
     } catch (error) {
-      console.error('Checkout failed:', error);
+      console.error("Checkout failed:", error);
     } finally {
       setIsLoading(null);
     }
@@ -48,19 +58,27 @@ export default function PricingPage() {
 
   const getTierIcon = (tier: string) => {
     switch (tier) {
-      case 'pro': return <Zap className="w-6 h-6" />;
-      case 'team': return <Users className="w-6 h-6" />;
-      case 'startup': return <Rocket className="w-6 h-6" />;
-      default: return <Crown className="w-6 h-6" />;
+      case "pro":
+        return <Zap className="w-6 h-6" />;
+      case "team":
+        return <Users className="w-6 h-6" />;
+      case "startup":
+        return <Rocket className="w-6 h-6" />;
+      default:
+        return <Crown className="w-6 h-6" />;
     }
   };
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case 'pro': return 'from-blue-500 to-cyan-600';
-      case 'team': return 'from-amber-500 to-amber-600';
-      case 'startup': return 'from-orange-500 to-red-600';
-      default: return 'from-zinc-500 to-zinc-600';
+      case "pro":
+        return "from-blue-500 to-cyan-600";
+      case "team":
+        return "from-amber-500 to-amber-600";
+      case "startup":
+        return "from-orange-500 to-red-600";
+      default:
+        return "from-zinc-500 to-zinc-600";
     }
   };
 
@@ -76,7 +94,7 @@ export default function PricingPage() {
                 <Zap className="w-4 h-4" />
                 <span>Developer-First Pricing</span>
               </div>
-              <h1 className="text-5xl md:text-6xl font-viaoda font-normal text-zinc-900 dark:text-white mb-6">
+              <h1 className="text-5xl md:text-6xl font-sans font-normal text-zinc-900 dark:text-white mb-6">
                 <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
                   Start free,
                 </span>
@@ -93,12 +111,12 @@ export default function PricingPage() {
 
             {/* Billing Toggle */}
             <div className="flex justify-center mb-12">
-              <div className="flex items-center p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+              <div className="flex items-center p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl">
                 <button
                   className={cn(
                     "px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200",
                     !annual
-                      ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
                       : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white",
                   )}
                   onClick={() => setAnnual(false)}
@@ -109,7 +127,7 @@ export default function PricingPage() {
                   className={cn(
                     "px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-2",
                     annual
-                      ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
                       : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white",
                   )}
                   onClick={() => setAnnual(true)}
@@ -125,9 +143,9 @@ export default function PricingPage() {
             {/* Pricing Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20">
               {/* Free Tier */}
-              <div className="relative p-8 bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="relative p-8 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-viaoda font-normal text-zinc-900 dark:text-white mb-2">
+                  <h3 className="text-2xl font-sans font-normal text-zinc-900 dark:text-white mb-2">
                     Hobby
                   </h3>
                   <p className="text-zinc-600 dark:text-zinc-400 mb-6">
@@ -176,13 +194,13 @@ export default function PricingPage() {
                   </li>
                 </ul>
 
-                <button className="w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
+                <button className="w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                   Start Free
                 </button>
               </div>
 
               {/* Pro Tier - Most Popular */}
-              <div className="relative p-8 bg-white dark:bg-zinc-800 rounded-3xl border-2 border-amber-400 shadow-2xl hover:shadow-amber-400/20 transition-all duration-300">
+              <div className="relative p-8 bg-white dark:bg-zinc-900 rounded-3xl border-2 border-amber-400 shadow-2xl hover:shadow-amber-400/20 transition-all duration-300">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <span className="bg-amber-400 text-white px-4 py-2 rounded-full text-sm font-semibold">
                     Most Popular
@@ -190,7 +208,7 @@ export default function PricingPage() {
                 </div>
 
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-viaoda font-normal text-zinc-900 dark:text-white mb-2">
+                  <h3 className="text-2xl font-sans font-normal text-zinc-900 dark:text-white mb-2">
                     Pro
                   </h3>
                   <p className="text-zinc-600 dark:text-zinc-400 mb-6">
@@ -254,9 +272,9 @@ export default function PricingPage() {
               </div>
 
               {/* Scale Tier */}
-              <div className="relative p-8 bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="relative p-8 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-viaoda font-normal text-zinc-900 dark:text-white mb-2">
+                  <h3 className="text-2xl font-sans font-normal text-zinc-900 dark:text-white mb-2">
                     Scale
                   </h3>
                   <p className="text-zinc-600 dark:text-zinc-400 mb-6">
@@ -314,7 +332,7 @@ export default function PricingPage() {
                   </li>
                 </ul>
 
-                <button className="w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
+                <button className="w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                   Contact Sales
                 </button>
               </div>
@@ -332,7 +350,7 @@ export default function PricingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-              <div className="text-center p-8 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+              <div className="text-center p-8 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
                 <div className="w-16 h-16 bg-amber-400/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <Zap className="w-8 h-8 text-amber-400" />
                 </div>
@@ -345,7 +363,7 @@ export default function PricingPage() {
                 </p>
               </div>
 
-              <div className="text-center p-8 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+              <div className="text-center p-8 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
                 <div className="w-16 h-16 bg-amber-400/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <Code className="w-8 h-8 text-amber-400" />
                 </div>
@@ -358,7 +376,7 @@ export default function PricingPage() {
                 </p>
               </div>
 
-              <div className="text-center p-8 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+              <div className="text-center p-8 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
                 <div className="w-16 h-16 bg-amber-400/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <Users className="w-8 h-8 text-amber-400" />
                 </div>
@@ -384,7 +402,7 @@ export default function PricingPage() {
               </div>
 
               <div className="max-w-3xl mx-auto space-y-6">
-                <div className="bg-white dark:bg-zinc-800 rounded-xl p-6">
+                <div className="bg-white dark:bg-zinc-900 rounded-xl p-6">
                   <h4 className="font-semibold text-zinc-900 dark:text-white mb-3">
                     How is this different from ChatGPT or Claude?
                   </h4>
@@ -396,7 +414,7 @@ export default function PricingPage() {
                   </p>
                 </div>
 
-                <div className="bg-white dark:bg-zinc-800 rounded-xl p-6">
+                <div className="bg-white dark:bg-zinc-900 rounded-xl p-6">
                   <h4 className="font-semibold text-zinc-900 dark:text-white mb-3">
                     Can I really turn chats into APIs?
                   </h4>
@@ -407,7 +425,7 @@ export default function PricingPage() {
                   </p>
                 </div>
 
-                <div className="bg-white dark:bg-zinc-800 rounded-xl p-6">
+                <div className="bg-white dark:bg-zinc-900 rounded-xl p-6">
                   <h4 className="font-semibold text-zinc-900 dark:text-white mb-3">
                     Is there a free tier?
                   </h4>

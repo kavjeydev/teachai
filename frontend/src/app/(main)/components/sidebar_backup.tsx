@@ -325,10 +325,7 @@ print(response)
   }
 
   return (
-    <Sidebar
-      className="z-99999 font-darkerGrotesque text-2xl"
-      collapsible="icon"
-    >
+    <Sidebar className="z-99999 font-sans text-2xl" collapsible="icon">
       <SidebarHeader className=" bg-opacity-90 border-muted-foreground/50 dark:bg-zinc-900">
         <Popover>
           <PopoverTrigger asChild>

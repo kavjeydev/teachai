@@ -89,7 +89,7 @@ const formatTimeAgo = (timestamp: number) => {
 
 const FileItem: React.FC<FileItemProps> = ({ file }) => {
   return (
-    <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+    <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {getStatusIcon(file.status)}
         <div className="flex-1 min-w-0">

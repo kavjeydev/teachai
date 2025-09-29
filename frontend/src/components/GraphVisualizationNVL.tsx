@@ -1386,7 +1386,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               handleLayout(e.target.value)
             }
-            className="px-3 py-1 border rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 text-sm"
+            className="px-3 py-1 border rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 text-sm"
           >
             <option value="hierarchical">Hierarchical</option>
             <option value="force">Force-directed</option>
@@ -1422,7 +1422,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
                     ? "Initializing graph..."
                     : "Loading graph data..."}
                 </p>
-                <div className="w-48 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 mx-auto">
+                <div className="w-48 bg-zinc-200 dark:bg-zinc-800 rounded-full h-2 mx-auto">
                   <div
                     className="bg-gradient-to-r from-blue-600 to-amber-600 dark:from-blue-500 dark:to-amber-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${loadingProgress}%` }}
@@ -1437,7 +1437,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
           {/* Status Panel - Bottom Right */}
           <div className="absolute bottom-4 right-4 z-10">
-            <Card className="w-64 bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm border shadow-lg">
+            <Card className="w-64 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border shadow-lg">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <div
@@ -1511,7 +1511,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       </div>
 
       {/* Side Panel */}
-      <div className="w-80 border-l bg-white dark:bg-zinc-800 p-4 overflow-y-auto">
+      <div className="w-80 border-l bg-white dark:bg-zinc-900 p-4 overflow-y-auto">
         {/* Edit Node Panel - Show at top when editing */}
         {editingNode && (
           <Card className="mb-4">
@@ -1767,7 +1767,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
               {selectedNode.properties.text && (
                 <div>
                   <Label className="font-semibold">Text Content</Label>
-                  <div className="mt-1 p-2 bg-zinc-100 dark:bg-zinc-700 rounded text-sm max-h-32 overflow-y-auto">
+                  <div className="mt-1 p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-sm max-h-32 overflow-y-auto">
                     {selectedNode.properties.text}
                   </div>
                 </div>

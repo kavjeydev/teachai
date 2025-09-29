@@ -241,7 +241,7 @@ export default function ProfilePage() {
                     placeholder="Search by description, model, or date..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus:border-amber-400 dark:focus:border-amber-400"
+                    className="pl-10 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 focus:border-amber-400 dark:focus:border-amber-400"
                   />
                   {searchQuery && (
                     <Button
@@ -261,7 +261,7 @@ export default function ProfilePage() {
                   <div className="h-full overflow-y-auto px-6 pb-6">
                     <div className="space-y-3">
                       {filteredCreditHistory.map((transaction, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-100 dark:border-zinc-700 hover:border-amber-400/30 dark:hover:border-amber-400/30 transition-all duration-200">
+                        <div key={index} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-100 dark:border-zinc-700 hover:border-amber-400/30 dark:hover:border-amber-400/30 transition-all duration-200">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
                               <Zap className="w-5 h-5 text-white" />

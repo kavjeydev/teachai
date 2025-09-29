@@ -115,7 +115,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => router.push(`/dashboard/${chatId}`)}
-                className="flex items-center gap-2 bg-white/50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-800 border-zinc-200/60 dark:border-zinc-700/60 backdrop-blur-sm transition-all duration-200 shadow-sm hover:shadow-md"
+                className="flex items-center gap-2 bg-white/50 dark:bg-zinc-900/50 hover:bg-white dark:hover:bg-zinc-800 border-zinc-200/60 dark:border-zinc-700/60 backdrop-blur-sm transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="font-medium">Back to Chat</span>
@@ -143,7 +143,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
             {/* Quick Actions */}
             <div className="grid md:grid-cols-4 gap-6 mb-8">
               <Card
-                className="border-0 shadow-lg bg-white/70 dark:bg-zinc-800/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
+                className="border-0 shadow-lg bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
                 onClick={() => router.push(`/dashboard/${chatId}/analytics`)}
               >
                 <CardContent className="p-6 text-center">
@@ -158,7 +158,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
               </Card>
 
               <Card
-                className="border-0 shadow-lg bg-white/70 dark:bg-zinc-800/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
+                className="border-0 shadow-lg bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
                 onClick={() => window.open("/docs", "_blank")}
               >
                 <CardContent className="p-6 text-center">
@@ -173,7 +173,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
               </Card>
 
               <Card
-                className="border-0 shadow-lg bg-white/70 dark:bg-zinc-800/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
+                className="border-0 shadow-lg bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
                 onClick={() => window.open("/api-docs", "_blank")}
               >
                 <CardContent className="p-6 text-center">
@@ -187,7 +187,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-lg bg-white/70 dark:bg-zinc-800/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group">
+              <Card className="border-0 shadow-lg bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group">
                 <CardContent className="p-6 text-center">
                   <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                     <Shield className="w-6 h-6 text-white" />
@@ -201,7 +201,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
             </div>
 
             {/* Main API Manager - Only for paid users */}
-            <Card className="border-0 shadow-xl bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm">
+            <Card className="border-0 shadow-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
               <CardHeader className="border-b border-zinc-200/60 dark:border-zinc-700/60 pb-6">
                 <div className="flex items-center gap-3">
                   <Key className="w-6 h-6 text-blue-600" />
@@ -302,7 +302,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
             </Card>
 
             {/* Additional Resources */}
-            <Card className="border-0 shadow-lg bg-white/70 dark:bg-zinc-800/70 backdrop-blur-sm">
+            <Card className="border-0 shadow-lg bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ExternalLink className="w-5 h-5 text-amber-600" />

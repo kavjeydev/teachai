@@ -39,9 +39,7 @@ export default function Navbar() {
       {/* Floating Glass Navbar */}
       <nav
         className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-out ${
-          isScrolled
-            ? "w-[95%] max-w-6xl"
-            : "w-[90%] max-w-5xl"
+          isScrolled ? "w-[95%] max-w-6xl" : "w-[90%] max-w-5xl"
         }`}
       >
         <div
@@ -59,12 +57,21 @@ export default function Navbar() {
                 onClick={() => navigateTo("/")}
               >
                 <div className="relative">
-                  <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg shadow-amber-400/25">
-                    <span className="text-white font-bold text-lg font-viaoda">T</span>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <img
+                      src="/trainly_icon_white.png"
+                      alt="Trainly Logo"
+                      className="w-8 h-8 block dark:hidden"
+                    />
+                    <img
+                      src="/trainly_icon_black.png"
+                      alt="Trainly Logo"
+                      className="w-8 h-8 hidden dark:block"
+                    />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl opacity-0 group-hover:opacity-20 blur-md transition-all duration-300"></div>
                 </div>
-                <span className="text-2xl font-viaoda text-zinc-900 dark:text-white group-hover:text-amber-400 transition-colors duration-300">
+                <span className="text-2xl font-sans text-zinc-900 dark:text-white group-hover:text-amber-400 transition-colors duration-300">
                   trainly
                 </span>
               </div>
@@ -121,7 +128,9 @@ export default function Navbar() {
                 {user === undefined && (
                   <div className="flex items-center gap-2">
                     <Spinner size="sm" />
-                    <span className="text-sm text-white/60 hidden sm:block">Loading...</span>
+                    <span className="text-sm text-white/60 hidden sm:block">
+                      Loading...
+                    </span>
                   </div>
                 )}
 
@@ -248,9 +257,7 @@ export default function Navbar() {
                   }}
                   disabled={isNavigating}
                 >
-                  {isNavigating && (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  )}
+                  {isNavigating && <Loader2 className="w-4 h-4 animate-spin" />}
                   Home
                 </button>
                 <button
@@ -284,7 +291,9 @@ export default function Navbar() {
                 {/* Theme Toggle in Mobile Menu */}
                 <div className="pt-2 border-t border-zinc-200 dark:border-white/20">
                   <div className="flex items-center justify-between py-3 px-4">
-                    <span className="text-zinc-700 dark:text-white/80 font-medium">Theme</span>
+                    <span className="text-zinc-700 dark:text-white/80 font-medium">
+                      Theme
+                    </span>
                     <ModeToggle />
                   </div>
                 </div>

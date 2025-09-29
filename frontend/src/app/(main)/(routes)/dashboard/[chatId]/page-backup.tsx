@@ -12,9 +12,12 @@ const HeavyDashboard = dynamic(() => import("./heavy-dashboard"), {
       {/* Sidebar Loading */}
       <div className="w-80 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4">
         <div className="space-y-4 animate-pulse">
-          <div className="h-8 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
+          <div className="h-8 bg-zinc-200 dark:bg-zinc-800 rounded"></div>
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-12 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
+            <div
+              key={i}
+              className="h-12 bg-zinc-200 dark:bg-zinc-800 rounded"
+            ></div>
           ))}
         </div>
       </div>
@@ -22,7 +25,7 @@ const HeavyDashboard = dynamic(() => import("./heavy-dashboard"), {
       {/* Main Chat Loading */}
       <div className="flex-1 flex flex-col">
         <div className="border-b border-zinc-200 dark:border-zinc-800 p-4">
-          <div className="h-6 bg-zinc-200 dark:bg-zinc-700 rounded w-48 animate-pulse"></div>
+          <div className="h-6 bg-zinc-200 dark:bg-zinc-800 rounded w-48 animate-pulse"></div>
         </div>
 
         <div className="flex-1 p-6 space-y-6">
@@ -34,9 +37,9 @@ const HeavyDashboard = dynamic(() => import("./heavy-dashboard"), {
               <div className="flex items-start space-x-3">
                 <div className="w-8 h-8 bg-blue-500 rounded-lg"></div>
                 <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-full animate-pulse"></div>
-                  <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-5/6 animate-pulse"></div>
-                  <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-4/5 animate-pulse"></div>
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-full animate-pulse"></div>
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-5/6 animate-pulse"></div>
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-4/5 animate-pulse"></div>
                 </div>
               </div>
             </div>
@@ -44,11 +47,11 @@ const HeavyDashboard = dynamic(() => import("./heavy-dashboard"), {
         </div>
 
         <div className="border-t border-zinc-200 dark:border-zinc-800 p-4">
-          <div className="h-24 bg-zinc-200 dark:bg-zinc-700 rounded-xl animate-pulse"></div>
+          <div className="h-24 bg-zinc-200 dark:bg-zinc-800 rounded-xl animate-pulse"></div>
         </div>
       </div>
     </div>
-  )
+  ),
 });
 
 interface ChatIdPageProps {

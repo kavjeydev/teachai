@@ -66,7 +66,7 @@ export const GraphSidebar: React.FC<GraphSidebarProps> = ({
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-800/50">
+        <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-900/50">
           {!isCollapsed && (
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
@@ -126,7 +126,7 @@ export const GraphSidebar: React.FC<GraphSidebarProps> = ({
         <div className="flex-1 h-full overflow-hidden">
           {!isCollapsed ? (
             <div className="h-full p-4">
-              <div className="h-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-lg">
+              <div className="h-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-lg">
                 <GraphVisualizationNVL
                   chatId={chatId as string}
                   baseUrl={baseUrl}

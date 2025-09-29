@@ -187,7 +187,7 @@ export function ChatStatsCompact({ stats, chatType }: ChatStatsWidgetProps) {
   const isPrivacyFirst = stats.privacyMode === "privacy_first";
 
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700">
+    <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-zinc-500" />

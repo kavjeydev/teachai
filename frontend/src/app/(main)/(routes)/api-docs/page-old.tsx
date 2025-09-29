@@ -207,7 +207,7 @@ TRAINLY_JWT_SECRET=your_jwt_secret_here`}
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-zinc-800 dark:bg-zinc-700 rounded-xl flex items-center justify-center mb-3 shadow-lg">
+                <div className="w-12 h-12 bg-zinc-800 dark:bg-zinc-800 rounded-xl flex items-center justify-center mb-3 shadow-lg">
                   <span className="text-white font-bold text-lg">1</span>
                 </div>
                 <CardTitle className="text-lg">Setup Chat API</CardTitle>
@@ -217,7 +217,7 @@ TRAINLY_JWT_SECRET=your_jwt_secret_here`}
                   Enable API access for your chat in the Trainly dashboard. Each
                   chat becomes an API endpoint.
                 </p>
-                <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-3">
+                <div className="bg-zinc-100 dark:bg-zinc-900 rounded-lg p-3">
                   <code className="text-xs text-zinc-700 dark:text-zinc-300">
                     Chat Settings → API Access → Generate Key
                   </code>
@@ -227,7 +227,7 @@ TRAINLY_JWT_SECRET=your_jwt_secret_here`}
 
             <Card className="border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-zinc-800 dark:bg-zinc-700 rounded-xl flex items-center justify-center mb-3 shadow-lg">
+                <div className="w-12 h-12 bg-zinc-800 dark:bg-zinc-800 rounded-xl flex items-center justify-center mb-3 shadow-lg">
                   <span className="text-white font-bold text-lg">2</span>
                 </div>
                 <CardTitle className="text-lg">User Authentication</CardTitle>
@@ -237,7 +237,7 @@ TRAINLY_JWT_SECRET=your_jwt_secret_here`}
                   Users authenticate with their Clerk tokens. Exchange for
                   secure Trainly tokens.
                 </p>
-                <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-3">
+                <div className="bg-zinc-100 dark:bg-zinc-900 rounded-lg p-3">
                   <code className="text-xs text-zinc-700 dark:text-zinc-300">
                     POST /oauth/token → Bearer token
                   </code>
@@ -247,7 +247,7 @@ TRAINLY_JWT_SECRET=your_jwt_secret_here`}
 
             <Card className="border border-zinc-200 dark:border-zinc-800 hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-zinc-800 dark:bg-zinc-700 rounded-xl flex items-center justify-center mb-3 shadow-lg">
+                <div className="w-12 h-12 bg-zinc-800 dark:bg-zinc-800 rounded-xl flex items-center justify-center mb-3 shadow-lg">
                   <span className="text-white font-bold text-lg">3</span>
                 </div>
                 <CardTitle className="text-lg">Query & Upload</CardTitle>
@@ -257,7 +257,7 @@ TRAINLY_JWT_SECRET=your_jwt_secret_here`}
                   Users query their private data and upload files with complete
                   privacy protection.
                 </p>
-                <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-3">
+                <div className="bg-zinc-100 dark:bg-zinc-900 rounded-lg p-3">
                   <code className="text-xs text-zinc-700 dark:text-zinc-300">
                     POST /me/chats/query → AI only
                   </code>
@@ -387,7 +387,7 @@ const queryResponse = await fetch('/me/chats/query', {
             <CardContent>
               <div className="space-y-6">
                 <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                  <div className="w-8 h-8 bg-zinc-800 dark:bg-zinc-700 rounded-lg flex items-center justify-center text-white font-bold">
+                  <div className="w-8 h-8 bg-zinc-800 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-white font-bold">
                     1
                   </div>
                   <div>
@@ -401,7 +401,7 @@ const queryResponse = await fetch('/me/chats/query', {
                 </div>
 
                 <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                  <div className="w-8 h-8 bg-zinc-800 dark:bg-zinc-700 rounded-lg flex items-center justify-center text-white font-bold">
+                  <div className="w-8 h-8 bg-zinc-800 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-white font-bold">
                     2
                   </div>
                   <div>
@@ -416,7 +416,7 @@ const queryResponse = await fetch('/me/chats/query', {
                 </div>
 
                 <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                  <div className="w-8 h-8 bg-zinc-800 dark:bg-zinc-700 rounded-lg flex items-center justify-center text-white font-bold">
+                  <div className="w-8 h-8 bg-zinc-800 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-white font-bold">
                     3
                   </div>
                   <div>
@@ -431,7 +431,7 @@ const queryResponse = await fetch('/me/chats/query', {
                 </div>
 
                 <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                  <div className="w-8 h-8 bg-zinc-800 dark:bg-zinc-700 rounded-lg flex items-center justify-center text-white font-bold">
+                  <div className="w-8 h-8 bg-zinc-800 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-white font-bold">
                     4
                   </div>
                   <div>
@@ -660,7 +660,7 @@ app.get('/auth/callback', async (req, res) => {
             </p>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+              <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 border border-green-200 dark:border-green-700">
                 <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3 flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />✅ What Developers Get
                 </h4>
@@ -683,7 +683,7 @@ app.get('/auth/callback', async (req, res) => {
                   </li>
                 </ul>
               </div>
-              <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 border border-red-200 dark:border-red-700">
+              <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 border border-red-200 dark:border-red-700">
                 <h4 className="font-semibold text-red-800 dark:text-red-200 mb-3 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5" />❌ What's Protected
                 </h4>
@@ -862,7 +862,7 @@ app.get('/auth/callback', async (req, res) => {
                     <Badge variant="outline" className="mb-2">
                       Required Headers
                     </Badge>
-                    <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-3">
+                    <div className="bg-zinc-100 dark:bg-zinc-900 rounded-lg p-3">
                       <code className="text-sm">
                         Authorization: Bearer &lt;trainly_token&gt;
                       </code>
@@ -1461,7 +1461,7 @@ export async function getSessionFromRequest(
                 <div>
                   <h4 className="font-semibold mb-3">
                     Login Route -{" "}
-                    <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-sm">
+                    <code className="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded text-sm">
                       src/app/api/auth/login/route.ts
                     </code>
                   </h4>
@@ -1611,7 +1611,7 @@ export async function POST(req: NextRequest) {
                 <div>
                   <h4 className="font-semibold mb-3">
                     Session Validation -{" "}
-                    <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-sm">
+                    <code className="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded text-sm">
                       src/app/api/auth/me/route.ts
                     </code>
                   </h4>
@@ -1687,7 +1687,7 @@ export async function GET(req: NextRequest) {
               <div className="space-y-4">
                 <p className="text-zinc-600 dark:text-zinc-400">
                   Create{" "}
-                  <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                  <code className="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded">
                     src/contexts/AuthContext.tsx
                   </code>{" "}
                   that uses server-side sessions:
@@ -2174,7 +2174,7 @@ export function useTrainlyHybrid(config: TrainlyConfig) {
               <div className="space-y-4">
                 <p className="text-zinc-600 dark:text-zinc-400">
                   Set up your environment variables in{" "}
-                  <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                  <code className="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded">
                     .env.local
                   </code>
                   :
@@ -2599,7 +2599,7 @@ export function ChatComponent({ chatId }) {
           </div>
 
           {answer && (
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded">
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded">
               <h4 className="font-medium mb-2">Answer:</h4>
               <p className="text-zinc-700 dark:text-zinc-300">{answer}</p>
             </div>
@@ -2616,7 +2616,7 @@ export function ChatComponent({ chatId }) {
                   className="absolute top-2 right-2 text-zinc-400 hover:text-white"
                   onClick={() =>
                     copyToClipboard(
-                      `import { useTrainly } from 'trainly-react-sdk';\n\nexport function ChatComponent({ chatId }) {\n  const { connect, query, isConnected, isLoading } = useTrainly(chatId);\n  const [question, setQuestion] = useState('');\n  const [answer, setAnswer] = useState('');\n\n  const handleConnect = async () => {\n    try {\n      await connect();\n      console.log('Connected to Trainly!');\n    } catch (error) {\n      console.error('Connection failed:', error);\n    }\n  };\n\n  const handleQuery = async () => {\n    if (!question.trim()) return;\n    \n    try {\n      const response = await query(question);\n      setAnswer(response.answer);\n    } catch (error) {\n      console.error('Query failed:', error);\n    }\n  };\n\n  return (\n    <div className="space-y-4">\n      {!isConnected ? (\n        <button \n          onClick={handleConnect}\n          disabled={isLoading}\n          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"\n        >\n          {isLoading ? 'Connecting...' : 'Connect to Trainly'}\n        </button>\n      ) : (\n        <div className="space-y-4">\n          <div className="flex items-center gap-2 text-green-600">\n            ✅ Connected to Trainly\n          </div>\n          \n          <div className="space-y-2">\n            <input\n              type="text"\n              value={question}\n              onChange={(e) => setQuestion(e.target.value)}\n              placeholder="Ask a question..."\n              className="w-full p-2 border rounded"\n            />\n            <button\n              onClick={handleQuery}\n              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"\n            >\n              Ask AI\n            </button>\n          </div>\n\n          {answer && (\n            <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded">\n              <h4 className="font-medium mb-2">Answer:</h4>\n              <p className="text-zinc-700 dark:text-zinc-300">{answer}</p>\n            </div>\n          )}\n        </div>\n      )}\n    </div>\n  );\n}`,
+                      `import { useTrainly } from 'trainly-react-sdk';\n\nexport function ChatComponent({ chatId }) {\n  const { connect, query, isConnected, isLoading } = useTrainly(chatId);\n  const [question, setQuestion] = useState('');\n  const [answer, setAnswer] = useState('');\n\n  const handleConnect = async () => {\n    try {\n      await connect();\n      console.log('Connected to Trainly!');\n    } catch (error) {\n      console.error('Connection failed:', error);\n    }\n  };\n\n  const handleQuery = async () => {\n    if (!question.trim()) return;\n    \n    try {\n      const response = await query(question);\n      setAnswer(response.answer);\n    } catch (error) {\n      console.error('Query failed:', error);\n    }\n  };\n\n  return (\n    <div className="space-y-4">\n      {!isConnected ? (\n        <button \n          onClick={handleConnect}\n          disabled={isLoading}\n          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"\n        >\n          {isLoading ? 'Connecting...' : 'Connect to Trainly'}\n        </button>\n      ) : (\n        <div className="space-y-4">\n          <div className="flex items-center gap-2 text-green-600">\n            ✅ Connected to Trainly\n          </div>\n          \n          <div className="space-y-2">\n            <input\n              type="text"\n              value={question}\n              onChange={(e) => setQuestion(e.target.value)}\n              placeholder="Ask a question..."\n              className="w-full p-2 border rounded"\n            />\n            <button\n              onClick={handleQuery}\n              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"\n            >\n              Ask AI\n            </button>\n          </div>\n\n          {answer && (\n            <div className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded">\n              <h4 className="font-medium mb-2">Answer:</h4>\n              <p className="text-zinc-700 dark:text-zinc-300">{answer}</p>\n            </div>\n          )}\n        </div>\n      )}\n    </div>\n  );\n}`,
                       "React component",
                     )
                   }
@@ -2709,7 +2709,7 @@ export function ChatComponent({ chatId }) {
           {/* Header */}
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
               </div>
               <div>
@@ -2739,7 +2739,7 @@ export function ChatComponent({ chatId }) {
                       className={cn(
                         "w-full text-left flex items-center justify-between p-3 rounded-lg transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800",
                         selectedSection === item.id
-                          ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700"
+                          ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700"
                           : "text-zinc-700 dark:text-zinc-300",
                       )}
                     >

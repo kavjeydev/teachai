@@ -594,6 +594,17 @@ function Dashboard({ params }: ChatIdPageProps) {
     // Monitor streaming progress
   }, [streamingContent]);
 
+  // Copy to clipboard function
+  const copyToClipboard = async (text: string, messageType: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${messageType} copied to clipboard!`);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      toast.error("Failed to copy to clipboard");
+    }
+  };
+
   // Optimized message component with React.memo for performance
   const MessageComponent = React.memo(
     ({
@@ -605,70 +616,148 @@ function Dashboard({ params }: ChatIdPageProps) {
       msg: any;
       index: number;
       user: any;
-      onCitationClick: (chunkIndex: number, context: any[]) => void;
-    }) => (
-      <div className="mb-8">
-        {msg.sender === "user" ? (
-          // User message - improved bubble style with better padding
-          <div className="flex justify-end gap-4 mb-6">
-            <div className="bg-amber-400 text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed max-w-[75%] shadow-lg shadow-amber-400/20 font-inter selectable">
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHTML(msg.text),
-                }}
-              />
+      onCitationClick: (
+        chunkIndex: number,
+        context: any[],
+        messageText?: string,
+      ) => void;
+    }) => {
+      // Strip HTML tags to get plain text for copying
+      const getPlainText = (htmlContent: string) => {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = htmlContent;
+        return tempDiv.textContent || tempDiv.innerText || "";
+      };
+
+      return (
+        <div className="mb-8">
+          {msg.sender === "user" ? (
+            // User message - improved bubble style with better padding
+            <div className="flex justify-end gap-4 mb-6 group">
+              {/* Copy indicator above bubble */}
+              <div className="flex flex-col items-end max-w-[75%]">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-zinc-500 dark:text-zinc-400 mb-1 pointer-events-none">
+                  Click to copy
+                </div>
+                <div
+                  className="bg-amber-400 text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed w-full shadow-lg shadow-amber-400/20 font-sans selectable cursor-pointer hover:bg-amber-500 transition-colors duration-200"
+                  onClick={() =>
+                    copyToClipboard(getPlainText(msg.text), "Message")
+                  }
+                  title="Click to copy message"
+                >
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHTML(msg.text),
+                    }}
+                  />
+                </div>
+              </div>
+              {user?.imageUrl && (
+                <img
+                  src={user.imageUrl}
+                  className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
+                  alt="User avatar"
+                  loading="lazy"
+                />
+              )}
             </div>
-            {user?.imageUrl && (
-              <img
-                src={user.imageUrl}
-                className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
-                alt="User avatar"
-                loading="lazy"
-              />
-            )}
-          </div>
-        ) : (
-          // AI response - improved formatting for better readability
-          <div className="flex gap-4 mb-6">
-            <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-amber-400/20">
-              <span className="text-white font-bold text-xs">T</span>
+          ) : (
+            // AI response - improved formatting for better readability
+            <div className="flex gap-4 mb-6 group">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                <img
+                  src="/trainly_icon_white.png"
+                  alt="Trainly Logo"
+                  className="w-6 h-6 block dark:hidden"
+                />
+                <img
+                  src="/trainly_icon_black.png"
+                  alt="Trainly Logo"
+                  className="w-6 h-6 hidden dark:block"
+                />
+              </div>
+              <div className="flex flex-col max-w-[90%]">
+                {/* Copy indicator above bubble */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-zinc-500 dark:text-zinc-400 mb-1 pointer-events-none">
+                  Click to copy
+                </div>
+                <div
+                  className="bg-zinc-50 dark:bg-zinc-900 rounded-2xl px-5 py-4 w-full shadow-sm selectable cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200"
+                  onClick={() =>
+                    copyToClipboard(getPlainText(msg.text), "Response")
+                  }
+                  title="Click to copy response"
+                >
+                  <CitationMarkdown
+                    content={msg.text}
+                    reasoningContext={msg.reasoningContext || []}
+                    onCitationClick={(chunkIndex) => {
+                      onCitationClick(
+                        chunkIndex,
+                        msg.reasoningContext || [],
+                        msg.text,
+                      );
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable">
-              <CitationMarkdown
-                content={msg.text}
-                reasoningContext={msg.reasoningContext || []}
-                onCitationClick={(chunkIndex) => {
-                  onCitationClick(chunkIndex, msg.reasoningContext || []);
-                }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-    ),
+          )}
+        </div>
+      );
+    },
   );
 
   MessageComponent.displayName = "MessageComponent";
 
+  // Helper function to extract all citation indices from response text
+  const extractCitationIndices = (text: string): number[] => {
+    const citationRegex = /\[\^(\d+)\^*\]/g;
+    const indices = new Set<number>();
+    let match;
+
+    while ((match = citationRegex.exec(text)) !== null) {
+      indices.add(parseInt(match[1]));
+    }
+
+    return Array.from(indices).sort((a, b) => a - b);
+  };
+
   // Handle citation clicks to open inspector - MOVED BEFORE useMemo
   const handleCitationClick = React.useCallback(
-    (chunkIndex: number, messageReasoningContext: any[]) => {
+    (
+      chunkIndex: number,
+      messageReasoningContext: any[],
+      messageText?: string,
+    ) => {
       if (messageReasoningContext[chunkIndex]) {
         const clickedChunk = messageReasoningContext[chunkIndex];
 
-        // Option 1: Show only the clicked chunk (most specific)
-        // const relatedChunks = [clickedChunk];
+        // NEW: Parse the message text to find which chunks are actually cited
+        let relatedChunks = messageReasoningContext;
 
-        // Option 2: Show all chunks from this message (current behavior)
-        const relatedChunks = messageReasoningContext;
+        if (messageText) {
+          const citedIndices = extractCitationIndices(messageText);
+          console.log("📝 Found citations for indices:", citedIndices);
 
-        // Option 3: Show chunks from the same document within this message (original behavior)
-        // const documentId = clickedChunk.chunk_id.split("-")[0];
-        // const relatedChunks = messageReasoningContext.filter((chunk) =>
-        //   chunk.chunk_id.startsWith(documentId + "-"),
-        // );
+          // Only show chunks that are actually cited in the response
+          relatedChunks = citedIndices
+            .map((index) => messageReasoningContext[index])
+            .filter((chunk) => chunk !== undefined);
 
-        // Processing related chunks
+          console.log(
+            `🎯 Filtered from ${messageReasoningContext.length} to ${relatedChunks.length} chunks`,
+          );
+
+          // If no citations found in text, fall back to showing all chunks
+          if (relatedChunks.length === 0) {
+            console.log(
+              "⚠️ No valid citations found, falling back to all chunks",
+            );
+            relatedChunks = messageReasoningContext;
+          }
+        }
 
         // Convert chunks to CitedNode format for inspector
         try {
@@ -1147,10 +1236,10 @@ function Dashboard({ params }: ChatIdPageProps) {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-viaoda font-normal text-zinc-900 dark:text-white mb-3">
+                  <h3 className="text-2xl font-sans font-normal text-zinc-900 dark:text-white mb-3">
                     Start Your GraphRAG Chat
                   </h3>
-                  <p className="text-base text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto leading-relaxed font-inter">
+                  <p className="text-base text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto leading-relaxed font-sans">
                     Upload documents and ask questions to build your knowledge
                     graph. Watch as relationships form and your AI becomes more
                     intelligent.
@@ -1168,36 +1257,64 @@ function Dashboard({ params }: ChatIdPageProps) {
                 key={`streaming-${streamingContent.length}`}
                 className="mb-8"
               >
-                <div className="flex gap-4 mb-6">
-                  <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-amber-400/20">
-                    <span className="text-white font-bold text-xs">T</span>
+                <div className="flex gap-4 mb-6 group">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                    <img
+                      src="/trainly_icon_white.png"
+                      alt="Trainly Logo"
+                      className="w-6 h-6 block dark:hidden"
+                    />
+                    <img
+                      src="/trainly_icon_black.png"
+                      alt="Trainly Logo"
+                      className="w-6 h-6 hidden dark:block"
+                    />
                   </div>
-                  <div
-                    ref={streamingRef}
-                    className="bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 py-4 max-w-[90%] shadow-sm selectable"
-                  >
-                    {streamingContent ? (
-                      <div className="whitespace-pre-wrap text-zinc-900 dark:text-white text-sm leading-relaxed font-inter">
-                        {streamingContent}
-                        {/* Blinking cursor to show active streaming */}
-                        <span className="inline-block w-0.5 h-5 bg-amber-400 ml-1 animate-pulse"></span>
-                      </div>
-                    ) : (
-                      <div className="text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
-                          <div
-                            className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
-                        </div>
-                        <span>Thinking...</span>
+                  <div className="flex flex-col max-w-[90%]">
+                    {/* Copy indicator above bubble for streaming content */}
+                    {streamingContent && (
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-zinc-500 dark:text-zinc-400 mb-1 pointer-events-none">
+                        Click to copy
                       </div>
                     )}
+                    <div
+                      ref={streamingRef}
+                      className={`bg-zinc-50 dark:bg-zinc-900 rounded-2xl px-5 py-4 w-full shadow-sm selectable ${
+                        streamingContent
+                          ? "cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200"
+                          : ""
+                      }`}
+                      onClick={() =>
+                        streamingContent &&
+                        copyToClipboard(streamingContent, "Response")
+                      }
+                      title={
+                        streamingContent ? "Click to copy response" : undefined
+                      }
+                    >
+                      {streamingContent ? (
+                        <div className="whitespace-pre-wrap text-zinc-900 dark:text-white text-sm leading-relaxed font-sans">
+                          {streamingContent}
+                          {/* Blinking cursor to show active streaming */}
+                          <span className="inline-block w-0.5 h-5 bg-amber-400 ml-1 animate-pulse"></span>
+                        </div>
+                      ) : (
+                        <div className="text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
+                            <div
+                              className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0.1s" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0.2s" }}
+                            ></div>
+                          </div>
+                          <span>Thinking...</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1355,7 +1472,7 @@ function Dashboard({ params }: ChatIdPageProps) {
                         {progressText}
                       </span>
                     </div>
-                    <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
                       <div
                         className="bg-gradient-to-r from-amber-400 to-amber-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
@@ -1378,11 +1495,11 @@ function Dashboard({ params }: ChatIdPageProps) {
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                     <span>Press</span>
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-800 rounded text-xs font-mono">
                       Enter
                     </kbd>
                     <span>to send,</span>
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-800 rounded text-xs font-mono">
                       Shift+Enter
                     </kbd>
                     <span>for new line</span>

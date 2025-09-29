@@ -157,8 +157,17 @@ export function AppSidebar({
     <Sidebar className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border-r border-zinc-200/50 dark:border-zinc-800/50">
       <SidebarHeader className="p-6 border-b border-zinc-200/50 dark:border-zinc-800/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-sm">T</span>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center">
+            <img
+              src="/trainly_icon_white.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 block dark:hidden"
+            />
+            <img
+              src="/trainly_icon_black.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 hidden dark:block"
+            />
           </div>
           <span className="text-xl font-bold text-zinc-900 dark:text-white">
             trainly
@@ -190,7 +199,7 @@ export function AppSidebar({
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus:border-amber-400/50 rounded-xl"
+                className="pl-10 bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 focus:border-amber-400/50 rounded-xl"
               />
             </div>
 
@@ -202,7 +211,7 @@ export function AppSidebar({
                   "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium",
                   showFilters
                     ? "bg-amber-400/10 text-amber-400"
-                    : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700",
+                    : "bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-700",
                 )}
               >
                 <Filter className="h-3 w-3" />
@@ -213,7 +222,7 @@ export function AppSidebar({
                 onClick={() =>
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                 }
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-sm"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-sm"
               >
                 {sortOrder === "asc" ? (
                   <SortAsc className="h-3 w-3" />
@@ -235,7 +244,7 @@ export function AppSidebar({
                     onChange={(e) =>
                       setSortBy(e.target.value as "date" | "name" | "activity")
                     }
-                    className="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50 transition-colors"
+                    className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50 transition-colors"
                   >
                     <option value="date">📅 Date Created</option>
                     <option value="name">🔤 Name</option>
@@ -250,7 +259,7 @@ export function AppSidebar({
                   <select
                     value={selectedFolder}
                     onChange={(e) => setSelectedFolder(e.target.value)}
-                    className="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50 transition-colors"
+                    className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50 transition-colors"
                   >
                     <option value="all">📁 All Chats</option>
                     <option value="general">💬 General</option>
@@ -263,13 +272,13 @@ export function AppSidebar({
                 {/* Quick Stats */}
                 <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-center p-2 bg-white dark:bg-zinc-800 rounded-lg">
+                    <div className="text-center p-2 bg-white dark:bg-zinc-900 rounded-lg">
                       <div className="font-bold text-amber-400">
                         {chats?.length || 0}
                       </div>
                       <div className="text-zinc-500">Total</div>
                     </div>
-                    <div className="text-center p-2 bg-white dark:bg-zinc-800 rounded-lg">
+                    <div className="text-center p-2 bg-white dark:bg-zinc-900 rounded-lg">
                       <div className="font-bold text-amber-400">
                         {filteredAndSortedChats.length}
                       </div>

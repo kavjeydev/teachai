@@ -491,7 +491,7 @@ print('Total:', data['total'])`
                             {endpoint.parameters.map((param, idx) => (
                               <div key={idx} className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
                                 <div className="flex items-center gap-3 mb-2">
-                                  <code className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-sm font-mono">
+                                  <code className="px-2 py-1 bg-zinc-100 dark:bg-zinc-900 rounded text-sm font-mono">
                                     {param.name}
                                   </code>
                                   <Badge variant="outline" className="text-xs">

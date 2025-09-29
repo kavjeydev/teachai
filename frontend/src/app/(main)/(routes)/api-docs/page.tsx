@@ -102,7 +102,7 @@ export default function ApiDocsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="border-zinc-200 dark:border-zinc-800">
               <CardHeader className="pb-4">
-                <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-3">
+                <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center mb-3">
                   <span className="text-zinc-700 dark:text-zinc-300 font-semibold">
                     1
                   </span>
@@ -124,7 +124,7 @@ export default function ApiDocsPage() {
             </Card>
             <Card className="border-zinc-200 dark:border-zinc-800">
               <CardHeader className="pb-4">
-                <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-3">
+                <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center mb-3">
                   <span className="text-zinc-700 dark:text-zinc-300 font-semibold">
                     2
                   </span>
@@ -516,7 +516,7 @@ export function ChatComponent({ chatId }) {
                 </div>
                 <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 rounded flex items-center justify-center">
+                    <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-800 rounded flex items-center justify-center">
                       <Upload className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                     </div>
                     <div className="font-medium text-zinc-900 dark:text-white">
@@ -529,7 +529,7 @@ export function ChatComponent({ chatId }) {
                 </div>
                 <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 rounded flex items-center justify-center">
+                    <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-800 rounded flex items-center justify-center">
                       <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                     </div>
                     <div className="font-medium text-zinc-900 dark:text-white">
@@ -601,7 +601,7 @@ export function ChatComponent({ chatId }) {
             <CardContent>
               <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded flex items-center justify-center">
+                  <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-800 rounded flex items-center justify-center">
                     <Users className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                   </div>
                   <div>
@@ -629,7 +629,7 @@ export function ChatComponent({ chatId }) {
                 </div>
                 <ArrowRight className="w-5 h-5 text-zinc-400" />
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded flex items-center justify-center">
+                  <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-800 rounded flex items-center justify-center">
                     <Globe className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                   </div>
                   <div>
@@ -657,7 +657,7 @@ export function ChatComponent({ chatId }) {
           {/* Header */}
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
               </div>
               <div>
@@ -686,7 +686,7 @@ export function ChatComponent({ chatId }) {
                       className={cn(
                         "w-full text-left flex items-center justify-between p-3 rounded-lg transition-all",
                         selectedSection === item.id
-                          ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                          ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white"
                           : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
                       )}
                     >
@@ -749,7 +749,7 @@ export function ChatComponent({ chatId }) {
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <BookOpen className="w-8 h-8 text-zinc-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">

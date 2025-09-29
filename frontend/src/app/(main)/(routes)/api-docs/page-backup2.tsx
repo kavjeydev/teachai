@@ -127,7 +127,7 @@ export default function ApiDocsRedesigned() {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                   Enable API access for your chat in the Trainly dashboard
                 </p>
-                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded block">
                   Chat Settings → API Access → Generate Key
                 </code>
               </CardContent>
@@ -144,7 +144,7 @@ export default function ApiDocsRedesigned() {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                   Exchange user's Clerk token for secure Trainly token
                 </p>
-                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded block">
                   POST /oauth/token → Bearer token
                 </code>
               </CardContent>
@@ -161,7 +161,7 @@ export default function ApiDocsRedesigned() {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
                   Users query their private data with complete privacy protection
                 </p>
-                <code className="text-xs bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
+                <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded block">
                   POST /me/chats/query → AI responses only
                 </code>
               </CardContent>

@@ -113,7 +113,7 @@ export function GraphSlideout({
 
       {/* Graph Content */}
       <div className="flex-1 overflow-hidden p-6">
-        <div className="h-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-lg">
+        <div className="h-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-lg">
           <GraphVisualizationNVL
             chatId={chatId as string}
             baseUrl={baseUrl}

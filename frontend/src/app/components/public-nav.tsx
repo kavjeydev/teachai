@@ -8,7 +8,7 @@ export const PublicNav = () => {
   return (
     <div className="absolute z-[999999] top-0 left-0 h-16 w-screen flex justify-between px-8 items-center">
       <h1
-        className="font-literata text-2xl cursor-pointer dark:text-white text-black"
+        className="font-sans text-2xl cursor-pointer dark:text-white text-black"
         onClick={() => router.push("/")}
       >
         trainly

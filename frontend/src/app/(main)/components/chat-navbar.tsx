@@ -141,7 +141,7 @@ export const ChatNavbar = ({
             </div>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-[425px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+          <DialogContent className="sm:max-w-[425px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
             <DialogHeader>
               <DialogTitle className="text-zinc-900 dark:text-white">
                 Rename Chat
@@ -218,7 +218,7 @@ export const ChatNavbar = ({
 
         {/* Credit Counter - Show for paid users */}
         {subscription?.tier !== 'free' && credits && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
               {(credits.remainingCredits || 0).toFixed(1)} credits
@@ -263,14 +263,14 @@ export const ChatNavbar = ({
         )}
 
         <Select onValueChange={handleVisibilityChange}>
-          <SelectTrigger className="w-[120px] h-8 text-sm border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-amber-400/50 transition-colors">
+          <SelectTrigger className="w-[120px] h-8 text-sm border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-amber-400/50 transition-colors">
             <SelectValue
               placeholder={
                 currentChat?.visibility === "public" ? "Public" : "Private"
               }
             />
           </SelectTrigger>
-          <SelectContent className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+          <SelectContent className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
             <SelectGroup>
               <SelectItem
                 value="private"
@@ -299,7 +299,7 @@ export const ChatNavbar = ({
             "border font-medium",
             currentChat?.visibility === "public"
               ? "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400"
-              : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700",
+              : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-700",
           )}
           variant="outline"
         >

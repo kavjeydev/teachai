@@ -301,7 +301,7 @@ export default function AppAuthorizePage() {
             </CardHeader>
             <CardContent>
               {/* App Information */}
-              <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 mb-6">
+              <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold mb-2">App Details</h3>
                 <div className="space-y-2 text-sm">
                   <div>

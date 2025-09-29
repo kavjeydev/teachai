@@ -85,7 +85,7 @@ export default function MinimalDashboard({ params }: MinimalDashboardProps) {
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0">
                           <Sparkles className="w-4 h-4 text-white" />
                         </div>
-                        <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-4 py-3 max-w-[85%] text-sm">
+                        <div className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl px-4 py-3 max-w-[85%] text-sm">
                           <div className="whitespace-pre-wrap">{msg.text}</div>
                         </div>
                       </div>

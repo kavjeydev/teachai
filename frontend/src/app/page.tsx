@@ -103,7 +103,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-zinc-950 dark:via-black dark:to-zinc-950 text-zinc-900 dark:text-white overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-white via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-black dark:to-zinc-950 text-zinc-900 dark:text-white overflow-hidden">
       <Navbar />
 
       {/* Hero Section - Minimal Awwwards Style */}
@@ -112,35 +112,35 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-100 via-white to-zinc-50 dark:from-black dark:via-zinc-950 dark:to-black"></div>
 
         {/* Enhanced floating elements for better glass visibility */}
-        <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gradient-to-br from-amber-600/15 to-amber-700/15 dark:from-amber-400/8 dark:to-amber-600/8 rounded-full blur-3xl animate-float opacity-70"></div>
+        <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gradient-to-br from-amber-400/8 to-amber-600/8 rounded-full blur-3xl animate-float opacity-70"></div>
         <div
-          className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-amber-400/8 to-blue-600/8 dark:from-amber-400/4 dark:to-blue-600/4 rounded-full blur-3xl animate-float opacity-50"
+          className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-amber-400/4 to-blue-600/4 rounded-full blur-3xl animate-float opacity-50"
           style={{ animationDelay: "3s" }}
         ></div>
         <div
-          className="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-600/8 to-amber-600/8 dark:from-amber-600/4 dark:to-amber-600/4 rounded-full blur-3xl animate-float opacity-40"
+          className="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-600/4 to-amber-600/4 rounded-full blur-3xl animate-float opacity-40"
           style={{ animationDelay: "6s" }}
         ></div>
 
         <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
           {/* Minimal Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-white/70 text-sm font-light mb-12 backdrop-blur-sm bg-white/50 dark:bg-transparent">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 dark:border-white/20 text-zinc-600 dark:text-white/70 text-sm font-light mb-12 backdrop-blur-sm bg-white/50 dark:bg-transparent">
             <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
             <span>Ship AI in minutes, not months</span>
           </div>
 
           {/* Main Headline - Ultra Minimal */}
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-viaoda font-normal tracking-tight mb-8 leading-[0.9]">
-            <span className="block text-zinc-900 dark:text-white/95 mb-2">
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-sans font-normal tracking-tight mb-8 leading-[0.9]">
+            <span className="block text-zinc-900 dark:text-white mb-2 tracking-tighter">
               AI you can
             </span>
-            <span className="block bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 bg-clip-text text-transparent">
+            <span className="block text-zinc-900 dark:text-white tracking-tighter">
               see & shape
             </span>
           </h1>
 
           {/* Minimal Subheadline */}
-          <p className="text-lg md:text-xl text-zinc-600 dark:text-white/60 mb-16 max-w-2xl mx-auto leading-relaxed font-light">
+          <p className="text-lg md:text-xl text-zinc-600 dark:text-white/70 mb-16 max-w-2xl mx-auto leading-relaxed font-light tracking-tighter">
             Ship production AI in 2 minutes with visual GraphRAG debugging
           </p>
 
@@ -156,19 +156,19 @@ export default function Home() {
             )}
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-600/25 dark:hover:shadow-amber-400/25">
+                <button className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-400/25">
                   <span className="relative z-10 flex items-center gap-2">
                     Start Building Free
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute inset-0 bg-zinc-900 dark:bg-white group-hover:bg-transparent transition-colors duration-300"></div>
                 </button>
               </SignInButton>
             </SignedOut>
             <SignedIn>
               <button
-                className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-600/25 dark:hover:shadow-amber-400/25 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-400/25 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                 onClick={() => navigateTo("/dashboard")}
                 disabled={isNavigating}
               >
@@ -182,12 +182,12 @@ export default function Home() {
                     </>
                   )}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute inset-0 bg-zinc-900 dark:bg-white group-hover:bg-transparent transition-colors duration-300"></div>
               </button>
             </SignedIn>
             <button
-              className="group border border-zinc-300 dark:border-white/20 text-zinc-700 dark:text-white px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:border-amber-600 hover:bg-amber-600/5 dark:hover:border-amber-400 dark:hover:bg-amber-400/5 backdrop-blur-sm flex items-center gap-2"
+              className="group border border-zinc-300 dark:border-white/20 text-zinc-700 dark:text-white px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:border-amber-400 hover:bg-amber-400/5 backdrop-blur-sm flex items-center gap-2"
               onClick={() =>
                 window.open("https://docs.trainlyai.com", "_blank")
               }
@@ -209,34 +209,34 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-16">
             <div className="text-center group">
-              <div className="text-6xl md:text-7xl font-viaoda bg-gradient-to-r from-amber-400 to-amber-400 bg-clip-text text-transparent mb-4 group-hover:scale-105 transition-all duration-500">
+              <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
                 2min
               </div>
-              <div className="text-zinc-500 dark:text-zinc-400 font-light text-sm tracking-wide uppercase">
+              <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
                 to production
               </div>
             </div>
             <div className="text-center group">
-              <div className="text-6xl md:text-7xl font-viaoda bg-gradient-to-r from-amber-400 to-amber-400 bg-clip-text text-transparent mb-4 group-hover:scale-105 transition-all duration-500">
+              <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
                 90%
               </div>
-              <div className="text-zinc-500 dark:text-zinc-400 font-light text-sm tracking-wide uppercase">
+              <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
                 fewer hallucinations
               </div>
             </div>
             <div className="text-center group">
-              <div className="text-6xl md:text-7xl font-viaoda bg-gradient-to-r from-amber-400 to-amber-400 bg-clip-text text-transparent mb-4 group-hover:scale-105 transition-all duration-500">
+              <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
                 100%
               </div>
-              <div className="text-zinc-500 dark:text-zinc-400 font-light text-sm tracking-wide uppercase">
+              <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
                 source traceable
               </div>
             </div>
             <div className="text-center group">
-              <div className="text-6xl md:text-7xl font-viaoda bg-gradient-to-r from-amber-400 to-amber-400 bg-clip-text text-transparent mb-4 group-hover:scale-105 transition-all duration-500">
+              <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
                 500+
               </div>
-              <div className="text-zinc-500 dark:text-zinc-400 font-light text-sm tracking-wide uppercase">
+              <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
                 developers
               </div>
             </div>
@@ -249,12 +249,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6">
           {/* Minimal Section Header */}
           <div className="text-center mb-32">
-            <h2 className="text-5xl md:text-7xl font-viaoda font-normal text-zinc-900 dark:text-white mb-8 leading-[0.9]">
+            <h2 className="text-5xl md:text-7xl font-sans font-normal text-zinc-900 dark:text-white mb-8 leading-[0.9]">
               Ship AI faster than
               <br />
-              <span className="bg-gradient-to-r from-amber-400 to-amber-400 bg-clip-text text-transparent">
-                ever before
-              </span>
+              <span className="text-zinc-900 dark:text-white">ever before</span>
             </h2>
           </div>
 
@@ -262,13 +260,13 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
             {/* Visual Debugging */}
             <div className="group text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-amber-600/10 to-amber-700/10 dark:from-amber-400/10 dark:to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-600/20 dark:border-amber-400/20">
-                <Brain className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+              <div className="w-20 h-20 bg-gradient-to-br from-amber-400/10 to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-400/20">
+                <Brain className="w-10 h-10 text-amber-400" />
               </div>
-              <h3 className="text-2xl font-viaoda text-zinc-900 dark:text-white mb-6">
+              <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
                 Visual Debugging
               </h3>
-              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed font-light">
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
                 See your AI's reasoning process in real-time. Debug AI like code
                 with visual breakpoints.
               </p>
@@ -276,13 +274,13 @@ export default function Home() {
 
             {/* GraphRAG */}
             <div className="group text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-amber-600/10 to-amber-700/10 dark:from-amber-400/10 dark:to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-600/20 dark:border-amber-400/20">
-                <Layers className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+              <div className="w-20 h-20 bg-gradient-to-br from-amber-400/10 to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-400/20">
+                <Layers className="w-10 h-10 text-amber-400" />
               </div>
-              <h3 className="text-2xl font-viaoda text-zinc-900 dark:text-white mb-6">
+              <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
                 Reliable GraphRAG
               </h3>
-              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed font-light">
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
                 Knowledge graphs with complete traceability. 90% fewer
                 hallucinations guaranteed.
               </p>
@@ -290,13 +288,13 @@ export default function Home() {
 
             {/* Instant Deploy */}
             <div className="group text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-amber-600/10 to-amber-700/10 dark:from-amber-400/10 dark:to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-600/20 dark:border-amber-400/20">
-                <Zap className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+              <div className="w-20 h-20 bg-gradient-to-br from-amber-400/10 to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-400/20">
+                <Zap className="w-10 h-10 text-amber-400" />
               </div>
-              <h3 className="text-2xl font-viaoda text-zinc-900 dark:text-white mb-6">
+              <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
                 2-Minute Deploy
               </h3>
-              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed font-light">
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
                 From upload to production API in 120 seconds. No complex setup
                 required.
               </p>
@@ -309,16 +307,16 @@ export default function Home() {
       <section className="py-32 relative">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <div className="flex justify-center items-center gap-16 opacity-50">
-            <span className="text-sm font-light text-zinc-400 dark:text-zinc-500 tracking-widest uppercase">
+            <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
               YC Startups
             </span>
-            <span className="text-sm font-light text-zinc-400 dark:text-zinc-500 tracking-widest uppercase">
+            <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
               Research Labs
             </span>
-            <span className="text-sm font-light text-zinc-400 dark:text-zinc-500 tracking-widest uppercase">
+            <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
               Indie Hackers
             </span>
-            <span className="text-sm font-light text-zinc-400 dark:text-zinc-500 tracking-widest uppercase">
+            <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
               Fortune 500
             </span>
           </div>
@@ -328,26 +326,26 @@ export default function Home() {
       {/* Final CTA - Ultra Minimal */}
       <section className="py-40 relative">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-6xl md:text-8xl font-viaoda font-normal text-zinc-900 dark:text-white mb-12 leading-[0.9]">
+          <h2 className="text-6xl md:text-8xl font-sans font-normal text-black dark:text-white mb-12 leading-[0.9]">
             Ready to build?
           </h2>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-12 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-600/25 dark:hover:shadow-amber-400/25">
+                <button className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-12 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-400/25">
                   <span className="relative z-10 flex items-center gap-2">
                     Start Building Free
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute inset-0 bg-zinc-900 dark:bg-white group-hover:bg-transparent transition-colors duration-300"></div>
                 </button>
               </SignInButton>
             </SignedOut>
             <SignedIn>
               <button
-                className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-12 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-600/25 dark:hover:shadow-amber-400/25 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-12 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-400/25 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                 onClick={() => navigateTo("/dashboard")}
                 disabled={isNavigating}
               >
@@ -361,14 +359,14 @@ export default function Home() {
                     </>
                   )}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute inset-0 bg-zinc-900 dark:bg-white group-hover:bg-transparent transition-colors duration-300"></div>
               </button>
             </SignedIn>
           </div>
 
           <div className="text-center opacity-60">
-            <p className="text-sm text-zinc-400 dark:text-zinc-500 font-light tracking-wide">
+            <p className="text-sm text-zinc-400 dark:text-white/40 font-light tracking-wide">
               No credit card • Free forever
             </p>
           </div>

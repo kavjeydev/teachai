@@ -95,7 +95,7 @@ export default function GraphPage({ params }: GraphPageProps) {
 
         {/* Graph Container */}
         <div className="flex-1 p-6">
-          <div className="h-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur-xl rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-2xl overflow-hidden flex flex-col">
+          <div className="h-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-2xl overflow-hidden flex flex-col">
             {/* Graph Header */}
             <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-900/50 flex-shrink-0">
               <div className="flex items-center gap-3">

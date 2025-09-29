@@ -158,8 +158,17 @@ export function AppSidebar({
     <Sidebar className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border-r border-zinc-200/50 dark:border-zinc-800/50">
       <SidebarHeader className="p-6 border-b border-zinc-200/50 dark:border-zinc-800/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-sm">T</span>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center">
+            <img
+              src="/trainly_icon_white.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 block dark:hidden"
+            />
+            <img
+              src="/trainly_icon_black.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 hidden dark:block"
+            />
           </div>
           <span className="text-xl font-bold text-zinc-900 dark:text-white">
             trainly
@@ -173,7 +182,7 @@ export function AppSidebar({
           <SidebarGroupContent>
             <Button
               onClick={onCreate}
-              className="w-full bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white rounded-xl shadow-lg hover:shadow-amber-400/25 transition-all duration-200 flex items-center gap-2 mb-6"
+              className="w-full bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-xl shadow-lg transition-all duration-200 flex items-center gap-2 mb-6"
             >
               <PlusCircle className="h-4 w-4" />
               New Chat
@@ -191,7 +200,7 @@ export function AppSidebar({
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus:border-amber-400/50 rounded-xl"
+                className="pl-10 bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 rounded-xl"
               />
             </div>
 
@@ -202,8 +211,8 @@ export function AppSidebar({
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium",
                   showFilters
-                    ? "bg-amber-400/10 text-amber-400"
-                    : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700",
+                    ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                    : "bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-700",
                 )}
               >
                 <Filter className="h-3 w-3" />
@@ -214,7 +223,7 @@ export function AppSidebar({
                 onClick={() =>
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                 }
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-sm"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-sm"
               >
                 {sortOrder === "asc" ? (
                   <SortAsc className="h-3 w-3" />
@@ -236,7 +245,7 @@ export function AppSidebar({
                     onChange={(e) =>
                       setSortBy(e.target.value as "date" | "name" | "activity")
                     }
-                    className="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50 transition-colors"
+                    className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
                   >
                     <option value="date">📅 Date Created</option>
                     <option value="name">🔤 Name</option>
@@ -251,7 +260,7 @@ export function AppSidebar({
                   <select
                     value={selectedFolder}
                     onChange={(e) => setSelectedFolder(e.target.value)}
-                    className="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50 transition-colors"
+                    className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
                   >
                     <option value="all">📁 All Chats</option>
                     <option value="general">💬 General</option>
@@ -264,14 +273,14 @@ export function AppSidebar({
                 {/* Quick Stats */}
                 <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-center p-2 bg-white dark:bg-zinc-800 rounded-lg">
-                      <div className="font-bold text-amber-400">
+                    <div className="text-center p-2 bg-white dark:bg-zinc-900 rounded-lg">
+                      <div className="font-bold text-zinc-700 dark:text-zinc-300">
                         {chats?.length || 0}
                       </div>
                       <div className="text-zinc-500">Total</div>
                     </div>
-                    <div className="text-center p-2 bg-white dark:bg-zinc-800 rounded-lg">
-                      <div className="font-bold text-amber-400">
+                    <div className="text-center p-2 bg-white dark:bg-zinc-900 rounded-lg">
+                      <div className="font-bold text-zinc-700 dark:text-zinc-300">
                         {filteredAndSortedChats.length}
                       </div>
                       <div className="text-zinc-500">Filtered</div>
@@ -315,7 +324,7 @@ export function AppSidebar({
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery("")}
-                      className="text-xs text-amber-400 hover:underline"
+                      className="text-xs text-zinc-500 dark:text-zinc-400 hover:underline"
                     >
                       Clear search
                     </button>
@@ -328,7 +337,7 @@ export function AppSidebar({
                       className={cn(
                         "group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 border hover:shadow-sm",
                         chat._id === chatId
-                          ? "bg-gradient-to-r from-amber-400/10 to-amber-50 dark:from-amber-400/10 dark:to-zinc-800 border-amber-400/30 shadow-md"
+                          ? "bg-gradient-to-r from-zinc-200 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 border-zinc-300 dark:border-zinc-700 shadow-md"
                           : "border-transparent hover:border-zinc-200 dark:hover:border-zinc-700",
                       )}
                     >
@@ -338,8 +347,8 @@ export function AppSidebar({
                           className={cn(
                             "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200",
                             chat._id === chatId
-                              ? "bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg"
-                              : "bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 group-hover:from-amber-400/10 group-hover:to-amber-100 dark:group-hover:to-zinc-700",
+                              ? "bg-gradient-to-br from-zinc-600 to-zinc-700 shadow-lg"
+                              : "bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 group-hover:from-zinc-200 group-hover:to-zinc-300 dark:group-hover:to-zinc-700",
                           )}
                         >
                           <MessageSquare
@@ -347,7 +356,7 @@ export function AppSidebar({
                               "w-5 h-5 transition-colors",
                               chat._id === chatId
                                 ? "text-white"
-                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300",
                             )}
                           />
                         </div>
@@ -365,7 +374,7 @@ export function AppSidebar({
                               if (e.key === "Escape") setEditingChatId(null);
                             }}
                             onBlur={() => finishEditing(chat._id)}
-                            className="h-8 text-sm border-zinc-200 dark:border-zinc-700 focus:border-amber-400"
+                            className="h-8 text-sm border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500"
                             autoFocus
                           />
                         ) : (
@@ -380,8 +389,8 @@ export function AppSidebar({
                               className={cn(
                                 "font-medium text-sm truncate transition-colors mb-1",
                                 chat._id === chatId
-                                  ? "text-amber-400"
-                                  : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                                  ? "text-zinc-700 dark:text-zinc-300"
+                                  : "text-zinc-900 dark:text-white group-hover:text-zinc-700 dark:group-hover:text-zinc-300",
                               )}
                             >
                               {chat.title}
@@ -440,11 +449,11 @@ export function AppSidebar({
                 onClick={() => router.push(`/dashboard/${chatId}/graph`)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
-                  <Network className="w-4 h-4 text-amber-400" />
+                <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
+                  <Network className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-amber-400">
+                  <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-zinc-700 dark:group-hover:text-zinc-300">
                     Graph View
                   </div>
                   <div className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -459,11 +468,11 @@ export function AppSidebar({
                 }
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
-                  <Code className="w-4 h-4 text-amber-400" />
+                <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
+                  <Code className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-amber-400">
+                  <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-zinc-700 dark:group-hover:text-zinc-300">
                     API Docs
                   </div>
                   <div className="text-xs text-zinc-500 dark:text-zinc-400">

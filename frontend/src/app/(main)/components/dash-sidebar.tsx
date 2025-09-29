@@ -130,8 +130,17 @@ export function DashSidebar() {
     <Sidebar className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border-r border-zinc-200/50 dark:border-zinc-800/50">
       <SidebarHeader className="p-6 border-b border-zinc-200/50 dark:border-zinc-800/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-sm">T</span>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center">
+            <img
+              src="/trainly_icon_white.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 block dark:hidden"
+            />
+            <img
+              src="/trainly_icon_black.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 hidden dark:block"
+            />
           </div>
           <span className="text-xl font-bold text-zinc-900 dark:text-white">
             trainly
@@ -163,7 +172,7 @@ export function DashSidebar() {
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus:border-amber-400/50 rounded-xl"
+                className="pl-10 bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 focus:border-amber-400/50 rounded-xl"
               />
             </div>
 
@@ -175,7 +184,7 @@ export function DashSidebar() {
                   "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium",
                   showFilters
                     ? "bg-amber-400/10 text-amber-400"
-                    : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700",
+                    : "bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-700",
                 )}
               >
                 <Filter className="h-3 w-3" />
@@ -191,7 +200,7 @@ export function DashSidebar() {
                   onChange={(e) =>
                     setSortBy(e.target.value as "date" | "name" | "activity")
                   }
-                  className="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm"
+                  className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm"
                 >
                   <option value="date">📅 Recent</option>
                   <option value="name">🔤 Name</option>
@@ -202,7 +211,7 @@ export function DashSidebar() {
                   onClick={() =>
                     setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                   }
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors text-sm"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors text-sm"
                 >
                   {sortOrder === "asc" ? (
                     <SortAsc className="h-3 w-3" />

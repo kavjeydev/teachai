@@ -182,7 +182,7 @@ export function ApiAnalyticsDemo() {
             ].map((user, index) => (
               <div
                 key={user.userHash}
-                className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
+                className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-amber-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">

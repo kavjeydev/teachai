@@ -65,7 +65,9 @@ export function AppSidebar({
   const archiveChat = useMutation(api.chats.archive);
   const renameChat = useMutation(api.chats.rename);
 
-  const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(null);
+  const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(
+    null,
+  );
   const [editingTitle, setEditingTitle] = React.useState("");
 
   const onCreate = () => {
@@ -96,8 +98,17 @@ export function AppSidebar({
     <Sidebar className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-r border-zinc-200 dark:border-zinc-800">
       <SidebarHeader className="p-6 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-sm">T</span>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center">
+            <img
+              src="/trainly_icon_white.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 block dark:hidden"
+            />
+            <img
+              src="/trainly_icon_black.png"
+              alt="Trainly Logo"
+              className="w-6 h-6 hidden dark:block"
+            />
           </div>
           <span className="text-xl font-bold text-zinc-900 dark:text-white">
             trainly
@@ -128,11 +139,14 @@ export function AppSidebar({
             <SidebarMenu className="space-y-2">
               {chats?.map((chat) => (
                 <SidebarMenuItem key={chat._id}>
-                  <div className={cn(
-                    "group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800",
-                    chat._id === chatId && "bg-amber-400/10 border border-amber-400/20"
-                  )}>
-                    <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div
+                    className={cn(
+                      "group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                      chat._id === chatId &&
+                        "bg-amber-400/10 border border-amber-400/20",
+                    )}
+                  >
+                    <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center flex-shrink-0">
                       <MessageSquare className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                     </div>
 
@@ -155,12 +169,14 @@ export function AppSidebar({
                           onDoubleClick={() => startEditing(chat)}
                           className="text-left w-full"
                         >
-                          <div className={cn(
-                            "font-medium text-sm truncate",
-                            chat._id === chatId
-                              ? "text-amber-400"
-                              : "text-zinc-900 dark:text-white group-hover:text-amber-400"
-                          )}>
+                          <div
+                            className={cn(
+                              "font-medium text-sm truncate",
+                              chat._id === chatId
+                                ? "text-amber-400"
+                                : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                            )}
+                          >
                             {chat.title}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
@@ -208,7 +224,9 @@ export function AppSidebar({
               </button>
 
               <button
-                onClick={() => window.open('https://docs.trainlyai.com', '_blank')}
+                onClick={() =>
+                  window.open("https://docs.trainlyai.com", "_blank")
+                }
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
                 <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
@@ -229,7 +247,7 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.imageUrl} className="rounded-full" />
             <AvatarFallback className="bg-amber-400 text-white text-sm">

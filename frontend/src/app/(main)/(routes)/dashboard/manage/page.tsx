@@ -350,7 +350,7 @@ export default function ChatManagementPage() {
                   placeholder="Search chats..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-80 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus:border-amber-400/50"
+                  className="pl-10 w-80 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 focus:border-amber-400/50"
                 />
               </div>
 
@@ -376,7 +376,7 @@ export default function ChatManagementPage() {
                     "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm",
                     showFilters
                       ? "bg-amber-400/10 text-amber-400"
-                      : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700",
+                      : "bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-700",
                   )}
                 >
                   <Filter className="h-3 w-3" />
@@ -386,7 +386,7 @@ export default function ChatManagementPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50"
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:border-amber-400/50"
                 >
                   <option value="date">📅 Date</option>
                   <option value="name">🔤 Name</option>
@@ -398,7 +398,7 @@ export default function ChatManagementPage() {
                   onClick={() =>
                     setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                   }
-                  className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                  className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
                 >
                   {sortOrder === "asc" ? (
                     <SortAsc className="h-4 w-4" />
@@ -411,13 +411,13 @@ export default function ChatManagementPage() {
 
             <div className="flex items-center gap-2">
               {/* View Toggle */}
-              <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+              <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("grid")}
                   className={cn(
                     "p-2 rounded-md transition-colors",
                     viewMode === "grid"
-                      ? "bg-white dark:bg-zinc-700 shadow-sm"
+                      ? "bg-white dark:bg-zinc-800 shadow-sm"
                       : "hover:bg-zinc-200 dark:hover:bg-zinc-700",
                   )}
                 >
@@ -428,7 +428,7 @@ export default function ChatManagementPage() {
                   className={cn(
                     "p-2 rounded-md transition-colors",
                     viewMode === "list"
-                      ? "bg-white dark:bg-zinc-700 shadow-sm"
+                      ? "bg-white dark:bg-zinc-800 shadow-sm"
                       : "hover:bg-zinc-200 dark:hover:bg-zinc-700",
                   )}
                 >
@@ -567,7 +567,7 @@ export default function ChatManagementPage() {
                   <div
                     key={chat._id}
                     className={cn(
-                      "group bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-200 hover:shadow-lg hover:shadow-amber-400/5",
+                      "group bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:border-amber-400/30 transition-all duration-200 hover:shadow-lg hover:shadow-amber-400/5",
                       viewMode === "list" && "flex items-center",
                       selectedChats.has(chat._id) &&
                         "ring-2 ring-amber-400/20 border-amber-400/30",
@@ -805,15 +805,13 @@ export default function ChatManagementPage() {
 
         {/* Stats Footer */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+          <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
             <div className="text-2xl font-bold text-amber-400 mb-2">
               {chats?.length || 0}
             </div>
-            <div className="text-zinc-600 dark:text-zinc-400">
-              Total Chats
-            </div>
+            <div className="text-zinc-600 dark:text-zinc-400">Total Chats</div>
           </div>
-          <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+          <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
             <div className="text-2xl font-bold text-amber-400 mb-2">
               {chats?.reduce(
                 (total, chat) => total + (chat.context?.length || 0),
@@ -822,16 +820,14 @@ export default function ChatManagementPage() {
             </div>
             <div className="text-zinc-600 dark:text-zinc-400">Documents</div>
           </div>
-          <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+          <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
             <div className="text-2xl font-bold text-amber-400 mb-2">
               {chats?.filter((chat) => chat.visibility === "public").length ||
                 0}
             </div>
-            <div className="text-zinc-600 dark:text-zinc-400">
-              Public APIs
-            </div>
+            <div className="text-zinc-600 dark:text-zinc-400">Public APIs</div>
           </div>
-          <div className="text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+          <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
             <div className="text-2xl font-bold text-amber-400 mb-2">
               {Math.round(((chats?.length || 0) / 100) * 100) || 0}%
             </div>
@@ -845,7 +841,7 @@ export default function ChatManagementPage() {
       {/* Move to Folder Modal */}
       {showMoveModal && chatToMove && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-2xl w-full max-w-md">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-2xl w-full max-w-md">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
                 Move Chat to Folder
@@ -893,7 +889,7 @@ export default function ChatManagementPage() {
       {/* Delete Folder Modal */}
       {showDeleteFolderModal && folderToDelete && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-2xl w-full max-w-md">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-2xl w-full max-w-md">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">

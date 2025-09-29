@@ -88,12 +88,9 @@ export default {
         },
       },
       fontFamily: {
-        recursive: ["Recursive", "sans-serif"],
-        literata: ["Literata", "serif"],
-        geist: ["Geist", "sans-serif"],
-        darkerGrotesque: ["Darker Grotesque", "sans-serif"],
-        inter: ["Inter Variable", "Inter", "sans-serif"],
-        viaoda: ["var(--font-viaoda-libre)", "serif"],
+        sans: ["var(--font-geist-sans)", "Geist", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "Geist Mono", "monospace"],
+        geist: ["var(--font-geist-sans)", "Geist", "sans-serif"],
       },
       keyframes: {
         blink: {

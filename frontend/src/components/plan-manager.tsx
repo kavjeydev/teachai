@@ -294,7 +294,7 @@ export function PlanManager() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="text-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                <div className="text-center p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
                   <div className="font-semibold text-amber-400">{plan.credits} credits</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400">per month</div>
                 </div>
