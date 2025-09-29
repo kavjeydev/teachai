@@ -217,6 +217,57 @@ export const createUserSubChat = mutation({
       lastActiveAt: Date.now(),
     });
 
+    // Track subchat creation for analytics (async to not slow down creation)
+    try {
+      // Find the parent app chat to update its metadata
+      const appChats = await ctx.db
+        .query("chats")
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("chatType"), "user_direct"),
+            q.eq(q.field("userId"), args.appId),
+          ),
+        )
+        .collect();
+
+      for (const appChat of appChats) {
+        const currentMetadata = appChat.metadata;
+        if (currentMetadata) {
+          // Add new user to analytics
+          const userHash = `user_***${args.endUserId.slice(-6)}`;
+          const existingUser = currentMetadata.userActivitySummary.find(
+            (u) => u.userIdHash === userHash,
+          );
+
+          if (!existingUser) {
+            const updatedMetadata = {
+              ...currentMetadata,
+              totalSubchats: currentMetadata.totalSubchats + 1,
+              totalUsers: currentMetadata.totalUsers + 1,
+              activeUsers: currentMetadata.activeUsers + 1,
+              lastActivityAt: Date.now(),
+              lastMetadataUpdate: Date.now(),
+              userActivitySummary: [
+                ...currentMetadata.userActivitySummary,
+                {
+                  userIdHash: userHash,
+                  lastActiveAt: Date.now(),
+                  filesUploaded: 0,
+                  queriesMade: 0,
+                  storageUsedBytes: 0,
+                },
+              ],
+            };
+
+            await ctx.db.patch(appChat._id, { metadata: updatedMetadata });
+          }
+        }
+      }
+    } catch (error) {
+      // Don't fail subchat creation if analytics tracking fails
+      console.error("Failed to track subchat creation:", error);
+    }
+
     return {
       userChatId: userAppChat,
       chatId: chat,

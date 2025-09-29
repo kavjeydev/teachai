@@ -47,6 +47,7 @@ interface ChatSettingsProps {
   currentPrompt?: string;
   currentTemperature?: number;
   currentMaxTokens?: number;
+  currentConversationHistoryLimit?: number;
   onSettingsChange?: () => void;
 }
 
@@ -55,12 +56,16 @@ export function ChatSettings({
   currentPrompt = "",
   currentTemperature = 0.7,
   currentMaxTokens = 1000,
+  currentConversationHistoryLimit = 20,
   onSettingsChange,
 }: ChatSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customPrompt, setCustomPrompt] = useState(currentPrompt);
   const [temperature, setTemperature] = useState(currentTemperature);
   const [maxTokens, setMaxTokens] = useState(currentMaxTokens);
+  const [conversationHistoryLimit, setConversationHistoryLimit] = useState(
+    currentConversationHistoryLimit,
+  );
   const [isUsingDefaultPrompt, setIsUsingDefaultPrompt] =
     useState(!currentPrompt);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -68,35 +73,57 @@ export function ChatSettings({
   const updateChatPrompt = useMutation(api.chats.updateChatPrompt);
   const updateChatTemperature = useMutation(api.chats.updateChatTemperature);
   const updateChatMaxTokens = useMutation(api.chats.updateChatMaxTokens);
-
-  // Refs for debounce timers
-  const temperatureTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const maxTokensTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updateChatConversationHistoryLimit = useMutation(
+    api.chats.updateChatConversationHistoryLimit,
+  );
 
   // Update local state when props change
   useEffect(() => {
     setCustomPrompt(currentPrompt);
     setTemperature(currentTemperature);
     setMaxTokens(currentMaxTokens);
+    setConversationHistoryLimit(currentConversationHistoryLimit);
     setIsUsingDefaultPrompt(!currentPrompt);
-  }, [currentPrompt, currentTemperature, currentMaxTokens]);
+  }, [
+    currentPrompt,
+    currentTemperature,
+    currentMaxTokens,
+    currentConversationHistoryLimit,
+  ]);
 
-
-  const handlePromptSave = async () => {
+  const handleSettingsSave = async () => {
     setIsUpdating(true);
     try {
+      // Save prompt
       const promptToSave = isUsingDefaultPrompt
         ? undefined
         : customPrompt.trim();
       await updateChatPrompt({ chatId, customPrompt: promptToSave });
-      toast.success(
-        isUsingDefaultPrompt ? "Using default prompt" : "Custom prompt saved",
-      );
+
+      // Save temperature if it changed
+      if (temperature !== currentTemperature) {
+        await updateChatTemperature({ chatId, temperature: temperature });
+      }
+
+      // Save max tokens if it changed
+      if (maxTokens !== currentMaxTokens) {
+        await updateChatMaxTokens({ chatId, maxTokens: maxTokens });
+      }
+
+      // Save conversation history limit if it changed
+      if (conversationHistoryLimit !== currentConversationHistoryLimit) {
+        await updateChatConversationHistoryLimit({
+          chatId,
+          conversationHistoryLimit: conversationHistoryLimit,
+        });
+      }
+
+      toast.success("Settings saved successfully");
       onSettingsChange?.();
       setIsOpen(false);
     } catch (error) {
-      console.error("Failed to update prompt:", error);
-      toast.error("Failed to update prompt");
+      console.error("Failed to update settings:", error);
+      toast.error("Failed to update settings");
     } finally {
       setIsUpdating(false);
     }
@@ -109,73 +136,20 @@ export function ChatSettings({
     }
   };
 
-  // Debounced temperature update function
-  const debouncedTemperatureUpdate = useCallback(async (newTemp: number) => {
-    try {
-      await updateChatTemperature({ chatId, temperature: newTemp });
-      toast.success(`Temperature updated to ${newTemp}`);
-      onSettingsChange?.();
-    } catch (error) {
-      console.error("Failed to update temperature:", error);
-      toast.error("Failed to update temperature");
-      setTemperature(currentTemperature); // Revert on error
-    }
-  }, [chatId, updateChatTemperature, onSettingsChange, currentTemperature]);
-
-  // Debounced max tokens update function
-  const debouncedMaxTokensUpdate = useCallback(async (newMaxTokens: number) => {
-    try {
-      await updateChatMaxTokens({ chatId, maxTokens: newMaxTokens });
-      toast.success(`Response length updated to ${newMaxTokens} tokens`);
-      onSettingsChange?.();
-    } catch (error) {
-      console.error("Failed to update max tokens:", error);
-      toast.error("Failed to update response length");
-      setMaxTokens(currentMaxTokens); // Revert on error
-    }
-  }, [chatId, updateChatMaxTokens, onSettingsChange, currentMaxTokens]);
-
   const handleTemperatureChange = (value: number[]) => {
     const newTemp = value[0];
-    setTemperature(newTemp); // Update UI immediately
-
-    // Clear existing timeout
-    if (temperatureTimeoutRef.current) {
-      clearTimeout(temperatureTimeoutRef.current);
-    }
-
-    // Set new timeout for API call
-    temperatureTimeoutRef.current = setTimeout(() => {
-      debouncedTemperatureUpdate(newTemp);
-    }, 500); // 500ms delay
+    setTemperature(newTemp); // Update UI only, no API call
   };
 
   const handleMaxTokensChange = (value: number[]) => {
     const newMaxTokens = value[0];
-    setMaxTokens(newMaxTokens); // Update UI immediately
-
-    // Clear existing timeout
-    if (maxTokensTimeoutRef.current) {
-      clearTimeout(maxTokensTimeoutRef.current);
-    }
-
-    // Set new timeout for API call
-    maxTokensTimeoutRef.current = setTimeout(() => {
-      debouncedMaxTokensUpdate(newMaxTokens);
-    }, 500); // 500ms delay
+    setMaxTokens(newMaxTokens); // Update UI only, no API call
   };
 
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (temperatureTimeoutRef.current) {
-        clearTimeout(temperatureTimeoutRef.current);
-      }
-      if (maxTokensTimeoutRef.current) {
-        clearTimeout(maxTokensTimeoutRef.current);
-      }
-    };
-  }, []);
+  const handleConversationHistoryLimitChange = (value: number[]) => {
+    const newLimit = value[0];
+    setConversationHistoryLimit(newLimit); // Update UI only, no API call
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -190,7 +164,7 @@ export function ChatSettings({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[95vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5 text-amber-400" />
@@ -198,11 +172,19 @@ export function ChatSettings({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-
+        <div className="space-y-4 py-2">
           {/* Custom Prompt */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">System Prompt</Label>
+          <div className="space-y-2">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              System Prompt
+              {((isUsingDefaultPrompt && currentPrompt) ||
+                (!isUsingDefaultPrompt &&
+                  customPrompt.trim() !== currentPrompt)) && (
+                <span className="text-xs text-amber-500 font-normal">
+                  (unsaved)
+                </span>
+              )}
+            </Label>
 
             {/* Prompt Type Toggle */}
             <div className="flex gap-2">
@@ -247,7 +229,7 @@ export function ChatSettings({
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
                   placeholder="Enter your custom system prompt here..."
-                  className="min-h-[120px] text-sm font-mono"
+                  className="min-h-[80px] text-sm font-mono"
                 />
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   This prompt will be used as the system message for this chat.
@@ -259,10 +241,15 @@ export function ChatSettings({
           </div>
 
           {/* Temperature Control */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-base font-semibold flex items-center gap-2">
               <Thermometer className="h-4 w-4" />
               Temperature: {temperature}
+              {temperature !== currentTemperature && (
+                <span className="text-xs text-amber-500 font-normal">
+                  (unsaved)
+                </span>
+              )}
             </Label>
             <div className="space-y-2">
               <Slider
@@ -279,16 +266,22 @@ export function ChatSettings({
                 <span>1.0 (Creative)</span>
               </div>
             </div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Controls randomness in responses. Lower values make output more focused and deterministic.
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              Controls randomness in responses. Lower values make output more
+              focused and deterministic.
             </p>
           </div>
 
           {/* Response Length Control */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-base font-semibold flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               Response Length: {maxTokens} tokens
+              {maxTokens !== currentMaxTokens && (
+                <span className="text-xs text-amber-500 font-normal">
+                  (unsaved)
+                </span>
+              )}
             </Label>
             <div className="space-y-2">
               <Slider
@@ -305,18 +298,63 @@ export function ChatSettings({
                 <span>4000 (Long)</span>
               </div>
             </div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Maximum length of AI responses. Higher values allow longer, more detailed answers.
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              Maximum length of AI responses. Higher values allow longer, more
+              detailed answers.
+            </p>
+          </div>
+
+          {/* Conversation History Limit Control */}
+          <div className="space-y-2">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Conversation History: {conversationHistoryLimit} messages
+              {conversationHistoryLimit !== currentConversationHistoryLimit && (
+                <span className="text-xs text-amber-500 font-normal">
+                  (unsaved)
+                </span>
+              )}
+            </Label>
+            <div className="space-y-2">
+              <Slider
+                value={[conversationHistoryLimit]}
+                onValueChange={handleConversationHistoryLimitChange}
+                max={100}
+                min={0}
+                step={5}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-zinc-500">
+                <span>0 (None)</span>
+                <span>20 (Default)</span>
+                <span>100 (Extended)</span>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              Number of previous messages to include for context. Set to 0 to
+              disable conversation history. Higher values provide more context
+              but use more tokens.
             </p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <div className="flex justify-between pt-3 border-t">
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Reset all values to original values on cancel
+                setTemperature(currentTemperature);
+                setMaxTokens(currentMaxTokens);
+                setConversationHistoryLimit(currentConversationHistoryLimit);
+                setCustomPrompt(currentPrompt);
+                setIsUsingDefaultPrompt(!currentPrompt);
+                setIsOpen(false);
+              }}
+            >
               Cancel
             </Button>
             <Button
-              onClick={handlePromptSave}
+              onClick={handleSettingsSave}
               disabled={isUpdating}
               className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed"
             >

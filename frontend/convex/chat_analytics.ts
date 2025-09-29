@@ -289,6 +289,117 @@ export const trackApiQuery = mutation({
   },
 });
 
+// Initialize analytics from existing sub-chats (real data only)
+export const initializeAnalyticsFromSubchats = mutation({
+  args: { chatId: v.id("chats") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to modify this chat.");
+    }
+
+    // Find existing sub-chats for this chat (multiple patterns)
+    const existingSubchats = await ctx.db
+      .query("chats")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("chatType"), "app_subchat"),
+          q.eq(q.field("parentAppId"), chat.chatId),
+        ),
+      )
+      .collect();
+
+    // Also check user_app_chats table for app-managed sub-chats
+    const userAppChats = await ctx.db
+      .query("user_app_chats")
+      .filter((q) => q.eq(q.field("appId"), chat.chatId))
+      .collect();
+
+    // Combine all unique users (real data only, no estimates)
+    const allUsers = new Map();
+
+    // Add from sub-chats
+    for (const subchat of existingSubchats) {
+      const userHash = hashUserId(subchat.userId);
+      if (!allUsers.has(userHash)) {
+        allUsers.set(userHash, {
+          userIdHash: userHash,
+          lastActiveAt: subchat._creationTime || 0, // Use creation time as last activity if no specific data
+          filesUploaded: 0, // Will be tracked going forward
+          queriesMade: 0, // Will be tracked going forward
+          storageUsedBytes: 0, // Will be tracked going forward
+        });
+      }
+    }
+
+    // Add from user_app_chats
+    for (const userAppChat of userAppChats) {
+      const userHash = hashUserId(userAppChat.endUserId);
+      if (!allUsers.has(userHash)) {
+        allUsers.set(userHash, {
+          userIdHash: userHash,
+          lastActiveAt: userAppChat.lastActiveAt || 0, // Only use real data or 0
+          filesUploaded: 0,
+          queriesMade: 0,
+          storageUsedBytes: 0,
+        });
+      }
+    }
+
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const activeUsers = Array.from(allUsers.values()).filter(
+      (user) => user.lastActiveAt > sevenDaysAgo,
+    ).length;
+
+    const initialMetadata = {
+      totalSubchats: existingSubchats.length + userAppChats.length,
+      activeUsers: activeUsers,
+      totalUsers: allUsers.size,
+      totalFiles: 0, // Will be tracked from real file uploads
+      totalStorageBytes: 0, // Will be tracked from real file uploads
+      averageFileSize: 0, // Will be calculated from real data
+      totalQueries: 0, // Will be tracked from real API calls
+      queriesLast7Days: 0, // Will be tracked from real API calls
+      lastActivityAt: Math.max(
+        ...Array.from(allUsers.values()).map((u) => u.lastActiveAt),
+        0,
+      ),
+      userActivitySummary: Array.from(allUsers.values()),
+      fileTypeStats: { pdf: 0, docx: 0, txt: 0, images: 0, other: 0 }, // Will be tracked from real uploads
+      averageResponseTime: 0, // Will be calculated from real API calls
+      successRate: 100, // Start at 100%, will adjust with real data
+      privacyMode: "privacy_first",
+      lastMetadataUpdate: Date.now(),
+      complianceFlags: {
+        gdprCompliant: true,
+        ccpaCompliant: true,
+        auditLogEnabled: true,
+      },
+    };
+
+    await ctx.db.patch(args.chatId, { metadata: initialMetadata });
+
+    return {
+      success: true,
+      message: `Analytics initialized: ${allUsers.size} users from ${existingSubchats.length + userAppChats.length} sub-chats`,
+      stats: {
+        totalUsers: allUsers.size,
+        totalSubchats: existingSubchats.length + userAppChats.length,
+        activeUsers: activeUsers,
+      },
+    };
+  },
+});
+
 // Get comprehensive chat analytics
 export const getChatAnalytics = query({
   args: { chatId: v.id("chats") },

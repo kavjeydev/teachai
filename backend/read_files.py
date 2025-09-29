@@ -2014,7 +2014,9 @@ async def api_answer_question(
                 detail="Invalid API key or chat not accessible. Please check: 1) Chat exists, 2) API access is enabled in chat settings, 3) API key is correct."
             )
 
-        # Get chat settings from Convex to use stored custom prompt, model, etc.
+        # Get chat settings AND conversation history from Convex
+        chat_settings = {}
+        conversation_history = []
         async with httpx.AsyncClient() as client:
             chat_response = await client.post(
                 CONVEX_URL,
@@ -2023,8 +2025,6 @@ async def api_answer_question(
                     "format": "json"
                 }
             )
-
-            chat_settings = {}
             if chat_response.status_code == 200:
                 chat_data = chat_response.json()
                 if chat_data.get("value"):
@@ -2033,15 +2033,25 @@ async def api_answer_question(
                         "custom_prompt": chat.get("customPrompt"),
                         "selected_model": chat.get("selectedModel", "gpt-4o-mini"),
                         "temperature": chat.get("temperature", 0.7),
-                        "max_tokens": chat.get("maxTokens", 1000)
+                        "max_tokens": chat.get("maxTokens", 1000),
+                        "conversation_history_limit": chat.get("conversationHistoryLimit", 20)
                     }
                     logger.info(f"📋 Using chat settings: custom_prompt={bool(chat_settings['custom_prompt'])}, model={chat_settings['selected_model']}")
+
+                    # Extract conversation history for context
+                    chat_content = chat.get("content", [])
+                    for message in chat_content:
+                        if message.get("sender") == "user":
+                            conversation_history.append({"role": "user", "content": message.get("text", "")})
+                        elif message.get("sender") == "assistant":
+                            conversation_history.append({"role": "assistant", "content": message.get("text", "")})
 
         # Use chat settings as defaults, allow API parameters to override
         final_model = payload.selected_model if payload.selected_model is not None else chat_settings.get("selected_model", "gpt-4o-mini")
         final_temperature = payload.temperature if payload.temperature is not None else chat_settings.get("temperature", 0.7)
         final_max_tokens = payload.max_tokens if payload.max_tokens is not None else chat_settings.get("max_tokens", 1000)
         final_custom_prompt = payload.custom_prompt if payload.custom_prompt is not None else chat_settings.get("custom_prompt")
+        final_history_limit = int(chat_settings.get("conversation_history_limit", 20))
 
         logger.info(f"🎯 Final API parameters: model={final_model}, temp={final_temperature}, max_tokens={final_max_tokens}, has_custom_prompt={bool(final_custom_prompt)}")
 
@@ -2131,7 +2141,9 @@ async def api_answer_question_stream(
                 detail="Invalid API key or chat not accessible. Please check: 1) Chat exists, 2) API access is enabled in chat settings, 3) API key is correct."
             )
 
-        # Get chat settings from Convex
+        # Get chat settings AND conversation history from Convex
+        chat_settings = {}
+        conversation_history = []
         async with httpx.AsyncClient() as client:
             chat_response = await client.post(
                 CONVEX_URL,
@@ -2140,8 +2152,6 @@ async def api_answer_question_stream(
                     "format": "json"
                 }
             )
-
-            chat_settings = {}
             if chat_response.status_code == 200:
                 chat_data = chat_response.json()
                 if chat_data.get("value"):
@@ -2150,14 +2160,24 @@ async def api_answer_question_stream(
                         "custom_prompt": chat.get("customPrompt"),
                         "selected_model": chat.get("selectedModel", "gpt-4o-mini"),
                         "temperature": chat.get("temperature", 0.7),
-                        "max_tokens": chat.get("maxTokens", 1000)
+                        "max_tokens": chat.get("maxTokens", 1000),
+                        "conversation_history_limit": chat.get("conversationHistoryLimit", 20)
                     }
+
+                    # Extract conversation history for context
+                    chat_content = chat.get("content", [])
+                    for message in chat_content:
+                        if message.get("sender") == "user":
+                            conversation_history.append({"role": "user", "content": message.get("text", "")})
+                        elif message.get("sender") == "assistant":
+                            conversation_history.append({"role": "assistant", "content": message.get("text", "")})
 
         # Use chat settings as defaults, allow API parameters to override
         final_model = payload.selected_model if payload.selected_model is not None else chat_settings.get("selected_model", "gpt-4o-mini")
         final_temperature = payload.temperature if payload.temperature is not None else chat_settings.get("temperature", 0.7)
         final_max_tokens = payload.max_tokens if payload.max_tokens is not None else chat_settings.get("max_tokens", 1000)
         final_custom_prompt = payload.custom_prompt if payload.custom_prompt is not None else chat_settings.get("custom_prompt")
+        final_history_limit = int(chat_settings.get("conversation_history_limit", 20))
 
         # Call the existing streaming function with merged settings
         internal_payload = QuestionRequest(
@@ -2444,6 +2464,36 @@ async def answer_question(payload: QuestionRequest):
         temperature = payload.temperature or 0.7
         max_tokens = payload.max_tokens or 1000
 
+        # Get conversation history and settings from Convex for context
+        conversation_history = []
+        history_limit = 20  # Default value
+        try:
+            async with httpx.AsyncClient() as client:
+                chat_response = await client.post(
+                    CONVEX_URL,
+                    json={
+                        "args": {"id": chat_id},
+                        "format": "json"
+                    }
+                )
+
+                if chat_response.status_code == 200:
+                    chat_data = chat_response.json()
+                    if chat_data.get("value"):
+                        chat = chat_data["value"]
+                        # Get history limit setting
+                        history_limit = int(chat.get("conversationHistoryLimit", 20))
+                        # Extract conversation history for context
+                        chat_content = chat.get("content", [])
+                        for message in chat_content:
+                            if message.get("sender") == "user":
+                                conversation_history.append({"role": "user", "content": message.get("text", "")})
+                            elif message.get("sender") == "assistant":
+                                conversation_history.append({"role": "assistant", "content": message.get("text", "")})
+        except Exception as e:
+            logger.warning(f"Failed to retrieve conversation history for chat {chat_id}: {e}")
+            conversation_history = []
+
         # Generate question embedding
         question_embedding = get_embedding(question)
 
@@ -2597,13 +2647,22 @@ async def answer_question(payload: QuestionRequest):
                     logger.warning(f"Failed to get user ID from chat: {e}, using chat_id as fallback")
                     user_id = chat_id
 
+                # Build messages with conversation history for context
+                messages = [{"role": "system", "content": system_prompt}]
+
+                # Add conversation history (limit based on chat setting to avoid token limits)
+                if history_limit > 0:
+                    history_limit_int = int(history_limit)  # Ensure it's an integer for slicing
+                    recent_history = conversation_history[-history_limit_int:] if len(conversation_history) > history_limit_int else conversation_history
+                    messages.extend(recent_history)
+
+                # Add current question
+                messages.append({"role": "user", "content": question})
+
                 # Make AI call first to get actual token usage
                 completion = openai.chat.completions.create(
                     model=selected_model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": question}
-                    ],
+                    messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens
                 )
@@ -2645,6 +2704,36 @@ async def answer_question_stream(payload: QuestionRequest):
         custom_prompt = payload.custom_prompt
         temperature = payload.temperature or 0.7
         max_tokens = payload.max_tokens or 1000
+
+        # Get conversation history and settings from Convex for context
+        conversation_history = []
+        history_limit = 20  # Default value
+        try:
+            async with httpx.AsyncClient() as client:
+                chat_response = await client.post(
+                    CONVEX_URL,
+                    json={
+                        "args": {"id": chat_id},
+                        "format": "json"
+                    }
+                )
+
+                if chat_response.status_code == 200:
+                    chat_data = chat_response.json()
+                    if chat_data.get("value"):
+                        chat = chat_data["value"]
+                        # Get history limit setting
+                        history_limit = int(chat.get("conversationHistoryLimit", 20))
+                        # Extract conversation history for context
+                        chat_content = chat.get("content", [])
+                        for message in chat_content:
+                            if message.get("sender") == "user":
+                                conversation_history.append({"role": "user", "content": message.get("text", "")})
+                            elif message.get("sender") == "assistant":
+                                conversation_history.append({"role": "assistant", "content": message.get("text", "")})
+        except Exception as e:
+            logger.warning(f"Failed to retrieve conversation history for chat {chat_id}: {e}")
+            conversation_history = []
 
         # Generate question embedding
         question_embedding = get_embedding(question)
@@ -2803,13 +2892,22 @@ async def answer_question_stream(payload: QuestionRequest):
                     #     yield f"data: {json.dumps(error_data)}\n\n"
                     #     return
 
+                    # Build messages with conversation history for context
+                    messages = [{"role": "system", "content": system_prompt}]
+
+                    # Add conversation history (limit based on chat setting to avoid token limits)
+                    if history_limit > 0:
+                        history_limit_int = int(history_limit)  # Ensure it's an integer for slicing
+                        recent_history = conversation_history[-history_limit_int:] if len(conversation_history) > history_limit_int else conversation_history
+                        messages.extend(recent_history)
+
+                    # Add current question
+                    messages.append({"role": "user", "content": question})
+
                     # Then stream the AI response with selected model and settings
                     stream = openai.chat.completions.create(
                         model=selected_model,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": question}
-                        ],
+                        messages=messages,
                         temperature=temperature,
                         max_tokens=max_tokens,
                         stream=True

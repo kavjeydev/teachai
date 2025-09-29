@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sanitizeUserMessage, sanitizeChatId, sanitizeApiKey } from "@/lib/sanitization";
+import {
+  sanitizeUserMessage,
+  sanitizeChatId,
+  sanitizeApiKey,
+} from "@/lib/sanitization";
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   const apiKey = req.headers.get("x-api-key");
   const convexUrl =
     "https://agile-ermine-199.convex.cloud/api/run/chats/getChatByIdExposed";
+  const trackingUrl =
+    "https://agile-ermine-199.convex.cloud/api/run/chat_analytics/trackApiQuery";
 
   const body = await req.json();
 
@@ -88,6 +95,37 @@ export async function POST(req: NextRequest) {
       variables: { question: sanitizedQuestion, chatId: sanitizedChatId },
     }),
   });
+
+  const responseTime = Date.now() - startTime;
+  const success = response.ok;
+
+  // Track the API query for analytics (non-blocking)
+  const trackAnalytics = async () => {
+    try {
+      await fetch(trackingUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          args: {
+            appId: currentChat.value?.userId, // The chat owner (developer)
+            endUserId: `api_user_${Date.now()}`, // Anonymous API user
+            responseTime: responseTime,
+            success: success,
+            chatId: sanitizedChatId,
+          },
+          format: "json",
+        }),
+      });
+    } catch (error) {
+      // Don't fail the API request if analytics tracking fails
+      console.error("Analytics tracking failed:", error);
+    }
+  };
+
+  // Track analytics asynchronously (don't wait for it)
+  trackAnalytics();
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);

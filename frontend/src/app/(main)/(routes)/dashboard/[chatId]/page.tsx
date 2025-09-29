@@ -1400,6 +1400,9 @@ function Dashboard({ params }: ChatIdPageProps) {
                       currentPrompt={displayChat?.customPrompt}
                       currentTemperature={displayChat?.temperature}
                       currentMaxTokens={displayChat?.maxTokens}
+                      currentConversationHistoryLimit={
+                        displayChat?.conversationHistoryLimit
+                      }
                       onSettingsChange={() => {
                         // Optionally trigger a refresh of chat data
                       }}

@@ -843,3 +843,32 @@ export const updateChatMaxTokens = mutation({
     return true;
   },
 });
+
+// Update conversation history limit for a chat
+export const updateChatConversationHistoryLimit = mutation({
+  args: {
+    chatId: v.id("chats"),
+    conversationHistoryLimit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to update this chat.");
+    }
+
+    await ctx.db.patch(args.chatId, {
+      conversationHistoryLimit: args.conversationHistoryLimit,
+    });
+
+    return true;
+  },
+});

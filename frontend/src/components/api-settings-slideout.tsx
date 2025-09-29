@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { SimpleApiManager } from "@/components/simple-api-manager";
@@ -59,6 +59,13 @@ export function ApiSettingsSlideout({
     api.subscriptions.getDetailedSubscription,
   );
   const credits = useQuery(api.subscriptions.getUserCredits);
+
+  // Get real analytics data
+  const chatAnalytics = useQuery(api.chat_analytics.getChatAnalytics, {
+    chatId,
+  });
+
+  // Remove demo data mutations - analytics should be based on real usage only
 
   const handleUpgrade = async (priceId: string, tierName: string) => {
     setIsUpgrading(true);
@@ -434,24 +441,26 @@ export function ApiSettingsSlideout({
                   <CardContent>
                     {/* Privacy-First Highlight */}
                     <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 mb-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                          <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">
-                            🔒 Privacy-First Analytics
-                          </h4>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                            Complete user data isolation - you cannot access raw
-                            files or content
-                          </p>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                            <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">
+                              🔒 Privacy-First Analytics
+                            </h4>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                              Complete user data isolation - you cannot access
+                              raw files or content
+                            </p>
+                          </div>
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div>
                           <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                            {currentChat?.metadata?.totalSubchats || 0}
+                            {chatAnalytics?.userStats?.totalSubchats || 0}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             Private Sub-Chats
@@ -459,7 +468,7 @@ export function ApiSettingsSlideout({
                         </div>
                         <div>
                           <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                            {currentChat?.metadata?.totalFiles || 0}
+                            {chatAnalytics?.fileStats?.totalFiles || 0}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             Files (No Access)
@@ -467,7 +476,7 @@ export function ApiSettingsSlideout({
                         </div>
                         <div>
                           <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                            {currentChat?.metadata?.totalQueries || 0}
+                            {chatAnalytics?.apiStats?.totalQueries || 0}
                           </div>
                           <div className="text-xs text-amber-600 dark:text-amber-400">
                             AI Queries Only
@@ -483,13 +492,14 @@ export function ApiSettingsSlideout({
                           <Users className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                          {currentChat?.metadata?.totalUsers || 0}
+                          {chatAnalytics?.userStats?.totalUsers || 0}
                         </div>
                         <div className="text-xs text-zinc-600 dark:text-zinc-400">
                           Total Users
                         </div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                          {currentChat?.metadata?.activeUsers || 0} active (7d)
+                          {chatAnalytics?.userStats?.activeUsers || 0} active
+                          (7d)
                         </div>
                       </div>
 
@@ -498,15 +508,13 @@ export function ApiSettingsSlideout({
                           <Files className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                          {currentChat?.metadata?.totalFiles || 0}
+                          {chatAnalytics?.fileStats?.totalFiles || 0}
                         </div>
                         <div className="text-xs text-zinc-600 dark:text-zinc-400">
                           Files Uploaded
                         </div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                          {currentChat?.metadata?.totalStorageBytes
-                            ? `${Math.round((currentChat.metadata.totalStorageBytes / 1024 / 1024) * 10) / 10} MB`
-                            : "0 MB"}{" "}
+                          {chatAnalytics?.fileStats?.storageFormatted || "0 MB"}{" "}
                           total
                         </div>
                       </div>
@@ -516,13 +524,13 @@ export function ApiSettingsSlideout({
                           <Activity className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div className="text-lg font-bold text-amber-700 dark:text-amber-300">
-                          {currentChat?.metadata?.successRate || 0}%
+                          {chatAnalytics?.apiStats?.successRate || 0}%
                         </div>
                         <div className="text-xs text-amber-600 dark:text-amber-400">
                           Success Rate
                         </div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                          {currentChat?.metadata?.totalQueries || 0} queries
+                          {chatAnalytics?.apiStats?.totalQueries || 0} queries
                         </div>
                       </div>
 
@@ -531,14 +539,15 @@ export function ApiSettingsSlideout({
                           <TrendingUp className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
                         <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                          {currentChat?.metadata?.averageResponseTime || 0}ms
+                          {chatAnalytics?.apiStats?.averageResponseTime || 0}ms
                         </div>
                         <div className="text-xs text-zinc-600 dark:text-zinc-400">
                           Avg Response
                         </div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
                           {Math.round(
-                            (currentChat?.metadata?.queriesLast7Days || 0) / 7,
+                            (chatAnalytics?.apiStats?.queriesLast7Days || 0) /
+                              7,
                           )}
                           /day avg
                         </div>
@@ -553,13 +562,13 @@ export function ApiSettingsSlideout({
                         </div>
                         File Type Breakdown
                       </h4>
-                      {currentChat?.metadata?.fileTypeStats ? (
+                      {chatAnalytics?.fileStats?.fileTypeDistribution ? (
                         <div className="space-y-2">
                           {Object.entries(
-                            currentChat.metadata.fileTypeStats,
+                            chatAnalytics.fileStats.fileTypeDistribution,
                           ).map(([type, count]) => {
                             const totalFiles =
-                              currentChat.metadata?.totalFiles || 0;
+                              chatAnalytics.fileStats?.totalFiles || 0;
                             const percentage =
                               totalFiles > 0
                                 ? Math.round((count / totalFiles) * 100)
@@ -617,10 +626,10 @@ export function ApiSettingsSlideout({
                         </div>
                         Top Users (Privacy-Safe)
                       </h4>
-                      {currentChat?.metadata?.userActivitySummary &&
-                      currentChat.metadata.userActivitySummary.length > 0 ? (
+                      {chatAnalytics?.userActivity &&
+                      chatAnalytics.userActivity.length > 0 ? (
                         <div className="space-y-2">
-                          {currentChat.metadata.userActivitySummary
+                          {chatAnalytics.userActivity
                             .sort((a, b) => b.queriesMade - a.queriesMade)
                             .slice(0, 3)
                             .map((user, index) => (
@@ -646,9 +655,7 @@ export function ApiSettingsSlideout({
                                     {user.filesUploaded} files
                                   </div>
                                   <div className="text-xs text-zinc-500">
-                                    {user.storageUsedBytes > 0
-                                      ? `${Math.round((user.storageUsedBytes / 1024 / 1024) * 10) / 10} MB`
-                                      : "0 MB"}
+                                    {user.storageUsed || "0 MB"}
                                   </div>
                                 </div>
                               </div>

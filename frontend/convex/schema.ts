@@ -145,6 +145,8 @@ export default defineSchema({
     temperature: v.optional(v.number()), // Default to 0.7 if not set
     // Response length setting (max tokens)
     maxTokens: v.optional(v.number()), // Default to 1000 if not set
+    // Conversation history limit (number of previous messages to include)
+    conversationHistoryLimit: v.optional(v.number()), // Default to 20 if not set
     content: v.optional(
       v.array(
         v.object({
