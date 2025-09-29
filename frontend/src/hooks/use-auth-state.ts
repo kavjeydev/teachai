@@ -31,7 +31,9 @@ export function useAuthState(): AuthState {
               setError(null);
             } catch (tokenError) {
               console.error("Token verification failed:", tokenError);
-              setError("Authentication token invalid. Please refresh the page.");
+              setError(
+                "Authentication token invalid. Please refresh the page.",
+              );
             }
           }
 
@@ -81,6 +83,6 @@ export function useConvexAuth() {
     ...authState,
     canQuery,
     // Helper to conditionally skip queries
-    skipQuery: canQuery ? undefined : "skip" as const,
+    skipQuery: canQuery ? undefined : ("skip" as const),
   };
 }

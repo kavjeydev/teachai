@@ -132,17 +132,17 @@ export function ApiSettingsSlideout({
       )}
     >
       {/* Header */}
-      <div className="sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50 px-6 py-4 z-10">
+      <div className="sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800 px-6 py-5 z-10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Settings className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center">
+              <Settings className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+              <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
                 API Settings
               </h2>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 {currentChat?.title || "Loading..."}
               </p>
             </div>
@@ -151,9 +151,9 @@ export function ApiSettingsSlideout({
             variant="ghost"
             size="sm"
             onClick={handleClose}
-            className="h-8 w-8 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="h-8 w-8 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
           </Button>
         </div>
       </div>
@@ -163,19 +163,23 @@ export function ApiSettingsSlideout({
         {currentChat ? (
           <>
             {/* Quick Links */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Zap className="w-5 h-5" />
+            <Card className="border-zinc-200 dark:border-zinc-800">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
+                  <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                    <Zap className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                  </div>
                   Quick Actions
                 </CardTitle>
-                <CardDescription>Common API management tasks</CardDescription>
+                <CardDescription className="text-zinc-500 dark:text-zinc-400">
+                  Common API management tasks
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-2">
                   <Button
-                    variant="outline"
-                    className="justify-start h-auto p-4"
+                    variant="ghost"
+                    className="justify-start h-auto p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800"
                     asChild
                   >
                     <a
@@ -183,20 +187,24 @@ export function ApiSettingsSlideout({
                       target="_blank"
                       className="flex items-center gap-3"
                     >
-                      <BookOpen className="w-5 h-5 text-blue-600" />
-                      <div className="text-left">
-                        <div className="font-medium">View Documentation</div>
-                        <div className="text-xs text-zinc-500">
+                      <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <BookOpen className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <div className="font-medium text-zinc-900 dark:text-white">
+                          View Documentation
+                        </div>
+                        <div className="text-sm text-zinc-500 dark:text-zinc-400">
                           Complete API reference and examples
                         </div>
                       </div>
-                      <ExternalLink className="w-4 h-4 ml-auto" />
+                      <ExternalLink className="w-4 h-4 text-zinc-400" />
                     </a>
                   </Button>
 
                   <Button
-                    variant="outline"
-                    className="justify-start h-auto p-4"
+                    variant="ghost"
+                    className="justify-start h-auto p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800"
                     asChild
                   >
                     <a
@@ -204,14 +212,18 @@ export function ApiSettingsSlideout({
                       target="_blank"
                       className="flex items-center gap-3"
                     >
-                      <Shield className="w-5 h-5 text-green-600" />
-                      <div className="text-left">
-                        <div className="font-medium">Test API</div>
-                        <div className="text-xs text-zinc-500">
+                      <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <div className="font-medium text-zinc-900 dark:text-white">
+                          Test API
+                        </div>
+                        <div className="text-sm text-zinc-500 dark:text-zinc-400">
                           Interactive API testing interface
                         </div>
                       </div>
-                      <ExternalLink className="w-4 h-4 ml-auto" />
+                      <ExternalLink className="w-4 h-4 text-zinc-400" />
                     </a>
                   </Button>
                 </div>
@@ -220,10 +232,12 @@ export function ApiSettingsSlideout({
 
             {/* Current Plan & Credits */}
             {subscription && credits && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Crown className="w-5 h-5" />
+              <Card className="border-zinc-200 dark:border-zinc-800">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
+                    <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <Crown className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                    </div>
                     Current Plan:{" "}
                     {subscription.tier === "free"
                       ? "Free"
@@ -232,20 +246,20 @@ export function ApiSettingsSlideout({
                     {detailedSubscription?.hasPendingChange && (
                       <Badge
                         variant="outline"
-                        className="text-xs border-orange-300 text-orange-600"
+                        className="text-xs border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400"
                       >
                         Change Pending
                       </Badge>
                     )}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-zinc-500 dark:text-zinc-400">
                     {credits.usedCredits.toLocaleString()} /{" "}
                     {credits.totalCredits.toLocaleString()} credits used this
                     month
                     {detailedSubscription?.hasPendingChange &&
                       "pendingTier" in detailedSubscription &&
                       "daysUntilChange" in detailedSubscription && (
-                        <div className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+                        <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
                           → Changing to{" "}
                           {(detailedSubscription.pendingTier || "")
                             .charAt(0)
@@ -262,10 +276,10 @@ export function ApiSettingsSlideout({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-amber-500 dark:bg-amber-400 h-2 rounded-full transition-all duration-300"
                         style={{
                           width: `${Math.min(100, (credits.usedCredits / credits.totalCredits) * 100)}%`,
                         }}
@@ -282,7 +296,7 @@ export function ApiSettingsSlideout({
                             )
                           }
                           disabled={isUpgrading}
-                          className="flex-1 bg-amber-700 hover:bg-amber-800 dark:bg-amber-500 dark:hover:bg-amber-400"
+                          className="flex-1 bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
                         >
                           {isUpgrading ? (
                             <>
@@ -299,6 +313,7 @@ export function ApiSettingsSlideout({
                         <Button
                           onClick={() => window.open("/billing", "_blank")}
                           variant="outline"
+                          className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
                           Manage Plans
@@ -307,15 +322,15 @@ export function ApiSettingsSlideout({
                     )}
 
                     {credits.usedCredits / credits.totalCredits > 0.8 && (
-                      <div className="mt-4 p-3 bg-amber-100 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-lg">
-                        <p className="text-sm text-amber-900 dark:text-amber-200 mb-2">
+                      <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
                           ⚠️ Running low on credits! Consider upgrading or
                           purchasing more credits.
                         </p>
                         <Button
                           onClick={() => window.open("/billing", "_blank")}
                           size="sm"
-                          className="bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white"
+                          className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
                         >
                           <Crown className="w-3 h-3 mr-1" />
                           Upgrade Now
@@ -329,25 +344,27 @@ export function ApiSettingsSlideout({
 
             {/* API Manager - Only for paid users */}
             {subscription?.tier === "free" ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="w-5 h-5" />
+              <Card className="border-zinc-200 dark:border-zinc-800">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
+                    <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <Key className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                    </div>
                     API Access
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-zinc-500 dark:text-zinc-400">
                     Convert your chat into a REST API endpoint
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Key className="w-8 h-8 text-white" />
+                    <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-6">
+                      <Key className="w-8 h-8 text-zinc-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
                       API Access - Pro Feature
                     </h3>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 max-w-md mx-auto">
                       Turn your chat into a powerful REST API endpoint. Generate
                       API keys, test endpoints, and integrate with your
                       applications. Available with Pro subscription.
@@ -361,7 +378,7 @@ export function ApiSettingsSlideout({
                           )
                         }
                         disabled={isUpgrading}
-                        className="bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-400 dark:to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white shadow-lg"
+                        className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
                       >
                         {isUpgrading ? (
                           <>
@@ -375,7 +392,7 @@ export function ApiSettingsSlideout({
                           </>
                         )}
                       </Button>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-2">
                         <div>
                           ✓ 10,000 AI credits/month • ✓ API access • ✓ Priority
                           support
@@ -384,7 +401,7 @@ export function ApiSettingsSlideout({
                           onClick={() => window.open("/billing", "_blank")}
                           variant="ghost"
                           size="sm"
-                          className="text-xs h-auto p-1 hover:text-amber-600 dark:hover:text-amber-400"
+                          className="text-xs h-auto p-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
                         >
                           View all plans & pricing →
                         </Button>
@@ -401,27 +418,31 @@ export function ApiSettingsSlideout({
                 />
 
                 {/* Chat Analytics Section */}
-                <Card className="border-blue-200 dark:border-blue-800 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-                      <BarChart3 className="w-5 h-5" />
+                <Card className="border-zinc-200 dark:border-zinc-800">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
+                      <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <BarChart3 className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                      </div>
                       Chat Analytics & Insights
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-zinc-500 dark:text-zinc-400">
                       Privacy-first analytics - you can see usage patterns but
                       never raw user data
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {/* Privacy-First Highlight */}
-                    <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Shield className="w-5 h-5 text-green-600" />
+                    <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 mb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                          <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                        </div>
                         <div>
-                          <h4 className="font-semibold text-green-800 dark:text-green-200 text-sm">
+                          <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">
                             🔒 Privacy-First Analytics
                           </h4>
-                          <p className="text-xs text-green-700 dark:text-green-300">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
                             Complete user data isolation - you cannot access raw
                             files or content
                           </p>
@@ -429,26 +450,26 @@ export function ApiSettingsSlideout({
                       </div>
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div>
-                          <div className="text-lg font-bold text-green-800 dark:text-green-200">
+                          <div className="text-lg font-bold text-zinc-900 dark:text-white">
                             {currentChat?.metadata?.totalSubchats || 0}
                           </div>
-                          <div className="text-xs text-green-600 dark:text-green-400">
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             Private Sub-Chats
                           </div>
                         </div>
                         <div>
-                          <div className="text-lg font-bold text-blue-800 dark:text-blue-200">
+                          <div className="text-lg font-bold text-zinc-900 dark:text-white">
                             {currentChat?.metadata?.totalFiles || 0}
                           </div>
-                          <div className="text-xs text-blue-600 dark:text-blue-400">
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             Files (No Access)
                           </div>
                         </div>
                         <div>
-                          <div className="text-lg font-bold text-amber-900 dark:text-amber-200">
+                          <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
                             {currentChat?.metadata?.totalQueries || 0}
                           </div>
-                          <div className="text-xs text-amber-700 dark:text-amber-400">
+                          <div className="text-xs text-amber-600 dark:text-amber-400">
                             AI Queries Only
                           </div>
                         </div>
@@ -457,28 +478,32 @@ export function ApiSettingsSlideout({
 
                     {/* Key Metrics Grid */}
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <Users className="w-5 h-5 text-blue-600 mx-auto mb-2" />
-                        <div className="text-lg font-bold text-blue-800 dark:text-blue-200">
+                      <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                          <Users className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                        </div>
+                        <div className="text-lg font-bold text-zinc-900 dark:text-white">
                           {currentChat?.metadata?.totalUsers || 0}
                         </div>
-                        <div className="text-xs text-blue-600 dark:text-blue-400">
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
                           Total Users
                         </div>
-                        <div className="text-xs text-zinc-500 mt-1">
+                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
                           {currentChat?.metadata?.activeUsers || 0} active (7d)
                         </div>
                       </div>
 
-                      <div className="text-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                        <Files className="w-5 h-5 text-green-600 mx-auto mb-2" />
-                        <div className="text-lg font-bold text-green-800 dark:text-green-200">
+                      <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                          <Files className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                        </div>
+                        <div className="text-lg font-bold text-zinc-900 dark:text-white">
                           {currentChat?.metadata?.totalFiles || 0}
                         </div>
-                        <div className="text-xs text-green-600 dark:text-green-400">
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
                           Files Uploaded
                         </div>
-                        <div className="text-xs text-zinc-500 mt-1">
+                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
                           {currentChat?.metadata?.totalStorageBytes
                             ? `${Math.round((currentChat.metadata.totalStorageBytes / 1024 / 1024) * 10) / 10} MB`
                             : "0 MB"}{" "}
@@ -486,28 +511,32 @@ export function ApiSettingsSlideout({
                         </div>
                       </div>
 
-                      <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-                        <Activity className="w-5 h-5 text-amber-600 mx-auto mb-2" />
-                        <div className="text-lg font-bold text-amber-900 dark:text-amber-200">
+                      <div className="text-center p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="w-8 h-8 rounded bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center mx-auto mb-2">
+                          <Activity className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div className="text-lg font-bold text-amber-700 dark:text-amber-300">
                           {currentChat?.metadata?.successRate || 0}%
                         </div>
-                        <div className="text-xs text-amber-700 dark:text-amber-400">
+                        <div className="text-xs text-amber-600 dark:text-amber-400">
                           Success Rate
                         </div>
-                        <div className="text-xs text-zinc-500 mt-1">
+                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
                           {currentChat?.metadata?.totalQueries || 0} queries
                         </div>
                       </div>
 
-                      <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
-                        <TrendingUp className="w-5 h-5 text-orange-600 mx-auto mb-2" />
-                        <div className="text-lg font-bold text-orange-800 dark:text-orange-200">
+                      <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                          <TrendingUp className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                        </div>
+                        <div className="text-lg font-bold text-zinc-900 dark:text-white">
                           {currentChat?.metadata?.averageResponseTime || 0}ms
                         </div>
-                        <div className="text-xs text-orange-600 dark:text-orange-400">
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
                           Avg Response
                         </div>
-                        <div className="text-xs text-zinc-500 mt-1">
+                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
                           {Math.round(
                             (currentChat?.metadata?.queriesLast7Days || 0) / 7,
                           )}
@@ -518,8 +547,10 @@ export function ApiSettingsSlideout({
 
                     {/* File Type Distribution */}
                     <div className="mb-6">
-                      <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3 flex items-center gap-2">
-                        <HardDrive className="w-4 h-4" />
+                      <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
+                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                          <HardDrive className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                        </div>
                         File Type Breakdown
                       </h4>
                       {currentChat?.metadata?.fileTypeStats ? (
@@ -580,8 +611,10 @@ export function ApiSettingsSlideout({
 
                     {/* Top User Activity (Privacy-Safe) */}
                     <div className="mb-6">
-                      <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 mb-3 flex items-center gap-2">
-                        <Activity className="w-4 h-4" />
+                      <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
+                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                          <Activity className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                        </div>
                         Top Users (Privacy-Safe)
                       </h4>
                       {currentChat?.metadata?.userActivitySummary &&
@@ -593,10 +626,10 @@ export function ApiSettingsSlideout({
                             .map((user, index) => (
                               <div
                                 key={user.userIdHash}
-                                className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
+                                className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800"
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-amber-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                                  <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-lg flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs">
                                     #{index + 1}
                                   </div>
                                   <div>
@@ -634,20 +667,24 @@ export function ApiSettingsSlideout({
                     </div>
 
                     {/* Privacy Protection Summary */}
-                    <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                      <h4 className="font-semibold text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">
-                        <Shield className="w-4 h-4" />
+                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800">
+                      <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
+                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                          <Shield className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                        </div>
                         Privacy Protection Active
                       </h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle className="w-3 h-3 text-green-600" />
-                            <span className="text-xs font-medium text-green-800 dark:text-green-200">
+                            <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                              <CheckCircle className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                            </div>
+                            <span className="text-xs font-medium text-zinc-900 dark:text-white">
                               ✅ You CAN See:
                             </span>
                           </div>
-                          <ul className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                          <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
                             <li>• User counts & activity levels</li>
                             <li>• File counts & storage usage</li>
                             <li>• API performance metrics</li>
@@ -656,12 +693,14 @@ export function ApiSettingsSlideout({
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-2">
-                            <AlertCircle className="w-3 h-3 text-red-600" />
-                            <span className="text-xs font-medium text-red-800 dark:text-red-200">
+                            <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                              <AlertCircle className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                            </div>
+                            <span className="text-xs font-medium text-zinc-900 dark:text-white">
                               ❌ You CANNOT See:
                             </span>
                           </div>
-                          <ul className="text-xs text-red-700 dark:text-red-300 space-y-1">
+                          <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
                             <li>• Raw file content</li>
                             <li>• User questions/messages</li>
                             <li>• Personal user information</li>
@@ -670,7 +709,7 @@ export function ApiSettingsSlideout({
                         </div>
                       </div>
                       <div className="mt-4 text-center">
-                        <Badge className="bg-green-600 text-white text-xs">
+                        <Badge className="bg-zinc-600 dark:bg-zinc-700 text-white text-xs">
                           🛡️ Complete Privacy Protection
                         </Badge>
                       </div>
@@ -684,10 +723,10 @@ export function ApiSettingsSlideout({
           // Loading state
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-                <Settings className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <Settings className="w-8 h-8 text-zinc-400" />
               </div>
-              <p className="text-zinc-600 dark:text-zinc-400">
+              <p className="text-zinc-500 dark:text-zinc-400">
                 Loading API settings...
               </p>
             </div>
