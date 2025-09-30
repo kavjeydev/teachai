@@ -88,6 +88,7 @@ export const uploadContext = mutation({
 
     const document = await ctx.db.patch(args.id, {
       context: existingContext,
+      hasUnpublishedChanges: true,
     });
 
     return document;
@@ -117,6 +118,7 @@ export const eraseContext = mutation({
 
     const chat = await ctx.db.patch(args.id, {
       context: filteredContext,
+      hasUnpublishedChanges: true,
     });
   },
 });
@@ -751,6 +753,7 @@ export const updateChatModel = mutation({
 
     await ctx.db.patch(args.chatId, {
       selectedModel: args.selectedModel,
+      hasUnpublishedChanges: true,
     });
 
     return true;
@@ -780,6 +783,7 @@ export const updateChatPrompt = mutation({
 
     await ctx.db.patch(args.chatId, {
       customPrompt: args.customPrompt,
+      hasUnpublishedChanges: true,
     });
 
     return true;
@@ -809,6 +813,7 @@ export const updateChatTemperature = mutation({
 
     await ctx.db.patch(args.chatId, {
       temperature: args.temperature,
+      hasUnpublishedChanges: true,
     });
 
     return true;
@@ -838,6 +843,7 @@ export const updateChatMaxTokens = mutation({
 
     await ctx.db.patch(args.chatId, {
       maxTokens: args.maxTokens,
+      hasUnpublishedChanges: true,
     });
 
     return true;
@@ -867,8 +873,207 @@ export const updateChatConversationHistoryLimit = mutation({
 
     await ctx.db.patch(args.chatId, {
       conversationHistoryLimit: args.conversationHistoryLimit,
+      hasUnpublishedChanges: true,
     });
 
     return true;
+  },
+});
+
+// Publish chat settings to make them live for API
+export const publishChatSettings = mutation({
+  args: {
+    chatId: v.id("chats"),
+    description: v.optional(v.string()), // Optional description for this version
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to publish this chat.");
+    }
+
+    const now = Date.now();
+    const versionId = `v${now}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create published settings from current draft settings
+    const publishedSettings = {
+      selectedModel: chat.selectedModel,
+      customPrompt: chat.customPrompt,
+      temperature: chat.temperature,
+      maxTokens: chat.maxTokens,
+      conversationHistoryLimit: chat.conversationHistoryLimit,
+      context: chat.context,
+      publishedAt: now,
+      publishedBy: identity.subject,
+    };
+
+    // Create version entry for history
+    const newVersion = {
+      versionId,
+      selectedModel: chat.selectedModel,
+      customPrompt: chat.customPrompt,
+      temperature: chat.temperature,
+      maxTokens: chat.maxTokens,
+      conversationHistoryLimit: chat.conversationHistoryLimit,
+      context: chat.context,
+      publishedAt: now,
+      publishedBy: identity.subject,
+      description: args.description,
+    };
+
+    // Add to version history (keep last 10 versions)
+    const existingVersions = chat.publishedVersions || [];
+    const updatedVersions = [newVersion, ...existingVersions].slice(0, 10);
+
+    await ctx.db.patch(args.chatId, {
+      publishedSettings,
+      publishedVersions: updatedVersions,
+      hasUnpublishedChanges: false,
+    });
+
+    return publishedSettings;
+  },
+});
+
+// Rollback to published settings (discard draft changes)
+export const rollbackChatSettings = mutation({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to rollback this chat.");
+    }
+
+    if (!chat.publishedSettings) {
+      throw new Error("No published settings to rollback to.");
+    }
+
+    // Restore draft settings from published settings
+    await ctx.db.patch(args.chatId, {
+      selectedModel: chat.publishedSettings.selectedModel,
+      customPrompt: chat.publishedSettings.customPrompt,
+      temperature: chat.publishedSettings.temperature,
+      maxTokens: chat.publishedSettings.maxTokens,
+      conversationHistoryLimit: chat.publishedSettings.conversationHistoryLimit,
+      context: chat.publishedSettings.context,
+      hasUnpublishedChanges: false,
+    });
+
+    return true;
+  },
+});
+
+// Rollback to a specific version from history
+export const rollbackToVersion = mutation({
+  args: {
+    chatId: v.id("chats"),
+    versionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to rollback this chat.");
+    }
+
+    // Find the version to rollback to
+    const version = chat.publishedVersions?.find(
+      (v) => v.versionId === args.versionId,
+    );
+    if (!version) {
+      throw new Error("Version not found in history.");
+    }
+
+    // Restore settings from the selected version
+    await ctx.db.patch(args.chatId, {
+      selectedModel: version.selectedModel,
+      customPrompt: version.customPrompt,
+      temperature: version.temperature,
+      maxTokens: version.maxTokens,
+      conversationHistoryLimit: version.conversationHistoryLimit,
+      context: version.context,
+      publishedSettings: {
+        selectedModel: version.selectedModel,
+        customPrompt: version.customPrompt,
+        temperature: version.temperature,
+        maxTokens: version.maxTokens,
+        conversationHistoryLimit: version.conversationHistoryLimit,
+        context: version.context,
+        publishedAt: version.publishedAt,
+        publishedBy: version.publishedBy,
+      },
+      hasUnpublishedChanges: false,
+    });
+
+    return version;
+  },
+});
+
+// Get version history for a chat
+export const getVersionHistory = query({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      return null;
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to view this chat's history.");
+    }
+
+    return chat.publishedVersions || [];
+  },
+});
+
+// Get published settings for API consumption
+export const getPublishedSettings = query({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      return null;
+    }
+
+    // ONLY return published settings - no fallback to current settings
+    // The API should only work with explicitly published settings
+    return chat.publishedSettings || null;
   },
 });

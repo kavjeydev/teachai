@@ -143,6 +143,7 @@ const CreditWarning = dynamic(
     ),
   },
 );
+
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import "../../../components/styles.scss";
 import Document from "@tiptap/extension-document";

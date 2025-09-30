@@ -707,19 +707,23 @@ export const getAppWithSettings = query({
       return null;
     }
 
-    // Get parent chat settings if available
+    // Get PUBLISHED parent chat settings if available
     let parentChatSettings = null;
     if (app.parentChatId) {
       const parentChat = await ctx.db.get(app.parentChatId);
-      if (parentChat) {
+      if (parentChat && parentChat.publishedSettings) {
+        // Use ONLY published settings for API consumption
         parentChatSettings = {
-          customPrompt: parentChat.customPrompt,
-          selectedModel: parentChat.selectedModel || "gpt-4o-mini",
-          temperature: parentChat.temperature || 0.7,
-          maxTokens: parentChat.maxTokens || 1000,
+          customPrompt: parentChat.publishedSettings.customPrompt,
+          selectedModel:
+            parentChat.publishedSettings.selectedModel || "gpt-4o-mini",
+          temperature: parentChat.publishedSettings.temperature || 0.7,
+          maxTokens: parentChat.publishedSettings.maxTokens || 1000,
           userId: parentChat.userId, // For credit consumption
         };
       }
+      // If no published settings exist, parentChatSettings remains null
+      // This will force the API to return an error instead of using draft settings
     }
 
     return {

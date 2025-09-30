@@ -18,7 +18,15 @@ import {
   SelectGroup,
   SelectItem,
 } from "@/components/ui/select";
-import { Lock, Globe, Edit3, Network, Settings, Crown, Sparkles } from "lucide-react";
+import {
+  Lock,
+  Globe,
+  Edit3,
+  Network,
+  Settings,
+  Crown,
+  Sparkles,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -31,6 +39,7 @@ import ThemeSwitcher from "./theme-switcher";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { getStripe } from "@/lib/stripe";
+import { NavbarPublishStatus } from "@/components/navbar-publish-status";
 
 interface ChatNavbarProps {
   chatId: Id<"chats">;
@@ -82,19 +91,19 @@ export const ChatNavbar = ({
     setIsUpgrading(true);
 
     try {
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
-          mode: 'subscription'
+          mode: "subscription",
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        throw new Error("Failed to create checkout session");
       }
 
       const { sessionId, url } = await response.json();
@@ -106,8 +115,8 @@ export const ChatNavbar = ({
         await stripe?.redirectToCheckout({ sessionId });
       }
     } catch (error) {
-      console.error('Checkout failed:', error);
-      toast.error('Failed to start checkout process');
+      console.error("Checkout failed:", error);
+      toast.error("Failed to start checkout process");
     } finally {
       setIsUpgrading(false);
     }
@@ -194,7 +203,7 @@ export const ChatNavbar = ({
 
       <div className="flex items-center gap-3">
         {/* Upgrade CTA - Only show for free users */}
-        {subscription?.tier === 'free' && (
+        {subscription?.tier === "free" && (
           <Button
             onClick={handleUpgrade}
             disabled={isUpgrading}
@@ -217,7 +226,7 @@ export const ChatNavbar = ({
         )}
 
         {/* Credit Counter - Show for paid users */}
-        {subscription?.tier !== 'free' && credits && (
+        {subscription?.tier !== "free" && credits && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
@@ -226,13 +235,32 @@ export const ChatNavbar = ({
           </div>
         )}
 
+        {/* Publish Status - Show for paid users */}
+        {subscription?.tier !== "free" && (
+          <NavbarPublishStatus
+            chatId={chatId}
+            hasUnpublishedChanges={currentChat?.hasUnpublishedChanges}
+            publishedAt={currentChat?.publishedSettings?.publishedAt}
+            onPublish={() => {
+              // Trigger refresh of chat data if needed
+            }}
+            onRollback={() => {
+              // Trigger refresh of chat data if needed
+            }}
+          />
+        )}
+
         {/* Settings Button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={onApiSettingsToggle}
           className="h-8 px-3 gap-2 transition-colors text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-amber-400"
-          title={subscription?.tier === 'free' ? "Chat Settings & API Access (Pro Feature)" : "Chat Settings & API Access"}
+          title={
+            subscription?.tier === "free"
+              ? "Chat Settings & API Access (Pro Feature)"
+              : "Chat Settings & API Access"
+          }
         >
           <Settings className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">API Settings</span>

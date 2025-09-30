@@ -147,6 +147,57 @@ export default defineSchema({
     maxTokens: v.optional(v.number()), // Default to 1000 if not set
     // Conversation history limit (number of previous messages to include)
     conversationHistoryLimit: v.optional(v.number()), // Default to 20 if not set
+
+    // Published state for API - these are the settings that the API actually uses
+    // When developers make changes, they edit the draft settings above, then publish to make them live
+    publishedSettings: v.optional(
+      v.object({
+        selectedModel: v.optional(v.string()), // Published AI model
+        customPrompt: v.optional(v.string()), // Published custom prompt
+        temperature: v.optional(v.number()), // Published temperature
+        maxTokens: v.optional(v.number()), // Published max tokens
+        conversationHistoryLimit: v.optional(v.number()), // Published conversation history limit
+        context: v.optional(
+          v.array(
+            v.object({
+              filename: v.string(),
+              fileId: v.string(),
+            }),
+          ),
+        ), // Published context files
+        publishedAt: v.number(), // When these settings were published
+        publishedBy: v.string(), // User ID who published
+      }),
+    ),
+
+    // Track if there are unpublished changes
+    hasUnpublishedChanges: v.optional(v.boolean()),
+
+    // Version history for rollback functionality
+    publishedVersions: v.optional(
+      v.array(
+        v.object({
+          versionId: v.string(), // Unique identifier for this version
+          selectedModel: v.optional(v.string()),
+          customPrompt: v.optional(v.string()),
+          temperature: v.optional(v.number()),
+          maxTokens: v.optional(v.number()),
+          conversationHistoryLimit: v.optional(v.number()),
+          context: v.optional(
+            v.array(
+              v.object({
+                filename: v.string(),
+                fileId: v.string(),
+              }),
+            ),
+          ),
+          publishedAt: v.number(),
+          publishedBy: v.string(),
+          description: v.optional(v.string()), // Optional description of changes
+        }),
+      ),
+    ),
+
     content: v.optional(
       v.array(
         v.object({

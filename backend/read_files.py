@@ -1737,13 +1737,13 @@ async def v1_user_query(
         max_tokens = response_tokens
         custom_prompt = None
 
-        # Apply parent chat settings if available
+        # Apply PUBLISHED parent chat settings if available
         if app_config_from_convex:
             try:
-                # Get the app data again to access parent chat settings
+                # Get the app data to find the parent chat ID
                 convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
                 async with httpx.AsyncClient() as client:
-                    response = await client.post(
+                    app_response = await client.post(
                         f"{convex_url}/api/run/app_management/getAppWithSettings",
                         json={
                             "args": {"appId": user_identity["app_id"]},
@@ -1752,9 +1752,12 @@ async def v1_user_query(
                         headers={"Content-Type": "application/json"}
                     )
 
-                    if response.status_code == 200:
-                        result = response.json()
-                        app_data = result.get("value")
+                    if app_response.status_code == 200:
+                        app_result = app_response.json()
+                        app_data = app_result.get("value")
+                        parent_chat_id = app_data.get("parentChatId") if app_data else None
+
+                        # Check if parent chat has published settings
                         parent_settings = app_data.get("parentChatSettings", {}) if app_data else {}
 
                         if parent_settings:
@@ -1762,11 +1765,17 @@ async def v1_user_query(
                             temperature = parent_settings.get("temperature", temperature)
                             max_tokens = min(parent_settings.get("maxTokens", max_tokens), response_tokens)
                             custom_prompt = parent_settings.get("customPrompt", custom_prompt)
-                            logger.info(f"🎛️ Using parent chat settings: model={selected_model}, temp={temperature}, max_tokens={max_tokens}, prompt='{custom_prompt}'")
+                            logger.info(f"🎛️ Using PUBLISHED parent chat settings: model={selected_model}, temp={temperature}, max_tokens={max_tokens}, prompt='{custom_prompt}'")
                         else:
-                            logger.info("🎛️ No parent chat settings found, using defaults")
+                            logger.warning("🚫 No published settings found for parent chat - V1 API requires published settings")
+                            raise HTTPException(
+                                status_code=400,
+                                detail="The parent chat has no published settings. Please publish the chat settings first to enable V1 API access."
+                            )
+            except HTTPException:
+                raise
             except Exception as e:
-                logger.warning(f"⚠️ Could not load parent settings, using defaults: {e}")
+                logger.warning(f"⚠️ Could not load published parent settings, using defaults: {e}")
 
         # Use the existing answer_question function but with the user's subchat and inherited settings
         question_request = QuestionRequest(
@@ -2014,31 +2023,57 @@ async def api_answer_question(
                 detail="Invalid API key or chat not accessible. Please check: 1) Chat exists, 2) API access is enabled in chat settings, 3) API key is correct."
             )
 
-        # Get chat settings AND conversation history from Convex
+        # Get PUBLISHED chat settings AND conversation history from Convex
         chat_settings = {}
         conversation_history = []
         async with httpx.AsyncClient() as client:
+            # First get published settings
+            published_response = await client.post(
+                f"{CONVEX_URL}/api/run/chats/getPublishedSettings",
+                json={
+                    "args": {"chatId": chat_id},
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            # Also get chat content for conversation history
             chat_response = await client.post(
-                CONVEX_URL,
+                f"{CONVEX_URL}/api/run/chats/getChatById",
                 json={
                     "args": {"id": chat_id},
                     "format": "json"
-                }
+                },
+                headers={"Content-Type": "application/json"}
             )
-            if chat_response.status_code == 200:
-                chat_data = chat_response.json()
-                if chat_data.get("value"):
-                    chat = chat_data["value"]
-                    chat_settings = {
-                        "custom_prompt": chat.get("customPrompt"),
-                        "selected_model": chat.get("selectedModel", "gpt-4o-mini"),
-                        "temperature": chat.get("temperature", 0.7),
-                        "max_tokens": chat.get("maxTokens", 1000),
-                        "conversation_history_limit": chat.get("conversationHistoryLimit", 20)
-                    }
-                    logger.info(f"📋 Using chat settings: custom_prompt={bool(chat_settings['custom_prompt'])}, model={chat_settings['selected_model']}")
 
-                    # Extract conversation history for context
+            if published_response.status_code == 200 and chat_response.status_code == 200:
+                published_data = published_response.json()
+                chat_data = chat_response.json()
+
+                # Check if we have published settings - if not, API should not work
+                if not published_data.get("value"):
+                    logger.warning(f"🚫 No published settings found for chat {chat_id} - API access denied")
+                    raise HTTPException(
+                        status_code=400,
+                        detail="This chat has no published settings. Please publish your chat settings first to enable API access."
+                    )
+
+                if chat_data.get("value"):
+                    published_settings = published_data["value"]
+                    chat = chat_data["value"]
+
+                    # Use published settings for API
+                    chat_settings = {
+                        "custom_prompt": published_settings.get("customPrompt"),
+                        "selected_model": published_settings.get("selectedModel", "gpt-4o-mini"),
+                        "temperature": published_settings.get("temperature", 0.7),
+                        "max_tokens": published_settings.get("maxTokens", 1000),
+                        "conversation_history_limit": published_settings.get("conversationHistoryLimit", 20)
+                    }
+                    logger.info(f"📋 Using PUBLISHED settings: custom_prompt={bool(chat_settings['custom_prompt'])}, model={chat_settings['selected_model']}")
+
+                    # Extract conversation history for context (from current chat, not published)
                     chat_content = chat.get("content", [])
                     for message in chat_content:
                         if message.get("sender") == "user":
@@ -2056,6 +2091,7 @@ async def api_answer_question(
         logger.info(f"🎯 Final API parameters: model={final_model}, temp={final_temperature}, max_tokens={final_max_tokens}, has_custom_prompt={bool(final_custom_prompt)}")
 
         # Call the existing answer_question function with merged settings
+        # But first, we need to pass the published context files for filtering
         internal_payload = QuestionRequest(
             question=payload.question,
             chat_id=chat_id,
@@ -2065,8 +2101,11 @@ async def api_answer_question(
             max_tokens=final_max_tokens
         )
 
-        # Use the existing answer_question logic
-        result = await answer_question(internal_payload)
+        # Use the existing answer_question logic with published context filtering
+        result = await answer_question_with_published_context(
+            internal_payload,
+            published_settings.get("context", [])
+        )
 
         # Format for external API
         api_response = ApiAnswerResponse(
@@ -2141,30 +2180,57 @@ async def api_answer_question_stream(
                 detail="Invalid API key or chat not accessible. Please check: 1) Chat exists, 2) API access is enabled in chat settings, 3) API key is correct."
             )
 
-        # Get chat settings AND conversation history from Convex
+        # Get PUBLISHED chat settings AND conversation history from Convex
         chat_settings = {}
         conversation_history = []
         async with httpx.AsyncClient() as client:
+            # First get published settings
+            published_response = await client.post(
+                f"{CONVEX_URL}/api/run/chats/getPublishedSettings",
+                json={
+                    "args": {"chatId": chat_id},
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            # Also get chat content for conversation history
             chat_response = await client.post(
-                CONVEX_URL,
+                f"{CONVEX_URL}/api/run/chats/getChatById",
                 json={
                     "args": {"id": chat_id},
                     "format": "json"
-                }
+                },
+                headers={"Content-Type": "application/json"}
             )
-            if chat_response.status_code == 200:
-                chat_data = chat_response.json()
-                if chat_data.get("value"):
-                    chat = chat_data["value"]
-                    chat_settings = {
-                        "custom_prompt": chat.get("customPrompt"),
-                        "selected_model": chat.get("selectedModel", "gpt-4o-mini"),
-                        "temperature": chat.get("temperature", 0.7),
-                        "max_tokens": chat.get("maxTokens", 1000),
-                        "conversation_history_limit": chat.get("conversationHistoryLimit", 20)
-                    }
 
-                    # Extract conversation history for context
+            if published_response.status_code == 200 and chat_response.status_code == 200:
+                published_data = published_response.json()
+                chat_data = chat_response.json()
+
+                # Check if we have published settings - if not, API should not work
+                if not published_data.get("value"):
+                    logger.warning(f"🚫 No published settings found for chat {chat_id} - API access denied")
+                    raise HTTPException(
+                        status_code=400,
+                        detail="This chat has no published settings. Please publish your chat settings first to enable API access."
+                    )
+
+                if chat_data.get("value"):
+                    published_settings = published_data["value"]
+                    chat = chat_data["value"]
+
+                    # Use published settings for API
+                    chat_settings = {
+                        "custom_prompt": published_settings.get("customPrompt"),
+                        "selected_model": published_settings.get("selectedModel", "gpt-4o-mini"),
+                        "temperature": published_settings.get("temperature", 0.7),
+                        "max_tokens": published_settings.get("maxTokens", 1000),
+                        "conversation_history_limit": published_settings.get("conversationHistoryLimit", 20)
+                    }
+                    logger.info(f"📋 Using PUBLISHED settings: custom_prompt={bool(chat_settings['custom_prompt'])}, model={chat_settings['selected_model']}")
+
+                    # Extract conversation history for context (from current chat, not published)
                     chat_content = chat.get("content", [])
                     for message in chat_content:
                         if message.get("sender") == "user":
@@ -2189,8 +2255,11 @@ async def api_answer_question_stream(
             max_tokens=final_max_tokens
         )
 
-        # Use the existing streaming logic
-        stream_response = await answer_question_stream(internal_payload)
+        # Use the existing streaming logic with published context filtering
+        stream_response = await answer_question_stream_with_published_context(
+            internal_payload,
+            published_settings.get("context", [])
+        )
 
         # Log successful streaming request
         logger.info(f"✅ API streaming call successful for chat {chat_id} from {request.client.host}")
@@ -2435,6 +2504,168 @@ async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
     except Exception as e:
         print(f"Error in create_nodes_and_embeddings: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+async def answer_question_with_published_context(payload: QuestionRequest, published_context_files: List[dict] = None):
+    """
+    Answer question using only published context files for API calls
+    """
+    try:
+        # Enhanced sanitization with XSS detection
+        sanitized_question = sanitize_with_xss_detection(
+            payload.question,
+            allow_html=False,
+            max_length=5000,
+            context="answer_question"
+        )
+        sanitized_chat_id = sanitize_chat_id(payload.chat_id)
+
+        if not sanitized_question or not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid input format or potentially malicious content detected")
+
+        # Extract parameters from payload
+        question = sanitized_question
+        chat_id = sanitized_chat_id
+        selected_model = payload.selected_model or "gpt-4o-mini"
+        custom_prompt = sanitize_with_xss_detection(
+            payload.custom_prompt,
+            allow_html=False,
+            max_length=10000,
+            context="custom_prompt"
+        ) if payload.custom_prompt else None
+        temperature = payload.temperature or 0.7
+        max_tokens = payload.max_tokens or 1000
+
+        logger.info(f"🔍 Processing question for chat {chat_id} using published context files")
+
+        # Generate question embedding
+        question_embedding = get_embedding(question)
+
+        # Fetch chunks from Neo4j, filtering by published context files if provided
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                if published_context_files:
+                    # Filter to only use chunks from published files
+                    published_file_ids = [file["fileId"] for file in published_context_files]
+                    file_ids_str = "', '".join(published_file_ids)
+
+                    query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}' AND d.fileId IN ['{file_ids_str}']
+                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
+                    """
+                    logger.info(f"📋 Using published files only: {len(published_context_files)} files")
+                else:
+                    # Use all files (fallback for backwards compatibility)
+                    query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}'
+                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
+                    """
+                    logger.info(f"📋 Using all available files (no published context)")
+
+                results = session.run(query)
+
+                # Calculate similarities with filename boost
+                chunk_scores = []
+                question_lower = question.lower()
+
+                for record in results:
+                    chunk_embedding = record["embedding"]
+                    if chunk_embedding:
+                        similarity = cosine_similarity(
+                            np.array(question_embedding),
+                            np.array(chunk_embedding)
+                        )
+
+                        # Boost score if filename is mentioned in question
+                        filename_lower = record["filename"].lower() if record["filename"] else ""
+                        filename_boost = 0.1 if any(word in filename_lower for word in question_lower.split()) else 0
+
+                        chunk_scores.append({
+                            "chunk_id": record["id"],
+                            "chunk_text": record["text"],
+                            "score": similarity + filename_boost,
+                            "filename": record["filename"]
+                        })
+
+                # Sort by similarity score and get top chunks
+                chunk_scores.sort(key=lambda x: x["score"], reverse=True)
+                top_chunks = chunk_scores[:8]  # Get top 8 chunks
+
+                if not top_chunks:
+                    logger.warning(f"No relevant chunks found for question in chat {chat_id}")
+                    if published_context_files:
+                        return AnswerWithContext(
+                            answer="I don't have any published context to answer your question. Please make sure you have published your files and settings.",
+                            context=[]
+                        )
+                    else:
+                        return AnswerWithContext(
+                            answer="I don't have any context to answer your question. Please upload some documents first.",
+                            context=[]
+                        )
+
+                # Prepare context for the AI model
+                context_text = "\n\n".join([
+                    f"[Chunk {i}] From {chunk['filename']}: {chunk['chunk_text']}"
+                    for i, chunk in enumerate(top_chunks)
+                ])
+
+                # Build the prompt
+                system_prompt = custom_prompt if custom_prompt else f"""You are a helpful AI assistant with access to a knowledge graph built from the user's documents. You have the following context from their documents:
+
+IMPORTANT INSTRUCTIONS:
+1. ALWAYS prioritize using the provided context to answer the user's question
+2. If the context contains relevant information, you MUST use it and cite it with [^0], [^1], etc.
+3. When citing, use the format [^X] where X is the chunk index (0-based)
+4. If you use multiple chunks, cite each one: [^0] [^1] [^2]
+5. The citations should correspond to chunks 0 through X where X is the highest index
+6. If the user asks about a document by name and you see content from a similar document, you MUST use that content
+7. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
+
+For example:
+- "According to the Grant Assignment document [^0], ecology research involves..."
+- "The document shows [^2] that species interactions..."
+
+RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
+
+                # Create messages for the AI model
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Context:\n{context_text}\n\nQuestion: {question}"}
+                ]
+
+                # Call OpenAI API
+                client = openai.OpenAI()
+                response = client.chat.completions.create(
+                    model=selected_model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+
+                answer = response.choices[0].message.content
+
+                # Format context for response
+                formatted_context = [
+                    ChunkScore(
+                        chunk_id=chunk["chunk_id"],
+                        chunk_text=chunk["chunk_text"],
+                        score=chunk["score"]
+                    ) for chunk in top_chunks
+                ]
+
+                logger.info(f"✅ Successfully answered question for chat {chat_id} using {len(top_chunks)} chunks")
+
+                return AnswerWithContext(
+                    answer=answer,
+                    context=formatted_context
+                )
+
+    except Exception as e:
+        logger.error(f"❌ Error in answer_question_with_published_context: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/answer_question", response_model=AnswerWithContext)
 async def answer_question(payload: QuestionRequest):
@@ -2693,6 +2924,177 @@ async def answer_question(payload: QuestionRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+async def answer_question_stream_with_published_context(payload: QuestionRequest, published_context_files: List[dict] = None):
+    """
+    Streaming answer using only published context files for API calls
+    """
+    try:
+        # Extract parameters from payload
+        question = payload.question
+        chat_id = payload.chat_id
+        selected_model = payload.selected_model or "gpt-4o-mini"
+        custom_prompt = payload.custom_prompt
+        temperature = payload.temperature or 0.7
+        max_tokens = payload.max_tokens or 1000
+
+        logger.info(f"🔍 Processing streaming question for chat {chat_id} using published context files")
+
+        # Generate question embedding
+        question_embedding = get_embedding(question)
+
+        # Fetch chunks from Neo4j, filtering by published context files if provided
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                if published_context_files:
+                    # Filter to only use chunks from published files
+                    published_file_ids = [file["fileId"] for file in published_context_files]
+                    file_ids_str = "', '".join(published_file_ids)
+
+                    query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}' AND d.fileId IN ['{file_ids_str}']
+                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
+                    """
+                    logger.info(f"📋 Using published files only: {len(published_context_files)} files")
+                else:
+                    # Use all files (fallback for backwards compatibility)
+                    query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}'
+                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
+                    """
+                    logger.info(f"📋 Using all available files (no published context)")
+
+                results = session.run(query)
+
+                # Calculate similarities
+                chunk_scores = []
+                question_lower = question.lower()
+
+                for record in results:
+                    chunk_embedding = record["embedding"]
+                    if chunk_embedding:
+                        similarity = cosine_similarity(
+                            np.array(question_embedding),
+                            np.array(chunk_embedding)
+                        )
+
+                        # Boost score if filename is mentioned in question
+                        filename_lower = record["filename"].lower() if record["filename"] else ""
+                        filename_boost = 0.1 if any(word in filename_lower for word in question_lower.split()) else 0
+
+                        chunk_scores.append({
+                            "chunk_id": record["id"],
+                            "chunk_text": record["text"],
+                            "score": similarity + filename_boost,
+                            "filename": record["filename"]
+                        })
+
+                # Sort by similarity score and get top chunks
+                chunk_scores.sort(key=lambda x: x["score"], reverse=True)
+                top_chunks = chunk_scores[:8]
+
+                if not top_chunks:
+                    logger.warning(f"No relevant chunks found for streaming question in chat {chat_id}")
+                    if published_context_files:
+                        error_message = "I don't have any published context to answer your question. Please make sure you have published your files and settings."
+                    else:
+                        error_message = "I don't have any context to answer your question. Please upload some documents first."
+
+                    async def error_generator():
+                        yield f"data: {error_message}\n\n"
+                        yield "data: [DONE]\n\n"
+
+                    return StreamingResponse(
+                        error_generator(),
+                        media_type="text/event-stream",
+                        headers={
+                            "Cache-Control": "no-cache",
+                            "Connection": "keep-alive",
+                            "Access-Control-Allow-Origin": "*",
+                        }
+                    )
+
+                # Prepare context for the AI model
+                context_text = "\n\n".join([
+                    f"[Chunk {i}] From {chunk['filename']}: {chunk['chunk_text']}"
+                    for i, chunk in enumerate(top_chunks)
+                ])
+
+                # Build the prompt
+                system_prompt = custom_prompt if custom_prompt else f"""You are a helpful AI assistant with access to a knowledge graph built from the user's documents. You have the following context from their documents:
+
+IMPORTANT INSTRUCTIONS:
+1. ALWAYS prioritize using the provided context to answer the user's question
+2. If the context contains relevant information, you MUST use it and cite it with [^0], [^1], etc.
+3. When citing, use the format [^X] where X is the chunk index (0-based)
+4. If you use multiple chunks, cite each one: [^0] [^1] [^2]
+5. The citations should correspond to chunks 0 through X where X is the highest index
+6. If the user asks about a document by name and you see content from a similar document, you MUST use that content
+7. Only use external knowledge if the context is completely irrelevant to the question, and clearly state when you're using external knowledge
+
+For example:
+- "According to the Grant Assignment document [^0], ecology research involves..."
+- "The document shows [^2] that species interactions..."
+
+RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
+
+                # Create messages for the AI model
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Context:\n{context_text}\n\nQuestion: {question}"}
+                ]
+
+                # Stream response from OpenAI
+                client = openai.OpenAI()
+                stream = client.chat.completions.create(
+                    model=selected_model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True
+                )
+
+                async def generate():
+                    try:
+                        for chunk in stream:
+                            if chunk.choices[0].delta.content is not None:
+                                content = chunk.choices[0].delta.content
+                                yield f"data: {content}\n\n"
+                        yield "data: [DONE]\n\n"
+                    except Exception as e:
+                        logger.error(f"Streaming error: {e}")
+                        yield f"data: Error: {str(e)}\n\n"
+                        yield "data: [DONE]\n\n"
+
+                return StreamingResponse(
+                    generate(),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "Access-Control-Allow-Origin": "*",
+                    }
+                )
+
+    except Exception as e:
+        logger.error(f"❌ Error in streaming with published context: {str(e)}")
+
+        async def error_generator():
+            yield f"data: Error: {str(e)}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(
+            error_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+            }
+        )
+
 
 @app.post("/answer_question_stream")
 async def answer_question_stream(payload: QuestionRequest):
