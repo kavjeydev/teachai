@@ -34,6 +34,47 @@ export const createChat = mutation({
     }
 
     const userId = identity.subject;
+
+    // Check user's subscription and chat limits
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    // Get current chat count (non-archived chats only)
+    const currentChats = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .collect();
+
+    // Determine chat limit based on subscription tier
+    let chatLimit = 1; // Default free tier limit
+
+    if (subscription && subscription.status === "active") {
+      switch (subscription.tier) {
+        case "starter":
+          chatLimit = 3;
+          break;
+        case "scale":
+          chatLimit = 25;
+          break;
+        case "enterprise":
+          chatLimit = -1; // Unlimited
+          break;
+        default:
+          chatLimit = 1; // Free tier
+      }
+    }
+
+    // Check if user has reached their chat limit
+    if (chatLimit !== -1 && currentChats.length >= chatLimit) {
+      const tierName = subscription?.tier || "free";
+      throw new Error(
+        `You've reached your chat limit of ${chatLimit} chat${chatLimit > 1 ? "s" : ""} for the ${tierName} tier. Please upgrade your plan or archive existing chats to create new ones.`,
+      );
+    }
+
     const document = await ctx.db.insert("chats", {
       chatId: "chat-" + 1,
       title: args.title,
@@ -1075,5 +1116,61 @@ export const getPublishedSettings = query({
     // ONLY return published settings - no fallback to current settings
     // The API should only work with explicitly published settings
     return chat.publishedSettings || null;
+  },
+});
+
+// Get user's chat limits and current usage
+export const getUserChatLimits = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Check user's subscription
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    // Get current chat count (non-archived chats only)
+    const currentChats = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .collect();
+
+    // Determine chat limit based on subscription tier
+    let chatLimit = 1; // Default free tier limit
+    let tierName = "free";
+
+    if (subscription && subscription.status === "active") {
+      tierName = subscription.tier;
+      switch (subscription.tier) {
+        // New tier names
+        case "starter":
+          chatLimit = 3;
+          break;
+        case "scale":
+          chatLimit = 25;
+          break;
+        case "enterprise":
+          chatLimit = -1; // Unlimited
+          break;
+        default:
+          chatLimit = 1; // Free tier
+      }
+    }
+
+    return {
+      currentChatCount: currentChats.length,
+      chatLimit: chatLimit,
+      tierName: tierName,
+      canCreateMore: chatLimit === -1 || currentChats.length < chatLimit,
+      remainingChats:
+        chatLimit === -1 ? -1 : Math.max(0, chatLimit - currentChats.length),
+    };
   },
 });

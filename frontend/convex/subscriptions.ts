@@ -19,8 +19,29 @@ export const getUserSubscription = query({
     if (!subscription) {
       // Return free tier as default
       return {
-        tier: 'free',
-        status: 'active',
+        tier: "free",
+        status: "active",
+        currentPeriodEnd: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+      };
+    }
+
+    return subscription;
+  },
+});
+
+// Get subscription by userId (for server-side API calls without auth context)
+export const getSubscriptionByUserId = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!subscription) {
+      return {
+        tier: "free",
+        status: "active",
         currentPeriodEnd: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
       };
     }
@@ -45,7 +66,7 @@ export const getUserCredits = query({
       .first();
 
     if (!credits) {
-      // Return default free tier values - initialization will happen in a mutation
+      // Return default free tier values - initialization will happen in consumeCredits
       const now = Date.now();
       const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -166,13 +187,133 @@ export const updateUserCredits = mutation({
         totalCredits: args.totalCredits,
         usedCredits: 0,
         periodStart: args.periodStart || now,
-        periodEnd: args.periodEnd || (now + 30 * 24 * 60 * 60 * 1000),
+        periodEnd: args.periodEnd || now + 30 * 24 * 60 * 60 * 1000,
         lastResetAt: now,
         updatedAt: now,
       });
     }
 
-    return { success: true, totalCredits: args.totalCredits, resetUsage: args.resetUsage };
+    return {
+      success: true,
+      totalCredits: args.totalCredits,
+      resetUsage: args.resetUsage,
+    };
+  },
+});
+
+// Add credits to user balance (for one-time credit purchases)
+export const addUserCredits = mutation({
+  args: {
+    userId: v.string(),
+    creditsToAdd: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("user_credits")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    const now = Date.now();
+
+    if (existing) {
+      // Add to existing balance
+      await ctx.db.patch(existing._id, {
+        totalCredits: existing.totalCredits + args.creditsToAdd,
+        updatedAt: now,
+      });
+    } else {
+      // Create new credit record
+      await ctx.db.insert("user_credits", {
+        userId: args.userId,
+        totalCredits: args.creditsToAdd,
+        usedCredits: 0,
+        periodStart: now,
+        periodEnd: now + 30 * 24 * 60 * 60 * 1000,
+        lastResetAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return {
+      success: true,
+      creditsAdded: args.creditsToAdd,
+      newTotal: existing
+        ? existing.totalCredits + args.creditsToAdd
+        : args.creditsToAdd,
+    };
+  },
+});
+
+// Log credit transaction
+export const logCreditTransaction = mutation({
+  args: {
+    userId: v.string(),
+    type: v.string(),
+    amount: v.number(),
+    description: v.string(),
+    stripeSessionId: v.optional(v.string()),
+    stripePriceId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("credit_transactions", {
+      userId: args.userId,
+      type: args.type,
+      amount: args.amount,
+      description: args.description,
+      // Note: stripeSessionId and stripePriceId are not in the current schema
+      // but we'll store them in the description for now
+      timestamp: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Manual credit addition (for testing/emergency use)
+export const manuallyAddCredits = mutation({
+  args: {
+    creditsToAdd: v.number(),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    const userId = identity.subject;
+
+    const existing = await ctx.db
+      .query("user_credits")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    const now = Date.now();
+
+    if (existing) {
+      // Add to existing balance
+      await ctx.db.patch(existing._id, {
+        totalCredits: existing.totalCredits + args.creditsToAdd,
+        updatedAt: now,
+      });
+
+      // Log the transaction
+      await ctx.db.insert("credit_transactions", {
+        userId: userId,
+        type: "manual_addition",
+        amount: args.creditsToAdd,
+        description: `Manual credit addition: ${args.reason}`,
+        timestamp: now,
+      });
+
+      return {
+        success: true,
+        creditsAdded: args.creditsToAdd,
+        newTotal: existing.totalCredits + args.creditsToAdd,
+        previousTotal: existing.totalCredits,
+      };
+    } else {
+      throw new Error("No existing credit record found");
+    }
   },
 });
 
@@ -193,13 +334,30 @@ export const consumeCredits = mutation({
     const userId = identity.subject;
 
     // Get current credit balance
-    const userCredits = await ctx.db
+    let userCredits = await ctx.db
       .query("user_credits")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     if (!userCredits) {
-      throw new Error("No credit balance found");
+      // Auto-initialize credits for users who don't have them yet
+      const now = Date.now();
+      const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+
+      const creditId = await ctx.db.insert("user_credits", {
+        userId: userId,
+        totalCredits: 500, // Free tier: 500 credits
+        usedCredits: 0,
+        periodStart: now,
+        periodEnd: periodEnd,
+        lastResetAt: now,
+        updatedAt: now,
+      });
+
+      userCredits = await ctx.db.get(creditId);
+      if (!userCredits) {
+        throw new Error("Failed to initialize credit balance");
+      }
     }
 
     // Check if user has enough credits
@@ -322,8 +480,102 @@ export const initializeUserCredits = mutation({
   },
 });
 
-// Manual function to give user Pro subscription (for testing)
-export const giveUserProSubscription = mutation({
+// Update customer ID for existing subscription
+export const updateCustomerId = mutation({
+  args: {
+    userId: v.string(),
+    stripeCustomerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (subscription) {
+      await ctx.db.patch(subscription._id, {
+        stripeCustomerId: args.stripeCustomerId,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+// Create subscription record for free users who access billing portal
+export const createFreeUserRecord = mutation({
+  args: {
+    userId: v.string(),
+    stripeCustomerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Check if user already has a subscription record
+    const existing = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (existing) {
+      // Update existing record
+      await ctx.db.patch(existing._id, {
+        stripeCustomerId: args.stripeCustomerId,
+        updatedAt: Date.now(),
+      });
+    } else {
+      // Create new free tier record
+      await ctx.db.insert("subscriptions", {
+        userId: args.userId,
+        stripeCustomerId: args.stripeCustomerId,
+        stripeSubscriptionId: "", // No subscription yet
+        stripePriceId: "", // No price yet
+        tier: "free",
+        status: "active",
+        currentPeriodStart: Date.now(),
+        currentPeriodEnd: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+        cancelAtPeriodEnd: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+// Clean up test subscription (removes test subscription data)
+export const cleanupTestSubscription = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    const userId = identity.subject;
+
+    // Find and remove test subscriptions
+    const testSubscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("stripeCustomerId"), "test_customer"),
+          q.eq(q.field("stripeSubscriptionId"), "test_subscription"),
+        ),
+      )
+      .first();
+
+    if (testSubscription) {
+      await ctx.db.delete(testSubscription._id);
+      return { success: true, message: "Test subscription removed" };
+    }
+
+    return { success: false, message: "No test subscription found" };
+  },
+});
+
+// Manual function to give user Starter subscription (for testing)
+export const giveUserStarterSubscription = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -335,7 +587,7 @@ export const giveUserProSubscription = mutation({
     const now = Date.now();
     const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days from now
 
-    // Create Pro subscription
+    // Create Starter subscription
     const existing = await ctx.db
       .query("subscriptions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -343,8 +595,8 @@ export const giveUserProSubscription = mutation({
 
     if (existing) {
       await ctx.db.patch(existing._id, {
-        tier: 'pro',
-        status: 'active',
+        tier: "starter",
+        status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         updatedAt: now,
@@ -352,11 +604,11 @@ export const giveUserProSubscription = mutation({
     } else {
       await ctx.db.insert("subscriptions", {
         userId: userId,
-        stripeCustomerId: 'test_customer',
-        stripeSubscriptionId: 'test_subscription',
-        stripePriceId: 'test_price',
-        tier: 'pro',
-        status: 'active',
+        stripeCustomerId: "test_customer",
+        stripeSubscriptionId: "test_subscription",
+        stripePriceId: "test_price",
+        tier: "starter",
+        status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         cancelAtPeriodEnd: false,
@@ -365,7 +617,7 @@ export const giveUserProSubscription = mutation({
       });
     }
 
-    // Give Pro credits (10,000)
+    // Give Starter credits (10,000)
     const existingCredits = await ctx.db
       .query("user_credits")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -392,7 +644,7 @@ export const giveUserProSubscription = mutation({
       });
     }
 
-    return { success: true, tier: 'pro', credits: 10000 };
+    return { success: true, tier: "starter", credits: 10000 };
   },
 });
 
@@ -492,8 +744,8 @@ export const getDetailedSubscription = query({
 
     if (!subscription) {
       return {
-        tier: 'free',
-        status: 'active',
+        tier: "free",
+        status: "active",
         hasPendingChange: false,
       };
     }
@@ -502,7 +754,10 @@ export const getDetailedSubscription = query({
       ...subscription,
       hasPendingChange: !!subscription.pendingTier,
       daysUntilChange: subscription.planChangeEffectiveDate
-        ? Math.ceil((subscription.planChangeEffectiveDate - Date.now()) / (1000 * 60 * 60 * 24))
+        ? Math.ceil(
+            (subscription.planChangeEffectiveDate - Date.now()) /
+              (1000 * 60 * 60 * 24),
+          )
         : null,
     };
   },
@@ -517,7 +772,9 @@ export const applyPendingPlanChanges = mutation({
     // Find subscription by Stripe subscription ID
     const subscription = await ctx.db
       .query("subscriptions")
-      .withIndex("by_stripe_subscription", (q) => q.eq("stripeSubscriptionId", args.subscriptionId))
+      .withIndex("by_stripe_subscription", (q) =>
+        q.eq("stripeSubscriptionId", args.subscriptionId),
+      )
       .first();
 
     if (!subscription) {
@@ -571,11 +828,15 @@ export const applyPendingPlanChanges = mutation({
 // Helper function to get credits for each tier
 function getTierCredits(tier: string): number {
   switch (tier) {
-    case 'pro': return 10000;
-    case 'team': return 30000;
-    case 'startup': return 100000;
-    case 'free':
-    default: return 500;
+    case "starter":
+      return 10000;
+    case "scale":
+      return 100000;
+    case "enterprise":
+      return 100000;
+    case "free":
+    default:
+      return 500;
   }
 }
 
@@ -605,7 +866,7 @@ export const manuallyActivateSubscription = mutation({
       // Update existing subscription
       await ctx.db.patch(existingSubscription._id, {
         tier: args.tier,
-        status: 'active',
+        status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         cancelAtPeriodEnd: false,
@@ -619,7 +880,7 @@ export const manuallyActivateSubscription = mutation({
         stripeSubscriptionId: `manual_${args.tier}_${now}`,
         stripePriceId: `manual_${args.tier}_price`,
         tier: args.tier,
-        status: 'active',
+        status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         cancelAtPeriodEnd: false,

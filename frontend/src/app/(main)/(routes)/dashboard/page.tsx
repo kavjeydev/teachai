@@ -37,7 +37,6 @@ export default function NoChat() {
   const getTierFromPriceId = (priceId: string): string => {
     const priceMap: Record<string, string> = {
       [process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!]: "pro",
-      [process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID!]: "team",
       [process.env.NEXT_PUBLIC_STRIPE_STARTUP_PRICE_ID!]: "startup",
     };
     return priceMap[priceId] || "pro";

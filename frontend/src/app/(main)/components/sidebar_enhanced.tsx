@@ -65,6 +65,7 @@ export function AppSidebar({
   const { user } = useUser();
 
   const chats = useQuery(api.chats.getChats);
+  const chatLimits = useQuery(api.chats.getUserChatLimits);
   const currentChat = useQuery(api.chats.getChatById, { id: chatId });
 
   const addChat = useMutation(api.chats.createChat);
@@ -85,9 +86,25 @@ export function AppSidebar({
   const [showFilters, setShowFilters] = React.useState(false);
   const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
 
-  const onCreate = () => {
-    const promise = addChat({ title: "untitled" });
-    toast.success("Created new chat!");
+  const onCreate = async () => {
+    // Check if user can create more chats
+    if (chatLimits && !chatLimits.canCreateMore) {
+      toast.error(
+        `You've reached your chat limit of ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} for the ${chatLimits.tierName} plan. Please upgrade your plan or archive existing chats to create new ones.`,
+      );
+      return;
+    }
+
+    try {
+      await addChat({ title: "untitled" });
+      toast.success("Created new chat!");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create chat");
+      }
+    }
   };
 
   const onDelete = (chatId: Id<"chats">) => {

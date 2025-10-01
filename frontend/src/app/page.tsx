@@ -9,6 +9,7 @@ import { Spinner } from "@nextui-org/spinner";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { AnimatedGradientText } from "@/components/magicui/animated-gradient-text";
+import { HeroChatDemo } from "@/components/hero-chat-demo";
 import {
   ArrowRight,
   CheckCircle,
@@ -107,7 +108,7 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section - Minimal Awwwards Style */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative pt-24 pb-20 overflow-hidden min-h-screen flex flex-col justify-center">
         {/* Enhanced Background with subtle glow */}
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-100 via-white to-zinc-50 dark:from-black dark:via-zinc-950 dark:to-black"></div>
 
@@ -122,30 +123,46 @@ export default function Home() {
           style={{ animationDelay: "6s" }}
         ></div>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
-          {/* Minimal Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 dark:border-white/20 text-zinc-600 dark:text-white/70 text-sm font-light mb-12 backdrop-blur-sm bg-white/50 dark:bg-transparent">
-            <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
-            <span>Ship AI in minutes, not months</span>
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
+          {/* Header Content */}
+          <div className="text-center mb-12">
+            {/* Minimal Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 dark:border-white/20 text-zinc-600 dark:text-white/70 text-sm font-light mb-8 backdrop-blur-sm bg-white/50 dark:bg-transparent">
+              <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
+              <span>Ship AI in minutes, not months</span>
+            </div>
+
+            {/* Main Headline - Responsive */}
+            <h1
+              className={`font-sans font-normal tracking-tight mb-6 leading-tight ${
+                user
+                  ? "text-5xl sm:text-6xl md:text-7xl lg:text-8xl"
+                  : "text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+              }`}
+            >
+              <span className="block text-zinc-900 dark:text-white mb-2 tracking-tighter">
+                AI you can
+              </span>
+              <span className="block text-zinc-900 dark:text-white tracking-tighter">
+                see & shape
+              </span>
+            </h1>
+
+            {/* Minimal Subheadline */}
+            <p className="text-lg md:text-xl text-zinc-600 dark:text-white/70 mb-8 max-w-2xl mx-auto leading-relaxed font-light tracking-tighter">
+              Ship production AI in 2 minutes with visual GraphRAG debugging
+            </p>
           </div>
 
-          {/* Main Headline - Ultra Minimal */}
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-sans font-normal tracking-tight mb-8 leading-[0.9]">
-            <span className="block text-zinc-900 dark:text-white mb-2 tracking-tighter">
-              AI you can
-            </span>
-            <span className="block text-zinc-900 dark:text-white tracking-tighter">
-              see & shape
-            </span>
-          </h1>
+          {/* Interactive Demo - Only for non-signed-in users */}
+          {!user && (
+            <div className="mb-12">
+              <HeroChatDemo />
+            </div>
+          )}
 
-          {/* Minimal Subheadline */}
-          <p className="text-lg md:text-xl text-zinc-600 dark:text-white/70 mb-16 max-w-2xl mx-auto leading-relaxed font-light tracking-tighter">
-            Ship production AI in 2 minutes with visual GraphRAG debugging
-          </p>
-
-          {/* Premium CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-24">
+          {/* CTA Buttons - Show for all users */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             {user === undefined && (
               <div className="flex items-center gap-2">
                 <Spinner size="sm" />
@@ -198,7 +215,7 @@ export default function Home() {
           </div>
 
           {/* Minimal Scroll Indicator */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
             <ChevronDown className="w-5 h-5 text-zinc-400 dark:text-white/30 animate-bounce" />
           </div>
         </div>

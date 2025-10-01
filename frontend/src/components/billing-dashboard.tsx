@@ -39,9 +39,11 @@ import { getStripe } from "@/lib/stripe";
 
 export function BillingDashboard() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
 
   const subscription = useQuery(api.subscriptions.getUserSubscription);
   const credits = useQuery(api.subscriptions.getUserCredits);
+  const chatLimits = useQuery(api.chats.getUserChatLimits);
 
   const handleUpgrade = async (priceId: string | null, tierName: string) => {
     if (!priceId) {
@@ -80,7 +82,15 @@ export function BillingDashboard() {
     }
   };
 
-  const handleBuyCredits = async (priceId: string, packName: string) => {
+  const handleBuyCredits = async (
+    priceId: string | undefined,
+    packName: string,
+  ) => {
+    if (!priceId) {
+      toast.error("Credit pack not available. Please contact support.");
+      return;
+    }
+
     setIsLoading(priceId);
 
     try {
@@ -93,7 +103,9 @@ export function BillingDashboard() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create checkout session");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Checkout API error:", errorData);
+        throw new Error(errorData.error || "Failed to create checkout session");
       }
 
       const { sessionId, url } = await response.json();
@@ -112,6 +124,36 @@ export function BillingDashboard() {
     }
   };
 
+  const handleManageBilling = async () => {
+    setIsPortalLoading(true);
+    try {
+      const response = await fetch("/api/stripe/customer-portal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.log("Billing portal error:", errorData); // Debug logging
+        throw new Error(errorData.error || "Failed to open billing portal");
+      }
+
+      const { url } = await response.json();
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Billing portal failed:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to open billing portal");
+      }
+    } finally {
+      setIsPortalLoading(false);
+    }
+  };
+
   const currentTier = subscription?.tier || "free";
   const tierConfig =
     PRICING_TIERS[currentTier.toUpperCase() as keyof typeof PRICING_TIERS];
@@ -122,12 +164,12 @@ export function BillingDashboard() {
 
   const getTierIcon = (tier: string) => {
     switch (tier) {
-      case "pro":
+      case "starter":
         return <Zap className="w-5 h-5 text-white" />;
-      case "team":
-        return <Users className="w-5 h-5 text-white" />;
-      case "startup":
+      case "scale":
         return <Rocket className="w-5 h-5 text-white" />;
+      case "enterprise":
+        return <Crown className="w-5 h-5 text-white" />;
       default:
         return <Crown className="w-5 h-5 text-white" />;
     }
@@ -135,12 +177,12 @@ export function BillingDashboard() {
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case "pro":
+      case "starter":
         return "from-blue-500 to-cyan-600";
-      case "team":
-        return "from-amber-500 to-amber-600";
-      case "startup":
-        return "from-orange-500 to-red-600";
+      case "scale":
+        return "from-purple-500 to-purple-700";
+      case "enterprise":
+        return "from-green-500 to-emerald-600";
       default:
         return "from-zinc-500 to-zinc-600";
     }
@@ -185,9 +227,24 @@ export function BillingDashboard() {
               </div>
             </div>
             {currentTier !== "free" && (
-              <Button variant="outline" size="sm">
-                <CreditCard className="w-4 h-4 mr-2" />
-                Manage Billing
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManageBilling}
+                disabled={isPortalLoading}
+                className="bg-amber-400 hover:bg-amber-400/90"
+              >
+                {isPortalLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                    Opening...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Manage Billing
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -303,13 +360,22 @@ export function BillingDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              Subscription Plans
+              Available Plans
             </CardTitle>
             <CardDescription>
-              Predictable monthly billing with included credits
+              View available plans • Use "Manage Billing" above to
+              upgrade/downgrade
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {currentTier === "free" && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  💡 <strong>New to paid plans?</strong> Click any "Subscribe"
+                  button below to get started with secure Stripe checkout.
+                </p>
+              </div>
+            )}
             {Object.entries(PRICING_TIERS)
               .filter(
                 ([key]) => key !== "FREE" && key !== currentTier.toUpperCase(),
@@ -330,8 +396,15 @@ export function BillingDashboard() {
                         {tier.name}
                       </h3>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {formatTokens(tier.features.credits)} •{" "}
-                        {tier.features.chats} chats • {tier.features.storage}
+                        {typeof tier.features.credits === "number"
+                          ? formatTokens(tier.features.credits)
+                          : tier.features.credits}{" "}
+                        •{" "}
+                        {tier.limits?.maxChats === -1
+                          ? "Unlimited"
+                          : tier.limits?.maxChats || 1}{" "}
+                        chats • {tier.features.projects} projects •{" "}
+                        {tier.features.fileStorage}
                       </p>
                     </div>
                   </div>
@@ -344,22 +417,129 @@ export function BillingDashboard() {
                     </p>
                     <Button
                       size="sm"
-                      onClick={() => handleUpgrade(tier.priceId!, tier.name)}
-                      disabled={!!isLoading}
+                      variant={currentTier === "free" ? "default" : "outline"}
+                      onClick={
+                        currentTier === "free"
+                          ? () => handleUpgrade(tier.priceId!, tier.name)
+                          : handleManageBilling
+                      }
+                      disabled={
+                        currentTier === "free"
+                          ? !!isLoading
+                          : isPortalLoading || !subscription
+                      }
                       className="mt-2"
                     >
-                      {isLoading === tier.priceId ? (
+                      {currentTier === "free" ? (
+                        isLoading === tier.priceId ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1" />
+                            Processing...
+                          </>
+                        ) : (
+                          `Subscribe to ${tier.name}`
+                        )
+                      ) : isPortalLoading ? (
                         <>
-                          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1" />
-                          Processing...
+                          <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin mr-1" />
+                          Opening...
                         </>
                       ) : (
-                        `Upgrade to ${tier.name}`
+                        <>
+                          <CreditCard className="w-3 h-3 mr-1" />
+                          Change Plan
+                        </>
                       )}
                     </Button>
                   </div>
                 </div>
               ))}
+          </CardContent>
+        </Card>
+
+        {/* Chat Limits */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Chat Limits
+            </CardTitle>
+            <CardDescription>
+              Your chat creation limits for your current plan
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Chat Usage Overview */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                  {chatLimits?.currentChatCount || 0}
+                  <span className="text-lg font-normal text-zinc-500">
+                    {" "}
+                    /{" "}
+                    {chatLimits?.chatLimit === -1
+                      ? "∞"
+                      : chatLimits?.chatLimit || 1}
+                  </span>
+                </p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Active chats
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400">
+                  {chatLimits?.chatLimit === -1
+                    ? "∞"
+                    : chatLimits?.remainingChats || 0}
+                </p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Chats remaining
+                </p>
+              </div>
+            </div>
+
+            {chatLimits?.chatLimit !== -1 && (
+              <Progress
+                value={
+                  chatLimits
+                    ? Math.round(
+                        (chatLimits.currentChatCount / chatLimits.chatLimit) *
+                          100,
+                      )
+                    : 0
+                }
+                className="h-3"
+              />
+            )}
+
+            {/* Chat Limit Alert */}
+            {chatLimits && !chatLimits.canCreateMore && (
+              <div className="flex items-start gap-3 p-4 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-800 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-1">
+                    Chat Limit Reached
+                  </h4>
+                  <p className="text-sm text-blue-800 dark:text-blue-300 mb-3">
+                    You've reached your limit of {chatLimits.chatLimit} chat
+                    {chatLimits.chatLimit > 1 ? "s" : ""} for the{" "}
+                    {tierConfig?.name || "Free"} plan. Upgrade your plan or
+                    archive existing chats to create new ones.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-400 text-blue-900 hover:bg-blue-200 dark:border-blue-300 dark:text-blue-800 dark:hover:bg-blue-100"
+                      onClick={() => (window.location.href = "/pricing")}
+                    >
+                      <ArrowRight className="w-3 h-3 mr-1" />
+                      Upgrade Plan
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -401,8 +581,8 @@ export function BillingDashboard() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleBuyCredits(pack.priceId!, pack.name)}
-                    disabled={!!isLoading}
+                    onClick={() => handleBuyCredits(pack.priceId, pack.name)}
+                    disabled={!!isLoading || !pack.priceId}
                     className="mt-2"
                   >
                     {isLoading === pack.priceId ? (
@@ -410,6 +590,8 @@ export function BillingDashboard() {
                         <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin mr-1" />
                         Processing...
                       </>
+                    ) : !pack.priceId ? (
+                      "Unavailable"
                     ) : (
                       "Buy Now"
                     )}

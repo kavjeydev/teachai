@@ -19,6 +19,14 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import {
   Lock,
   Globe,
   Edit3,
@@ -38,7 +46,7 @@ import { Badge } from "@/components/ui/badge";
 import ThemeSwitcher from "./theme-switcher";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { NavbarPublishStatus } from "@/components/navbar-publish-status";
 
 interface ChatNavbarProps {
@@ -72,6 +80,17 @@ export const ChatNavbar = ({
   const subscription = useQuery(api.subscriptions.getUserSubscription);
   const credits = useQuery(api.subscriptions.getUserCredits);
   const renameChat = useMutation(api.chats.rename);
+  const initializeCredits = useMutation(
+    api.subscriptions.initializeUserCredits,
+  );
+
+  // Auto-initialize credits on component mount for free users
+  React.useEffect(() => {
+    if (subscription?.tier === "free") {
+      // Initialize credits for free users to ensure they have a database record
+      initializeCredits({}).catch(console.error);
+    }
+  }, [subscription, initializeCredits]);
 
   const finishEditing = async (chatId: Id<"chats">) => {
     setIsRenaming(true);
@@ -87,7 +106,7 @@ export const ChatNavbar = ({
   };
   const updateVisibility = useMutation(api.chats.changeChatVisibility);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (priceId: string, tierName: string) => {
     setIsUpgrading(true);
 
     try {
@@ -97,7 +116,7 @@ export const ChatNavbar = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
+          priceId: priceId,
           mode: "subscription",
         }),
       });
@@ -109,7 +128,7 @@ export const ChatNavbar = ({
       const { sessionId, url } = await response.json();
 
       if (url) {
-        window.location.href = url;
+        window.open(url, "_blank");
       } else {
         const stripe = await getStripe();
         await stripe?.redirectToCheckout({ sessionId });
@@ -204,29 +223,121 @@ export const ChatNavbar = ({
       <div className="flex items-center gap-3">
         {/* Upgrade CTA - Only show for free users */}
         {subscription?.tier === "free" && (
-          <Button
-            onClick={handleUpgrade}
-            disabled={isUpgrading}
-            size="sm"
-            className="h-8 px-3 gap-2 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white shadow-lg hover:shadow-amber-400/25 transition-all duration-300"
-          >
-            {isUpgrading ? (
-              <>
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span className="hidden sm:inline">Processing...</span>
-              </>
-            ) : (
-              <>
-                <Crown className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Upgrade Pro</span>
-                <span className="sm:hidden">Pro</span>
-              </>
-            )}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                disabled={isUpgrading}
+                size="sm"
+                className="h-8 px-3 gap-2 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white shadow-lg hover:shadow-amber-400/25 transition-all duration-300"
+              >
+                {isUpgrading ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="hidden sm:inline">Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Crown className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Upgrade</span>
+                    <span className="sm:hidden">Pro</span>
+                  </>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuLabel>Choose Your Plan</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+
+              {/* Starter Plan */}
+              <DropdownMenuItem
+                onClick={() =>
+                  handleUpgrade(PRICING_TIERS.STARTER.priceId!, "Starter")
+                }
+                className="p-4 cursor-pointer"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                      <Crown className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Starter</div>
+                      <div className="text-xs text-muted-foreground">
+                        3 chats • 10K credits
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold">$39</div>
+                    <div className="text-xs text-muted-foreground">/month</div>
+                  </div>
+                </div>
+              </DropdownMenuItem>
+
+              {/* Scale Plan */}
+              <DropdownMenuItem
+                onClick={() =>
+                  handleUpgrade(PRICING_TIERS.SCALE.priceId!, "Scale")
+                }
+                className="p-4 cursor-pointer"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center">
+                      <Crown className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Scale</div>
+                      <div className="text-xs text-muted-foreground">
+                        25 chats • 100K credits
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold">$199</div>
+                    <div className="text-xs text-muted-foreground">/month</div>
+                  </div>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              {/* Enterprise Option */}
+              <DropdownMenuItem
+                onClick={() =>
+                  window.open(
+                    "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry",
+                    "_blank",
+                  )
+                }
+                className="p-4 cursor-pointer"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                      <Crown className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Enterprise</div>
+                      <div className="text-xs text-muted-foreground">
+                        Unlimited • Custom pricing
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold">Custom</div>
+                    <div className="text-xs text-muted-foreground">
+                      Contact us
+                    </div>
+                  </div>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
 
-        {/* Credit Counter - Show for paid users */}
-        {subscription?.tier !== "free" && credits && (
+        {/* Credit Counter - Show for all users */}
+        {credits && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">

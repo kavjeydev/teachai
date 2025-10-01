@@ -43,11 +43,7 @@ export default function Navbar() {
         }`}
       >
         <div
-          className={`glass backdrop-blur-xl bg-white/90 dark:bg-black/20 border border-zinc-200/60 dark:border-white/20 rounded-2xl transition-all duration-300 ${
-            isScrolled
-              ? "navbar-glow dark:navbar-glow-dark"
-              : "navbar-glow dark:navbar-glow-dark shadow-lg"
-          }`}
+          className={`glass backdrop-blur-xl bg-white/90 dark:bg-black/20 rounded-2xl transition-all duration-300`}
         >
           <div className="px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
@@ -139,7 +135,7 @@ export default function Navbar() {
                     <SignInButton mode="modal">
                       <Button
                         variant="outline"
-                        className="glass border border-white/20 text-white hover:text-amber-400 hover:border-amber-400/50 rounded-xl backdrop-blur-sm bg-white/5 hover:bg-white/10 transition-all duration-300"
+                        className="glass border border-white/20 dark:text-white text-black hover:text-amber-400 hover:border-amber-400/50 rounded-xl backdrop-blur-sm bg-white/5 hover:bg-white/10 transition-all duration-300"
                       >
                         Sign In
                       </Button>
@@ -154,7 +150,7 @@ export default function Navbar() {
                   {/* Mobile Sign In Button */}
                   <div className="md:hidden">
                     <SignInButton mode="modal">
-                      <Button className="bg-gradient-to-r from-amber-400 to-amber-600 text-white font-semibold px-4 py-2 rounded-xl shadow-lg shadow-amber-400/25 text-sm">
+                      <Button className="bg-gradient-to-r from-amber-400 to-amber-600 dark:text-white text-black font-semibold px-4 py-2 rounded-xl shadow-lg shadow-amber-400/25 text-sm">
                         Sign In
                       </Button>
                     </SignInButton>
@@ -177,7 +173,7 @@ export default function Navbar() {
                       </div>
                     </PopoverTrigger>
 
-                    <PopoverContent className="glass backdrop-blur-xl bg-white/95 dark:bg-black/20 border border-zinc-200/60 dark:border-white/20 rounded-2xl shadow-2xl navbar-glow dark:navbar-glow-dark">
+                    <PopoverContent className="glass backdrop-blur-xl bg-white/95 dark:bg-black/20 border border-zinc-200/60 dark:border-white/20 rounded-2xl shadow-2xl">
                       <div className="p-4 min-w-[220px]">
                         <div className="flex items-center gap-3 mb-4 pb-3 border-b border-zinc-200 dark:border-white/20">
                           <img

@@ -41,7 +41,12 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
   const { navigateTo, isNavigating } = useSmoothNavigation();
 
   const chats = useQuery(api.chats.getChats);
+  const chatLimits = useQuery(api.chats.getUserChatLimits);
+  const subscription = useQuery(api.subscriptions.getUserSubscription);
   const addChat = useMutation(api.chats.createChat);
+
+  // State for billing portal
+  const [isPortalLoading, setIsPortalLoading] = React.useState(false);
 
   // Get recent chats (last 5)
   const recentChats = React.useMemo(() => {
@@ -69,14 +74,56 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
   }, [chats]);
 
   const onCreate = async () => {
+    // Check if user can create more chats
+    if (chatLimits && !chatLimits.canCreateMore) {
+      toast.error(
+        `You've reached your chat limit of ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} for the ${chatLimits.tierName} plan. Please upgrade your plan or archive existing chats to create new ones.`,
+      );
+      return;
+    }
+
     setIsCreatingChat(true);
     try {
       await addChat({ title: "Untitled Chat" });
       toast.success("Created new chat!");
     } catch (error) {
-      toast.error("Failed to create chat");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create chat");
+      }
     } finally {
       setIsCreatingChat(false);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    setIsPortalLoading(true);
+    try {
+      const response = await fetch("/api/stripe/customer-portal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.log("Billing portal error:", errorData); // Debug logging
+        throw new Error(errorData.error || "Failed to open billing portal");
+      }
+
+      const { url } = await response.json();
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Billing portal failed:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to open billing portal");
+      }
+    } finally {
+      setIsPortalLoading(false);
     }
   };
 
@@ -197,12 +244,17 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
             </button>
 
             <button
-              onClick={() => router.push("/billing")}
-              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
+              onClick={handleManageBilling}
+              disabled={isPortalLoading}
+              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CreditCard className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
+              {isPortalLoading ? (
+                <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin text-zinc-600 dark:text-zinc-400" />
+              ) : (
+                <CreditCard className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
+              )}
               <span className="text-sm font-medium text-zinc-900 dark:text-white group-hover:text-amber-400">
-                Billing & Credits
+                {isPortalLoading ? "Opening Portal..." : "Billing & Credits"}
               </span>
             </button>
           </div>
