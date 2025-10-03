@@ -38,9 +38,12 @@ export default function Navbar() {
     <>
       {/* Floating Glass Navbar */}
       <nav
-        className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-out ${
-          isScrolled ? "w-[95%] max-w-6xl" : "w-[90%] max-w-5xl"
-        }`}
+        className="fixed top-4 left-1/2 z-50 navbar-width-transition"
+        style={{
+          transform: "translateX(-50%)",
+          width: isScrolled ? "95%" : "90%",
+          maxWidth: isScrolled ? "72rem" : "64rem",
+        }}
       >
         <div
           className={`glass backdrop-blur-xl bg-white/90 dark:bg-black/20 rounded-2xl transition-all duration-300`}
@@ -55,12 +58,12 @@ export default function Navbar() {
                 <div className="relative">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <img
-                      src="/trainly_icon_white.png"
+                      src="/trainly_icon_black.png"
                       alt="Trainly Logo"
                       className="w-8 h-8 block dark:hidden"
                     />
                     <img
-                      src="/trainly_icon_black.png"
+                      src="/trainly_icon_white.png"
                       alt="Trainly Logo"
                       className="w-8 h-8 hidden dark:block"
                     />

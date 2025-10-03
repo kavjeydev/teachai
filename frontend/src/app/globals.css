@@ -135,6 +135,13 @@ body {
     transition: inherit !important;
   }
 
+  /* Navbar width transition - separate from theme transitions */
+  .navbar-width-transition {
+    transition:
+      width 500ms ease-out,
+      max-width 500ms ease-out !important;
+  }
+
   /* Disable transitions during initial theme resolution to prevent flash */
   .theme-loading,
   .theme-loading *,

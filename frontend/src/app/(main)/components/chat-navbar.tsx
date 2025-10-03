@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { NavbarPublishStatus } from "@/components/navbar-publish-status";
+import { StorageUsageIndicator } from "@/components/storage-usage-indicator";
 
 interface ChatNavbarProps {
   chatId: Id<"chats">;
@@ -218,7 +219,7 @@ export const ChatNavbar = ({
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Upgrade CTA - Only show for free users */}
         {subscription?.tier === "free" && (
           <Button
@@ -232,13 +233,19 @@ export const ChatNavbar = ({
           </Button>
         )}
 
-        {/* Credit Counter - Show for all users */}
+        {/* Credit Counter & Storage Usage - Show for all users */}
         {credits && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-              {(credits.remainingCredits || 0).toFixed(1)} credits
-            </span>
+          <div className="hidden sm:flex items-center gap-1.5">
+            {/* Credits */}
+            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                {(credits.remainingCredits || 0).toFixed(1)}
+              </span>
+            </div>
+
+            {/* Storage Usage */}
+            <StorageUsageIndicator compact />
           </div>
         )}
 

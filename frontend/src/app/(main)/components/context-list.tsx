@@ -73,6 +73,10 @@ export function ContextList({
 
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
     console.log("🗑️ Starting context deletion for fileId:", fileId);
+    console.log(
+      "🗑️ Full URL will be:",
+      (process.env.NEXT_PUBLIC_BASE_URL as string) + `remove_context/${fileId}`,
+    );
 
     onErase(chatId, fileId);
 
@@ -91,11 +95,13 @@ export function ContextList({
     if (!modusResponse.ok) {
       const errorData = await modusResponse.json();
       console.error("❌ Failed to delete context from Neo4j:", errorData);
+      console.error("❌ Response status:", modusResponse.status);
+      console.error("❌ Response details:", errorData);
       throw new Error(errorData.detail || "Failed to write nodes to neo4j.");
     }
 
     const responseData = await modusResponse.json();
-    // Context deleted from Neo4j successfully
+    console.log("✅ Neo4j deletion successful:", responseData);
 
     // Trigger graph refresh after successful deletion
     if (onContextDeleted) {

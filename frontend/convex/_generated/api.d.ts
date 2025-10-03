@@ -20,6 +20,7 @@ import type * as chat_analytics from "../chat_analytics.js";
 import type * as chats from "../chats.js";
 import type * as convexClient from "../convexClient.js";
 import type * as fileQueue from "../fileQueue.js";
+import type * as fileStorage from "../fileStorage.js";
 import type * as initialize_metadata from "../initialize_metadata.js";
 import type * as simple_api from "../simple_api.js";
 import type * as subscriptions from "../subscriptions.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   chats: typeof chats;
   convexClient: typeof convexClient;
   fileQueue: typeof fileQueue;
+  fileStorage: typeof fileStorage;
   initialize_metadata: typeof initialize_metadata;
   simple_api: typeof simple_api;
   subscriptions: typeof subscriptions;

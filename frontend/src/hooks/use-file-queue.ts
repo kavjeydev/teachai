@@ -9,6 +9,9 @@ const uid = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
+// Global set to track files currently being processed to prevent duplicates
+const globalProcessingFiles = new Set<string>();
+
 // Utility function to format relative time
 export const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now();
@@ -179,6 +182,35 @@ export function useFileQueue({
     async (queuedFile: QueuedFile, queueId: string, chatId: Id<"chats">) => {
       const fileKey = `${queueId}-${queuedFile.id}`;
 
+      console.log(
+        `🚀 processFile called for: ${queuedFile.fileName} (key: ${fileKey})`,
+      );
+      console.log(`📊 Current abort controllers: ${abortControllers.size}`);
+      console.log(`📊 Current cancelled files: ${cancelledFiles.size}`);
+
+      // Create a global key to track this specific file across all instances
+      const globalFileKey = `${chatId}_${queuedFile.fileName}_${queuedFile.fileSize}`;
+
+      // Check if this exact file is already being processed globally
+      if (globalProcessingFiles.has(globalFileKey)) {
+        console.log(
+          `🚫 DUPLICATE DETECTED: ${queuedFile.fileName} is already being processed globally, skipping`,
+        );
+        return;
+      }
+
+      // Check if this file is already being processed in this instance
+      if (abortControllers.has(fileKey)) {
+        console.log(
+          `⚠️ File ${queuedFile.fileName} is already being processed locally, skipping duplicate call`,
+        );
+        return;
+      }
+
+      // Mark this file as being processed globally
+      globalProcessingFiles.add(globalFileKey);
+      console.log(`🔒 Locked processing for: ${globalFileKey}`);
+
       // Create AbortController for this file
       const abortController = new AbortController();
       setAbortControllers(
@@ -188,10 +220,18 @@ export function useFileQueue({
       try {
         const baseUrl =
           process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000/";
-        const uniqueFileId = uid();
+        // Create a more deterministic file ID based on file content and name
+        const uniqueFileId = `file_${queuedFile.fileName.replace(/[^a-zA-Z0-9]/g, "_")}_${queuedFile.fileSize}_${Date.now()}`;
+
+        console.log(
+          `🆔 Generated uniqueFileId: ${uniqueFileId} for ${queuedFile.fileName}`,
+        );
 
         // Check if already cancelled before starting
         if (abortController.signal.aborted || cancelledFiles.has(fileKey)) {
+          console.log(
+            `🚫 File ${queuedFile.fileName} was cancelled before processing started`,
+          );
           return;
         }
 
@@ -314,6 +354,58 @@ export function useFileQueue({
 
         const nodesData = await nodesResponse.json();
 
+        // Check if upload was skipped due to duplicate
+        if (
+          nodesData.status === "skipped" &&
+          nodesData.reason === "duplicate_filename"
+        ) {
+          console.log(
+            `⚠️ Upload skipped - duplicate filename: ${queuedFile.fileName}`,
+          );
+          console.log(
+            `🔄 Using existing document ID: ${nodesData.existing_id}`,
+          );
+
+          // Use the existing document ID instead of creating new one
+          const existingFileId = nodesData.existing_id;
+
+          // Update Convex with completion but don't call onFileProcessed to avoid duplicate context
+          if (queuedFile.convexFileId) {
+            await updateFileProgress({
+              fileId: queuedFile.convexFileId,
+              status: "completed",
+              progress: 100,
+            });
+          }
+
+          // Mark as completed but don't trigger onFileProcessed callback
+          setActiveQueues((prev) => {
+            const updated = new Map(prev);
+            const queue = updated.get(queueId);
+            if (queue) {
+              const fileIndex = queue.files.findIndex(
+                (f) => f.id === queuedFile.id,
+              );
+              if (fileIndex !== -1) {
+                queue.files[fileIndex] = {
+                  ...queue.files[fileIndex],
+                  status: "uploaded",
+                  progress: 100,
+                  fileId: existingFileId,
+                };
+                queue.completedFiles += 1;
+                updated.set(queueId, { ...queue });
+              }
+            }
+            return updated;
+          });
+
+          toast.info(
+            `${queuedFile.fileName} already exists in this chat - using existing version`,
+          );
+          return; // Exit early, don't process further
+        }
+
         // Update Convex database to persist the completion
         console.log("Attempting to update file progress:", {
           convexFileId: queuedFile.convexFileId,
@@ -415,6 +507,9 @@ export function useFileQueue({
 
         // Final check before marking as completed - don't call onFileProcessed if cancelled
         if (!cancelledFiles.has(fileKey)) {
+          console.log(
+            `🎯 Calling onFileProcessed for: ${queuedFile.fileName} with ID: ${uniqueFileId}`,
+          );
           onFileProcessed?.(uniqueFileId, queuedFile.fileName);
           toast.success(`${queuedFile.fileName} processed successfully!`);
         }
@@ -480,12 +575,17 @@ export function useFileQueue({
           `Failed to process ${queuedFile.fileName}: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
       } finally {
-        // Cleanup: Remove abort controller
+        // Cleanup: Remove abort controller and global processing lock
         setAbortControllers((prev) => {
           const updated = new Map(prev);
           updated.delete(fileKey);
           return updated;
         });
+
+        // Remove from global processing set
+        const globalFileKey = `${chatId}_${queuedFile.fileName}_${queuedFile.fileSize}`;
+        globalProcessingFiles.delete(globalFileKey);
+        console.log(`🔓 Unlocked processing for: ${globalFileKey}`);
       }
     },
     [onFileProcessed, onQueueComplete, cancelledFiles],

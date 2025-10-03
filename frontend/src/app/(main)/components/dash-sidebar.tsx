@@ -132,12 +132,12 @@ export function DashSidebar() {
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center">
             <img
-              src="/trainly_icon_white.png"
+              src="/trainly_icon_black.png"
               alt="Trainly Logo"
               className="w-6 h-6 block dark:hidden"
             />
             <img
-              src="/trainly_icon_black.png"
+              src="/trainly_icon_white.png"
               alt="Trainly Logo"
               className="w-6 h-6 hidden dark:block"
             />

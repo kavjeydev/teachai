@@ -76,6 +76,80 @@ export const addFilesToQueue = mutation({
       throw new Error("Queue not found or unauthorized");
     }
 
+    // Check file size limits for each file before adding to queue
+    // Get user's subscription to determine tier
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    // Get current storage usage
+    const storage = await ctx.db
+      .query("user_file_storage")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    // Determine tier limits
+    let maxStorageMB = 250; // Free tier default
+    let maxFileSizeMB = 25;
+    let maxFiles = 50;
+    let tierName = "free";
+
+    if (subscription && subscription.status === "active") {
+      tierName = subscription.tier;
+      switch (subscription.tier) {
+        case "pro":
+          maxStorageMB = 2048; // 2GB
+          maxFileSizeMB = 50;
+          maxFiles = 200;
+          break;
+        case "scale":
+          maxStorageMB = 10240; // 10GB
+          maxFileSizeMB = 100;
+          maxFiles = 1000;
+          break;
+        case "enterprise":
+          maxStorageMB = 51200; // 50GB
+          maxFileSizeMB = 500;
+          maxFiles = 5000;
+          break;
+      }
+    }
+
+    const maxStorageBytes = maxStorageMB * 1024 * 1024;
+    const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
+    const currentStorageBytes = storage?.totalFileSizeBytes || 0;
+    const currentFileCount = storage?.fileCount || 0;
+
+    // Check limits for all files in batch
+    const totalUploadSize = args.files.reduce(
+      (sum, file) => sum + file.fileSize,
+      0,
+    );
+
+    for (const file of args.files) {
+      // Check individual file size
+      if (file.fileSize > maxFileSizeBytes) {
+        throw new Error(
+          `File "${file.fileName}" (${Math.round((file.fileSize / (1024 * 1024)) * 100) / 100}MB) exceeds the ${maxFileSizeMB}MB limit for ${tierName} tier`,
+        );
+      }
+    }
+
+    // Check total storage limit
+    if (currentStorageBytes + totalUploadSize > maxStorageBytes) {
+      throw new Error(
+        `Upload would exceed storage limit of ${maxStorageMB}MB for ${tierName} tier`,
+      );
+    }
+
+    // Check file count limit
+    if (currentFileCount + args.files.length > maxFiles) {
+      throw new Error(
+        `Upload would exceed file limit of ${maxFiles} files for ${tierName} tier`,
+      );
+    }
+
     // Add files to queue
     const fileIds = [];
     for (const file of args.files) {
@@ -142,6 +216,42 @@ export const updateFileProgress = mutation({
       args.status === "cancelled"
     ) {
       updateData.completedAt = Date.now();
+
+      // If file was successfully completed, track its size
+      if (args.status === "completed") {
+        // Get or create user storage record
+        let storage = await ctx.db
+          .query("user_file_storage")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .first();
+
+        if (!storage) {
+          // Create new storage record
+          await ctx.db.insert("user_file_storage", {
+            userId,
+            totalFileSizeBytes: file.fileSize,
+            fileCount: 1,
+            lastUpdated: Date.now(),
+            chatFileSizes: { [file.chatId]: file.fileSize },
+          });
+        } else {
+          // Update existing storage record
+          const currentChatSize =
+            (storage.chatFileSizes as any)?.[file.chatId] || 0;
+          const newChatSize = currentChatSize + file.fileSize;
+          const newChatFileSizes = {
+            ...(storage.chatFileSizes || {}),
+            [file.chatId]: newChatSize,
+          };
+
+          await ctx.db.patch(storage._id, {
+            totalFileSizeBytes: storage.totalFileSizeBytes + file.fileSize,
+            fileCount: storage.fileCount + 1,
+            lastUpdated: Date.now(),
+            chatFileSizes: newChatFileSizes,
+          });
+        }
+      }
 
       // Update queue counters
       const queue = await ctx.db

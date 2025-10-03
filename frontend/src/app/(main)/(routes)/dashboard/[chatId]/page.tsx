@@ -568,6 +568,9 @@ function Dashboard({ params }: ChatIdPageProps) {
     chatId: effectiveChatId!,
     onFileProcessed: (fileId, fileName) => {
       // Add file to context when processed
+      console.log(
+        `📁 Dashboard onFileProcessed called for: ${fileName} with ID: ${fileId}`,
+      );
       if (effectiveChatId) {
         uploadContext({
           id: effectiveChatId,

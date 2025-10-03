@@ -328,12 +328,12 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                 <div className="flex items-center gap-2.5">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center">
                     <img
-                      src="/trainly_icon_white.png"
+                      src="/trainly_icon_black.png"
                       alt="Trainly Logo"
                       className="w-5 h-5 block dark:hidden"
                     />
                     <img
-                      src="/trainly_icon_black.png"
+                      src="/trainly_icon_white.png"
                       alt="Trainly Logo"
                       className="w-5 h-5 hidden dark:block"
                     />
@@ -360,12 +360,12 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
               <div className="flex flex-col items-center gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center">
                   <img
-                    src="/trainly_icon_white.png"
+                    src="/trainly_icon_black.png"
                     alt="Trainly Logo"
                     className="w-6 h-6 block dark:hidden"
                   />
                   <img
-                    src="/trainly_icon_black.png"
+                    src="/trainly_icon_white.png"
                     alt="Trainly Logo"
                     className="w-6 h-6 hidden dark:block"
                   />

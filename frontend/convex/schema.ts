@@ -371,6 +371,16 @@ export default defineSchema({
     .index("by_stripe_event", ["stripeEventId"])
     .index("by_processed", ["processed"]),
 
+  // User file storage tracking for tier limits
+  user_file_storage: defineTable({
+    userId: v.string(),
+    totalFileSizeBytes: v.number(), // Total file size in bytes across all chats
+    fileCount: v.number(), // Total number of files uploaded
+    lastUpdated: v.number(),
+    // Track files by chat for easier cleanup
+    chatFileSizes: v.optional(v.record(v.string(), v.number())), // Dynamic object with chatId as key, size as value
+  }).index("by_user", ["userId"]),
+
   // File upload queue system
   file_upload_queue: defineTable({
     userId: v.string(),

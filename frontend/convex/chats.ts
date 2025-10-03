@@ -119,13 +119,25 @@ export const uploadContext = mutation({
       throw new Error("Unauthorized");
     }
 
-    let existingContext = existingDocument.context;
+    let existingContext = existingDocument.context || [];
 
-    if (existingContext) {
-      existingContext.push(args.context);
-    } else {
-      existingContext = [args.context];
+    // Check if file already exists in context to prevent duplicates
+    // Check both by fileId and filename to handle different scenarios
+    const fileExists = existingContext.some(
+      (contextItem) =>
+        contextItem.fileId === args.context.fileId ||
+        contextItem.filename === args.context.filename,
+    );
+
+    if (fileExists) {
+      console.log(
+        `File ${args.context.filename} (ID: ${args.context.fileId}) already exists in context, skipping duplicate`,
+      );
+      return existingDocument; // Return without adding duplicate
     }
+
+    // Add the new context item
+    existingContext.push(args.context);
 
     const document = await ctx.db.patch(args.id, {
       context: existingContext,
@@ -151,16 +163,86 @@ export const eraseContext = mutation({
 
     const existingChat = await ctx.db.get(args.id);
 
+    if (!existingChat || existingChat.userId !== userId) {
+      throw new Error("Chat not found or unauthorized");
+    }
+
     const currentContext = existingChat?.context;
+
+    // Find the file being removed to get its information
+    const fileToRemove = currentContext?.find(
+      (objs) => objs.fileId === args.fileId,
+    );
 
     const filteredContext = currentContext?.filter(
       (objs) => objs.fileId != args.fileId,
     );
 
+    // Update chat context
     const chat = await ctx.db.patch(args.id, {
       context: filteredContext,
       hasUnpublishedChanges: true,
     });
+
+    // Find the file in upload queue to get its size for storage tracking
+    if (fileToRemove) {
+      // Try to find the file in the upload queue to get its size
+      const uploadedFile = await ctx.db
+        .query("file_upload_queue")
+        .withIndex("by_chat", (q) => q.eq("chatId", args.id))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("userId"), userId),
+            q.eq(q.field("fileName"), fileToRemove.filename),
+            q.eq(q.field("status"), "completed"),
+          ),
+        )
+        .first();
+
+      if (uploadedFile) {
+        // Update storage tracking by removing this file's size
+        const storage = await ctx.db
+          .query("user_file_storage")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .first();
+
+        if (storage) {
+          // Calculate new values
+          const newTotalSize = Math.max(
+            0,
+            storage.totalFileSizeBytes - uploadedFile.fileSize,
+          );
+          const newFileCount = Math.max(0, storage.fileCount - 1);
+
+          // Update chat-specific size tracking
+          const chatIdStr = args.id.toString();
+          const chatFileSizes = storage.chatFileSizes || {};
+          const currentChatSize = chatFileSizes[chatIdStr] || 0;
+          const newChatSize = Math.max(
+            0,
+            currentChatSize - uploadedFile.fileSize,
+          );
+          const newChatFileSizes = {
+            ...chatFileSizes,
+            [chatIdStr]: newChatSize,
+          };
+
+          // Remove chat entry if size is 0
+          if (newChatSize === 0) {
+            delete newChatFileSizes[chatIdStr];
+          }
+
+          await ctx.db.patch(storage._id, {
+            totalFileSizeBytes: newTotalSize,
+            fileCount: newFileCount,
+            lastUpdated: Date.now(),
+            chatFileSizes: newChatFileSizes,
+          });
+        }
+      }
+    }
+
+    return chat;
   },
 });
 
@@ -470,6 +552,58 @@ export const remove = mutation({
       throw new Error("Not authorized");
     }
 
+    // Clean up storage tracking for this chat before deleting
+    const storage = await ctx.db
+      .query("user_file_storage")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (storage && storage.chatFileSizes) {
+      const chatIdStr = args.id.toString();
+      const chatFileSizes = storage.chatFileSizes || {};
+      const chatSize = chatFileSizes[chatIdStr] || 0;
+
+      if (chatSize > 0) {
+        // Remove chat from tracking and update totals
+        const newChatFileSizes = { ...chatFileSizes };
+        delete newChatFileSizes[chatIdStr];
+
+        // Get files count for this chat to update file count
+        const chatFiles = await ctx.db
+          .query("file_upload_queue")
+          .withIndex("by_chat", (q) => q.eq("chatId", args.id))
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("userId"), userId),
+              q.eq(q.field("status"), "completed"),
+            ),
+          )
+          .collect();
+
+        await ctx.db.patch(storage._id, {
+          totalFileSizeBytes: Math.max(
+            0,
+            storage.totalFileSizeBytes - chatSize,
+          ),
+          fileCount: Math.max(0, storage.fileCount - chatFiles.length),
+          lastUpdated: Date.now(),
+          chatFileSizes: newChatFileSizes,
+        });
+      }
+    }
+
+    // Clean up file upload queue entries for this chat
+    const chatFiles = await ctx.db
+      .query("file_upload_queue")
+      .withIndex("by_chat", (q) => q.eq("chatId", args.id))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .collect();
+
+    for (const file of chatFiles) {
+      await ctx.db.delete(file._id);
+    }
+
+    // Delete the chat
     const chat = await ctx.db.delete(args.id);
     return chat;
   },

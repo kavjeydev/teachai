@@ -37,6 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getStripe } from "@/lib/stripe";
 import { toast } from "sonner";
+import { StorageUsageIndicator } from "@/components/storage-usage-indicator";
 
 interface ApiSettingsSlideoutProps {
   chatId: Id<"chats">;
@@ -292,6 +293,9 @@ export function ApiSettingsSlideout({
                         }}
                       />
                     </div>
+
+                    {/* Storage Usage */}
+                    <StorageUsageIndicator />
 
                     {subscription.tier === "free" && (
                       <div className="flex gap-2 mt-4">

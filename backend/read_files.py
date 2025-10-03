@@ -2518,6 +2518,27 @@ async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
     try:
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
+                # Check if document with same filename already exists in this chat
+                check_query = """
+                MATCH (d:Document)
+                WHERE d.chatId = $chat_id AND d.filename = $filename
+                RETURN d.id as existing_id, d.filename as existing_filename
+                """
+                existing_result = session.run(check_query, chat_id=chat_id, filename=filename)
+                existing_doc = existing_result.single()
+
+                if existing_doc:
+                    print(f"⚠️ Document with filename '{filename}' already exists in chat {chat_id} with ID: {existing_doc['existing_id']}")
+                    print(f"🚫 Skipping duplicate upload to prevent Neo4j duplicates")
+                    return {
+                        "status": "skipped",
+                        "reason": "duplicate_filename",
+                        "existing_id": existing_doc['existing_id'],
+                        "message": f"Document '{filename}' already exists in this chat"
+                    }
+
+                print(f"✅ Creating new document: {pdf_id} ({filename}) in chat {chat_id}")
+
                 # Create Document node
                 query = """
                 MERGE (d:Document {id: $pdf_id})
