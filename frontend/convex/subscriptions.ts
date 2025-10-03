@@ -574,8 +574,8 @@ export const cleanupTestSubscription = mutation({
   },
 });
 
-// Manual function to give user Starter subscription (for testing)
-export const giveUserStarterSubscription = mutation({
+// Manual function to give user Pro subscription (for testing)
+export const giveUserProSubscription = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -587,7 +587,7 @@ export const giveUserStarterSubscription = mutation({
     const now = Date.now();
     const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days from now
 
-    // Create Starter subscription
+    // Create Pro subscription
     const existing = await ctx.db
       .query("subscriptions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -595,7 +595,7 @@ export const giveUserStarterSubscription = mutation({
 
     if (existing) {
       await ctx.db.patch(existing._id, {
-        tier: "starter",
+        tier: "pro",
         status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
@@ -607,7 +607,7 @@ export const giveUserStarterSubscription = mutation({
         stripeCustomerId: "test_customer",
         stripeSubscriptionId: "test_subscription",
         stripePriceId: "test_price",
-        tier: "starter",
+        tier: "pro",
         status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
@@ -617,7 +617,7 @@ export const giveUserStarterSubscription = mutation({
       });
     }
 
-    // Give Starter credits (10,000)
+    // Give Pro credits (10,000)
     const existingCredits = await ctx.db
       .query("user_credits")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -644,7 +644,7 @@ export const giveUserStarterSubscription = mutation({
       });
     }
 
-    return { success: true, tier: "starter", credits: 10000 };
+    return { success: true, tier: "pro", credits: 10000 };
   },
 });
 
@@ -828,7 +828,7 @@ export const applyPendingPlanChanges = mutation({
 // Helper function to get credits for each tier
 function getTierCredits(tier: string): number {
   switch (tier) {
-    case "starter":
+    case "pro":
       return 10000;
     case "scale":
       return 100000;

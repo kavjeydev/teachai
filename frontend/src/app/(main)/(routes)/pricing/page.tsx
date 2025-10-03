@@ -68,7 +68,7 @@ export default function PricingPage() {
     switch (tier) {
       case "free":
         return <Play className="w-6 h-6" />;
-      case "starter":
+      case "pro":
         return <Code className="w-6 h-6" />;
       case "scale":
         return <TrendingUp className="w-6 h-6" />;
@@ -83,7 +83,7 @@ export default function PricingPage() {
     switch (tier) {
       case "free":
         return "from-zinc-500 to-zinc-600";
-      case "starter":
+      case "pro":
         return "from-blue-500 to-blue-600";
       case "scale":
         return "from-purple-500 to-purple-600";
@@ -96,7 +96,7 @@ export default function PricingPage() {
 
   const tiers = [
     PRICING_TIERS.FREE,
-    PRICING_TIERS.STARTER,
+    PRICING_TIERS.PRO,
     PRICING_TIERS.SCALE,
     PRICING_TIERS.ENTERPRISE,
   ];

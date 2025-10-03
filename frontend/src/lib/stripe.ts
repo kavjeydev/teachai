@@ -47,12 +47,12 @@ export const PRICING_TIERS = {
       maxChats: 1, // New chat limit
     },
   },
-  STARTER: {
-    id: "starter",
-    name: "Starter",
+  PRO: {
+    id: "pro",
+    name: "Pro",
     subtitle: "$39/mo",
     price: 39,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
     popular: true,
     description: "For indie devs or side projects with light users.",
     features: {

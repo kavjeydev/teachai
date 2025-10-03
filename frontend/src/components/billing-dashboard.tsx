@@ -36,6 +36,7 @@ import {
 } from "@/lib/stripe";
 import { toast } from "sonner";
 import { getStripe } from "@/lib/stripe";
+import { UpgradeTierCards } from "@/components/upgrade-tier-cards";
 
 export function BillingDashboard() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -164,7 +165,7 @@ export function BillingDashboard() {
 
   const getTierIcon = (tier: string) => {
     switch (tier) {
-      case "starter":
+      case "pro":
         return <Zap className="w-5 h-5 text-white" />;
       case "scale":
         return <Rocket className="w-5 h-5 text-white" />;
@@ -177,7 +178,7 @@ export function BillingDashboard() {
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case "starter":
+      case "pro":
         return "from-blue-500 to-cyan-600";
       case "scale":
         return "from-purple-500 to-purple-700";
@@ -355,107 +356,24 @@ export function BillingDashboard() {
 
       {/* Upgrade Options */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Subscription Upgrades */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              Available Plans
-            </CardTitle>
-            <CardDescription>
-              View available plans • Use "Manage Billing" above to
-              upgrade/downgrade
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {currentTier === "free" && (
-              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  💡 <strong>New to paid plans?</strong> Click any "Subscribe"
-                  button below to get started with secure Stripe checkout.
-                </p>
-              </div>
-            )}
-            {Object.entries(PRICING_TIERS)
-              .filter(
-                ([key]) => key !== "FREE" && key !== currentTier.toUpperCase(),
-              )
-              .map(([key, tier]) => (
-                <div
-                  key={key}
-                  className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-amber-600/50 dark:hover:border-amber-400/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-8 h-8 bg-gradient-to-br ${getTierColor(tier.id)} rounded-lg flex items-center justify-center`}
-                    >
-                      {getTierIcon(tier.id)}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-zinc-900 dark:text-white">
-                        {tier.name}
-                      </h3>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {typeof tier.features.credits === "number"
-                          ? formatTokens(tier.features.credits)
-                          : tier.features.credits}{" "}
-                        •{" "}
-                        {tier.limits?.maxChats === -1
-                          ? "Unlimited"
-                          : tier.limits?.maxChats || 1}{" "}
-                        chats • {tier.features.projects} projects •{" "}
-                        {tier.features.fileStorage}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-zinc-900 dark:text-white">
-                      ${tier.price}
-                      <span className="text-sm font-normal text-zinc-500">
-                        /mo
-                      </span>
-                    </p>
-                    <Button
-                      size="sm"
-                      variant={currentTier === "free" ? "default" : "outline"}
-                      onClick={
-                        currentTier === "free"
-                          ? () => handleUpgrade(tier.priceId!, tier.name)
-                          : handleManageBilling
-                      }
-                      disabled={
-                        currentTier === "free"
-                          ? !!isLoading
-                          : isPortalLoading || !subscription
-                      }
-                      className="mt-2"
-                    >
-                      {currentTier === "free" ? (
-                        isLoading === tier.priceId ? (
-                          <>
-                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1" />
-                            Processing...
-                          </>
-                        ) : (
-                          `Subscribe to ${tier.name}`
-                        )
-                      ) : isPortalLoading ? (
-                        <>
-                          <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin mr-1" />
-                          Opening...
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard className="w-3 h-3 mr-1" />
-                          Change Plan
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-          </CardContent>
-        </Card>
+        {/* Available Plans */}
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                Available Plans
+              </CardTitle>
+              <CardDescription>
+                Choose the plan that fits your needs • Professional billing
+                through Stripe
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UpgradeTierCards currentTier={currentTier} compact={false} />
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Chat Limits */}
         <Card>

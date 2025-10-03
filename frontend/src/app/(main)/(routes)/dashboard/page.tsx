@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ export default function NoChat() {
   const priceId = searchParams.get("price_id");
 
   const addChat = useMutation(api.chats.createChat);
+  const chatLimits = useQuery(api.chats.getUserChatLimits);
   const manuallyActivateSubscription = useMutation(
     api.subscriptions.manuallyActivateSubscription,
   );
@@ -37,7 +38,7 @@ export default function NoChat() {
   const getTierFromPriceId = (priceId: string): string => {
     const priceMap: Record<string, string> = {
       [process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!]: "pro",
-      [process.env.NEXT_PUBLIC_STRIPE_STARTUP_PRICE_ID!]: "startup",
+      [process.env.NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID!]: "startup",
     };
     return priceMap[priceId] || "pro";
   };
@@ -118,18 +119,59 @@ export default function NoChat() {
       return;
     }
 
+    // Wait for chat limits to load if not available yet
+    if (!chatLimits) {
+      toast.error("Loading your account info, please wait...");
+      return;
+    }
+
+    // Check if user can create more chats
+    if (!chatLimits.canCreateMore) {
+      const nextTier =
+        chatLimits.tierName === "free"
+          ? "Pro ($39/mo)"
+          : chatLimits.tierName === "pro"
+            ? "Scale ($199/mo)"
+            : "Enterprise";
+      toast.error(
+        `You've reached your chat limit of ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} for the ${chatLimits.tierName} plan.`,
+        {
+          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+          action: {
+            label: "View Plans",
+            onClick: () => window.open("/pricing", "_blank"),
+          },
+          duration: 8000,
+        },
+      );
+      return;
+    }
+
     setIsCreating(true);
     try {
-      const promise = addChat({ title: "untitled" });
-
+      await addChat({ title: "untitled" });
       toast.success("Created chat!");
-
-      await promise;
     } catch (error) {
       console.error("Failed to create chat:", error);
-      toast.error(
-        `Failed to create chat: ${error instanceof Error ? error.message : "Please try again"}`,
-      );
+      if (error instanceof Error) {
+        // Show the exact error message from the backend
+        const nextTier =
+          chatLimits.tierName === "free"
+            ? "Pro ($39/mo)"
+            : chatLimits.tierName === "pro"
+              ? "Scale ($199/mo)"
+              : "Enterprise";
+        toast.error(error.message, {
+          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+          action: {
+            label: "View Plans",
+            onClick: () => window.open("/pricing", "_blank"),
+          },
+          duration: 8000,
+        });
+      } else {
+        toast.error("Failed to create chat");
+      }
     } finally {
       setIsCreating(false);
     }
@@ -178,62 +220,116 @@ export default function NoChat() {
               come to life.
             </p>
             <div className="flex flex-col gap-4 items-center">
-              <Button
-                onClick={onCreate}
-                disabled={isCreating}
-                className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed text-white px-8 py-4 text-lg rounded-xl font-semibold shadow-xl hover:shadow-2xl hover:shadow-amber-400/25 transition-all duration-300 flex items-center gap-3"
-              >
-                {isCreating ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating Chat...
-                  </>
-                ) : (
-                  <>
-                    <PlusCircle className="h-5 w-5" />
-                    Create Your First Chat
-                  </>
-                )}
-              </Button>
-
-              {/* Upgrade CTA */}
-              <div className="text-center">
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                  Or start with more powerful features
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() =>
-                      handleUpgrade(
-                        process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
-                        "Pro",
-                      )
-                    }
-                    disabled={isUpgrading}
-                    variant="outline"
-                    className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-white transition-all duration-300"
-                  >
-                    {isUpgrading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Start Pro - $39/mo
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={() => window.open("/billing", "_blank")}
-                    variant="ghost"
-                    className="text-zinc-600 hover:text-amber-400"
-                  >
-                    View All Plans
-                  </Button>
+              {chatLimits && !chatLimits.canCreateMore ? (
+                <div className="text-center space-y-4">
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                    <p className="text-amber-800 dark:text-amber-200 font-medium">
+                      Chat Limit Reached
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      You've used {chatLimits.currentChatCount} of{" "}
+                      {chatLimits.chatLimit} chat
+                      {chatLimits.chatLimit > 1 ? "s" : ""} on the{" "}
+                      {chatLimits.tierName} plan
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() =>
+                        handleUpgrade(
+                          process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
+                          "Pro",
+                        )
+                      }
+                      disabled={isUpgrading}
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      {isUpgrading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Upgrade to Pro
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => window.open("/dashboard/manage", "_blank")}
+                      variant="outline"
+                      className="px-6 py-3 rounded-xl font-semibold border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                    >
+                      Archive Chats
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <Button
+                  onClick={onCreate}
+                  disabled={isCreating || !chatLimits}
+                  className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed text-white px-8 py-4 text-lg rounded-xl font-semibold shadow-xl hover:shadow-2xl hover:shadow-amber-400/25 transition-all duration-300 flex items-center gap-3"
+                >
+                  {isCreating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Creating Chat...
+                    </>
+                  ) : !chatLimits ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="h-5 w-5" />
+                      Create Your First Chat
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Upgrade CTA - only show if not at limit */}
+              {(!chatLimits || chatLimits.canCreateMore) && (
+                <div className="text-center">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
+                    Or start with more powerful features
+                  </p>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() =>
+                        handleUpgrade(
+                          process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
+                          "Pro",
+                        )
+                      }
+                      disabled={isUpgrading}
+                      variant="outline"
+                      className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-white transition-all duration-300"
+                    >
+                      {isUpgrading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Start Pro - $39/mo
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => window.open("/billing", "_blank")}
+                      variant="ghost"
+                      className="text-zinc-600 hover:text-amber-400"
+                    >
+                      View All Plans
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

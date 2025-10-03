@@ -131,6 +131,17 @@ const FileQueueMonitor = dynamic(
   },
 );
 
+const FileQueueSidebar = dynamic(
+  () =>
+    import("@/components/file-queue-sidebar").then((mod) => ({
+      default: mod.FileQueueSidebar,
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="animate-pulse h-screen bg-zinc-100"></div>,
+  },
+);
+
 const CreditWarning = dynamic(
   () =>
     import("@/components/credit-warning").then((mod) => ({
@@ -165,7 +176,7 @@ import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
 import { flushSync } from "react-dom";
 import { useCreditConsumption } from "@/hooks/use-credit-consumption";
 import { startTransition } from "react";
-import { MessageSquare, FolderOpen } from "lucide-react";
+import { MessageSquare, FolderOpen, FileText } from "lucide-react";
 import { useFileQueue } from "@/hooks/use-file-queue";
 import {
   usePerformanceMonitor,
@@ -271,6 +282,7 @@ function Dashboard({ params }: ChatIdPageProps) {
   const [showContext, setShowContext] = useState(false);
   const [fileKey, setFileKey] = useState<Date>(new Date());
   const [isGraphSlideoutOpen, setIsGraphSlideoutOpen] = useState(false);
+  const [isFileQueueSlideoutOpen, setIsFileQueueSlideoutOpen] = useState(false);
   const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
 
   // Optimistic updates for instant message display
@@ -1409,40 +1421,53 @@ function Dashboard({ params }: ChatIdPageProps) {
                       }}
                     />
 
+                    {/* File Queue Status Button */}
+                    {(fileQueue.activeQueues.length > 0 ||
+                      fileQueue.allQueues.length > 0) && (
+                      <button
+                        onClick={() => setIsFileQueueSlideoutOpen(true)}
+                        className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/queue relative"
+                        title={
+                          fileQueue.isProcessing
+                            ? `Processing ${fileQueue.activeQueues.length} file queue${fileQueue.activeQueues.length > 1 ? "s" : ""}`
+                            : `View file upload history (${fileQueue.allQueues.length} queue${fileQueue.allQueues.length > 1 ? "s" : ""})`
+                        }
+                      >
+                        {fileQueue.isProcessing ? (
+                          <div className="w-3.5 h-3.5 border border-blue-400/50 border-t-blue-400 rounded-full animate-spin" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5 text-zinc-400 group-hover/queue:text-blue-400 transition-colors" />
+                        )}
+                        {fileQueue.activeQueues.length > 0 ? (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                            {fileQueue.activeQueues.length > 9
+                              ? "9+"
+                              : fileQueue.activeQueues.length}
+                          </div>
+                        ) : fileQueue.allQueues.length > 0 ? (
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+                        ) : null}
+                      </button>
+                    )}
+
                     {/* File Upload Button */}
                     <button
                       onClick={triggerFileInput}
-                      disabled={fileQueue.isProcessing || isStreaming}
+                      disabled={isStreaming}
                       className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
-                      title={
-                        fileQueue.isProcessing
-                          ? "Processing files..."
-                          : "Upload documents"
-                      }
+                      title="Upload documents"
                     >
-                      {fileQueue.isProcessing ? (
-                        <div className="w-3.5 h-3.5 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
-                      ) : (
-                        <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover/upload:text-amber-400 transition-colors" />
-                      )}
+                      <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover/upload:text-amber-400 transition-colors" />
                     </button>
 
                     {/* Folder Upload Button */}
                     <button
                       onClick={triggerFolderInput}
-                      disabled={fileQueue.isProcessing || isStreaming}
+                      disabled={isStreaming}
                       className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/folder"
-                      title={
-                        fileQueue.isProcessing
-                          ? "Processing files..."
-                          : "Upload folder"
-                      }
+                      title="Upload folder"
                     >
-                      {fileQueue.isProcessing ? (
-                        <div className="w-3.5 h-3.5 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
-                      ) : (
-                        <FolderOpen className="w-3.5 h-3.5 text-zinc-400 group-hover/folder:text-amber-400 transition-colors" />
-                      )}
+                      <FolderOpen className="w-3.5 h-3.5 text-zinc-400 group-hover/folder:text-amber-400 transition-colors" />
                     </button>
 
                     {/* Send Button */}
@@ -1451,8 +1476,7 @@ function Dashboard({ params }: ChatIdPageProps) {
                       disabled={
                         !editor?.getText()?.trim() ||
                         isStreaming ||
-                        isProcessingMessage ||
-                        fileQueue.isProcessing
+                        isProcessingMessage
                       }
                       className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-amber-400/25 disabled:shadow-none"
                     >
@@ -1482,16 +1506,6 @@ function Dashboard({ params }: ChatIdPageProps) {
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
-                  </div>
-                )}
-
-                {/* File Queue Monitor */}
-                {fileQueue.activeQueues.length > 0 && (
-                  <div className="mt-4">
-                    <FileQueueMonitor
-                      queues={fileQueue.activeQueues}
-                      onCancelQueue={fileQueue.cancelUploadQueue}
-                    />
                   </div>
                 )}
 
@@ -1531,6 +1545,13 @@ function Dashboard({ params }: ChatIdPageProps) {
           onClose={() => setIsGraphSlideoutOpen(false)}
           reasoningContext={latestReasoningContext}
           refreshTrigger={graphRefreshTrigger}
+        />
+
+        {/* File Queue Slideout - positioned to cover entire chat area (messages + input) */}
+        <FileQueueSidebar
+          isOpen={isFileQueueSlideoutOpen}
+          onClose={() => setIsFileQueueSlideoutOpen(false)}
+          queues={fileQueue.allQueues}
         />
       </div>
 

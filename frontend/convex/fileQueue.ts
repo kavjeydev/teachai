@@ -34,7 +34,7 @@ export const createUploadQueue = mutation({
       totalFiles: args.totalFiles,
       completedFiles: 0,
       failedFiles: 0,
-      status: "active",
+      status: "processing",
       isFolder: args.isFolder,
       createdAt: Date.now(),
     });
@@ -48,12 +48,14 @@ export const addFilesToQueue = mutation({
   args: {
     queueId: v.string(),
     chatId: v.id("chats"),
-    files: v.array(v.object({
-      fileName: v.string(),
-      fileSize: v.number(),
-      fileType: v.string(),
-      filePath: v.optional(v.string()),
-    })),
+    files: v.array(
+      v.object({
+        fileName: v.string(),
+        fileSize: v.number(),
+        fileType: v.string(),
+        filePath: v.optional(v.string()),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -85,7 +87,7 @@ export const addFilesToQueue = mutation({
         fileSize: file.fileSize,
         fileType: file.fileType,
         filePath: file.filePath,
-        status: "pending",
+        status: "processing",
         progress: 0,
         createdAt: Date.now(),
       });
@@ -126,14 +128,19 @@ export const updateFileProgress = mutation({
     };
 
     if (args.error) updateData.error = args.error;
-    if (args.extractedTextLength) updateData.extractedTextLength = args.extractedTextLength;
+    if (args.extractedTextLength)
+      updateData.extractedTextLength = args.extractedTextLength;
     if (args.nodesCreated) updateData.nodesCreated = args.nodesCreated;
 
     if (args.status === "processing" && !file.startedAt) {
       updateData.startedAt = Date.now();
     }
 
-    if (args.status === "completed" || args.status === "failed") {
+    if (
+      args.status === "completed" ||
+      args.status === "failed" ||
+      args.status === "cancelled"
+    ) {
       updateData.completedAt = Date.now();
 
       // Update queue counters
@@ -143,12 +150,14 @@ export const updateFileProgress = mutation({
         .first();
 
       if (queue) {
-        const newCompletedFiles = args.status === "completed"
-          ? queue.completedFiles + 1
-          : queue.completedFiles;
-        const newFailedFiles = args.status === "failed"
-          ? queue.failedFiles + 1
-          : queue.failedFiles;
+        const newCompletedFiles =
+          args.status === "completed"
+            ? queue.completedFiles + 1
+            : queue.completedFiles;
+        const newFailedFiles =
+          args.status === "failed" || args.status === "cancelled"
+            ? queue.failedFiles + 1
+            : queue.failedFiles;
 
         await ctx.db.patch(queue._id, {
           completedFiles: newCompletedFiles,
@@ -206,7 +215,7 @@ export const getQueueStatus = query({
   },
 });
 
-// Get all queues for a user
+// Get all queues for a user with their files
 export const getUserQueues = query({
   args: {
     chatId: v.optional(v.id("chats")),
@@ -229,11 +238,36 @@ export const getUserQueues = query({
         .withIndex("by_chat", (q) => q.eq("chatId", args.chatId));
     }
 
-    const queues = await query
-      .order("desc")
-      .take(50);
+    const queues = await query.order("desc").take(50);
 
-    return queues;
+    // Get files for each queue
+    const queuesWithFiles = await Promise.all(
+      queues.map(async (queue) => {
+        const files = await ctx.db
+          .query("file_upload_queue")
+          .withIndex("by_queue", (q) => q.eq("queueId", queue.queueId))
+          .filter((q) => q.eq(q.field("userId"), userId))
+          .collect();
+
+        return {
+          ...queue,
+          files: files.map((file) => ({
+            id: file._id,
+            fileName: file.fileName,
+            fileSize: file.fileSize,
+            fileType: file.fileType,
+            filePath: file.filePath,
+            status: file.status,
+            progress: file.progress || 0,
+            error: file.error,
+            fileId: file.fileId,
+            convexFileId: file._id, // Add the Convex file ID
+          })),
+        };
+      }),
+    );
+
+    return queuesWithFiles;
   },
 });
 
@@ -267,16 +301,18 @@ export const cancelQueue = mutation({
     });
 
     // Cancel all pending files
-    const pendingFiles = await ctx.db
+    const processingFiles = await ctx.db
       .query("file_upload_queue")
       .withIndex("by_queue", (q) => q.eq("queueId", args.queueId))
-      .filter((q) => q.and(
-        q.eq(q.field("userId"), userId),
-        q.eq(q.field("status"), "pending")
-      ))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("userId"), userId),
+          q.eq(q.field("status"), "processing"),
+        ),
+      )
       .collect();
 
-    for (const file of pendingFiles) {
+    for (const file of processingFiles) {
       await ctx.db.patch(file._id, {
         status: "cancelled",
         completedAt: Date.now(),
@@ -299,19 +335,21 @@ export const cleanupOldQueues = mutation({
     }
 
     const userId = identity.subject;
-    const cutoffTime = Date.now() - (args.olderThanDays || 30) * 24 * 60 * 60 * 1000;
+    const cutoffTime =
+      Date.now() - (args.olderThanDays || 30) * 24 * 60 * 60 * 1000;
 
     const oldQueues = await ctx.db
       .query("upload_queues")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.and(
-        q.or(
-          q.eq(q.field("status"), "completed"),
-          q.eq(q.field("status"), "cancelled"),
-          q.eq(q.field("status"), "failed")
+      .filter((q) =>
+        q.and(
+          q.or(
+            q.eq(q.field("status"), "completed"),
+            q.eq(q.field("status"), "failed"),
+          ),
+          q.lt(q.field("createdAt"), cutoffTime),
         ),
-        q.lt(q.field("createdAt"), cutoffTime)
-      ))
+      )
       .collect();
 
     for (const queue of oldQueues) {

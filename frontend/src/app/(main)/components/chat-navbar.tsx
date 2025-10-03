@@ -19,14 +19,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import {
   Lock,
   Globe,
   Edit3,
@@ -74,7 +66,6 @@ export const ChatNavbar = ({
   );
   const [isRenaming, setIsRenaming] = React.useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = React.useState(false);
-  const [isUpgrading, setIsUpgrading] = React.useState(false);
 
   // Get subscription status to show/hide upgrade CTA
   const subscription = useQuery(api.subscriptions.getUserSubscription);
@@ -107,6 +98,13 @@ export const ChatNavbar = ({
   const updateVisibility = useMutation(api.chats.changeChatVisibility);
 
   const handleUpgrade = async (priceId: string, tierName: string) => {
+    if (!priceId) {
+      toast.error(
+        `${tierName} plan is not configured. Please contact support.`,
+      );
+      return;
+    }
+
     setIsUpgrading(true);
 
     try {
@@ -223,117 +221,15 @@ export const ChatNavbar = ({
       <div className="flex items-center gap-3">
         {/* Upgrade CTA - Only show for free users */}
         {subscription?.tier === "free" && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                disabled={isUpgrading}
-                size="sm"
-                className="h-8 px-3 gap-2 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white shadow-lg hover:shadow-amber-400/25 transition-all duration-300"
-              >
-                {isUpgrading ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span className="hidden sm:inline">Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Crown className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Upgrade</span>
-                    <span className="sm:hidden">Pro</span>
-                  </>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Choose Your Plan</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-
-              {/* Starter Plan */}
-              <DropdownMenuItem
-                onClick={() =>
-                  handleUpgrade(PRICING_TIERS.STARTER.priceId!, "Starter")
-                }
-                className="p-4 cursor-pointer"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
-                      <Crown className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">Starter</div>
-                      <div className="text-xs text-muted-foreground">
-                        3 chats • 10K credits
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold">$39</div>
-                    <div className="text-xs text-muted-foreground">/month</div>
-                  </div>
-                </div>
-              </DropdownMenuItem>
-
-              {/* Scale Plan */}
-              <DropdownMenuItem
-                onClick={() =>
-                  handleUpgrade(PRICING_TIERS.SCALE.priceId!, "Scale")
-                }
-                className="p-4 cursor-pointer"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center">
-                      <Crown className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">Scale</div>
-                      <div className="text-xs text-muted-foreground">
-                        25 chats • 100K credits
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold">$199</div>
-                    <div className="text-xs text-muted-foreground">/month</div>
-                  </div>
-                </div>
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              {/* Enterprise Option */}
-              <DropdownMenuItem
-                onClick={() =>
-                  window.open(
-                    "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry",
-                    "_blank",
-                  )
-                }
-                className="p-4 cursor-pointer"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                      <Crown className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">Enterprise</div>
-                      <div className="text-xs text-muted-foreground">
-                        Unlimited • Custom pricing
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold">Custom</div>
-                    <div className="text-xs text-muted-foreground">
-                      Contact us
-                    </div>
-                  </div>
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            onClick={() => router.push("/upgrade")}
+            size="sm"
+            className="h-8 px-3 gap-2 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white shadow-lg hover:shadow-amber-400/25 transition-all duration-300"
+          >
+            <Crown className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Upgrade</span>
+            <span className="sm:hidden">Pro</span>
+          </Button>
         )}
 
         {/* Credit Counter - Show for all users */}

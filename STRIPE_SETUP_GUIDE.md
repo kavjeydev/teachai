@@ -1,6 +1,7 @@
 # Trainly Stripe Integration Setup Guide
 
 ## Overview
+
 This guide will help you set up Stripe integration for Trainly's subscription and credit system.
 
 ## 1. Environment Variables Setup
@@ -16,7 +17,7 @@ STRIPE_WEBHOOK_SECRET=whsec_... # Webhook endpoint secret
 # Stripe Price IDs (create these in Stripe Dashboard)
 NEXT_PUBLIC_STRIPE_PRO_PRICE_ID=price_... # Pro tier ($39/month)
 NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID=price_... # Team tier ($99/month)
-NEXT_PUBLIC_STRIPE_STARTUP_PRICE_ID=price_... # Startup tier ($199/month)
+NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID=price_... # Startup tier ($199/month)
 
 # Credit Pack Price IDs
 NEXT_PUBLIC_STRIPE_CREDITS_5K_PRICE_ID=price_... # 5K credits ($20)
@@ -27,41 +28,50 @@ NEXT_PUBLIC_STRIPE_CREDITS_50K_PRICE_ID=price_... # 50K credits ($100)
 ## 2. Stripe Dashboard Setup
 
 ### Step 1: Create Products
+
 1. Go to Stripe Dashboard → Products
 2. Create these products:
 
 **Trainly Pro**
+
 - Name: "Trainly Pro"
 - Description: "Professional AI development with 10M tokens included"
 - Price: $39.00 USD/month, recurring
 
 **Trainly Team**
+
 - Name: "Trainly Team"
 - Description: "Advanced features with 30M tokens and priority support"
 - Price: $99.00 USD/month, recurring
 
 **Trainly Startup**
+
 - Name: "Trainly Startup"
 - Description: "Unlimited chats with 100M tokens for power users"
 - Price: $199.00 USD/month, recurring
 
 ### Step 2: Create Credit Packs
+
 **5K Credits**
+
 - Name: "5K AI Credits"
 - Description: "~5M tokens on GPT-4o-mini"
 - Price: $20.00 USD, one-time
 
 **15K Credits**
+
 - Name: "15K AI Credits"
 - Description: "~15M tokens on GPT-4o-mini"
 - Price: $50.00 USD, one-time
 
 **50K Credits**
+
 - Name: "50K AI Credits"
 - Description: "~50M tokens on GPT-4o-mini"
 - Price: $100.00 USD, one-time
 
 ### Step 3: Configure Webhooks
+
 1. Go to Stripe Dashboard → Webhooks
 2. Add endpoint: `https://yourdomain.com/api/stripe/webhook`
 3. Select these events:
@@ -75,6 +85,7 @@ NEXT_PUBLIC_STRIPE_CREDITS_50K_PRICE_ID=price_... # 50K credits ($100)
 ## 3. Credit System Logic
 
 ### Model Multipliers
+
 - **GPT-4o-mini**: 1x (1 credit = 1K tokens)
 - **GPT-4o**: 15x (15 credits = 1K tokens)
 - **Claude Haiku**: 1x (1 credit = 1K tokens)
@@ -82,6 +93,7 @@ NEXT_PUBLIC_STRIPE_CREDITS_50K_PRICE_ID=price_... # 50K credits ($100)
 - **Claude Opus**: 20x (20 credits = 1K tokens)
 
 ### Tier Limits
+
 - **Free**: 500 credits (~500K tokens on mini)
 - **Pro**: 10,000 credits (~10M tokens on mini)
 - **Team**: 30,000 credits (~30M tokens on mini)
@@ -90,16 +102,19 @@ NEXT_PUBLIC_STRIPE_CREDITS_50K_PRICE_ID=price_... # 50K credits ($100)
 ## 4. Integration Points
 
 ### Frontend Components
+
 - `SubscriptionManager` - Shows current plan and usage
 - `PricingPage` - Public pricing with Stripe checkout
 - `CreditMonitor` - Usage tracking in chat interface
 
 ### Backend Integration
+
 - `convex/subscriptions.ts` - Subscription and credit management
 - `api/stripe/webhook` - Handles Stripe events
 - `api/stripe/checkout` - Creates checkout sessions
 
 ### Database Schema
+
 - `subscriptions` - User subscription data
 - `user_credits` - Credit balances and usage
 - `credit_transactions` - Usage history
@@ -108,13 +123,15 @@ NEXT_PUBLIC_STRIPE_CREDITS_50K_PRICE_ID=price_... # 50K credits ($100)
 ## 5. Testing
 
 ### Test Mode Setup
-1. Use Stripe test keys (sk_test_, pk_test_)
+
+1. Use Stripe test keys (sk*test*, pk*test*)
 2. Use test webhook endpoint
 3. Test with Stripe test cards:
    - Success: 4242 4242 4242 4242
    - Decline: 4000 0000 0000 0002
 
 ### Production Checklist
+
 - [ ] Replace test keys with live keys
 - [ ] Update webhook endpoint to production URL
 - [ ] Test subscription flows end-to-end

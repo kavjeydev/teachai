@@ -287,7 +287,7 @@ async function handleCheckoutCompleted(
 
 function getTierFromPriceId(priceId: string | undefined): string {
   const priceMap: Record<string, string> = {
-    [process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID!]: "starter",
+    [process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!]: "pro",
     [process.env.NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID!]: "scale",
     // Enterprise is handled separately as it's custom pricing
   };
@@ -322,7 +322,7 @@ function isCreditsPrice(priceId: string | undefined): boolean {
 function getCreditsForTier(tier: string): number {
   const creditMap: Record<string, number> = {
     free: 500,
-    starter: 10000,
+    pro: 10000,
     scale: 100000,
     enterprise: 100000, // Default for enterprise, can be customized
   };

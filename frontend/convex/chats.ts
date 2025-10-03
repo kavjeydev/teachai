@@ -53,7 +53,7 @@ export const createChat = mutation({
 
     if (subscription && subscription.status === "active") {
       switch (subscription.tier) {
-        case "starter":
+        case "pro":
           chatLimit = 3;
           break;
         case "scale":
@@ -1149,8 +1149,7 @@ export const getUserChatLimits = query({
     if (subscription && subscription.status === "active") {
       tierName = subscription.tier;
       switch (subscription.tier) {
-        // New tier names
-        case "starter":
+        case "pro":
           chatLimit = 3;
           break;
         case "scale":

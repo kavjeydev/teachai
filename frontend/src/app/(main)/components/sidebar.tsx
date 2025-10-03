@@ -88,10 +88,30 @@ export function AppSidebar({
   const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
 
   const onCreate = async () => {
+    // Wait for chat limits to load if not available yet
+    if (!chatLimits) {
+      toast.error("Loading your account info, please wait...");
+      return;
+    }
+
     // Check if user can create more chats
-    if (chatLimits && !chatLimits.canCreateMore) {
+    if (!chatLimits.canCreateMore) {
+      const nextTier =
+        chatLimits.tierName === "free"
+          ? "Pro ($39/mo)"
+          : chatLimits.tierName === "pro"
+            ? "Scale ($199/mo)"
+            : "Enterprise";
       toast.error(
-        `You've reached your chat limit of ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} for the ${chatLimits.tierName} plan. Please upgrade your plan or archive existing chats to create new ones.`,
+        `You've reached your chat limit of ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} for the ${chatLimits.tierName} plan.`,
+        {
+          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+          action: {
+            label: "View Plans",
+            onClick: () => window.open("/pricing", "_blank"),
+          },
+          duration: 8000,
+        },
       );
       return;
     }
@@ -101,7 +121,21 @@ export function AppSidebar({
       toast.success("Created new chat!");
     } catch (error) {
       if (error instanceof Error) {
-        toast.error(error.message);
+        // Show the exact error message from the backend with upgrade options
+        const nextTier =
+          chatLimits.tierName === "free"
+            ? "Pro ($39/mo)"
+            : chatLimits.tierName === "pro"
+              ? "Scale ($199/mo)"
+              : "Enterprise";
+        toast.error(error.message, {
+          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+          action: {
+            label: "View Plans",
+            onClick: () => window.open("/pricing", "_blank"),
+          },
+          duration: 8000,
+        });
       } else {
         toast.error("Failed to create chat");
       }

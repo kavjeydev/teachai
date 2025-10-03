@@ -116,6 +116,7 @@ export function AppSidebar({
 
   // Fetch chats
   const chats = useQuery(api.chats.getChats);
+  const chatLimits = useQuery(api.chats.getUserChatLimits);
 
   const currentChat = useQuery(api.chats.getChatById, {
     id: chatId,
@@ -142,9 +143,48 @@ export function AppSidebar({
   );
   const [editingTitle, setEditingTitle] = React.useState("");
 
-  const onCreate = () => {
-    const promise = addChat({ title: "untitled" });
-    toast({ title: "Created chat" });
+  const onCreate = async () => {
+    // Wait for chat limits to load if not available yet
+    if (!chatLimits) {
+      toast({ title: "Loading your account info, please wait..." });
+      return;
+    }
+
+    // Check if user can create more chats
+    if (!chatLimits.canCreateMore) {
+      const nextTier =
+        chatLimits.tierName === "free"
+          ? "Pro ($39/mo)"
+          : chatLimits.tierName === "pro"
+            ? "Scale ($199/mo)"
+            : "Enterprise";
+      toast({
+        title: `You've reached your chat limit of ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} for the ${chatLimits.tierName} plan.`,
+        description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+      });
+      return;
+    }
+
+    try {
+      await addChat({ title: "untitled" });
+      toast({ title: "Created chat" });
+    } catch (error) {
+      if (error instanceof Error) {
+        // Show the exact error message from the backend with upgrade options
+        const nextTier =
+          chatLimits.tierName === "free"
+            ? "Pro ($39/mo)"
+            : chatLimits.tierName === "pro"
+              ? "Scale ($199/mo)"
+              : "Enterprise";
+        toast({
+          title: error.message,
+          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+        });
+      } else {
+        toast({ title: "Failed to create chat" });
+      }
+    }
   };
 
   const onDelete = (chatId: Id<"chats">) => {

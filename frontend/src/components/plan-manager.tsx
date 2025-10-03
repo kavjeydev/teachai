@@ -87,7 +87,7 @@ const plans: PlanTier[] = [
     id: "startup",
     name: "Startup",
     price: "$199",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_STARTUP_PRICE_ID || "",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID || "",
     credits: "100,000",
     icon: <Building className="w-5 h-5" />,
     description: "For growing businesses and startups",

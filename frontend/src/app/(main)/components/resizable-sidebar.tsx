@@ -120,6 +120,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   }, [pathname, chatId]);
 
   const chats = useQuery(api.chats.getChats, canQuery ? undefined : skipQuery);
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    canQuery ? undefined : skipQuery,
+  );
   const favoriteChats = useQuery(
     api.chats.getFavoriteChats,
     canQuery ? undefined : skipQuery,
@@ -228,9 +232,59 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
     return favoriteChats;
   }, [favoriteChats]);
 
-  const onCreate = () => {
-    const promise = addChat({ title: "Untitled Chat" });
-    toast.success("Created new chat!");
+  const onCreate = async () => {
+    // Wait for chat limits to load if not available yet
+    if (!chatLimits) {
+      toast.error("Loading your account info, please wait...");
+      return;
+    }
+
+    // Check if user can create more chats
+    if (!chatLimits.canCreateMore) {
+      const nextTier =
+        chatLimits.tierName === "free"
+          ? "Pro ($39/mo)"
+          : chatLimits.tierName === "pro"
+            ? "Scale ($199/mo)"
+            : "Enterprise";
+      toast.error(
+        `You've reached your chat limit of ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} for the ${chatLimits.tierName} plan.`,
+        {
+          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+          action: {
+            label: "View Plans",
+            onClick: () => window.open("/pricing", "_blank"),
+          },
+          duration: 8000,
+        },
+      );
+      return;
+    }
+
+    try {
+      await addChat({ title: "Untitled Chat" });
+      toast.success("Created new chat!");
+    } catch (error) {
+      if (error instanceof Error) {
+        // Show the exact error message from the backend with upgrade options
+        const nextTier =
+          chatLimits.tierName === "free"
+            ? "Pro ($39/mo)"
+            : chatLimits.tierName === "pro"
+              ? "Scale ($199/mo)"
+              : "Enterprise";
+        toast.error(error.message, {
+          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+          action: {
+            label: "View Plans",
+            onClick: () => window.open("/pricing", "_blank"),
+          },
+          duration: 8000,
+        });
+      } else {
+        toast.error("Failed to create chat");
+      }
+    }
   };
 
   const toggleCollapse = () => {
