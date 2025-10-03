@@ -118,6 +118,7 @@ export default function GraphPage({ params }: GraphPageProps) {
               <GraphVisualizationNVL
                 chatId={chatId as string}
                 baseUrl={baseUrl}
+                disableAutoHighlight={true}
               />
             </div>
           </div>

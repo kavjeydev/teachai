@@ -50,6 +50,7 @@ interface GraphVisualizationProps {
   baseUrl: string;
   reasoningContext?: any[];
   refreshTrigger?: number; // Add refresh trigger prop
+  disableAutoHighlight?: boolean; // Add option to disable automatic highlighting
 }
 
 const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
@@ -57,6 +58,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   baseUrl,
   reasoningContext,
   refreshTrigger,
+  disableAutoHighlight = false,
 }) => {
   const nvlRef = useRef<HTMLDivElement>(null);
   const nvlInstance = useRef<any>(null);
@@ -1154,6 +1156,47 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     loadGraphData();
   }, [chatId]);
 
+  // Clear any existing highlighting and reset nodes to default colors
+  const clearHighlighting = () => {
+    if (!nvlInstance.current || !graphData.nodes) return;
+
+    try {
+      console.log("🧹 Clearing any existing node highlighting...");
+      // Reset all nodes to default colors and sizes
+      const resetNodes = graphData.nodes.map((node) => ({
+        id: node.id,
+        captions: [{ value: getNodeDisplayLabel(node) }],
+        size: node.labels.includes("Document") ? 80 : 60,
+        color: getNodeColor(node.labels[0]),
+        properties: {
+          ...node.properties,
+          labels: node.labels.join(", "),
+          backendId: node.id,
+          isReasoning: false,
+        },
+      }));
+
+      const nvlRelationships = graphData.relationships.map((rel) => ({
+        id: rel.id,
+        from: rel.source,
+        to: rel.target,
+        captions: [{ value: rel.type }],
+        properties: {
+          ...rel.properties,
+          type: rel.type,
+        },
+      }));
+
+      nvlInstance.current.addAndUpdateElementsInGraph(
+        resetNodes,
+        nvlRelationships,
+      );
+      console.log("✅ Node highlighting cleared successfully");
+    } catch (error) {
+      console.error("Error clearing node highlighting:", error);
+    }
+  };
+
   // Highlight reasoning context nodes
   const highlightReasoningNodes = () => {
     if (
@@ -1294,7 +1337,21 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Trigger highlighting when reasoning context changes
   useEffect(() => {
-    if (reasoningContext && reasoningContext.length > 0) {
+    if (disableAutoHighlight) {
+      console.log(
+        "Auto-highlighting is disabled - clearing any existing highlighting",
+      );
+      setTimeout(() => {
+        clearHighlighting();
+      }, 1500);
+      return;
+    }
+
+    if (
+      reasoningContext &&
+      Array.isArray(reasoningContext) &&
+      reasoningContext.length > 0
+    ) {
       console.log(
         "Triggering node highlighting for context:",
         reasoningContext,
@@ -1305,8 +1362,16 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       setTimeout(() => {
         highlightReasoningNodes();
       }, 1500);
+    } else {
+      console.log(
+        "No reasoning context provided or context is empty - clearing any existing highlighting",
+      );
+      // Clear any existing highlighting when no reasoning context is provided
+      setTimeout(() => {
+        clearHighlighting();
+      }, 1500);
     }
-  }, [reasoningContext, backendIdToNvlId]);
+  }, [reasoningContext, backendIdToNvlId, disableAutoHighlight]);
 
   // Trigger graph refresh when refreshTrigger changes
   useEffect(() => {
