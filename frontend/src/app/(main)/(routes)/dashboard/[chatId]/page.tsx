@@ -645,74 +645,149 @@ function Dashboard({ params }: ChatIdPageProps) {
       return (
         <div className="mb-8">
           {msg.sender === "user" ? (
-            // User message - improved bubble style with better padding
-            <div className="flex justify-end gap-4 mb-6 group">
-              {/* Copy indicator above bubble */}
-              <div className="flex flex-col items-end max-w-[75%]">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-zinc-500 dark:text-zinc-400 mb-1 pointer-events-none">
-                  Click to copy
+            // User message - enhanced with modern design to match AI responses
+            <div className="flex justify-end gap-4 mb-8 group animate-in slide-in-from-right-2 duration-500">
+              {/* Enhanced copy indicator */}
+              <div className="flex flex-col items-end max-w-[75%] min-w-0">
+                <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-xs font-medium text-amber-600/70 dark:text-amber-400/70 mb-2 flex items-center gap-1.5 pointer-events-none">
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Click to copy message
                 </div>
+
+                {/* Modern user message bubble */}
                 <div
-                  className="bg-amber-400 text-white rounded-2xl px-3 py-2.5 text-sm leading-relaxed w-full shadow-lg shadow-amber-400/20 font-sans selectable cursor-pointer hover:bg-amber-500 transition-colors duration-200"
+                  className="relative bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 text-white rounded-2xl px-5 py-3.5 w-full shadow-xl shadow-amber-400/30 font-medium text-sm leading-relaxed selectable cursor-pointer hover:shadow-2xl hover:shadow-amber-400/40 transition-all duration-300 hover:scale-[1.02] group/bubble overflow-hidden"
                   onClick={() =>
                     copyToClipboard(getPlainText(msg.text), "Message")
                   }
                   title="Click to copy message"
                 >
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: sanitizeHTML(msg.text),
-                    }}
-                  />
+                  {/* Subtle shimmer overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-500"></div>
+
+                  {/* Content */}
+                  <div className="relative z-10">
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: sanitizeHTML(msg.text),
+                      }}
+                    />
+                  </div>
+
+                  {/* Bottom accent line */}
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-300/40 via-white/30 to-orange-300/40 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-300"></div>
+                </div>
+
+                {/* Message metadata */}
+                <div className="flex items-center justify-end mt-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div className="flex items-center gap-2 text-xs text-amber-600/70 dark:text-amber-400/70">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                    <span>You</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Enhanced user avatar */}
               {user?.imageUrl && (
-                <img
-                  src={user.imageUrl}
-                  className="w-8 h-8 rounded-lg flex-shrink-0 mt-1 shadow-sm"
-                  alt="User avatar"
-                  loading="lazy"
-                />
+                <div className="relative flex-shrink-0 mt-8">
+                  <img
+                    src={user.imageUrl}
+                    className="w-9 h-9 rounded-xl shadow-lg ring-2 ring-white/20 dark:ring-zinc-700/50 object-cover"
+                    alt="User avatar"
+                    loading="lazy"
+                  />
+                  {/* Subtle glow effect */}
+                  <div className="absolute inset-0 w-9 h-9 rounded-xl bg-amber-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm -z-10"></div>
+                </div>
               )}
             </div>
           ) : (
-            // AI response - improved formatting for better readability
-            <div className="flex gap-4 mb-6 group">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                <img
-                  src="/trainly_icon_white.png"
-                  alt="Trainly Logo"
-                  className="w-6 h-6 block dark:hidden"
-                />
-                <img
-                  src="/trainly_icon_black.png"
-                  alt="Trainly Logo"
-                  className="w-6 h-6 hidden dark:block"
-                />
-              </div>
-              <div className="flex flex-col max-w-[90%]">
-                {/* Copy indicator above bubble */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-zinc-500 dark:text-zinc-400 mb-1 pointer-events-none">
-                  Click to copy
+            // AI response - modern, sleek design with enhanced visual appeal
+            <div className="flex gap-4 mb-8 group animate-in slide-in-from-left-2 duration-500">
+              {/* Enhanced AI Avatar with gradient background */}
+              <div className="relative flex-shrink-0 mt-8">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 ring-2 ring-white/10">
+                  <div className="w-5 h-5 bg-white/90 rounded-md flex items-center justify-center">
+                    <Sparkles className="w-3 h-3 text-blue-600" />
+                  </div>
                 </div>
+                {/* Subtle glow effect */}
+                <div className="absolute inset-0 w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 opacity-20 blur-md -z-10"></div>
+              </div>
+
+              <div className="flex flex-col max-w-[85%] min-w-0">
+                {/* Enhanced copy indicator with better positioning */}
+                <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-xs font-medium text-blue-600/70 dark:text-blue-400/70 mb-2 flex items-center gap-1.5 pointer-events-none">
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Click to copy response
+                </div>
+
+                {/* Modern response bubble with enhanced styling */}
                 <div
-                  className="bg-zinc-50 dark:bg-zinc-900 rounded-2xl px-5 py-4 w-full shadow-sm selectable cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200"
+                  className="relative bg-gradient-to-br from-white via-zinc-50/50 to-blue-50/30 dark:from-zinc-800/90 dark:via-zinc-800/70 dark:to-zinc-900/90 rounded-2xl px-6 py-5 shadow-lg shadow-zinc-200/60 dark:shadow-zinc-900/60 border border-zinc-200/60 dark:border-zinc-700/50 selectable cursor-pointer hover:shadow-xl hover:shadow-zinc-200/80 dark:hover:shadow-zinc-900/80 transition-all duration-300 hover:scale-[1.01] backdrop-blur-sm group/bubble overflow-hidden"
                   onClick={() =>
                     copyToClipboard(getPlainText(msg.text), "Response")
                   }
                   title="Click to copy response"
                 >
-                  <CitationMarkdown
-                    content={msg.text}
-                    reasoningContext={msg.reasoningContext || []}
-                    onCitationClick={(chunkIndex) => {
-                      onCitationClick(
-                        chunkIndex,
-                        msg.reasoningContext || [],
-                        msg.text,
-                      );
-                    }}
-                  />
+                  {/* Subtle animated gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/20 to-transparent dark:via-blue-900/10 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-500"></div>
+
+                  {/* Content with enhanced typography */}
+                  <div className="relative z-10">
+                    <CitationMarkdown
+                      content={msg.text}
+                      reasoningContext={msg.reasoningContext || []}
+                      onCitationClick={(chunkIndex) => {
+                        onCitationClick(
+                          chunkIndex,
+                          msg.reasoningContext || [],
+                          msg.text,
+                        );
+                      }}
+                    />
+                  </div>
+
+                  {/* Bottom accent line */}
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500/20 via-purple-500/30 to-indigo-500/20 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-300"></div>
+                </div>
+
+                {/* Response metadata */}
+                <div className="flex items-center justify-between mt-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span>AI Response</span>
+                  </div>
+                  {msg.reasoningContext && msg.reasoningContext.length > 0 && (
+                    <div className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">
+                      {msg.reasoningContext.length} source
+                      {msg.reasoningContext.length !== 1 ? "s" : ""}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1263,38 +1338,56 @@ function Dashboard({ params }: ChatIdPageProps) {
             {/* Chat content - only show when not in initial loading */}
             {!isLoadingInitialData && memoizedChatContent}
 
-            {/* Streaming message display */}
+            {/* Streaming message display - enhanced with modern design */}
             {(isStreaming || streamingContent) && (
               <div
                 ref={streamingMessageRef}
                 key={`streaming-${streamingContent.length}`}
-                className="mb-8"
+                className="mb-8 animate-in slide-in-from-left-2 duration-500"
               >
                 <div className="flex gap-4 mb-6 group">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <img
-                      src="/trainly_icon_white.png"
-                      alt="Trainly Logo"
-                      className="w-6 h-6 block dark:hidden"
-                    />
-                    <img
-                      src="/trainly_icon_black.png"
-                      alt="Trainly Logo"
-                      className="w-6 h-6 hidden dark:block"
-                    />
+                  {/* Enhanced AI Avatar matching the response design */}
+                  <div className="relative flex-shrink-0 mt-8">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 ring-2 ring-white/10">
+                      <div className="w-5 h-5 bg-white/90 rounded-md flex items-center justify-center">
+                        {streamingContent ? (
+                          <Sparkles className="w-3 h-3 text-blue-600 animate-pulse" />
+                        ) : (
+                          <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Animated glow effect for streaming */}
+                    <div className="absolute inset-0 w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 opacity-30 blur-md -z-10 animate-pulse"></div>
                   </div>
-                  <div className="flex flex-col max-w-[90%]">
-                    {/* Copy indicator above bubble for streaming content */}
+
+                  <div className="flex flex-col max-w-[85%] min-w-0">
+                    {/* Enhanced copy indicator for streaming content */}
                     {streamingContent && (
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-zinc-500 dark:text-zinc-400 mb-1 pointer-events-none">
-                        Click to copy
+                      <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-xs font-medium text-blue-600/70 dark:text-blue-400/70 mb-2 flex items-center gap-1.5 pointer-events-none">
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                        Click to copy response
                       </div>
                     )}
+
+                    {/* Modern streaming bubble with enhanced styling */}
                     <div
                       ref={streamingRef}
-                      className={`bg-zinc-50 dark:bg-zinc-900 rounded-2xl px-5 py-4 w-full shadow-sm selectable ${
+                      className={`relative bg-gradient-to-br from-white via-zinc-50/50 to-blue-50/30 dark:from-zinc-800/90 dark:via-zinc-800/70 dark:to-zinc-900/90 rounded-2xl px-6 py-5 shadow-lg shadow-zinc-200/60 dark:shadow-zinc-900/60 border border-zinc-200/60 dark:border-zinc-700/50 selectable backdrop-blur-sm group/bubble overflow-hidden ${
                         streamingContent
-                          ? "cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200"
+                          ? "cursor-pointer hover:shadow-xl hover:shadow-zinc-200/80 dark:hover:shadow-zinc-900/80 transition-all duration-300 hover:scale-[1.01]"
                           : ""
                       }`}
                       onClick={() =>
@@ -1305,28 +1398,53 @@ function Dashboard({ params }: ChatIdPageProps) {
                         streamingContent ? "Click to copy response" : undefined
                       }
                     >
-                      {streamingContent ? (
-                        <div className="whitespace-pre-wrap text-zinc-900 dark:text-white text-sm leading-relaxed font-sans">
-                          {streamingContent}
-                          {/* Blinking cursor to show active streaming */}
-                          <span className="inline-block w-0.5 h-5 bg-amber-400 ml-1 animate-pulse"></span>
-                        </div>
-                      ) : (
-                        <div className="text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
-                            <div
-                              className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
-                              style={{ animationDelay: "0.1s" }}
-                            ></div>
-                            <div
-                              className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
-                              style={{ animationDelay: "0.2s" }}
-                            ></div>
+                      {/* Animated gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/20 to-transparent dark:via-blue-900/10 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-500"></div>
+
+                      {/* Content */}
+                      <div className="relative z-10">
+                        {streamingContent ? (
+                          <div className="whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 text-sm leading-relaxed font-medium">
+                            {streamingContent}
+                            {/* Enhanced blinking cursor */}
+                            <span className="inline-block w-1 h-5 bg-gradient-to-t from-blue-500 to-purple-500 ml-1 animate-pulse rounded-sm"></span>
                           </div>
-                          <span>Thinking...</span>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            {/* Enhanced thinking animation */}
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce"></div>
+                              <div
+                                className="w-2.5 h-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full animate-bounce"
+                                style={{ animationDelay: "0.15s" }}
+                              ></div>
+                              <div
+                                className="w-2.5 h-2.5 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full animate-bounce"
+                                style={{ animationDelay: "0.3s" }}
+                              ></div>
+                            </div>
+                            <span className="text-zinc-600 dark:text-zinc-400 font-medium text-sm">
+                              AI is thinking...
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Animated bottom accent line */}
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500/30 via-purple-500/40 to-indigo-500/30 animate-pulse"></div>
+                    </div>
+
+                    {/* Streaming status indicator */}
+                    <div className="flex items-center gap-2 mt-2 text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                      </div>
+                      <span>
+                        {streamingContent
+                          ? "Streaming response..."
+                          : "Preparing response..."}
+                      </span>
                     </div>
                   </div>
                 </div>
