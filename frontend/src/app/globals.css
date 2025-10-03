@@ -108,6 +108,56 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Global theme transition for smooth dark/light mode switching */
+  html {
+    transition: color-scheme 0.3s ease-in-out;
+  }
+
+  html,
+  html *,
+  html *:before,
+  html *:after {
+    transition:
+      background-color 0.3s ease-in-out,
+      border-color 0.3s ease-in-out,
+      color 0.3s ease-in-out,
+      fill 0.3s ease-in-out,
+      stroke 0.3s ease-in-out,
+      box-shadow 0.3s ease-in-out,
+      backdrop-filter 0.3s ease-in-out !important;
+  }
+
+  /* Preserve existing transitions for specific elements */
+  [class*="transition-"],
+  [class*="duration-"],
+  [class*="animate-"] {
+    transition: inherit !important;
+  }
+
+  /* Disable transitions during initial theme resolution to prevent flash */
+  .theme-loading,
+  .theme-loading *,
+  .theme-loading *:before,
+  .theme-loading *:after {
+    transition: none !important;
+  }
+
+  /* Exclude performance-heavy properties from transitions */
+  img,
+  video,
+  iframe,
+  canvas,
+  svg,
+  [class*="animate-"],
+  [class*="transform"] {
+    transition:
+      background-color 0.3s ease-in-out,
+      border-color 0.3s ease-in-out,
+      color 0.3s ease-in-out,
+      fill 0.3s ease-in-out,
+      stroke 0.3s ease-in-out !important;
+  }
 }
 
 /* Disable text selection globally for premium feel */

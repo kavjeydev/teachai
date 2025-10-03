@@ -6,6 +6,7 @@ import Providers from "./(main)/components/Providers";
 import { Toaster } from "@/components/ui/toaster";
 import { AppLoadingProvider } from "@/components/app-loading-provider";
 import { AuthWrapper } from "@/components/auth-wrapper";
+import { ThemeTransitionHandler } from "@/components/theme-transition-handler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
       >
         <Providers>
           <AppLoadingProvider>
+            <ThemeTransitionHandler />
             <main>
               <Toaster />
               {children}

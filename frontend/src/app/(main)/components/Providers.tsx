@@ -13,7 +13,13 @@ interface ProvidersProps {
 const Providers = ({ children }: ProvidersProps) => {
   return (
     <ConvexClientProvider>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange={false}
+        enableColorScheme={true}
+      >
         {children}
       </ThemeProvider>
     </ConvexClientProvider>
