@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Loader2, File } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UploadQueue, QueuedFile, PersistedFile } from "@/hooks/use-file-queue";
+import {
+  UploadQueue,
+  QueuedFile,
+  PersistedFile,
+  formatRelativeTime,
+} from "@/hooks/use-file-queue";
 
 interface FileQueueMonitorProps {
   queues: UploadQueue[];
@@ -66,6 +71,11 @@ const FileItem: React.FC<FileItemProps> = ({ file }) => {
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
               {formatFileSize(file.fileSize)}
             </span>
+            {file.uploadedAt && file.status === "uploaded" && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                • {formatRelativeTime(file.uploadedAt)}
+              </span>
+            )}
             {file.status === "processing" && (
               <>
                 <Progress value={file.progress} className="w-24 h-1" />
@@ -106,15 +116,22 @@ export const FileQueueMonitor: React.FC<FileQueueMonitorProps> = ({
     return null;
   }
 
-  // Sort files: processing first, then by creation time
+  // Sort files: processing first, then by upload time (newest first)
   const sortedFiles = [...allFiles].sort((a, b) => {
     if (a.status === "processing" && b.status !== "processing") return -1;
     if (b.status === "processing" && a.status !== "processing") return 1;
-    return b.queueId.localeCompare(a.queueId); // Newer files first
+
+    // For uploaded files, sort by upload timestamp if available
+    if (a.uploadedAt && b.uploadedAt) {
+      return b.uploadedAt - a.uploadedAt; // Newer uploads first
+    }
+
+    // Fallback to queue ID (which includes timestamp)
+    return b.queueId.localeCompare(a.queueId);
   });
 
   return (
-    <div className={cn("space-y-3 max-h-96 overflow-y-auto", className)}>
+    <div className={cn("space-y-3 h-full overflow-y-auto", className)}>
       {sortedFiles.map((file) => (
         <FileItem key={`${file.queueId}-${file.id}`} file={file} />
       ))}

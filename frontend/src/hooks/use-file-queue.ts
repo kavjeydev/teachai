@@ -9,6 +9,29 @@ const uid = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
+// Utility function to format relative time
+export const formatRelativeTime = (timestamp: number): string => {
+  const now = Date.now();
+  const diffMs = now - timestamp;
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) {
+    return "just now";
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+  } else {
+    // For longer periods, show the actual date
+    return new Date(timestamp).toLocaleDateString();
+  }
+};
+
 // Map database status to UI status
 const mapDatabaseStatusToUI = (
   dbStatus: string,
@@ -52,6 +75,7 @@ export interface QueuedFile {
   fileId?: string;
   convexFileId?: Id<"file_upload_queue">; // Convex document ID for updates
   id: string;
+  uploadedAt?: number; // Unix timestamp in milliseconds
 }
 
 // Interface for persisted file data (without File object)
@@ -66,6 +90,7 @@ export interface PersistedFile {
   error?: string;
   fileId?: string;
   convexFileId?: Id<"file_upload_queue">;
+  uploadedAt?: number; // Unix timestamp in milliseconds
 }
 
 export interface UploadQueue {
@@ -319,7 +344,7 @@ export function useFileQueue({
           console.error("No convexFileId found for file:", queuedFile.fileName);
         }
 
-        // Mark as completed
+        // Mark as completed and cleanup old files
         setActiveQueues((prev) => {
           const updated = new Map(prev);
           const queue = updated.get(queueId);
@@ -333,6 +358,7 @@ export function useFileQueue({
                 status: "uploaded",
                 progress: 100,
                 fileId: uniqueFileId,
+                uploadedAt: extractData.uploaded_at || Date.now(),
               };
               queue.completedFiles += 1;
 
@@ -348,6 +374,42 @@ export function useFileQueue({
               updated.set(queueId, { ...queue });
             }
           }
+
+          // Cleanup: Keep only the last 20 uploaded files across all queues
+          const allUploadedFiles: Array<{
+            file: QueuedFile | PersistedFile;
+            queueId: string;
+          }> = [];
+
+          for (const [qId, q] of updated) {
+            q.files.forEach((file) => {
+              if (file.status === "uploaded" && file.uploadedAt) {
+                allUploadedFiles.push({ file, queueId: qId });
+              }
+            });
+          }
+
+          // Sort by upload time (newest first) and keep only last 20
+          allUploadedFiles.sort(
+            (a, b) => (b.file.uploadedAt || 0) - (a.file.uploadedAt || 0),
+          );
+          const filesToKeep = allUploadedFiles.slice(0, 20);
+          const fileIdsToKeep = new Set(
+            filesToKeep.map((item) => item.file.id),
+          );
+
+          // Remove old uploaded files from queues
+          for (const [qId, q] of updated) {
+            q.files = q.files.filter((file) => {
+              // Keep processing files and files within the last 20 uploaded
+              return (
+                file.status === "processing" ||
+                file.status === "cancelled" ||
+                fileIdsToKeep.has(file.id)
+              );
+            });
+          }
+
           return updated;
         });
 

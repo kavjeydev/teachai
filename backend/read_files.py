@@ -22,6 +22,7 @@ import asyncio
 import httpx
 import time
 import logging
+import hashlib
 from sanitization import (
     sanitize_user_message, sanitize_chat_id, sanitize_api_key,
     sanitize_text, sanitize_with_length, SanitizedUserMessage,
@@ -630,23 +631,29 @@ async def track_subchat_creation(app_id: str, end_user_id: str, chat_id: str):
     except Exception as e:
         logger.error(f"Failed to track subchat creation: {e}")
 
-async def track_file_upload(app_id: str, end_user_id: str, filename: str, file_size: int, chat_id: str):
+async def track_file_upload(app_id: str, end_user_id: str, filename: str, file_size: int, chat_id: str, file_hash: str = None):
     """Track file upload for analytics"""
     try:
         # Call Convex to update metadata
         convex_url = "https://colorless-finch-681.convex.cloud/api/run/chat_analytics/trackFileUpload"
 
+        args = {
+            "appId": app_id,
+            "endUserId": end_user_id,
+            "filename": filename,
+            "fileSize": file_size,
+            "chatId": chat_id
+        }
+
+        # Add file hash if provided (for deduplication)
+        if file_hash:
+            args["fileHash"] = file_hash
+
         async with httpx.AsyncClient() as client:
             await client.post(
                 convex_url,
                 json={
-                    "args": {
-                        "appId": app_id,
-                        "endUserId": end_user_id,
-                        "filename": filename,
-                        "fileSize": file_size,
-                        "chatId": chat_id
-                    },
+                    "args": args,
                     "format": "json"
                 },
                 timeout=5.0
@@ -720,6 +727,8 @@ RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX = 60  # requests per window
 
 MAX_FILE_SIZE = 5 * 1024 * 1024
+PEEK_BYTES = 1024  # Larger peek window for better type detection
+EXTRACT_SEM = asyncio.Semaphore(8)  # Module-level semaphore for backpressure
 
 class ReadFiles:
     def __init__(self):
@@ -854,52 +863,185 @@ class ReadFiles:
 
 read_files = ReadFiles()
 
+def _detect_file_type(head: bytes, filename: str) -> str:
+    """
+    Detect file type using magic bytes and filename.
+    Uses larger peek window for accurate detection.
+    """
+    fn = filename.lower()
+
+    # PDF magic bytes
+    if head.startswith(b"%PDF-"):
+        return "pdf"
+
+    # DOCX magic bytes (ZIP signature + .docx extension)
+    if head.startswith(b"PK\x03\x04") and fn.endswith(".docx"):
+        return "docx"
+
+    # HTML detection (with whitespace handling)
+    h = head.lstrip()
+    if h.startswith(b"<!DOCTYPE") or h.startswith(b"<html"):
+        return "html"
+
+    # Text detection - use full sample, not just first 8 bytes
+    sample = head[:PEEK_BYTES] if len(head) >= PEEK_BYTES else head
+    if sample:
+        # Check if content is printable text (more robust check)
+        try:
+            # Try to decode as UTF-8 and check for printable characters
+            decoded = sample.decode('utf-8', errors='ignore')
+            if decoded and all(c.isprintable() or c in '\t\n\r' for c in decoded[:500]):
+                return "text"
+        except:
+            pass
+
+        # Fallback: byte-level printable check
+        if all((32 <= b <= 126) or b in (9, 10, 13) for b in sample):
+            return "text"
+
+    # Extension-based fallback for known text formats
+    text_extensions = (".txt", ".md", ".csv", ".json", ".xml", ".yaml", ".yml",
+                      ".js", ".py", ".java", ".cpp", ".c", ".h", ".cs", ".php", ".rb")
+    for ext in text_extensions:
+        if fn.endswith(ext):
+            return "text"
+
+    return "unknown"
+
 @app.post("/extract-pdf-text")
-async def extract_text_endpoint(file: UploadFile = File(...)):
+async def extract_text_endpoint(
+    file: UploadFile = File(...),
+    content_length: Optional[int] = Header(None, alias="content-length")
+):
     """
-    Endpoint to upload a file and extract its text based on the file type.
+    Optimized endpoint to upload a file and extract its text based on the file type.
+    Non-blocking: File parsing & heavy sanitization run in threadpool.
+    Fixed: content-type logic, magic bytes detection, double-read elimination.
     """
-    file_size = read_files.get_file_size(file)
-    if file_size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
+
+    # 0) Early rejections
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file uploaded.")
+
+    # Early reject via Content-Length if provided
+    if content_length:
+        try:
+            if int(content_length) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
+        except (ValueError, TypeError):
+            pass
 
     # Sanitize filename for security
     sanitized_filename = sanitize_filename(file.filename)
     if not sanitized_filename:
         raise HTTPException(status_code=400, detail="Invalid filename.")
 
-    try:
-        text = read_files.extract_text(file)
+    # 1) Magic bytes detection with larger peek window
+    await file.seek(0)
+    head = await file.read(PEEK_BYTES)
+    await file.seek(0)
 
-        # Basic sanitization of extracted text to prevent XSS
-        # Note: This is extracted text content, so we don't allow HTML
-        sanitized_text = sanitize_with_xss_detection(
-            text,
+    detected_type = _detect_file_type(head, file.filename)
+    if detected_type == "unknown":
+        raise HTTPException(status_code=415, detail="Unsupported or invalid file format.")
+
+    # 2) Stream to compute size + hash in one pass (memory efficient)
+    size = 0
+    hasher = hashlib.sha256()
+    chunk_size = 65536  # 64KB chunks
+
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        size += len(chunk)
+        if size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
+        hasher.update(chunk)
+
+    file_hash = hasher.hexdigest()
+    await file.seek(0)  # Reset for extraction
+
+    # 3) Non-blocking extraction with module-level semaphore
+    def _extract_sync():
+        """Extract text without unnecessary double-read"""
+        # Use the underlying SpooledTemporaryFile directly (no extra read)
+        file.file.seek(0)
+        return read_files.extract_text(file)
+
+    try:
+        async with EXTRACT_SEM:  # Use module-level semaphore
+            text = await asyncio.wait_for(
+                asyncio.to_thread(_extract_sync),
+                timeout=30.0
+            )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=408, detail="File processing timeout.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Text extraction failed: {str(e)}")
+        raise HTTPException(status_code=400, detail="Failed to extract text from file.")
+
+    if not text or not text.strip():
+        upload_timestamp = int(time.time() * 1000)  # Unix timestamp in milliseconds
+        return JSONResponse(content={
+            "text": "",
+            "file_hash": file_hash,
+            "size_bytes": size,
+            "filename": sanitized_filename,
+            "uploaded_at": upload_timestamp
+        })
+
+    # 4) Sanitize with truncation first to cap processing work
+    MAX_TEXT = 1_000_000
+    to_sanitize = text[:MAX_TEXT] if len(text) > MAX_TEXT else text
+
+    def _sync_sanitize():
+        return sanitize_with_xss_detection(
+            to_sanitize,
             allow_html=False,
-            max_length=1000000,  # Allow larger content for documents
+            max_length=MAX_TEXT,
             context="file_extraction"
         )
 
-        if not sanitized_text and text:
-            raise HTTPException(status_code=400, detail="File contains potentially malicious content.")
-
-        # Track file upload analytics (if this is part of privacy-first flow)
-        file_size = file_size if 'file_size' in locals() else len(text.encode('utf-8'))
-        await track_file_upload(
-            "demo_app",  # This would be passed from the request in production
-            "demo_user",  # This would be the actual user
-            sanitized_filename,
-            file_size,
-            "demo_chat"
+    try:
+        sanitized_text = await asyncio.wait_for(
+            asyncio.to_thread(_sync_sanitize),
+            timeout=10.0
         )
-
-        return JSONResponse(content={"text": sanitized_text})
-    except HTTPException as http_exc:
-        raise http_exc
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=408, detail="Text sanitization timeout.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Sanitization error: {str(e)}")
+        raise HTTPException(status_code=400, detail="Text sanitization failed.")
+
+    if not sanitized_text and text:
+        raise HTTPException(status_code=400, detail="File contains potentially malicious content.")
+
+    # 5) Fire-and-forget analytics (skip for now to avoid errors)
+    # The main file processing doesn't depend on analytics
+    async def _track():
+        try:
+            # Only track if we have valid app/user context (not demo data)
+            # For now, just log the successful extraction
+            logger.info(f"📊 File processed successfully: {sanitized_filename} ({format_bytes(size)})")
+        except Exception as e:
+            logger.warning(f"Analytics failed: {str(e)}")
+
+    asyncio.create_task(_track())
+
+    # 6) Return optimized response with timestamp
+    upload_timestamp = int(time.time() * 1000)  # Unix timestamp in milliseconds
+
+    return JSONResponse(content={
+        "text": sanitized_text,
+        "file_hash": file_hash,
+        "size_bytes": size,
+        "filename": sanitized_filename,
+        "uploaded_at": upload_timestamp,
+        "processing": "async_nonblocking_fixed"
+    })
 
 
 # Load environment variables

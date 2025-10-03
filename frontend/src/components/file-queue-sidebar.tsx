@@ -43,7 +43,7 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
       {/* Sidebar - Fixed to far right edge of screen */}
       <div
         className={cn(
-          "fixed right-0 top-0 h-full bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-700 shadow-xl z-50 transition-all duration-300 ease-in-out",
+          "fixed right-0 top-0 h-full bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-700 shadow-xl z-50 transition-all duration-300 ease-in-out flex flex-col",
           isCollapsed ? "w-16" : "w-[480px]",
           className,
         )}
@@ -88,12 +88,12 @@ export const FileQueueSidebar: React.FC<FileQueueSidebarProps> = ({
 
         {/* Content */}
         {!isCollapsed && (
-          <div className="flex-1 h-full overflow-hidden">
-            <div className="p-4 h-full">
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="p-4 flex-1 flex flex-col min-h-0">
               {allFiles.length > 0 ? (
-                <FileQueueMonitor queues={queues} className="h-full" />
+                <FileQueueMonitor queues={queues} className="flex-1" />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="flex flex-col items-center justify-center flex-1 text-center">
                   <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-4">
                     <FileText className="h-8 w-8 text-zinc-400" />
                   </div>
