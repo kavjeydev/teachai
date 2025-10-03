@@ -389,7 +389,8 @@ export default function ProfilePage() {
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-semibold text-zinc-900 dark:text-white">
-                              -{Math.abs(transaction.amount)} credits
+                              -{formatCredits(Math.abs(transaction.amount))}{" "}
+                              credits
                             </p>
                             <p className="text-xs text-zinc-600 dark:text-zinc-400">
                               {transaction.tokensUsed?.toLocaleString() || "0"}{" "}
