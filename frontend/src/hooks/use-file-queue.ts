@@ -535,42 +535,91 @@ export function useFileQueue({
 
         console.log("Received Convex file IDs:", convexFileIds);
 
-        // Update local state with Convex file IDs
-        let updatedQueue: UploadQueue | null = null;
+        // Validate the response from Convex
+        if (!convexFileIds || !Array.isArray(convexFileIds)) {
+          console.error("Invalid Convex file IDs response:", convexFileIds);
+          toast.error(
+            "Failed to initialize file processing - invalid server response",
+          );
+          return null;
+        }
+
+        if (convexFileIds.length !== fileArray.length) {
+          console.error(
+            "Mismatch between uploaded files and Convex file IDs:",
+            {
+              expectedCount: fileArray.length,
+              receivedCount: convexFileIds.length,
+              fileNames: fileArray.map((f) => f.name),
+              convexFileIds,
+            },
+          );
+          toast.error(
+            `File processing initialization incomplete - expected ${fileArray.length} files, got ${convexFileIds.length} IDs`,
+          );
+          return null;
+        }
+
+        // Update local state with Convex file IDs and start processing
         setActiveQueues((prev) => {
           const updated = new Map(prev);
           const queue = updated.get(queueId);
-          if (queue && convexFileIds) {
-            const updatedFiles = queue.files.map((file, index) => {
-              const updatedFile = {
-                ...file,
-                convexFileId: convexFileIds[index] || file.convexFileId,
-              };
-              console.log(
-                `Updated file ${file.fileName} with convexFileId:`,
-                updatedFile.convexFileId,
-              );
-              return updatedFile;
+
+          if (!queue) {
+            console.error("Queue not found in local state:", {
+              queueId,
+              availableQueues: Array.from(updated.keys()),
             });
-            updatedQueue = { ...queue, files: updatedFiles };
-            updated.set(queueId, updatedQueue);
-          } else {
-            console.error("Failed to update files with Convex IDs:", {
-              queue: !!queue,
-              convexFileIds,
-            });
+            toast.error("Failed to start file processing - queue not found");
+            return prev; // Return unchanged state
           }
+
+          if (queue.files.length !== convexFileIds.length) {
+            console.error("File count mismatch between queue and Convex IDs:", {
+              queueFileCount: queue.files.length,
+              convexIdCount: convexFileIds.length,
+              queueId,
+            });
+            toast.error(
+              "File processing initialization error - file count mismatch",
+            );
+            return prev; // Return unchanged state
+          }
+
+          const updatedFiles = queue.files.map((file, index) => {
+            const convexId = convexFileIds[index];
+            if (!convexId) {
+              console.error(
+                `Missing Convex file ID for file at index ${index}:`,
+                file.fileName,
+              );
+              return file; // Return file unchanged if no Convex ID
+            }
+
+            const updatedFile = {
+              ...file,
+              convexFileId: convexId,
+            };
+            console.log(
+              `✅ Updated file ${file.fileName} with convexFileId:`,
+              updatedFile.convexFileId,
+            );
+            return updatedFile;
+          });
+
+          const updatedQueue = { ...queue, files: updatedFiles };
+          updated.set(queueId, updatedQueue);
+
+          // Start processing in background immediately with the updated queue
+          console.log(
+            `🚀 Starting processing for queue ${queueId} with ${updatedFiles.length} files`,
+          );
+          setTimeout(() => {
+            processQueue(updatedQueue);
+          }, 0);
+
           return updated;
         });
-
-        // Start processing in background with the updated queue (that has Convex file IDs)
-        if (updatedQueue) {
-          processQueue(updatedQueue);
-        } else {
-          console.error(
-            "Failed to start processing: no updated queue available",
-          );
-        }
 
         toast.success(
           `Started processing ${fileArray.length} file${fileArray.length > 1 ? "s" : ""}`,
