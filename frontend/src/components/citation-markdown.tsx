@@ -16,8 +16,17 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
   reasoningContext,
   onCitationClick,
 }) => {
-  // Process content to create clickable citations
+  // Process content to create clickable citations with improved formatting
   const processContent = () => {
+    // First, fix citation placement by moving them after periods
+    let processedContent = content;
+
+    // Find citations that appear before periods and move them after
+    processedContent = processedContent.replace(
+      /(\[\^(\d+)\^*\])(\s*[.!?])/g,
+      "$3$1",
+    );
+
     const parts = [];
     let lastIndex = 0;
     // Updated regex to handle multiple citation formats: [^0], [^0^], [^0^^], etc.
@@ -27,12 +36,12 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
     // Reset regex lastIndex to ensure we catch all matches
     citationRegex.lastIndex = 0;
 
-    while ((match = citationRegex.exec(content)) !== null) {
+    while ((match = citationRegex.exec(processedContent)) !== null) {
       // Add text before citation
       if (match.index > lastIndex) {
         parts.push({
           type: "text",
-          content: content.slice(lastIndex, match.index),
+          content: processedContent.slice(lastIndex, match.index),
           key: `text-${lastIndex}-${match.index}`,
         });
       }
@@ -50,10 +59,10 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
     }
 
     // Add remaining text
-    if (lastIndex < content.length) {
+    if (lastIndex < processedContent.length) {
       parts.push({
         type: "text",
-        content: content.slice(lastIndex),
+        content: processedContent.slice(lastIndex),
         key: `text-${lastIndex}-end`,
       });
     }
@@ -73,12 +82,12 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
             reasoningContext[part.chunkIndex];
 
           return (
-            <span
+            <sup
               key={part.key}
-              className={`inline-flex items-center px-2 py-1 mx-1 text-xs font-medium rounded-md transition-colors ${
+              className={`inline-flex items-center justify-center min-w-[18px] h-[18px] mx-0.5 text-[11px] font-medium rounded-sm transition-all duration-200 ${
                 hasContext
-                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700"
-                  : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-700"
+                  ? "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300 cursor-pointer hover:bg-zinc-300 dark:hover:bg-zinc-600 hover:shadow-sm border border-zinc-300/50 dark:border-zinc-600/50"
+                  : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 border border-red-300/50 dark:border-red-600/50"
               }`}
               onClick={
                 hasContext
@@ -95,21 +104,8 @@ export const CitationMarkdown: React.FC<CitationMarkdownProps> = ({
                   : `Citation ${part.chunkIndex} not available (only ${reasoningContext?.length || 0} chunks)`
               }
             >
-              {hasContext
-                ? (() => {
-                    const chunk = reasoningContext[part.chunkIndex];
-                    // Try to extract a meaningful keyword or phrase
-                    const text = chunk.chunk_text;
-                    const words = text
-                      .split(" ")
-                      .filter((word: string) => word.length > 3);
-                    const preview = words.slice(0, 2).join(" ");
-                    return preview.length > 0
-                      ? `${preview}...`
-                      : `Source ${part.chunkIndex + 1}`;
-                  })()
-                : part.content}
-            </span>
+              {hasContext ? `${part.chunkIndex + 1}` : part.content}
+            </sup>
           );
         }
 
