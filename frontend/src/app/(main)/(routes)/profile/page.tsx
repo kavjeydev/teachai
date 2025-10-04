@@ -232,10 +232,10 @@ export default function ProfilePage() {
     switch (tier) {
       case "pro":
         return "bg-blue-500";
-      case "team":
-        return "bg-amber-500";
-      case "startup":
+      case "scale":
         return "bg-orange-500";
+      case "enterprise":
+        return "bg-emerald-500";
       default:
         return "bg-zinc-500";
     }

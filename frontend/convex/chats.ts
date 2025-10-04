@@ -141,7 +141,6 @@ export const uploadContext = mutation({
 
     const document = await ctx.db.patch(args.id, {
       context: existingContext,
-      hasUnpublishedChanges: true,
     });
 
     return document;
@@ -181,7 +180,6 @@ export const eraseContext = mutation({
     // Update chat context
     const chat = await ctx.db.patch(args.id, {
       context: filteredContext,
-      hasUnpublishedChanges: true,
     });
 
     // Find the file in upload queue to get its size for storage tracking

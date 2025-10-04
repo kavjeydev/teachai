@@ -835,7 +835,7 @@ function getTierCredits(tier: string): number {
     case "scale":
       return 100000;
     case "enterprise":
-      return 100000;
+      return 1000000; // 1M credits for enterprise
     case "free":
     default:
       return 500;

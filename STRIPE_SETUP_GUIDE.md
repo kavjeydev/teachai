@@ -16,8 +16,8 @@ STRIPE_WEBHOOK_SECRET=whsec_... # Webhook endpoint secret
 
 # Stripe Price IDs (create these in Stripe Dashboard)
 NEXT_PUBLIC_STRIPE_PRO_PRICE_ID=price_... # Pro tier ($39/month)
-NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID=price_... # Team tier ($99/month)
-NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID=price_... # Startup tier ($199/month)
+NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID=price_... # Scale tier ($199/month)
+# Note: Enterprise is contact-only, no Stripe price ID needed
 
 # Credit Pack Price IDs
 NEXT_PUBLIC_STRIPE_CREDITS_5K_PRICE_ID=price_... # 5K credits ($20)
@@ -38,17 +38,17 @@ NEXT_PUBLIC_STRIPE_CREDITS_50K_PRICE_ID=price_... # 50K credits ($100)
 - Description: "Professional AI development with 10M tokens included"
 - Price: $39.00 USD/month, recurring
 
-**Trainly Team**
+**Trainly Scale**
 
-- Name: "Trainly Team"
-- Description: "Advanced features with 30M tokens and priority support"
-- Price: $99.00 USD/month, recurring
-
-**Trainly Startup**
-
-- Name: "Trainly Startup"
-- Description: "Unlimited chats with 100M tokens for power users"
+- Name: "Trainly Scale"
+- Description: "For startups in production with hundreds–thousands of users"
 - Price: $199.00 USD/month, recurring
+
+**Trainly Enterprise**
+
+- Name: "Trainly Enterprise"
+- Description: "For large organizations with custom needs"
+- Price: Contact sales (no Stripe product needed)
 
 ### Step 2: Create Credit Packs
 
@@ -96,8 +96,8 @@ NEXT_PUBLIC_STRIPE_CREDITS_50K_PRICE_ID=price_... # 50K credits ($100)
 
 - **Free**: 500 credits (~500K tokens on mini)
 - **Pro**: 10,000 credits (~10M tokens on mini)
-- **Team**: 30,000 credits (~30M tokens on mini)
-- **Startup**: 100,000 credits (~100M tokens on mini)
+- **Scale**: 100,000 credits (~100M tokens on mini)
+- **Enterprise**: Custom (typically 1M+ credits)
 
 ## 4. Integration Points
 

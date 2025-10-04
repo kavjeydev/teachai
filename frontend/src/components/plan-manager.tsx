@@ -25,6 +25,7 @@ import {
   X,
   Calendar,
   RefreshCw,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getStripe } from "@/lib/stripe";
@@ -84,8 +85,8 @@ const plans: PlanTier[] = [
     ],
   },
   {
-    id: "startup",
-    name: "Startup",
+    id: "scale",
+    name: "Scale",
     price: "$199",
     priceId: process.env.NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID || "",
     credits: "100,000",
@@ -98,6 +99,25 @@ const plans: PlanTier[] = [
       { text: "API access & key management", included: true },
       { text: "Priority support", included: true },
       { text: "Custom integrations", included: true },
+    ],
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    price: "Contact us",
+    priceId: "",
+    credits: "Custom",
+    icon: <Users className="w-5 h-5" />,
+    description: "For large organizations with custom needs",
+    features: [
+      { text: "Custom AI credits/month", included: true },
+      { text: "Full chat functionality", included: true },
+      { text: "File uploads (PDF, DOC, TXT)", included: true },
+      { text: "API access & key management", included: true },
+      { text: "Priority support", included: true },
+      { text: "Custom integrations", included: true },
+      { text: "Dedicated support", included: true },
+      { text: "Custom SLA", included: true },
     ],
   },
 ];
@@ -150,12 +170,17 @@ export function PlanManager() {
         );
       } else {
         // Check if this is an upgrade or downgrade
-        const tierOrder = { free: 0, pro: 1, startup: 2 };
+        const tierOrder = { free: 0, pro: 1, scale: 2, enterprise: 3 };
         const currentOrder =
           tierOrder[currentTier as keyof typeof tierOrder] || 0;
         const newOrder = tierOrder[newTier as keyof typeof tierOrder] || 0;
 
-        if (newOrder > currentOrder) {
+        if (newTier === "enterprise") {
+          // Enterprise - redirect to contact
+          window.location.href =
+            "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry";
+          return;
+        } else if (newOrder > currentOrder) {
           // Upgrade - immediate via Stripe
           const stripe = await getStripe();
           if (!stripe) throw new Error("Stripe failed to load");
@@ -388,6 +413,8 @@ export function PlanManager() {
                     "Current Plan"
                   ) : isPending ? (
                     "Scheduled"
+                  ) : plan.id === "enterprise" ? (
+                    "Contact Sales"
                   ) : (
                     <>
                       {plan.id === "free" ? "Downgrade" : "Select Plan"}

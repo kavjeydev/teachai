@@ -318,7 +318,7 @@ export default defineSchema({
     stripeCustomerId: v.string(),
     stripeSubscriptionId: v.string(),
     stripePriceId: v.string(),
-    tier: v.string(), // 'free', 'pro', 'team', 'startup'
+    tier: v.string(), // 'free', 'pro', 'scale', 'enterprise'
     status: v.string(), // 'active', 'canceled', 'past_due', 'trialing'
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),
