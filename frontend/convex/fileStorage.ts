@@ -163,6 +163,7 @@ export const checkUploadLimits = query({
   args: {
     fileSize: v.number(),
     fileName: v.string(),
+    chatId: v.id("chats"), // Add chatId to determine which chat's storage to check
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -172,10 +173,42 @@ export const checkUploadLimits = query({
 
     const userId = identity.subject;
 
+    // Get the chat to determine storage tracking
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    // Determine which chat's storage to check for limits
+    let targetChat = chat;
+    let targetUserId = userId;
+    let parentChat = null;
+
+    // If this is a subchat, we need to check against the parent chat's aggregated limits
+    if (chat.chatType === "app_subchat") {
+      // Try parentChatId first (more efficient), then fallback to parentAppId
+      if (chat.parentChatId) {
+        parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), chat.parentChatId))
+          .first();
+      } else if (chat.parentAppId) {
+        parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), chat.parentAppId))
+          .first();
+      }
+
+      if (parentChat) {
+        targetChat = parentChat;
+        targetUserId = parentChat.userId; // Use parent chat owner's limits
+      }
+    }
+
     // Get user's subscription to determine tier
     const subscription = await ctx.db
       .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
       .first();
 
     // Determine tier limits
@@ -208,14 +241,28 @@ export const checkUploadLimits = query({
     const maxStorageBytes = maxStorageMB * 1024 * 1024;
     const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
 
-    // Get current storage usage
-    const storage = await ctx.db
-      .query("user_file_storage")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
+    // Get current storage usage - for parent chats, this includes all subchat storage
+    // For subchats, we check against parent's aggregated storage but only count the subchat's own files
+    let currentStorageBytes = 0;
+    let currentFileCount = 0;
 
-    const currentStorageBytes = storage?.totalFileSizeBytes || 0;
-    const currentFileCount = storage?.fileCount || 0;
+    if (chat.chatType === "app_subchat" && parentChat) {
+      // For subchats: check against parent's total storage (includes all subchats)
+      const parentMetadata = parentChat.metadata || {
+        totalFiles: 0,
+        totalStorageBytes: 0,
+      };
+      currentStorageBytes = parentMetadata.totalStorageBytes || 0;
+      currentFileCount = parentMetadata.totalFiles || 0;
+    } else {
+      // For parent chats: use their own metadata (which should include subchat totals)
+      const targetMetadata = targetChat.metadata || {
+        totalFiles: 0,
+        totalStorageBytes: 0,
+      };
+      currentStorageBytes = targetMetadata.totalStorageBytes || 0;
+      currentFileCount = targetMetadata.totalFiles || 0;
+    }
 
     // Check limits
     const checks = {
@@ -257,7 +304,7 @@ export const checkUploadLimits = query({
   },
 });
 
-// Get storage usage statistics for a user
+// Get storage usage statistics for a user (aggregated from all their parent chats)
 export const getStorageStats = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -273,11 +320,32 @@ export const getStorageStats = query({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
-    // Get storage usage
-    const storage = await ctx.db
-      .query("user_file_storage")
+    // Get all user's chats (only parent chats, not subchats)
+    const userChats = await ctx.db
+      .query("chats")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("isArchived"), false),
+          q.neq(q.field("chatType"), "app_subchat"), // Exclude subchats
+        ),
+      )
+      .collect();
+
+    // Aggregate storage from all parent chats
+    let totalStorageBytes = 0;
+    let totalFileCount = 0;
+    const chatFileSizes: Record<string, number> = {};
+
+    for (const chat of userChats) {
+      const metadata = chat.metadata || { totalStorageBytes: 0, totalFiles: 0 };
+      totalStorageBytes += metadata.totalStorageBytes || 0;
+      totalFileCount += metadata.totalFiles || 0;
+
+      if (metadata.totalStorageBytes > 0) {
+        chatFileSizes[chat.chatId] = metadata.totalStorageBytes;
+      }
+    }
 
     // Determine tier limits
     let maxStorageMB = 250;
@@ -298,19 +366,19 @@ export const getStorageStats = query({
       }
     }
 
-    const currentStorageBytes = storage?.totalFileSizeBytes || 0;
     const currentStorageMB =
-      Math.round((currentStorageBytes / (1024 * 1024)) * 100) / 100;
+      Math.round((totalStorageBytes / (1024 * 1024)) * 100) / 100;
     const usagePercentage = Math.round((currentStorageMB / maxStorageMB) * 100);
 
     return {
       currentStorageMB,
       maxStorageMB,
-      currentStorageBytes,
-      fileCount: storage?.fileCount || 0,
+      currentStorageBytes: totalStorageBytes,
+      fileCount: totalFileCount,
       usagePercentage,
       tierName,
-      chatFileSizes: storage?.chatFileSizes || {},
+      chatFileSizes, // Now aggregated from chat metadata
+      totalChats: userChats.length,
     };
   },
 });

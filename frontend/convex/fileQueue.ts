@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { api } from "./_generated/api";
 
 // Create a new upload queue
 export const createUploadQueue = mutation({
@@ -76,78 +77,50 @@ export const addFilesToQueue = mutation({
       throw new Error("Queue not found or unauthorized");
     }
 
-    // Check file size limits for each file before adding to queue
-    // Get user's subscription to determine tier
-    const subscription = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    // Get current storage usage
-    const storage = await ctx.db
-      .query("user_file_storage")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    // Determine tier limits
-    let maxStorageMB = 250; // Free tier default
-    let maxFileSizeMB = 25;
-    let maxFiles = 50;
-    let tierName = "free";
-
-    if (subscription && subscription.status === "active") {
-      tierName = subscription.tier;
-      switch (subscription.tier) {
-        case "pro":
-          maxStorageMB = 2048; // 2GB
-          maxFileSizeMB = 50;
-          maxFiles = 200;
-          break;
-        case "scale":
-          maxStorageMB = 10240; // 10GB
-          maxFileSizeMB = 100;
-          maxFiles = 1000;
-          break;
-        case "enterprise":
-          maxStorageMB = 51200; // 50GB
-          maxFileSizeMB = 500;
-          maxFiles = 5000;
-          break;
-      }
-    }
-
-    const maxStorageBytes = maxStorageMB * 1024 * 1024;
-    const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
-    const currentStorageBytes = storage?.totalFileSizeBytes || 0;
-    const currentFileCount = storage?.fileCount || 0;
-
-    // Check limits for all files in batch
+    // Check file size limits using the new chat-metadata-based system
     const totalUploadSize = args.files.reduce(
       (sum, file) => sum + file.fileSize,
       0,
     );
 
+    // For each file, check if it would exceed limits
     for (const file of args.files) {
-      // Check individual file size
-      if (file.fileSize > maxFileSizeBytes) {
-        throw new Error(
-          `File "${file.fileName}" (${Math.round((file.fileSize / (1024 * 1024)) * 100) / 100}MB) exceeds the ${maxFileSizeMB}MB limit for ${tierName} tier`,
-        );
+      // Use the updated checkUploadLimits function that reads from chat metadata
+      const limitCheck = await ctx.runQuery(api.fileStorage.checkUploadLimits, {
+        fileSize: file.fileSize,
+        fileName: file.fileName,
+        chatId: args.chatId,
+      });
+
+      if (!limitCheck.canUpload) {
+        // Throw the first error we encounter
+        const firstError =
+          limitCheck.errors.fileSizeError ||
+          limitCheck.errors.storageError ||
+          limitCheck.errors.fileCountError ||
+          "Upload not allowed";
+        throw new Error(firstError);
       }
     }
 
-    // Check total storage limit
-    if (currentStorageBytes + totalUploadSize > maxStorageBytes) {
-      throw new Error(
-        `Upload would exceed storage limit of ${maxStorageMB}MB for ${tierName} tier`,
+    // Also check if the total batch would exceed limits
+    if (args.files.length > 1) {
+      const batchLimitCheck = await ctx.runQuery(
+        api.fileStorage.checkUploadLimits,
+        {
+          fileSize: totalUploadSize,
+          fileName: `Batch of ${args.files.length} files`,
+          chatId: args.chatId,
+        },
       );
-    }
 
-    // Check file count limit
-    if (currentFileCount + args.files.length > maxFiles) {
-      throw new Error(
-        `Upload would exceed file limit of ${maxFiles} files for ${tierName} tier`,
-      );
+      if (!batchLimitCheck.canUpload) {
+        const firstError =
+          batchLimitCheck.errors.storageError ||
+          batchLimitCheck.errors.fileCountError ||
+          "Batch upload would exceed limits";
+        throw new Error(firstError);
+      }
     }
 
     // Add files to queue
@@ -219,38 +192,82 @@ export const updateFileProgress = mutation({
 
       // If file was successfully completed, track its size
       if (args.status === "completed") {
-        // Get or create user storage record
-        let storage = await ctx.db
-          .query("user_file_storage")
-          .withIndex("by_user", (q) => q.eq("userId", userId))
-          .first();
+        // Get the chat to find its string chatId and check if it's a subchat
+        const chat = await ctx.db.get(file.chatId);
+        if (!chat) {
+          console.error(`Chat not found for file upload: ${file.chatId}`);
+          return file;
+        }
 
-        if (!storage) {
-          // Create new storage record
-          await ctx.db.insert("user_file_storage", {
-            userId,
-            totalFileSizeBytes: file.fileSize,
-            fileCount: 1,
-            lastUpdated: Date.now(),
-            chatFileSizes: { [file.chatId]: file.fileSize },
-          });
-        } else {
-          // Update existing storage record
-          const currentChatSize =
-            (storage.chatFileSizes as any)?.[file.chatId] || 0;
-          const newChatSize = currentChatSize + file.fileSize;
-          const newChatFileSizes = {
-            ...(storage.chatFileSizes || {}),
-            [file.chatId]: newChatSize,
+        const chatStringId = chat.chatId; // Use the string chatId field
+
+        // Only update storage metadata for non-subchat uploads
+        // Subchats will have their storage tracked by the backend analytics system
+        if (chat.chatType !== "app_subchat") {
+          console.log(
+            `📊 Regular chat detected - updating frontend storage tracking`,
+          );
+
+          // Update regular chat's storage metadata
+          const currentMetadata = chat.metadata || {
+            totalSubchats: 0,
+            activeUsers: 0,
+            totalUsers: 0,
+            totalFiles: 0,
+            totalStorageBytes: 0,
+            totalFileSize: 0, // Use totalFileSize instead of averageFileSize
+            totalQueries: 0,
+            queriesLast7Days: 0,
+            lastActivityAt: Date.now(),
+            userActivitySummary: [],
+            fileTypeStats: {
+              pdf: 0,
+              docx: 0,
+              txt: 0,
+              images: 0,
+              other: 0,
+            },
+            privacyMode: "privacy_first",
+            lastMetadataUpdate: Date.now(),
+            complianceFlags: {
+              gdprCompliant: true,
+              ccpaCompliant: true,
+              auditLogEnabled: false,
+            },
           };
 
-          await ctx.db.patch(storage._id, {
-            totalFileSizeBytes: storage.totalFileSizeBytes + file.fileSize,
-            fileCount: storage.fileCount + 1,
-            lastUpdated: Date.now(),
-            chatFileSizes: newChatFileSizes,
+          // Update the current chat's storage metadata
+          const updatedMetadata = {
+            ...currentMetadata,
+            totalFiles: currentMetadata.totalFiles + 1,
+            totalStorageBytes:
+              currentMetadata.totalStorageBytes + file.fileSize,
+            totalFileSize: (currentMetadata.totalFileSize || 0) + file.fileSize, // Track total file size
+            lastActivityAt: Date.now(),
+            lastMetadataUpdate: Date.now(),
+          };
+
+          await ctx.db.patch(chat._id, {
+            metadata: updatedMetadata,
           });
+
+          console.log(
+            `📊 Updated regular chat ${chatStringId} storage: +${file.fileSize} bytes (total: ${updatedMetadata.totalStorageBytes})`,
+          );
+        } else {
+          console.log(
+            `🎯 SUBCHAT DETECTED - Storage tracking handled by backend analytics system for ${chatStringId}`,
+          );
         }
+
+        // DEBUG: Log chat details for debugging
+        console.log(`🔍 Chat details for file upload:`, {
+          chatId: chatStringId,
+          chatType: chat.chatType,
+          parentChatId: chat.parentChatId,
+          parentAppId: chat.parentAppId,
+          isSubchat: chat.chatType === "app_subchat",
+        });
       }
 
       // Update queue counters
@@ -342,10 +359,12 @@ export const getUserQueues = query({
       .query("upload_queues")
       .withIndex("by_user", (q) => q.eq("userId", userId));
 
-    if (args.chatId) {
+    if (args.chatId !== undefined) {
+      const chatId = args.chatId;
       query = ctx.db
         .query("upload_queues")
-        .withIndex("by_chat", (q) => q.eq("chatId", args.chatId));
+        .withIndex("by_chat", (q) => q.eq("chatId", chatId))
+        .filter((q) => q.eq(q.field("userId"), userId));
     }
 
     const queues = await query.order("desc").take(50);

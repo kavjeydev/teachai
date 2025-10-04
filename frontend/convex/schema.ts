@@ -80,7 +80,8 @@ export default defineSchema({
     title: v.string(),
     userId: v.string(), // Still the end-user who owns the data
     chatType: v.optional(v.string()), // "user_direct" or "app_subchat"
-    parentAppId: v.optional(v.string()), // If this is a sub-chat under an app
+    parentAppId: v.optional(v.string()), // If this is a sub-chat under an app (keep for backward compatibility)
+    parentChatId: v.optional(v.string()), // Parent chat's string chatId (more efficient than parentAppId lookup)
     isArchived: v.boolean(),
 
     // Enhanced metadata for privacy-first analytics
@@ -94,7 +95,8 @@ export default defineSchema({
         // File and storage analytics
         totalFiles: v.number(), // Total files uploaded across all subchats
         totalStorageBytes: v.number(), // Total storage used in bytes
-        averageFileSize: v.number(), // Average file size in bytes
+        totalFileSize: v.optional(v.number()), // Total file size in bytes (optional for backward compatibility)
+        averageFileSize: v.optional(v.number()), // Deprecated - keeping for backward compatibility
 
         // API usage statistics
         totalQueries: v.number(), // Total API queries made
@@ -121,9 +123,9 @@ export default defineSchema({
           other: v.number(),
         }),
 
-        // Performance metrics
-        averageResponseTime: v.number(), // Average API response time in ms
-        successRate: v.number(), // Percentage of successful API calls
+        // Deprecated fields (temporary - for migration)
+        averageResponseTime: v.optional(v.number()),
+        successRate: v.optional(v.number()),
 
         // Compliance and audit info
         privacyMode: v.string(), // "privacy_first" or "legacy"

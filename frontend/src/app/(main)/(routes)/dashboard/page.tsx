@@ -14,6 +14,7 @@ import React from "react";
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { useSearchParams } from "next/navigation";
+import { usePendingUpgrade } from "@/hooks/use-pending-upgrade";
 
 export default function NoChat() {
   const { user } = useUser();
@@ -29,6 +30,9 @@ export default function NoChat() {
 
   const addChat = useMutation(api.chats.createChat);
   const chatLimits = useQuery(api.chats.getUserChatLimits);
+
+  // Check for pending upgrades after sign-in
+  usePendingUpgrade();
 
   // Function to get next tier for upgrade
   const getNextTier = (currentTier: string) => {

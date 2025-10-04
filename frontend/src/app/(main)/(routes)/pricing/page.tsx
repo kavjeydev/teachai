@@ -22,23 +22,97 @@ import {
 import Navbar from "@/app/components/navbar";
 import { PRICING_TIERS, formatTokens } from "@/lib/stripe";
 import { getStripe } from "@/lib/stripe";
+import { useAuthState } from "@/hooks/use-auth-state";
+import { useQuery } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
+import { toast } from "sonner";
+import { Toaster } from "sonner";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
 
 export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const authState = useAuthState();
+
+  // Only query subscription if user is signed in
+  const currentSubscription = useQuery(
+    api.subscriptions.getSubscriptionByUserId,
+    authState.isSignedIn && authState.user
+      ? { userId: authState.user.id }
+      : "skip",
+  );
 
   const handleUpgrade = async (priceId: string | null, tierName: string) => {
     if (!priceId) {
-      // Free tier or Enterprise - redirect to sign up or contact
+      // Handle Enterprise tier
       if (tierName === "Enterprise") {
         window.location.href =
           "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry";
-      } else {
-        window.location.href = "/sign-up";
+        return;
       }
+
+      // Handle Free tier
+      if (tierName === "Free") {
+        // Check if user is authenticated
+        if (!authState.isSignedIn || !authState.user) {
+          // Not signed in - this will be handled by the button click (Clerk SignUpButton)
+          return;
+        }
+
+        // User is signed in - check if they already have free tier
+        if (
+          currentSubscription &&
+          "tier" in currentSubscription &&
+          currentSubscription.tier === "free" &&
+          "status" in currentSubscription &&
+          currentSubscription.status === "active"
+        ) {
+          toast.info(
+            "You already have an active Free subscription! Redirecting to dashboard.",
+          );
+          window.location.href = "/dashboard";
+          return;
+        }
+
+        // User is signed in but doesn't have free tier - they're already signed up!
+        // Just redirect to dashboard since they can use the free tier
+        window.location.href = "/dashboard";
+        return;
+      }
+
       return;
     }
 
-    setIsLoading(priceId);
+    // Check if user is authenticated
+    if (!authState.isSignedIn || !authState.user) {
+      // Store the intended upgrade in localStorage for after sign-in
+      localStorage.setItem(
+        "pendingUpgrade",
+        JSON.stringify({
+          priceId,
+          tierName,
+          timestamp: Date.now(),
+        }),
+      );
+      // This will be handled by the Clerk SignUpButton - don't redirect
+      return;
+    }
+
+    // Check if user already has this subscription
+    if (
+      currentSubscription &&
+      "tier" in currentSubscription &&
+      currentSubscription.tier === tierName.toLowerCase() &&
+      "status" in currentSubscription &&
+      currentSubscription.status === "active"
+    ) {
+      toast.info(
+        `You already have an active ${tierName} subscription! Redirecting to dashboard.`,
+      );
+      window.location.href = "/dashboard";
+      return;
+    }
+
+    setIsLoading(tierName.toLowerCase());
 
     try {
       const response = await fetch("/api/stripe/checkout", {
@@ -49,16 +123,55 @@ export default function PricingPage() {
         body: JSON.stringify({ priceId, mode: "subscription" }),
       });
 
-      const { sessionId, url } = await response.json();
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log("API Error Response:", errorData);
+
+        // Handle specific case where user already has an active subscription
+        if (
+          errorData.error &&
+          errorData.error.includes("already have an active") &&
+          errorData.error.includes("subscription")
+        ) {
+          console.log("Showing toast for subscription error:", errorData.error);
+          toast.info(errorData.error);
+          return;
+        }
+
+        throw new Error(errorData.error || "Failed to create checkout session");
+      }
+
+      const { sessionId, url, error } = await response.json();
+
+      if (error) {
+        // Handle specific case where user already has an active subscription
+        if (
+          error.includes("already have an active") &&
+          error.includes("subscription")
+        ) {
+          console.log("Showing toast for response error:", error);
+          toast.info(error);
+          return;
+        }
+        throw new Error(error);
+      }
 
       if (url) {
         window.location.href = url;
-      } else {
+      } else if (sessionId) {
         const stripe = await getStripe();
-        await stripe?.redirectToCheckout({ sessionId });
+        if (!stripe) {
+          throw new Error("Stripe failed to load");
+        }
+        await stripe.redirectToCheckout({ sessionId });
+      } else {
+        throw new Error("No checkout session or URL received");
       }
     } catch (error) {
       console.error("Checkout failed:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      toast.error(`Failed to start checkout: ${errorMessage}`);
     } finally {
       setIsLoading(null);
     }
@@ -105,6 +218,7 @@ export default function PricingPage() {
     <NextUIProvider>
       <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
         <Navbar />
+        <Toaster position="bottom-right" richColors />
         <div className="pt-32 pb-20">
           <div className="max-w-7xl mx-auto px-6">
             {/* Header */}
@@ -171,31 +285,96 @@ export default function PricingPage() {
 
                       {/* CTA Button */}
                       <div className="mb-8">
-                        <button
-                          onClick={() =>
-                            handleUpgrade(tier.priceId || null, tier.name)
-                          }
-                          disabled={isLoading === tier.priceId}
-                          className={cn(
-                            "w-full py-2.5 px-4 rounded-lg font-medium transition-all duration-200",
-                            tier.popular
-                              ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700",
-                          )}
-                        >
-                          {isLoading === tier.priceId ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                              Loading...
-                            </div>
-                          ) : tier.id === "free" ? (
-                            "Get started"
-                          ) : tier.id === "enterprise" ? (
-                            "Contact sales"
-                          ) : (
-                            "Get started"
-                          )}
-                        </button>
+                        {/* Use Clerk SignUpButton for all tiers when user is not signed in, except Enterprise */}
+                        {!authState.isSignedIn && tier.id === "enterprise" ? (
+                          <button
+                            onClick={() => {
+                              window.location.href =
+                                "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry";
+                            }}
+                            className={cn(
+                              "w-full py-2.5 px-4 rounded-lg font-medium transition-all duration-200",
+                              "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700",
+                            )}
+                            type="button"
+                          >
+                            Contact sales
+                          </button>
+                        ) : !authState.isSignedIn ? (
+                          <SignUpButton mode="modal">
+                            <button
+                              className={cn(
+                                "w-full py-2.5 px-4 rounded-lg font-medium transition-all duration-200",
+                                tier.popular
+                                  ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100"
+                                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700",
+                              )}
+                              type="button"
+                            >
+                              {tier.id === "free"
+                                ? "Get started"
+                                : "Sign up to upgrade"}
+                            </button>
+                          </SignUpButton>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              handleUpgrade(tier.priceId || null, tier.name)
+                            }
+                            disabled={
+                              isLoading === tier.id ||
+                              (currentSubscription &&
+                                "tier" in currentSubscription &&
+                                currentSubscription.tier === tier.id &&
+                                "status" in currentSubscription &&
+                                currentSubscription.status === "active")
+                            }
+                            className={cn(
+                              "w-full py-2.5 px-4 rounded-lg font-medium transition-all duration-200",
+                              // Current plan styling
+                              currentSubscription &&
+                                "tier" in currentSubscription &&
+                                currentSubscription.tier === tier.id &&
+                                "status" in currentSubscription &&
+                                currentSubscription.status === "active"
+                                ? "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-300 dark:border-green-700 cursor-not-allowed"
+                                : tier.popular
+                                  ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100"
+                                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700",
+                            )}
+                          >
+                            {isLoading === tier.id ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                Loading...
+                              </div>
+                            ) : (
+                              (() => {
+                                // Check if user has this subscription
+                                const hasThisSubscription =
+                                  currentSubscription &&
+                                  "tier" in currentSubscription &&
+                                  currentSubscription.tier === tier.id &&
+                                  "status" in currentSubscription &&
+                                  currentSubscription.status === "active";
+
+                                if (hasThisSubscription) {
+                                  return "Current Plan";
+                                } else if (tier.id === "free") {
+                                  return authState.isSignedIn
+                                    ? "Downgrade to Free"
+                                    : "Get started";
+                                } else if (tier.id === "enterprise") {
+                                  return "Contact sales";
+                                } else {
+                                  return authState.isSignedIn
+                                    ? `Upgrade to ${tier.name}`
+                                    : "Sign up to upgrade";
+                                }
+                              })()
+                            )}
+                          </button>
+                        )}
                       </div>
 
                       {/* Features List */}

@@ -33,6 +33,7 @@ import {
   TrendingUp,
   CheckCircle,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getStripe } from "@/lib/stripe";
@@ -52,6 +53,7 @@ export function ApiSettingsSlideout({
 }: ApiSettingsSlideoutProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   // Get chat data and subscription info
   const currentChat = useQuery(api.chats.getChatById, { id: chatId });
@@ -66,7 +68,64 @@ export function ApiSettingsSlideout({
     chatId,
   });
 
-  // Remove demo data mutations - analytics should be based on real usage only
+  // Recalculate metrics mutation
+  const recalculateMetrics = useMutation(
+    api.chat_analytics.recalculateAnalyticsMetrics,
+  );
+
+  // Migration mutation
+  const migrateAllChatsMetadata = useMutation(
+    api.chat_analytics.migrateAllUserChatsMetadata,
+  );
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  // Fix chat setup mutation
+  const fixChatSetup = useMutation(api.chat_analytics.fixChatSetup);
+  const [isFixing, setIsFixing] = useState(false);
+
+  // Debug function
+  const debugChatStructure = useQuery(api.chat_analytics.debugChatStructure, {
+    chatId,
+  });
+
+  const handleRecalculateMetrics = async () => {
+    setIsRecalculating(true);
+    try {
+      await recalculateMetrics({ chatId });
+      toast.success("Analytics metrics recalculated successfully!");
+    } catch (error) {
+      console.error("Failed to recalculate metrics:", error);
+      toast.error("Failed to recalculate metrics");
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
+  const handleMigrateMetadata = async () => {
+    setIsMigrating(true);
+    try {
+      const result = await migrateAllChatsMetadata({});
+      toast.success(result.message);
+    } catch (error) {
+      console.error("Failed to migrate metadata:", error);
+      toast.error("Failed to migrate metadata schema");
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const handleFixChatSetup = async () => {
+    setIsFixing(true);
+    try {
+      const result = await fixChatSetup({ chatId });
+      toast.success(result.message);
+    } catch (error) {
+      console.error("Failed to fix chat setup:", error);
+      toast.error("Failed to fix chat setup");
+    } finally {
+      setIsFixing(false);
+    }
+  };
 
   const handleUpgrade = async (priceId: string, tierName: string) => {
     setIsUpgrading(true);
@@ -460,14 +519,52 @@ export function ApiSettingsSlideout({
                             </p>
                           </div>
                         </div>
+                        <div className="flex gap-1">
+                          <Button
+                            onClick={handleFixChatSetup}
+                            disabled={isFixing}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                          >
+                            <Settings
+                              className={`w-3 h-3 mr-1 ${isFixing ? "animate-spin" : ""}`}
+                            />
+                            {isFixing ? "Fixing..." : "Fix Setup"}
+                          </Button>
+                          <Button
+                            onClick={handleMigrateMetadata}
+                            disabled={isMigrating}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                          >
+                            <CheckCircle
+                              className={`w-3 h-3 mr-1 ${isMigrating ? "animate-spin" : ""}`}
+                            />
+                            {isMigrating ? "Migrating..." : "Fix Schema"}
+                          </Button>
+                          <Button
+                            onClick={handleRecalculateMetrics}
+                            disabled={isRecalculating}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                          >
+                            <RefreshCw
+                              className={`w-3 h-3 mr-1 ${isRecalculating ? "animate-spin" : ""}`}
+                            />
+                            {isRecalculating ? "Updating..." : "Refresh"}
+                          </Button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div>
                           <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                            {chatAnalytics?.userStats?.totalSubchats || 0}
+                            {chatAnalytics?.userStats?.totalUsers || 0}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            Private Sub-Chats
+                            Total Users
                           </div>
                         </div>
                         <div>
@@ -475,7 +572,7 @@ export function ApiSettingsSlideout({
                             {chatAnalytics?.fileStats?.totalFiles || 0}
                           </div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            Files (No Access)
+                            Files Uploaded
                           </div>
                         </div>
                         <div>
@@ -483,77 +580,72 @@ export function ApiSettingsSlideout({
                             {chatAnalytics?.apiStats?.totalQueries || 0}
                           </div>
                           <div className="text-xs text-amber-600 dark:text-amber-400">
-                            AI Queries Only
+                            API Queries
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Key Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="grid grid-cols-2 gap-3 mb-6">
                       <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mx-auto mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
                           <Users className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
-                        <div className="text-lg font-bold text-zinc-900 dark:text-white">
+                        <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                           {chatAnalytics?.userStats?.totalUsers || 0}
                         </div>
-                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                        <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                           Total Users
                         </div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                          {chatAnalytics?.userStats?.activeUsers || 0} active
-                          (7d)
+                          Sub-chats under parent
                         </div>
                       </div>
 
                       <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mx-auto mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
                           <Files className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
-                        <div className="text-lg font-bold text-zinc-900 dark:text-white">
+                        <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                           {chatAnalytics?.fileStats?.totalFiles || 0}
                         </div>
-                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                        <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                           Files Uploaded
                         </div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                          {chatAnalytics?.fileStats?.storageFormatted || "0 MB"}{" "}
-                          total
-                        </div>
-                      </div>
-
-                      <div className="text-center p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-                        <div className="w-8 h-8 rounded bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center mx-auto mb-2">
-                          <Activity className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div className="text-lg font-bold text-amber-700 dark:text-amber-300">
-                          {chatAnalytics?.apiStats?.successRate || 0}%
-                        </div>
-                        <div className="text-xs text-amber-600 dark:text-amber-400">
-                          Success Rate
-                        </div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                          {chatAnalytics?.apiStats?.totalQueries || 0} queries
+                          Parent + all sub-chats
                         </div>
                       </div>
 
                       <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                        <div className="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mx-auto mb-2">
-                          <TrendingUp className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                          <Activity className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                         </div>
-                        <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                          {chatAnalytics?.apiStats?.averageResponseTime || 0}ms
+                        <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                          {chatAnalytics?.apiStats?.totalQueries || 0}
                         </div>
-                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                          Avg Response
+                        <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          API Queries
                         </div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                          {Math.round(
-                            (chatAnalytics?.apiStats?.queriesLast7Days || 0) /
-                              7,
-                          )}
-                          /day avg
+                          {chatAnalytics?.apiStats?.queriesLast7Days || 0} last
+                          7d
+                        </div>
+                      </div>
+
+                      <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                          <HardDrive className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                        </div>
+                        <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                          {chatAnalytics?.fileStats?.storageFormatted || "0 B"}
+                        </div>
+                        <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          Storage Used
+                        </div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                          Private & isolated
                         </div>
                       </div>
                     </div>
@@ -578,10 +670,10 @@ export function ApiSettingsSlideout({
                                 ? Math.round((count / totalFiles) * 100)
                                 : 0;
                             const colors = {
-                              pdf: "bg-red-500",
-                              docx: "bg-blue-500",
-                              txt: "bg-green-500",
-                              images: "bg-amber-500",
+                              pdf: "bg-zinc-400",
+                              docx: "bg-zinc-500",
+                              txt: "bg-zinc-600",
+                              images: "bg-zinc-400",
                               other: "bg-zinc-500",
                             };
 
@@ -727,6 +819,111 @@ export function ApiSettingsSlideout({
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Debug Information */}
+                {debugChatStructure && (
+                  <Card className="border-zinc-200 dark:border-zinc-800">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
+                        🔍 Debug Info
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                        <div>
+                          <strong>Chat ID:</strong>{" "}
+                          {debugChatStructure.chatInfo.chatId}
+                        </div>
+                        <div>
+                          <strong>Chat Type:</strong>{" "}
+                          {debugChatStructure.chatInfo.chatType}
+                        </div>
+                        <div>
+                          <strong>Parent Files:</strong>{" "}
+                          {debugChatStructure.chatInfo.contextFiles}
+                        </div>
+                        <div>
+                          <strong>Direct Sub-chats:</strong>{" "}
+                          {debugChatStructure.subchats.directSubchats.length}
+                        </div>
+                        <div>
+                          <strong>User App Chats:</strong>{" "}
+                          {debugChatStructure.subchats.userAppChats}
+                        </div>
+                        <div>
+                          <strong>User App Auths:</strong>{" "}
+                          {debugChatStructure.subchats.userAppAuths}
+                        </div>
+                        <div>
+                          <strong>Metadata Files:</strong>{" "}
+                          {debugChatStructure.currentMetadata?.totalFiles || 0}
+                        </div>
+                        <div>
+                          <strong>Metadata Users:</strong>{" "}
+                          {debugChatStructure.currentMetadata?.totalUsers || 0}
+                        </div>
+                        <div>
+                          <strong>Potential Sub-chats:</strong>{" "}
+                          {debugChatStructure.subchats.potentialSubchats
+                            ?.length || 0}
+                        </div>
+                        <div>
+                          <strong>All Chats w/ Parent:</strong>{" "}
+                          {debugChatStructure.subchats.allChatsWithParent
+                            ?.length || 0}
+                        </div>
+                        {(debugChatStructure.subchats.directSubchats.length >
+                          0 ||
+                          debugChatStructure.subchats.potentialSubchats
+                            ?.length > 0) && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer font-medium">
+                              Sub-chat Details
+                            </summary>
+                            <div className="mt-1 space-y-1 ml-2">
+                              {debugChatStructure.subchats.directSubchats.map(
+                                (sc, idx) => (
+                                  <div key={idx} className="text-xs">
+                                    <div>
+                                      <strong>
+                                        Direct Sub-chat {idx + 1}:
+                                      </strong>{" "}
+                                      {sc.chatId}
+                                    </div>
+                                    <div className="ml-2">
+                                      Files: {sc.contextFiles}, User:{" "}
+                                      {sc.userId?.slice(-8)}
+                                    </div>
+                                  </div>
+                                ),
+                              )}
+                              {debugChatStructure.subchats.potentialSubchats?.map(
+                                (sc, idx) => (
+                                  <div
+                                    key={`potential-${idx}`}
+                                    className="text-xs"
+                                  >
+                                    <div>
+                                      <strong>
+                                        Potential Sub-chat {idx + 1}:
+                                      </strong>{" "}
+                                      {sc.chatId}
+                                    </div>
+                                    <div className="ml-2">
+                                      Type: {sc.chatType}, Files:{" "}
+                                      {sc.contextFiles}, Parent:{" "}
+                                      {sc.parentAppId}
+                                    </div>
+                                  </div>
+                                ),
+                              )}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             )}
           </>

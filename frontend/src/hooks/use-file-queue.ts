@@ -321,12 +321,81 @@ export function useFileQueue({
           return updated;
         });
 
+        // Check if this is a subchat by getting chat info first
+        let isSubchat = false;
+        try {
+          const chatInfo = await convex.query(api.chats.getChatById, {
+            id: chatId,
+          });
+          isSubchat = chatInfo?.chatType === "app_subchat";
+          console.log(
+            `🔍 Chat type detected: ${chatInfo?.chatType}, isSubchat: ${isSubchat}`,
+          );
+        } catch (error) {
+          console.warn(
+            "Failed to get chat info, assuming regular chat:",
+            error,
+          );
+        }
+
+        // For subchats, skip embeddings creation since V1 API handles it
+        if (isSubchat) {
+          console.log(
+            `🎯 SUBCHAT DETECTED - Skipping frontend embeddings creation for ${queuedFile.fileName}`,
+          );
+          console.log(
+            `📋 V1 API will handle Neo4j processing for subchat uploads`,
+          );
+
+          // Just mark as completed without calling create_nodes_and_embeddings
+          setActiveQueues((prev) => {
+            const updated = new Map(prev);
+            const queue = updated.get(queueId);
+            if (queue) {
+              const fileIndex = queue.files.findIndex(
+                (f) => f.id === queuedFile.id,
+              );
+              if (fileIndex !== -1) {
+                queue.files[fileIndex] = {
+                  ...queue.files[fileIndex],
+                  status: "uploaded",
+                  progress: 100,
+                  uploadedAt: Date.now(),
+                  fileId: `subchat_${queuedFile.fileName}_${Date.now()}`, // Generate a simple file ID
+                };
+                updated.set(queueId, { ...queue });
+              }
+            }
+            return updated;
+          });
+
+          // Call onFileProcessed callback
+          onFileProcessed?.(
+            `subchat_${queuedFile.fileName}_${Date.now()}`,
+            queuedFile.fileName,
+          );
+
+          return; // Skip the rest of the processing
+        }
+
         const embeddingsPayload = {
           pdf_text: extractData.text,
           pdf_id: uniqueFileId,
           chat_id: chatId as string,
           filename: queuedFile.fileName,
         };
+
+        console.log("📤 Uploading file with payload:", {
+          filename: queuedFile.fileName,
+          chat_id: chatId as string,
+          pdf_id: uniqueFileId,
+          text_length: extractData.text.length,
+        });
+
+        console.log(
+          "🌐 Calling backend endpoint:",
+          baseUrl + "create_nodes_and_embeddings",
+        );
 
         const nodesResponse = await fetch(
           baseUrl + "create_nodes_and_embeddings",
@@ -354,57 +423,7 @@ export function useFileQueue({
 
         const nodesData = await nodesResponse.json();
 
-        // Check if upload was skipped due to duplicate
-        if (
-          nodesData.status === "skipped" &&
-          nodesData.reason === "duplicate_filename"
-        ) {
-          console.log(
-            `⚠️ Upload skipped - duplicate filename: ${queuedFile.fileName}`,
-          );
-          console.log(
-            `🔄 Using existing document ID: ${nodesData.existing_id}`,
-          );
-
-          // Use the existing document ID instead of creating new one
-          const existingFileId = nodesData.existing_id;
-
-          // Update Convex with completion but don't call onFileProcessed to avoid duplicate context
-          if (queuedFile.convexFileId) {
-            await updateFileProgress({
-              fileId: queuedFile.convexFileId,
-              status: "completed",
-              progress: 100,
-            });
-          }
-
-          // Mark as completed but don't trigger onFileProcessed callback
-          setActiveQueues((prev) => {
-            const updated = new Map(prev);
-            const queue = updated.get(queueId);
-            if (queue) {
-              const fileIndex = queue.files.findIndex(
-                (f) => f.id === queuedFile.id,
-              );
-              if (fileIndex !== -1) {
-                queue.files[fileIndex] = {
-                  ...queue.files[fileIndex],
-                  status: "uploaded",
-                  progress: 100,
-                  fileId: existingFileId,
-                };
-                queue.completedFiles += 1;
-                updated.set(queueId, { ...queue });
-              }
-            }
-            return updated;
-          });
-
-          toast.info(
-            `${queuedFile.fileName} already exists in this chat - using existing version`,
-          );
-          return; // Exit early, don't process further
-        }
+        // Process the uploaded document normally
 
         // Update Convex database to persist the completion
         console.log("Attempting to update file progress:", {

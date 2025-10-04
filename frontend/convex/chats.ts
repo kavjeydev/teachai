@@ -75,8 +75,13 @@ export const createChat = mutation({
       );
     }
 
+    // Generate unique chat ID
+    const timestamp = Date.now().toString(36);
+    const randomPart = Math.random().toString(36).substr(2, 8);
+    const uniqueChatId = `chat_${timestamp}_${randomPart}`;
+
     const document = await ctx.db.insert("chats", {
-      chatId: "chat-" + 1,
+      chatId: uniqueChatId,
       title: args.title,
       userId: userId,
       isArchived: false,
@@ -121,17 +126,14 @@ export const uploadContext = mutation({
 
     let existingContext = existingDocument.context || [];
 
-    // Check if file already exists in context to prevent duplicates
-    // Check both by fileId and filename to handle different scenarios
+    // Check if exact same file already exists in context (by fileId only)
     const fileExists = existingContext.some(
-      (contextItem) =>
-        contextItem.fileId === args.context.fileId ||
-        contextItem.filename === args.context.filename,
+      (contextItem) => contextItem.fileId === args.context.fileId,
     );
 
     if (fileExists) {
       console.log(
-        `File ${args.context.filename} (ID: ${args.context.fileId}) already exists in context, skipping duplicate`,
+        `File with ID ${args.context.fileId} already exists in context, skipping exact duplicate`,
       );
       return existingDocument; // Return without adding duplicate
     }
@@ -204,38 +206,152 @@ export const eraseContext = mutation({
           .withIndex("by_user", (q) => q.eq("userId", userId))
           .first();
 
-        if (storage) {
-          // Calculate new values
-          const newTotalSize = Math.max(
-            0,
-            storage.totalFileSizeBytes - uploadedFile.fileSize,
-          );
-          const newFileCount = Math.max(0, storage.fileCount - 1);
+        // Update the current chat's storage metadata
+        const currentMetadata = existingChat.metadata || {
+          totalSubchats: 0,
+          activeUsers: 0,
+          totalUsers: 0,
+          totalFiles: 0,
+          totalStorageBytes: 0,
+          totalFileSize: 0, // Use totalFileSize instead of averageFileSize
+          totalQueries: 0,
+          queriesLast7Days: 0,
+          lastActivityAt: Date.now(),
+          userActivitySummary: [],
+          fileTypeStats: {
+            pdf: 0,
+            docx: 0,
+            txt: 0,
+            images: 0,
+            other: 0,
+          },
+          privacyMode: "privacy_first",
+          lastMetadataUpdate: Date.now(),
+          complianceFlags: {
+            gdprCompliant: true,
+            ccpaCompliant: true,
+            auditLogEnabled: false,
+          },
+        };
 
-          // Update chat-specific size tracking
-          const chatIdStr = args.id.toString();
-          const chatFileSizes = storage.chatFileSizes || {};
-          const currentChatSize = chatFileSizes[chatIdStr] || 0;
-          const newChatSize = Math.max(
-            0,
-            currentChatSize - uploadedFile.fileSize,
-          );
-          const newChatFileSizes = {
-            ...chatFileSizes,
-            [chatIdStr]: newChatSize,
-          };
+        // Update the current chat's storage metadata
+        const newTotalFiles = Math.max(0, currentMetadata.totalFiles - 1);
+        const newTotalStorageBytes = Math.max(
+          0,
+          currentMetadata.totalStorageBytes - uploadedFile.fileSize,
+        );
+        const newTotalFileSize = Math.max(
+          0,
+          (currentMetadata.totalFileSize || 0) - uploadedFile.fileSize,
+        );
 
-          // Remove chat entry if size is 0
-          if (newChatSize === 0) {
-            delete newChatFileSizes[chatIdStr];
+        const updatedMetadata = {
+          ...currentMetadata,
+          totalFiles: newTotalFiles,
+          totalStorageBytes: newTotalStorageBytes,
+          totalFileSize: newTotalFileSize, // Use totalFileSize instead of averageFileSize
+          lastActivityAt: Date.now(),
+          lastMetadataUpdate: Date.now(),
+        };
+
+        await ctx.db.patch(existingChat._id, {
+          metadata: updatedMetadata,
+        });
+
+        console.log(
+          `📊 Updated chat ${existingChat.chatId} storage: -${uploadedFile.fileSize} bytes (total: ${updatedMetadata.totalStorageBytes})`,
+        );
+
+        // If this is a subchat, ALSO update the parent chat's storage
+        if (
+          existingChat.chatType === "app_subchat" &&
+          (existingChat.parentChatId || existingChat.parentAppId)
+        ) {
+          // Use direct parentChatId if available, otherwise fallback to parentAppId lookup
+          let parentChat = null;
+
+          if (existingChat.parentChatId) {
+            // Direct reference using string chatId - much more efficient
+            parentChat = await ctx.db
+              .query("chats")
+              .filter((q) => q.eq(q.field("chatId"), existingChat.parentChatId))
+              .first();
+          } else if (existingChat.parentAppId) {
+            // Legacy fallback - lookup by app's parentChatId
+            const parentAppId = existingChat.parentAppId;
+            const app = await ctx.db
+              .query("apps")
+              .withIndex("by_appId", (q) => q.eq("appId", parentAppId))
+              .first();
+
+            if (app && app.parentChatId) {
+              parentChat = await ctx.db.get(app.parentChatId);
+            }
           }
 
-          await ctx.db.patch(storage._id, {
-            totalFileSizeBytes: newTotalSize,
-            fileCount: newFileCount,
-            lastUpdated: Date.now(),
-            chatFileSizes: newChatFileSizes,
-          });
+          if (parentChat) {
+            const parentMetadata = parentChat.metadata || {
+              totalSubchats: 0,
+              activeUsers: 0,
+              totalUsers: 0,
+              totalFiles: 0,
+              totalStorageBytes: 0,
+              totalFileSize: 0, // Use totalFileSize instead of averageFileSize
+              totalQueries: 0,
+              queriesLast7Days: 0,
+              lastActivityAt: Date.now(),
+              userActivitySummary: [],
+              fileTypeStats: {
+                pdf: 0,
+                docx: 0,
+                txt: 0,
+                images: 0,
+                other: 0,
+              },
+              privacyMode: "privacy_first",
+              lastMetadataUpdate: Date.now(),
+              complianceFlags: {
+                gdprCompliant: true,
+                ccpaCompliant: true,
+                auditLogEnabled: false,
+              },
+            };
+
+            // Update parent chat's storage metadata
+            const parentNewTotalFiles = Math.max(
+              0,
+              parentMetadata.totalFiles - 1,
+            );
+            const parentNewTotalStorageBytes = Math.max(
+              0,
+              parentMetadata.totalStorageBytes - uploadedFile.fileSize,
+            );
+            const parentNewTotalFileSize = Math.max(
+              0,
+              (parentMetadata.totalFileSize || 0) - uploadedFile.fileSize,
+            );
+
+            const updatedParentMetadata = {
+              ...parentMetadata,
+              totalFiles: parentNewTotalFiles,
+              totalStorageBytes: parentNewTotalStorageBytes,
+              totalFileSize: parentNewTotalFileSize, // Use totalFileSize instead of averageFileSize
+              lastActivityAt: Date.now(),
+              lastMetadataUpdate: Date.now(),
+            };
+
+            await ctx.db.patch(parentChat._id, {
+              metadata: updatedParentMetadata,
+            });
+
+            console.log(
+              `📊 Updated parent chat ${existingChat.parentAppId} storage: -${uploadedFile.fileSize} bytes (total: ${updatedParentMetadata.totalStorageBytes})`,
+            );
+          } else {
+            console.warn(
+              `Parent chat not found for subchat ${existingChat.chatId}`,
+            );
+          }
         }
       }
     }
@@ -556,37 +672,111 @@ export const remove = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
-    if (storage && storage.chatFileSizes) {
-      const chatIdStr = args.id.toString();
-      const chatFileSizes = storage.chatFileSizes || {};
-      const chatSize = chatFileSizes[chatIdStr] || 0;
+    // If this is a subchat being deleted, update parent chat's storage
+    if (
+      existingChat.chatType === "app_subchat" &&
+      (existingChat.parentChatId || existingChat.parentAppId)
+    ) {
+      // Use direct parentChatId if available, otherwise fallback to parentAppId lookup
+      let parentChat = null;
 
-      if (chatSize > 0) {
-        // Remove chat from tracking and update totals
-        const newChatFileSizes = { ...chatFileSizes };
-        delete newChatFileSizes[chatIdStr];
+      if (existingChat.parentChatId) {
+        // Direct reference using string chatId - much more efficient
+        parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), existingChat.parentChatId))
+          .first();
+      } else if (existingChat.parentAppId) {
+        // Legacy fallback - lookup by app's parentChatId
+        const parentAppId = existingChat.parentAppId!;
+        const app = await ctx.db
+          .query("apps")
+          .withIndex("by_appId", (q) => q.eq("appId", parentAppId))
+          .first();
 
-        // Get files count for this chat to update file count
-        const chatFiles = await ctx.db
-          .query("file_upload_queue")
-          .withIndex("by_chat", (q) => q.eq("chatId", args.id))
-          .filter((q) =>
-            q.and(
-              q.eq(q.field("userId"), userId),
-              q.eq(q.field("status"), "completed"),
-            ),
-          )
-          .collect();
+        if (app && app.parentChatId) {
+          parentChat = await ctx.db.get(app.parentChatId);
+        }
+      }
 
-        await ctx.db.patch(storage._id, {
-          totalFileSizeBytes: Math.max(
+      if (parentChat) {
+        const currentMetadata = existingChat.metadata || {
+          totalFiles: 0,
+          totalStorageBytes: 0,
+          totalFileSize: 0,
+        };
+
+        // If the subchat has storage, remove it from the parent
+        if (
+          currentMetadata.totalStorageBytes > 0 ||
+          currentMetadata.totalFiles > 0
+        ) {
+          const parentMetadata = parentChat.metadata || {
+            totalSubchats: 0,
+            activeUsers: 0,
+            totalUsers: 0,
+            totalFiles: 0,
+            totalStorageBytes: 0,
+            totalFileSize: 0, // Use totalFileSize instead of averageFileSize
+            totalQueries: 0,
+            queriesLast7Days: 0,
+            lastActivityAt: Date.now(),
+            userActivitySummary: [],
+            fileTypeStats: {
+              pdf: 0,
+              docx: 0,
+              txt: 0,
+              images: 0,
+              other: 0,
+            },
+            privacyMode: "privacy_first",
+            lastMetadataUpdate: Date.now(),
+            complianceFlags: {
+              gdprCompliant: true,
+              ccpaCompliant: true,
+              auditLogEnabled: false,
+            },
+          };
+
+          // Update parent chat's storage metadata
+          const parentNewTotalFiles = Math.max(
             0,
-            storage.totalFileSizeBytes - chatSize,
-          ),
-          fileCount: Math.max(0, storage.fileCount - chatFiles.length),
-          lastUpdated: Date.now(),
-          chatFileSizes: newChatFileSizes,
-        });
+            parentMetadata.totalFiles - currentMetadata.totalFiles,
+          );
+          const parentNewTotalStorageBytes = Math.max(
+            0,
+            parentMetadata.totalStorageBytes -
+              currentMetadata.totalStorageBytes,
+          );
+          const parentNewTotalFileSize = Math.max(
+            0,
+            (parentMetadata.totalFileSize || 0) -
+              (currentMetadata.totalFileSize || 0),
+          );
+
+          const updatedParentMetadata = {
+            ...parentMetadata,
+            totalFiles: parentNewTotalFiles,
+            totalStorageBytes: parentNewTotalStorageBytes,
+            totalFileSize: parentNewTotalFileSize, // Use totalFileSize instead of averageFileSize
+            totalSubchats: Math.max(0, parentMetadata.totalSubchats - 1), // Decrease subchat count
+            activeUsers: Math.max(0, parentMetadata.activeUsers - 1), // Decrease active users when subchat deleted
+            lastActivityAt: Date.now(),
+            lastMetadataUpdate: Date.now(),
+          };
+
+          await ctx.db.patch(parentChat._id, {
+            metadata: updatedParentMetadata,
+          });
+
+          console.log(
+            `📊 Updated parent chat ${existingChat.parentAppId} after subchat deletion: -${currentMetadata.totalStorageBytes} bytes, subchats: ${updatedParentMetadata.totalSubchats}`,
+          );
+        }
+      } else {
+        console.warn(
+          `Parent chat not found for subchat deletion: ${existingChat.chatId}`,
+        );
       }
     }
 
@@ -1252,6 +1442,717 @@ export const getPublishedSettings = query({
 });
 
 // Get user's chat limits and current usage
+// Get parent chat storage and subchat statistics
+export const getParentChatStats = query({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+    const chat = await ctx.db.get(args.chatId);
+
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== userId) {
+      throw new Error("Not authorized to view this chat's statistics.");
+    }
+
+    // Get all subchats for this parent
+    const subchats = await ctx.db
+      .query("chats")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("chatType"), "app_subchat"),
+          q.or(
+            q.eq(q.field("parentChatId"), chat.chatId), // Use parentChatId (string chatId)
+            q.eq(q.field("parentAppId"), chat.chatId), // Fallback to parentAppId for legacy subchats
+          ),
+          q.eq(q.field("isArchived"), false),
+        ),
+      )
+      .collect();
+
+    // Calculate aggregated storage from parent's own files + all subchat files
+    const parentMetadata = chat.metadata || {
+      totalFiles: 0,
+      totalStorageBytes: 0,
+      totalFileSize: 0,
+    };
+
+    // Aggregate storage from all subchats
+    let totalSubchatFiles = 0;
+    let totalSubchatStorage = 0;
+    let totalSubchatFileSize = 0;
+
+    for (const subchat of subchats) {
+      const subchatMeta = subchat.metadata || {
+        totalFiles: 0,
+        totalStorageBytes: 0,
+        totalFileSize: 0,
+      };
+      totalSubchatFiles += subchatMeta.totalFiles || 0;
+      totalSubchatStorage += subchatMeta.totalStorageBytes || 0;
+      totalSubchatFileSize += subchatMeta.totalFileSize || 0;
+    }
+
+    // Total = parent's own files + all subchat files
+    const aggregatedTotalFiles =
+      (parentMetadata.totalFiles || 0) + totalSubchatFiles;
+    const aggregatedTotalStorage =
+      (parentMetadata.totalStorageBytes || 0) + totalSubchatStorage;
+    const aggregatedTotalFileSize =
+      (parentMetadata.totalFileSize || 0) + totalSubchatFileSize;
+
+    return {
+      chatId: chat.chatId,
+      title: chat.title,
+      totalSubchats: subchats.length,
+      totalFiles: aggregatedTotalFiles,
+      totalStorageBytes: aggregatedTotalStorage,
+      totalStorageMB:
+        Math.round((aggregatedTotalStorage / (1024 * 1024)) * 100) / 100,
+      totalFileSize: aggregatedTotalFileSize,
+      activeUsers: subchats.length, // Active users = number of subchats
+      lastActivityAt: (parentMetadata as any).lastActivityAt || Date.now(),
+      // Include breakdown for debugging
+      breakdown: {
+        parentFiles: parentMetadata.totalFiles || 0,
+        parentStorage: parentMetadata.totalStorageBytes || 0,
+        subchatFiles: totalSubchatFiles,
+        subchatStorage: totalSubchatStorage,
+      },
+      // Get list of subchat IDs for this parent
+      subchatIds: subchats.map((sc) => sc.chatId),
+    };
+  },
+});
+
+// Migration function to initialize metadata for existing chats
+export const migrateExistingChatsMetadata = mutation({
+  args: {
+    batchSize: v.optional(v.number()), // Process chats in batches to avoid timeout
+    skipChatIds: v.optional(v.array(v.string())), // Skip chats that already have metadata
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+    const batchSize = args.batchSize || 10; // Process 10 chats at a time
+
+    // Get chats that need metadata initialization
+    let chatsToMigrate = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .take(batchSize);
+
+    // Filter out chats that already have complete metadata or are in skip list
+    chatsToMigrate = chatsToMigrate.filter((chat) => {
+      if (args.skipChatIds?.includes(chat.chatId)) return false;
+
+      // Check if metadata is missing or incomplete
+      const metadata = chat.metadata;
+      return (
+        !metadata ||
+        metadata.totalFiles === undefined ||
+        metadata.totalStorageBytes === undefined ||
+        metadata.totalSubchats === undefined
+      );
+    });
+
+    console.log(
+      `🔄 Migrating ${chatsToMigrate.length} chats for user ${userId}`,
+    );
+
+    const results = [];
+
+    for (const chat of chatsToMigrate) {
+      try {
+        // Calculate current storage from file upload queue
+        const completedFiles = await ctx.db
+          .query("file_upload_queue")
+          .withIndex("by_chat", (q) => q.eq("chatId", chat._id))
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("userId"), userId),
+              q.eq(q.field("status"), "completed"),
+            ),
+          )
+          .collect();
+
+        const totalFiles = completedFiles.length;
+        const totalStorageBytes = completedFiles.reduce(
+          (sum, file) => sum + file.fileSize,
+          0,
+        );
+        const totalFileSize = totalStorageBytes; // totalFileSize is same as totalStorageBytes
+
+        // Count subchats for this chat
+        const subchats = await ctx.db
+          .query("chats")
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("chatType"), "app_subchat"),
+              q.eq(q.field("parentAppId"), chat.chatId),
+              q.eq(q.field("isArchived"), false),
+            ),
+          )
+          .collect();
+
+        const totalSubchats = subchats.length;
+
+        // Create complete metadata structure
+        const defaultMetadata = {
+          totalSubchats,
+          activeUsers: 0,
+          totalUsers: 0,
+          totalFiles,
+          totalStorageBytes,
+          totalFileSize, // Use totalFileSize instead of averageFileSize
+          totalQueries: 0,
+          queriesLast7Days: 0,
+          lastActivityAt: Date.now(),
+          userActivitySummary: [],
+          fileTypeStats: {
+            pdf: 0,
+            docx: 0,
+            txt: 0,
+            images: 0,
+            other: 0,
+          },
+          privacyMode: "privacy_first",
+          lastMetadataUpdate: Date.now(),
+          complianceFlags: {
+            gdprCompliant: true,
+            ccpaCompliant: true,
+            auditLogEnabled: false,
+          },
+        };
+
+        // Update the chat with new metadata
+        await ctx.db.patch(chat._id, {
+          metadata: defaultMetadata,
+        });
+
+        results.push({
+          chatId: chat.chatId,
+          title: chat.title,
+          totalFiles,
+          totalStorageBytes,
+          totalStorageMB:
+            Math.round((totalStorageBytes / (1024 * 1024)) * 100) / 100,
+          totalSubchats,
+          migrated: true,
+        });
+
+        console.log(
+          `✅ Migrated chat ${chat.chatId}: ${totalFiles} files, ${Math.round(totalStorageBytes / (1024 * 1024))}MB, ${totalSubchats} subchats`,
+        );
+      } catch (error) {
+        console.error(`❌ Failed to migrate chat ${chat.chatId}:`, error);
+        results.push({
+          chatId: chat.chatId,
+          title: chat.title,
+          error: error instanceof Error ? error.message : String(error),
+          migrated: false,
+        });
+      }
+    }
+
+    return {
+      migratedCount: results.filter((r) => r.migrated).length,
+      failedCount: results.filter((r) => !r.migrated).length,
+      totalProcessed: results.length,
+      results,
+      hasMore: chatsToMigrate.length === batchSize, // If we got a full batch, there might be more
+    };
+  },
+});
+
+// Helper function to get migration status for a user
+export const getMigrationStatus = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Count total chats
+    const totalChats = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .collect();
+
+    // Count chats with complete metadata
+    const migratedChats = totalChats.filter((chat) => {
+      const metadata = chat.metadata;
+      return (
+        metadata &&
+        metadata.totalFiles !== undefined &&
+        metadata.totalStorageBytes !== undefined &&
+        metadata.totalSubchats !== undefined
+      );
+    });
+
+    // Count chats needing migration
+    const needsMigration = totalChats.filter((chat) => {
+      const metadata = chat.metadata;
+      return (
+        !metadata ||
+        metadata.totalFiles === undefined ||
+        metadata.totalStorageBytes === undefined ||
+        metadata.totalSubchats === undefined
+      );
+    });
+
+    return {
+      totalChats: totalChats.length,
+      migratedChats: migratedChats.length,
+      needsMigration: needsMigration.length,
+      migrationComplete: needsMigration.length === 0,
+      chatsNeedingMigration: needsMigration.map((chat) => ({
+        chatId: chat.chatId,
+        title: chat.title,
+        hasMetadata: !!chat.metadata,
+      })),
+    };
+  },
+});
+
+// Quick test function to verify storage tracking is working
+export const testStorageTracking = query({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    const metadata = chat.metadata || {
+      totalStorageBytes: 0,
+      totalFiles: 0,
+      totalFileSize: 0,
+      totalSubchats: 0,
+      activeUsers: 0,
+    };
+
+    // Also get subchats if this is a parent
+    const subchats = await ctx.db
+      .query("chats")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("chatType"), "app_subchat"),
+          q.or(
+            q.eq(q.field("parentChatId"), chat.chatId), // Use parentChatId (string chatId)
+            q.eq(q.field("parentAppId"), chat.chatId), // Fallback to parentAppId for legacy subchats
+          ),
+        ),
+      )
+      .collect();
+
+    const subchatStorage = subchats.map((subchat) => ({
+      chatId: subchat.chatId,
+      totalStorageBytes: subchat.metadata?.totalStorageBytes || 0,
+      totalFiles: subchat.metadata?.totalFiles || 0,
+      totalFileSize: subchat.metadata?.totalFileSize || 0,
+    }));
+
+    return {
+      chatId: chat.chatId,
+      title: chat.title,
+      chatType: chat.chatType,
+      parentAppId: chat.parentAppId,
+      storage: {
+        totalStorageBytes: metadata.totalStorageBytes || 0,
+        totalFiles: metadata.totalFiles || 0,
+        totalFileSize: metadata.totalFileSize || 0,
+        totalSubchats: metadata.totalSubchats || 0,
+        activeUsers: metadata.activeUsers || 0,
+      },
+      subchats: subchatStorage,
+      totalSubchatStorage: subchatStorage.reduce(
+        (sum, sc) => sum + sc.totalStorageBytes,
+        0,
+      ),
+    };
+  },
+});
+
+// Fix subchat counting for existing parent chats
+export const fixSubchatCounting = mutation({
+  args: {
+    chatId: v.optional(v.id("chats")), // Optional - if not provided, fix all user's chats
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+    let chatsToFix: any[] = [];
+
+    if (args.chatId) {
+      // Fix specific chat
+      const chat = await ctx.db.get(args.chatId);
+      if (chat && chat.userId === userId) {
+        chatsToFix = [chat];
+      }
+    } else {
+      // Fix all user's chats
+      chatsToFix = await ctx.db
+        .query("chats")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("isArchived"), false),
+            q.neq(q.field("chatType"), "app_subchat"), // Only fix parent chats
+          ),
+        )
+        .collect();
+    }
+
+    const results = [];
+
+    for (const chat of chatsToFix) {
+      try {
+        // Count actual subchats for this parent chat
+        const actualSubchats = await ctx.db
+          .query("chats")
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("chatType"), "app_subchat"),
+              q.or(
+                q.eq(q.field("parentChatId"), chat.chatId), // Use parentChatId (string chatId)
+                q.eq(q.field("parentAppId"), chat.chatId), // Fallback to parentAppId for legacy subchats
+              ),
+              q.eq(q.field("isArchived"), false),
+            ),
+          )
+          .collect();
+
+        const actualSubchatCount = actualSubchats.length;
+        const currentMetadata = chat.metadata || {};
+        const currentSubchatCount = currentMetadata.totalSubchats || 0;
+
+        if (currentSubchatCount !== actualSubchatCount) {
+          // Fix the count
+          const updatedMetadata = {
+            ...currentMetadata,
+            totalSubchats: actualSubchatCount,
+            activeUsers: actualSubchatCount, // Set activeUsers = number of subchats
+            lastMetadataUpdate: Date.now(),
+          };
+
+          await ctx.db.patch(chat._id, {
+            metadata: updatedMetadata,
+          });
+
+          console.log(
+            `🔧 Fixed subchat count for ${chat.chatId}: ${currentSubchatCount} → ${actualSubchatCount}`,
+          );
+
+          results.push({
+            chatId: chat.chatId,
+            title: chat.title,
+            oldCount: currentSubchatCount,
+            newCount: actualSubchatCount,
+            subchatIds: actualSubchats.map((sc) => sc.chatId),
+            fixed: true,
+          });
+        } else {
+          results.push({
+            chatId: chat.chatId,
+            title: chat.title,
+            count: currentSubchatCount,
+            subchatIds: actualSubchats.map((sc) => sc.chatId),
+            fixed: false,
+            reason: "Count was already correct",
+          });
+        }
+      } catch (error) {
+        console.error(
+          `❌ Failed to fix subchat count for ${chat.chatId}:`,
+          error,
+        );
+        results.push({
+          chatId: chat.chatId,
+          title: chat.title,
+          error: error instanceof Error ? error.message : String(error),
+          fixed: false,
+        });
+      }
+    }
+
+    return {
+      totalProcessed: results.length,
+      fixedCount: results.filter((r) => r.fixed).length,
+      results,
+    };
+  },
+});
+
+// Migrate existing subchats to add parentChatId field
+export const migrateSubchatsParentChatId = mutation({
+  args: {
+    batchSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const batchSize = args.batchSize || 20;
+
+    // Find subchats that have parentAppId but no parentChatId
+    const subchatsToMigrate = await ctx.db
+      .query("chats")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("chatType"), "app_subchat"),
+          q.eq(q.field("parentChatId"), undefined), // No parentChatId yet
+          q.neq(q.field("parentAppId"), undefined), // But has parentAppId
+        ),
+      )
+      .take(batchSize);
+
+    console.log(
+      `🔄 Migrating ${subchatsToMigrate.length} subchats to add parentChatId`,
+    );
+
+    const results = [];
+
+    for (const subchat of subchatsToMigrate) {
+      try {
+        if (!subchat.parentAppId) continue;
+
+        // Find the parent chat using parentAppId
+        const parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), subchat.parentAppId))
+          .first();
+
+        if (parentChat) {
+          // Add parentChatId to the subchat (using string chatId, not _id)
+          await ctx.db.patch(subchat._id, {
+            parentChatId: parentChat.chatId, // Store string chatId, not document _id
+          });
+
+          console.log(
+            `✅ Added parentChatId to subchat ${subchat.chatId} → parent ${parentChat.chatId}`,
+          );
+
+          results.push({
+            subchatId: subchat.chatId,
+            parentAppId: subchat.parentAppId,
+            parentChatId: parentChat.chatId,
+            parentDocId: parentChat._id,
+            migrated: true,
+          });
+        } else {
+          console.warn(
+            `⚠️ Parent chat not found for subchat ${subchat.chatId} with parentAppId ${subchat.parentAppId}`,
+          );
+
+          results.push({
+            subchatId: subchat.chatId,
+            parentAppId: subchat.parentAppId,
+            error: "Parent chat not found",
+            migrated: false,
+          });
+        }
+      } catch (error) {
+        console.error(`❌ Failed to migrate subchat ${subchat.chatId}:`, error);
+        results.push({
+          subchatId: subchat.chatId,
+          error: error instanceof Error ? error.message : String(error),
+          migrated: false,
+        });
+      }
+    }
+
+    return {
+      migratedCount: results.filter((r) => r.migrated).length,
+      failedCount: results.filter((r) => !r.migrated).length,
+      totalProcessed: results.length,
+      results,
+      hasMore: subchatsToMigrate.length === batchSize,
+    };
+  },
+});
+
+// Debug function to check subchat parent relationships
+export const debugSubchatRelationships = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Get all user's subchats
+    const subchats = await ctx.db
+      .query("chats")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("chatType"), "app_subchat"),
+          q.eq(q.field("userId"), userId),
+        ),
+      )
+      .collect();
+
+    const results = [];
+
+    for (const subchat of subchats) {
+      let parentChat = null;
+      let app = null;
+      let lookupMethod = "none";
+
+      // Try to find parent chat
+      if (subchat.parentChatId) {
+        parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), subchat.parentChatId))
+          .first();
+        lookupMethod = "parentChatId";
+      } else if (subchat.parentAppId) {
+        // Look up app first
+        const parentAppId = subchat.parentAppId!;
+        app = await ctx.db
+          .query("apps")
+          .withIndex("by_appId", (q) => q.eq("appId", parentAppId))
+          .first();
+
+        if (app && app.parentChatId) {
+          parentChat = await ctx.db.get(app.parentChatId);
+          lookupMethod = "parentAppId → app.parentChatId";
+        } else if (app) {
+          lookupMethod = "parentAppId found app, but app has no parentChatId";
+        } else {
+          lookupMethod = "parentAppId - app not found";
+        }
+      }
+
+      results.push({
+        subchatId: subchat.chatId,
+        subchatTitle: subchat.title,
+        parentAppId: subchat.parentAppId,
+        parentChatId: subchat.parentChatId,
+        lookupMethod,
+        appFound: !!app,
+        appName: app?.name,
+        appParentChatId: app?.parentChatId,
+        parentChatFound: !!parentChat,
+        parentChatId_resolved: parentChat?.chatId,
+        parentChatTitle: parentChat?.title,
+        subchatMetadata: {
+          totalFiles: subchat.metadata?.totalFiles || 0,
+          totalStorageBytes: subchat.metadata?.totalStorageBytes || 0,
+        },
+        parentMetadata: {
+          totalFiles: parentChat?.metadata?.totalFiles || 0,
+          totalStorageBytes: parentChat?.metadata?.totalStorageBytes || 0,
+          totalSubchats: parentChat?.metadata?.totalSubchats || 0,
+        },
+      });
+    }
+
+    return {
+      totalSubchats: subchats.length,
+      results,
+    };
+  },
+});
+
+// Simple function to check a specific chat's details
+export const inspectChat = query({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    // If it's a subchat, try to find its parent
+    let parentChat = null;
+    let parentLookupMethod = "none";
+
+    if (chat.chatType === "app_subchat") {
+      if (chat.parentChatId) {
+        parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), chat.parentChatId))
+          .first();
+        parentLookupMethod = "parentChatId (string)";
+      } else if (chat.parentAppId) {
+        const app = await ctx.db
+          .query("apps")
+          .withIndex("by_appId", (q) => q.eq("appId", chat.parentAppId!))
+          .first();
+
+        if (app && app.parentChatId) {
+          parentChat = await ctx.db.get(app.parentChatId);
+          parentLookupMethod = "parentAppId → app.parentChatId";
+        }
+      }
+    }
+
+    return {
+      chat: {
+        _id: chat._id,
+        chatId: chat.chatId,
+        title: chat.title,
+        chatType: chat.chatType,
+        parentAppId: chat.parentAppId,
+        parentChatId: chat.parentChatId,
+        userId: chat.userId,
+        metadata: chat.metadata,
+      },
+      parentInfo: {
+        found: !!parentChat,
+        lookupMethod: parentLookupMethod,
+        parentChat: parentChat
+          ? {
+              _id: parentChat._id,
+              chatId: parentChat.chatId,
+              title: parentChat.title,
+              metadata: parentChat.metadata,
+            }
+          : null,
+      },
+    };
+  },
+});
+
 export const getUserChatLimits = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();

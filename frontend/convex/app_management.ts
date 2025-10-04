@@ -185,6 +185,19 @@ export const createUserSubChat = mutation({
       };
     }
 
+    // Get the parent chat from the app's parentChatId
+    let parentChat = null;
+    if (app.parentChatId) {
+      parentChat = await ctx.db.get(app.parentChatId);
+    }
+
+    // If no parent chat is set for this app, that's okay - some apps might not have parent chats
+    if (!parentChat) {
+      console.log(
+        `ℹ️ App ${args.appId} has no parent chat - subchat will be created without parent metadata updates`,
+      );
+    }
+
     // Create new private chat for this user
     const chatStringId = `subchat_${args.appId}_${args.endUserId}_${Date.now()}`;
 
@@ -193,7 +206,8 @@ export const createUserSubChat = mutation({
       title: `${app.name} - Private Chat`,
       userId: args.endUserId, // The end-user owns this data
       chatType: "app_subchat",
-      parentAppId: args.appId,
+      parentAppId: args.appId, // Keep for backward compatibility
+      parentChatId: parentChat?.chatId, // Parent chat's string chatId (only if parent exists)
       isArchived: false,
       content: [],
       apiInfo: {
@@ -203,6 +217,51 @@ export const createUserSubChat = mutation({
       apiKeyDisabled: false,
       visibility: "private",
     });
+
+    if (parentChat) {
+      const currentMetadata = parentChat.metadata || {
+        totalSubchats: 0,
+        activeUsers: 0,
+        totalUsers: 0,
+        totalFiles: 0,
+        totalStorageBytes: 0,
+        averageFileSize: 0,
+        totalQueries: 0,
+        queriesLast7Days: 0,
+        lastActivityAt: Date.now(),
+        userActivitySummary: [],
+        fileTypeStats: {
+          pdf: 0,
+          docx: 0,
+          txt: 0,
+          images: 0,
+          other: 0,
+        },
+        privacyMode: "privacy_first",
+        lastMetadataUpdate: Date.now(),
+        complianceFlags: {
+          gdprCompliant: true,
+          ccpaCompliant: true,
+          auditLogEnabled: false,
+        },
+      };
+
+      const updatedMetadata = {
+        ...currentMetadata,
+        totalSubchats: currentMetadata.totalSubchats + 1,
+        activeUsers: currentMetadata.activeUsers + 1, // Increment active users when subchat created
+        lastActivityAt: Date.now(),
+        lastMetadataUpdate: Date.now(),
+      };
+
+      await ctx.db.patch(parentChat._id, {
+        metadata: updatedMetadata,
+      });
+
+      console.log(
+        `📊 Updated parent chat ${args.appId} subchat count: ${updatedMetadata.totalSubchats}`,
+      );
+    }
 
     // Create user-app-chat relationship
     const defaultCapabilities = args.capabilities || ["ask", "upload"];

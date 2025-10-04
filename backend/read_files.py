@@ -23,6 +23,7 @@ import httpx
 import time
 import logging
 import hashlib
+from collections import defaultdict
 from sanitization import (
     sanitize_user_message, sanitize_chat_id, sanitize_api_key,
     sanitize_text, sanitize_with_length, SanitizedUserMessage,
@@ -123,6 +124,49 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# In-memory cache to prevent duplicate processing within a short time window
+_upload_cache = {}
+_cache_cleanup_time = 0
+CACHE_DURATION = 30  # seconds
+
+def _cleanup_upload_cache():
+    """Clean up old entries from the upload cache"""
+    global _cache_cleanup_time
+    current_time = time.time()
+
+    # Only cleanup every 60 seconds to avoid overhead
+    if current_time - _cache_cleanup_time < 60:
+        return
+
+    _cache_cleanup_time = current_time
+    expired_keys = [
+        key for key, timestamp in _upload_cache.items()
+        if current_time - timestamp > CACHE_DURATION
+    ]
+
+    for key in expired_keys:
+        del _upload_cache[key]
+
+    if expired_keys:
+        logger.info(f"🧹 Cleaned up {len(expired_keys)} expired upload cache entries")
+
+def _check_recent_upload(chat_id: str, filename: str, file_content_hash: str) -> bool:
+    """Check if this file was recently uploaded to prevent duplicates"""
+    _cleanup_upload_cache()
+
+    cache_key = f"{chat_id}:{filename}:{file_content_hash}"
+    current_time = time.time()
+
+    if cache_key in _upload_cache:
+        time_diff = current_time - _upload_cache[cache_key]
+        if time_diff < CACHE_DURATION:
+            logger.info(f"🚫 Duplicate upload detected for {filename} in chat {chat_id[:20]}... (within {time_diff:.1f}s)")
+            return True
+
+    # Mark this upload in cache
+    _upload_cache[cache_key] = current_time
+    return False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -677,7 +721,7 @@ async def track_file_upload(app_id: str, end_user_id: str, filename: str, file_s
             "endUserId": end_user_id,
             "filename": filename,
             "fileSize": file_size,
-            "chatId": chat_id
+            "chatId": chat_id  # This should be the Convex ID, not the string ID
         }
 
         # Add file hash if provided (for deduplication)
@@ -697,6 +741,76 @@ async def track_file_upload(app_id: str, end_user_id: str, filename: str, file_s
         logger.info(f"📊 Analytics: File uploaded | App: {app_id} | Size: {format_bytes(file_size)} | Type: {get_file_type(filename)}")
     except Exception as e:
         logger.error(f"Failed to track file upload: {e}")
+
+async def track_upload_analytics(chat_id: str, filename: str, pdf_text: str, actual_file_size: int = None):
+    """Track upload analytics by extracting info from chat_id and determining if it's a sub-chat"""
+    try:
+        logger.info(f"🔍 Tracking analytics for chat_id: {chat_id}, filename: {filename}")
+
+        # Use actual file size if provided, otherwise estimate from text length
+        if actual_file_size is not None:
+            file_size = actual_file_size
+            logger.info(f"📏 Using actual file size: {format_bytes(file_size)}")
+        else:
+            file_size = len(pdf_text.encode('utf-8'))
+            logger.info(f"📏 Estimated file size from text: {format_bytes(file_size)}")
+
+        # Check if this is a sub-chat by querying Convex
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        logger.info(f"🌐 Querying Convex at: {convex_url}")
+
+        async with httpx.AsyncClient() as client:
+            # Get chat details to see if it's a sub-chat (using chatId string field)
+            chat_response = await client.post(
+                f"{convex_url}/api/run/backend_credits/getChatWithApp",
+                json={
+                    "args": {"chatId": chat_id},
+                    "format": "json"
+                },
+                timeout=10.0
+            )
+
+            logger.info(f"📡 Convex response status: {chat_response.status_code}")
+
+            if chat_response.status_code == 200:
+                chat_data = chat_response.json()
+                chat = chat_data.get("value")
+                logger.info(f"💬 Chat data retrieved: chatType={chat.get('chatType') if chat else None}, parentAppId={chat.get('parentAppId') if chat else None}")
+
+                if chat and chat.get("chatType") == "app_subchat" and chat.get("parentAppId"):
+                    # This is a sub-chat! Extract the necessary info
+                    app_id = chat.get("parentAppId")
+                    end_user_id = chat.get("userId")  # The end user who owns the sub-chat
+                    convex_chat_id = chat.get("_id")  # Get the Convex document ID
+                    logger.info(f"🎯 Sub-chat detected! app_id={app_id}, end_user_id={end_user_id[:8] if end_user_id else None}..., convex_id={convex_chat_id}")
+
+                    if app_id and end_user_id:
+                        # Call the existing tracking function with string chat ID
+                        await track_file_upload(
+                            app_id=app_id,
+                            end_user_id=end_user_id,
+                            filename=filename,
+                            file_size=file_size,
+                            chat_id=chat_id  # Use string chat ID (Convex function now handles both)
+                        )
+                        logger.info(f"✅ Sub-chat upload tracked: {filename} in {chat_id}")
+
+                        # Note: trackFileUpload already updates parent chat storage, no need for recalculation
+
+                    else:
+                        logger.warning(f"❌ Sub-chat missing required fields - app_id: {app_id}, user_id: {end_user_id}")
+                else:
+                    # Not a sub-chat, no tracking needed for regular chats
+                    logger.info(f"ℹ️  Regular chat upload (no tracking needed): {chat_id}")
+            else:
+                logger.warning(f"❌ Failed to get chat details for analytics tracking: {chat_response.status_code}")
+                if chat_response.status_code != 200:
+                    response_text = await chat_response.text()
+                    logger.warning(f"Response body: {response_text[:500]}")
+
+    except Exception as e:
+        logger.error(f"Failed to track upload analytics for {chat_id}: {e}")
+        # Don't re-raise - this should not break the upload process
 
 async def track_api_query(app_id: str, end_user_id: str, response_time: float, success: bool):
     """Track API query for performance analytics"""
@@ -2040,6 +2154,9 @@ async def v1_user_file_upload(
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     try:
+        # Get actual file size
+        file_size = read_files.get_file_size(file)
+
         # Create/get permanent subchat for this user
         subchat = await get_or_create_user_subchat(
             user_identity["app_id"],
@@ -2060,6 +2177,17 @@ async def v1_user_file_upload(
         if not sanitized_text and text:
             raise HTTPException(status_code=400, detail="File contains potentially malicious content")
 
+        # Check for recent duplicate uploads using file content hash
+        file_content_hash = hashlib.md5(sanitized_text.encode()).hexdigest()[:16]
+        if _check_recent_upload(subchat["chatStringId"], sanitized_filename, file_content_hash):
+            logger.info(f"🔄 Duplicate upload request detected for {sanitized_filename} - returning success without processing")
+            return {
+                "success": True,
+                "filename": sanitized_filename,
+                "message": "File already processed recently",
+                "duplicate_prevented": True
+            }
+
         # Create embeddings in the user's permanent subchat
         pdf_id = f"v1_{user_identity['user_id']}_{sanitized_filename}_{int(time.time())}"
 
@@ -2070,17 +2198,8 @@ async def v1_user_file_upload(
             filename=sanitized_filename
         )
 
-        # Process the file
-        await create_nodes_and_embeddings(create_payload)
-
-        # Track the upload
-        await track_file_upload(
-            user_identity["app_id"],
-            user_identity["external_user_id"],
-            sanitized_filename,
-            file_size,
-            subchat["chatStringId"]
-        )
+        # Process the file with analytics (analytics will be tracked after successful processing)
+        await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
 
         logger.info(f"V1 File uploaded for user {user_identity['user_id']} to subchat {subchat['chatStringId']}")
 
@@ -2535,8 +2654,8 @@ async def api_health_check():
 # Existing Internal Endpoints (Keep for dashboard functionality)
 # ==============================================================================
 
-@app.post("/create_nodes_and_embeddings")
-async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
+async def create_nodes_and_embeddings_with_analytics(payload: CreateNodesAndEmbeddingsRequest, actual_file_size: int = None):
+    """Create nodes and embeddings with proper analytics tracking using actual file size"""
     # Sanitize all inputs
     pdf_text = sanitize_with_xss_detection(
         payload.pdf_text,
@@ -2550,27 +2669,62 @@ async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
 
     if not pdf_text or not pdf_id or not chat_id or not filename:
         raise HTTPException(status_code=400, detail="Invalid input data or potentially malicious content detected")
+
+    try:
+        # Call the main processing function
+        result = await create_nodes_and_embeddings_internal(pdf_text, pdf_id, chat_id, filename)
+
+        # Track analytics with actual file size if available
+        logger.info(f"🔍 Starting analytics tracking for upload: {filename} in chat {chat_id}")
+        try:
+            await track_upload_analytics(chat_id, filename, pdf_text, actual_file_size)
+            logger.info(f"✅ Analytics tracking completed for: {filename}")
+        except Exception as e:
+            # Don't fail the upload if analytics tracking fails
+            logger.error(f"❌ Failed to track upload analytics: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        return result
+    except Exception as e:
+        print(f"Error in create_nodes_and_embeddings_with_analytics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/create_nodes_and_embeddings")
+async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
+    """Public endpoint - calls internal function without file size"""
+    return await create_nodes_and_embeddings_with_analytics(payload, None)
+
+async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_id: str, filename: str):
+    # Sanitize all inputs
+    pdf_text = sanitize_with_xss_detection(
+        pdf_text,
+        allow_html=False,
+        max_length=1000000,  # Allow large text content
+        context="pdf_text"
+    )
+    pdf_id = sanitize_text(pdf_id)
+    chat_id = sanitize_chat_id(chat_id)
+    filename = sanitize_filename(filename)
+
+    if not pdf_text or not pdf_id or not chat_id or not filename:
+        raise HTTPException(status_code=400, detail="Invalid input data or potentially malicious content detected")
     try:
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
-                # Check if document with same filename already exists in this chat
+                # Check if document with this exact pdf_id already exists to prevent duplicate processing
+                # This prevents the same request from being processed twice
                 check_query = """
-                MATCH (d:Document)
-                WHERE d.chatId = $chat_id AND d.filename = $filename
-                RETURN d.id as existing_id, d.filename as existing_filename
+                MATCH (d:Document {id: $pdf_id})
+                OPTIONAL MATCH (d)-[:HAS_CHUNK]->(c:Chunk)
+                RETURN d, count(c) as chunk_count
                 """
-                existing_result = session.run(check_query, chat_id=chat_id, filename=filename)
-                existing_doc = existing_result.single()
-
-                if existing_doc:
-                    print(f"⚠️ Document with filename '{filename}' already exists in chat {chat_id} with ID: {existing_doc['existing_id']}")
-                    print(f"🚫 Skipping duplicate upload to prevent Neo4j duplicates")
-                    return {
-                        "status": "skipped",
-                        "reason": "duplicate_filename",
-                        "existing_id": existing_doc['existing_id'],
-                        "message": f"Document '{filename}' already exists in this chat"
-                    }
+                check_result = session.run(check_query, pdf_id=pdf_id)
+                existing_doc = check_result.single()
+                if existing_doc and existing_doc['d'] and existing_doc['chunk_count'] > 0:
+                    logger.info(f"⚠️  Document {pdf_id} already exists with {existing_doc['chunk_count']} chunks - skipping duplicate processing")
+                    print(f"⚠️  Document {pdf_id} already exists with {existing_doc['chunk_count']} chunks - skipping duplicate processing")
+                    return {"status": "success", "message": "Document already processed", "duplicate_skipped": True}
 
                 print(f"✅ Creating new document: {pdf_id} ({filename}) in chat {chat_id}")
 
@@ -4956,17 +5110,8 @@ async def privacy_upload_process(
             filename=sanitized_filename
         )
 
-        # Call the existing embeddings creation function
-        await create_nodes_and_embeddings(create_payload)
-
-        # Track the upload for analytics
-        await track_file_upload(
-            sanitized_app_id,
-            sanitized_user_id,
-            sanitized_filename,
-            file_size,
-            sanitized_chat_id
-        )
+        # Call the existing embeddings creation function with actual file size for analytics
+        await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
 
         return {
             "success": True,
