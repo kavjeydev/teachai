@@ -366,6 +366,41 @@ async def get_app_config_from_convex(app_id: str) -> Optional[V1AppConfig]:
 
     return None
 
+async def get_parent_chat_id_from_app(app_id: str) -> Optional[str]:
+    """Get parent chat ID from app ID"""
+    try:
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{convex_url}/api/run/app_management/getAppWithSettings",
+                json={
+                    "args": {"appId": app_id},
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                app_data = result.get("value")
+
+                if app_data:
+                    # The parentChatId is already the chat string ID we need for Neo4j
+                    parent_chat_id = app_data.get("parentChatId")
+                    logger.info(f"🔍 Parent chat ID from app data: {parent_chat_id}")
+                    if parent_chat_id:
+                        logger.info(f"🔍 Found parent chat: {parent_chat_id} for app {app_id}")
+                        return parent_chat_id
+                    else:
+                        logger.info(f"ℹ️ App {app_id} has no parentChatId configured")
+                else:
+                    logger.warning(f"⚠️ No app data returned for app {app_id}")
+    except Exception as e:
+        logger.error(f"Failed to get parent chat ID from app {app_id}: {e}")
+
+    return None
+
 async def authenticate_v1_user(authorization: str, app_id: str) -> Dict[str, str]:
     """Main V1 authentication: validate OAuth ID token and derive user identity"""
     if not authorization or not authorization.startswith("Bearer "):
@@ -2703,6 +2738,27 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
         # Generate question embedding
         question_embedding = get_embedding(question)
 
+        # Check if this is a subchat and get parent chat ID for file inheritance
+        parent_chat_id = None
+        if chat_id.startswith("subchat_"):
+            # Extract app_id from subchat format: subchat_{app_id}_{user_id}_{timestamp}
+            # The app_id format is: app_xxxxx_xxxxx, so we need to find where "user_" starts
+            parts = chat_id.split("_")
+
+            # Find the index where "user" appears to determine app_id boundary
+            user_index = -1
+            for i, part in enumerate(parts):
+                if part == "user" and i > 1:  # "user" should not be the first or second part
+                    user_index = i
+                    break
+
+            if user_index > 1:
+                # Reconstruct app_id from parts[1] to parts[user_index-1]
+                app_id = "_".join(parts[1:user_index])
+                parent_chat_id = await get_parent_chat_id_from_app(app_id)
+                if parent_chat_id:
+                    logger.info(f"🔗 Subchat {chat_id} inheriting ALL files from parent chat {parent_chat_id}")
+
         # Fetch chunks from Neo4j, filtering by published context files if provided
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
@@ -2711,20 +2767,38 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
                     published_file_ids = [file["fileId"] for file in published_context_files]
                     file_ids_str = "', '".join(published_file_ids)
 
-                    query = f"""
-                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                    WHERE c.chatId = '{chat_id}' AND d.fileId IN ['{file_ids_str}']
-                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
-                    """
-                    logger.info(f"📋 Using published files only: {len(published_context_files)} files")
+                    if parent_chat_id:
+                        # Include chunks from both subchat and parent chat
+                        query = f"""
+                        MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                        WHERE (c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}') AND d.fileId IN ['{file_ids_str}']
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        """
+                        logger.info(f"📋 Using published files from subchat and parent: {len(published_context_files)} files")
+                    else:
+                        query = f"""
+                        MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                        WHERE c.chatId = '{chat_id}' AND d.fileId IN ['{file_ids_str}']
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        """
+                        logger.info(f"📋 Using published files only: {len(published_context_files)} files")
                 else:
                     # Use all files (fallback for backwards compatibility)
-                    query = f"""
-                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                    WHERE c.chatId = '{chat_id}'
-                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
-                    """
-                    logger.info(f"📋 Using all available files (no published context)")
+                    if parent_chat_id:
+                        # Include chunks from both subchat and parent chat
+                        query = f"""
+                        MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                        WHERE c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}'
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        """
+                        logger.info(f"📋 Using ALL files from subchat and parent chat {parent_chat_id}")
+                    else:
+                        query = f"""
+                        MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                        WHERE c.chatId = '{chat_id}'
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        """
+                        logger.info(f"📋 Using all available subchat files (no parent chat)")
 
                 results = session.run(query)
 
@@ -2833,6 +2907,7 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
 @app.post("/answer_question", response_model=AnswerWithContext)
 async def answer_question(payload: QuestionRequest):
     try:
+        logger.info(f"🎯 answer_question called for chat: {payload.chat_id}")
         # Enhanced sanitization with XSS detection
         sanitized_question = sanitize_with_xss_detection(
             payload.question,
@@ -2891,15 +2966,56 @@ async def answer_question(payload: QuestionRequest):
         # Generate question embedding
         question_embedding = get_embedding(question)
 
+        # Check if this is a subchat and get parent chat ID for file inheritance
+        parent_chat_id = None
+        logger.info(f"🔍 Checking if {chat_id} is a subchat...")
+        if chat_id.startswith("subchat_"):
+            # Extract app_id from subchat format: subchat_{app_id}_{user_id}_{timestamp}
+            # The app_id format is: app_xxxxx_xxxxx, so we need to find where "user_" starts
+            parts = chat_id.split("_")
+            logger.info(f"🔍 Subchat detected: {chat_id}, parts: {parts}")
+
+            # Find the index where "user" appears to determine app_id boundary
+            user_index = -1
+            for i, part in enumerate(parts):
+                if part == "user" and i > 1:  # "user" should not be the first or second part
+                    user_index = i
+                    break
+
+            if user_index > 1:
+                # Reconstruct app_id from parts[1] to parts[user_index-1]
+                app_id = "_".join(parts[1:user_index])
+                logger.info(f"🔍 Extracted app_id: {app_id}, calling get_parent_chat_id_from_app...")
+                parent_chat_id = await get_parent_chat_id_from_app(app_id)
+                logger.info(f"🔍 get_parent_chat_id_from_app returned: {parent_chat_id}")
+                if parent_chat_id:
+                    logger.info(f"🔗 Subchat {chat_id} inheriting ALL files from parent chat {parent_chat_id}")
+                else:
+                    logger.warning(f"⚠️ No parent chat ID found for app {app_id}")
+            else:
+                logger.warning(f"⚠️ Malformed subchat ID - could not find user boundary: {chat_id}")
+        else:
+            logger.info(f"ℹ️ Not a subchat: {chat_id}")
+
         # Fetch chunks from Neo4j with document metadata for filename-based queries
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
                 # Enhanced query to include document filename for better context matching
-                query = f"""
-                MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                WHERE c.chatId = '{chat_id}'
-                RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
-                """
+                if parent_chat_id:
+                    # Include chunks from both subchat and parent chat (all files)
+                    query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}'
+                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                    """
+                    logger.info(f"📋 Including ALL files from subchat and parent chat {parent_chat_id}")
+                else:
+                    query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}'
+                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                    """
+                    logger.info(f"📋 Using subchat files only")
                 results = session.run(query)
 
 
@@ -3106,6 +3222,27 @@ async def answer_question_stream_with_published_context(payload: QuestionRequest
         # Generate question embedding
         question_embedding = get_embedding(question)
 
+        # Check if this is a subchat and get parent chat ID for file inheritance
+        parent_chat_id = None
+        if chat_id.startswith("subchat_"):
+            # Extract app_id from subchat format: subchat_{app_id}_{user_id}_{timestamp}
+            # The app_id format is: app_xxxxx_xxxxx, so we need to find where "user_" starts
+            parts = chat_id.split("_")
+
+            # Find the index where "user" appears to determine app_id boundary
+            user_index = -1
+            for i, part in enumerate(parts):
+                if part == "user" and i > 1:  # "user" should not be the first or second part
+                    user_index = i
+                    break
+
+            if user_index > 1:
+                # Reconstruct app_id from parts[1] to parts[user_index-1]
+                app_id = "_".join(parts[1:user_index])
+                parent_chat_id = await get_parent_chat_id_from_app(app_id)
+                if parent_chat_id:
+                    logger.info(f"🔗 Subchat {chat_id} inheriting ALL files from parent chat {parent_chat_id} (streaming)")
+
         # Fetch chunks from Neo4j, filtering by published context files if provided
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
@@ -3114,20 +3251,38 @@ async def answer_question_stream_with_published_context(payload: QuestionRequest
                     published_file_ids = [file["fileId"] for file in published_context_files]
                     file_ids_str = "', '".join(published_file_ids)
 
-                    query = f"""
-                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                    WHERE c.chatId = '{chat_id}' AND d.fileId IN ['{file_ids_str}']
-                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
-                    """
-                    logger.info(f"📋 Using published files only: {len(published_context_files)} files")
+                    if parent_chat_id:
+                        # Include chunks from both subchat and parent chat
+                        query = f"""
+                        MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                        WHERE (c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}') AND d.fileId IN ['{file_ids_str}']
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        """
+                        logger.info(f"📋 Using published files from subchat and parent (streaming): {len(published_context_files)} files")
+                    else:
+                        query = f"""
+                        MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                        WHERE c.chatId = '{chat_id}' AND d.fileId IN ['{file_ids_str}']
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        """
+                        logger.info(f"📋 Using published files only: {len(published_context_files)} files")
                 else:
                     # Use all files (fallback for backwards compatibility)
-                    query = f"""
-                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                    WHERE c.chatId = '{chat_id}'
-                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
-                    """
-                    logger.info(f"📋 Using all available files (no published context)")
+                    if parent_chat_id:
+                        # Include chunks from both subchat and parent chat
+                        query = f"""
+                        MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                        WHERE c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}'
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        """
+                        logger.info(f"📋 Using ALL files from subchat and parent chat {parent_chat_id} (streaming)")
+                    else:
+                        query = f"""
+                        MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                        WHERE c.chatId = '{chat_id}'
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        """
+                        logger.info(f"📋 Using all available subchat files (streaming)")
 
                 results = session.run(query)
 
@@ -3303,15 +3458,46 @@ async def answer_question_stream(payload: QuestionRequest):
         # Generate question embedding
         question_embedding = get_embedding(question)
 
+        # Check if this is a subchat and get parent chat ID for file inheritance
+        parent_chat_id = None
+        if chat_id.startswith("subchat_"):
+            # Extract app_id from subchat format: subchat_{app_id}_{user_id}_{timestamp}
+            # The app_id format is: app_xxxxx_xxxxx, so we need to find where "user_" starts
+            parts = chat_id.split("_")
+
+            # Find the index where "user" appears to determine app_id boundary
+            user_index = -1
+            for i, part in enumerate(parts):
+                if part == "user" and i > 1:  # "user" should not be the first or second part
+                    user_index = i
+                    break
+
+            if user_index > 1:
+                # Reconstruct app_id from parts[1] to parts[user_index-1]
+                app_id = "_".join(parts[1:user_index])
+                parent_chat_id = await get_parent_chat_id_from_app(app_id)
+                if parent_chat_id:
+                    logger.info(f"🔗 Subchat {chat_id} inheriting ALL files from parent chat {parent_chat_id} (streaming v2)")
+
         # Fetch chunks from Neo4j with document metadata for filename-based queries
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
                 # Enhanced query to include document filename for better context matching
-                query = f"""
-                MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                WHERE c.chatId = '{chat_id}'
-                RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename
-                """
+                if parent_chat_id:
+                    # Include chunks from both subchat and parent chat (all files)
+                    query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}'
+                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                    """
+                    logger.info(f"📋 Including ALL files from subchat and parent chat {parent_chat_id} (streaming v2)")
+                else:
+                    query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}'
+                    RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                    """
+                    logger.info(f"📋 Using subchat files only (streaming v2)")
                 results = session.run(query)
 
                 # Calculate similarities with filename boost
@@ -3548,32 +3734,78 @@ async def remove_context(file_id: str): # TODO: add auth to this endpoint
 async def get_graph_data(chat_id: str):
     """Get all nodes and relationships for a specific chat to display in graph interface"""
     try:
+        # Check if this is a subchat and get parent chat ID for file inheritance
+        parent_chat_id = None
+        if chat_id.startswith("subchat_"):
+            # Extract app_id from subchat format: subchat_{app_id}_{user_id}_{timestamp}
+            # The app_id format is: app_xxxxx_xxxxx, so we need to find where "user_" starts
+            parts = chat_id.split("_")
+
+            # Find the index where "user" appears to determine app_id boundary
+            user_index = -1
+            for i, part in enumerate(parts):
+                if part == "user" and i > 1:  # "user" should not be the first or second part
+                    user_index = i
+                    break
+
+            if user_index > 1:
+                # Reconstruct app_id from parts[1] to parts[user_index-1]
+                app_id = "_".join(parts[1:user_index])
+                parent_chat_id = await get_parent_chat_id_from_app(app_id)
+                if parent_chat_id:
+                    logger.info(f"🔗 Graph view for subchat {chat_id} including parent chat {parent_chat_id}")
+
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
-                # Get all nodes for this chat
-                nodes_query = """
-                MATCH (n)
-                WHERE n.chatId = $chat_id
-                RETURN
-                    id(n) as node_id,
-                    labels(n) as labels,
-                    properties(n) as properties
-                """
+                # Get all nodes for this chat (and parent if applicable)
+                if parent_chat_id:
+                    nodes_query = """
+                    MATCH (n)
+                    WHERE n.chatId = $chat_id OR n.chatId = $parent_chat_id
+                    RETURN
+                        id(n) as node_id,
+                        labels(n) as labels,
+                        properties(n) as properties
+                    """
 
-                # Get all relationships for this chat
-                relationships_query = """
-                MATCH (n)-[r]->(m)
-                WHERE n.chatId = $chat_id AND m.chatId = $chat_id
-                RETURN
-                    id(r) as rel_id,
-                    id(startNode(r)) as source,
-                    id(endNode(r)) as target,
-                    type(r) as type,
-                    properties(r) as properties
-                """
+                    # Get all relationships for this chat (and parent if applicable)
+                    relationships_query = """
+                    MATCH (n)-[r]->(m)
+                    WHERE (n.chatId = $chat_id OR n.chatId = $parent_chat_id) AND (m.chatId = $chat_id OR m.chatId = $parent_chat_id)
+                    RETURN
+                        id(r) as rel_id,
+                        id(startNode(r)) as source,
+                        id(endNode(r)) as target,
+                        type(r) as type,
+                        properties(r) as properties
+                    """
 
-                nodes_result = session.run(nodes_query, chat_id=chat_id)
-                relationships_result = session.run(relationships_query, chat_id=chat_id)
+                    nodes_result = session.run(nodes_query, chat_id=chat_id, parent_chat_id=parent_chat_id)
+                    relationships_result = session.run(relationships_query, chat_id=chat_id, parent_chat_id=parent_chat_id)
+                else:
+                    nodes_query = """
+                    MATCH (n)
+                    WHERE n.chatId = $chat_id
+                    RETURN
+                        id(n) as node_id,
+                        labels(n) as labels,
+                        properties(n) as properties
+                    """
+
+                    # Get all relationships for this chat
+                    relationships_query = """
+                    MATCH (n)-[r]->(m)
+                    WHERE n.chatId = $chat_id AND m.chatId = $chat_id
+                    RETURN
+                        id(r) as rel_id,
+                        id(startNode(r)) as source,
+                        id(endNode(r)) as target,
+                        type(r) as type,
+                        properties(r) as properties
+                    """
+
+                    nodes_result = session.run(nodes_query, chat_id=chat_id)
+                    relationships_result = session.run(relationships_query, chat_id=chat_id)
 
                 nodes = []
                 for record in nodes_result:

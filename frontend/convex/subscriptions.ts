@@ -980,48 +980,6 @@ export const updateSubscriptionStatus = mutation({
   },
 });
 
-// Migrate manual subscription to real Stripe subscription
-export const migrateManualSubscription = mutation({
-  args: {
-    priceId: v.string(), // The Stripe price ID for the current tier
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-    const userId = identity.subject;
-
-    // Get current subscription
-    const subscription = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    if (!subscription) {
-      throw new Error("No subscription found to migrate");
-    }
-
-    // Check if this is a manual subscription that needs migration
-    if (
-      !subscription.stripeCustomerId.startsWith("manual_") &&
-      !subscription.stripeCustomerId.startsWith("test_")
-    ) {
-      throw new Error("Subscription is already using real Stripe IDs");
-    }
-
-    // Return the migration data - the actual Stripe subscription will be created by the API route
-    return {
-      success: true,
-      currentTier: subscription.tier,
-      currentStatus: subscription.status,
-      currentPeriodStart: subscription.currentPeriodStart,
-      currentPeriodEnd: subscription.currentPeriodEnd,
-      needsMigration: true,
-    };
-  },
-});
-
 // Debug function to check subscription status
 export const debugUserSubscription = query({
   args: {},

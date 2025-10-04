@@ -732,6 +732,7 @@ export const getAppWithSettings = query({
       isActive: app.isActive,
       settings: app.settings,
       name: app.name,
+      parentChatId: app.parentChatId, // Add this for file inheritance
       parentChatSettings: parentChatSettings,
     };
   },

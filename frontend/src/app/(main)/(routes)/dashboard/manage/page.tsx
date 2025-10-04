@@ -151,6 +151,9 @@ export default function ChatManagementPage() {
             const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
             matchesFolder = new Date(chat._creationTime) > weekAgo;
             break;
+          case "uncategorized":
+            matchesFolder = !chat.folderId;
+            break;
           case "pinned":
             matchesFolder =
               chat.title.toLowerCase().includes("important") ||
@@ -172,6 +175,10 @@ export default function ChatManagementPage() {
             matchesFolder =
               !chat.title.toLowerCase().includes("work") &&
               !chat.title.toLowerCase().includes("research");
+            break;
+          default:
+            // Handle custom user-created folders by checking folderId
+            matchesFolder = chat.folderId === selectedFolder;
             break;
         }
       }
@@ -482,11 +489,15 @@ export default function ChatManagementPage() {
               >
                 <button
                   onClick={() => setSelectedFolder(folder.id)}
-                  className="flex items-center gap-3 flex-1 text-left"
+                  className="flex items-center gap-3 flex-1 text-left min-w-0"
                 >
-                  <folder.icon className={cn("h-4 w-4", folder.color)} />
-                  <span className="text-sm font-medium">{folder.name}</span>
-                  <span className="text-xs text-zinc-400 ml-auto">
+                  <folder.icon
+                    className={cn("h-4 w-4 flex-shrink-0", folder.color)}
+                  />
+                  <span className="text-sm font-medium flex-1 truncate">
+                    {folder.name}
+                  </span>
+                  <span className="text-xs text-zinc-400 flex-shrink-0 px-1">
                     {folderCounts[folder.id] || 0}
                   </span>
                 </button>
@@ -494,7 +505,7 @@ export default function ChatManagementPage() {
                 {!["all", "recent", "uncategorized"].includes(folder.id) && (
                   <button
                     onClick={() => promptDeleteFolder(folder.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-all flex-shrink-0"
                     title="Delete Folder"
                   >
                     <Trash className="h-3 w-3 text-red-500" />
