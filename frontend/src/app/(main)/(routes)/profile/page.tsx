@@ -30,10 +30,25 @@ import {
   Activity,
   Search,
   Filter,
+  Plus,
+  Sparkles,
+  Star,
+  Info,
+  AlertCircle,
+  ArrowRight,
+  Rocket,
+  Building,
+  Check,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { formatCredits, formatTokens } from "@/lib/stripe";
+import {
+  formatCredits,
+  formatTokens,
+  CREDIT_PACKS,
+  PRICING_TIERS,
+} from "@/lib/stripe";
 import { toast } from "sonner";
+import { getStripe } from "@/lib/stripe";
 
 export default function ProfilePage() {
   const { user } = useUser();
@@ -43,6 +58,9 @@ export default function ProfilePage() {
   // Search state for usage history
   const [searchQuery, setSearchQuery] = useState("");
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const subscription = useQuery(api.subscriptions.getUserSubscription);
   const credits = useQuery(api.subscriptions.getUserCredits);
@@ -56,6 +74,14 @@ export default function ProfilePage() {
         ((credits.usedCredits / credits.totalCredits) * 100).toFixed(2),
       )
     : 0;
+
+  // Debug log to check if component is rendering
+  console.log(
+    "Profile page - current tier:",
+    currentTier,
+    "subscription:",
+    subscription,
+  );
 
   // Filter and search credit history
   const filteredCreditHistory = useMemo(() => {
@@ -103,6 +129,181 @@ export default function ProfilePage() {
       }
     } finally {
       setIsPortalLoading(false);
+    }
+  };
+
+  const handleBuyCredits = async (
+    priceId: string | undefined,
+    packName: string,
+  ) => {
+    if (!priceId) {
+      toast.error("Credit pack not available. Please contact support.");
+      return;
+    }
+
+    setIsLoading(priceId);
+
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ priceId, mode: "payment" }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Checkout API error:", errorData);
+        throw new Error(errorData.error || "Failed to create checkout session");
+      }
+
+      const { sessionId, url } = await response.json();
+
+      if (url) {
+        window.location.href = url;
+      } else {
+        const stripe = await getStripe();
+        await stripe?.redirectToCheckout({ sessionId });
+      }
+    } catch (error) {
+      console.error("Credit purchase failed:", error);
+      toast.error("Failed to purchase credits");
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const handleUpgrade = async (priceId: string | null, tierName: string) => {
+    if (!priceId) {
+      if (tierName === "Enterprise") {
+        window.open(
+          "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry",
+          "_blank",
+        );
+      } else {
+        toast.error(
+          `${tierName} plan is not configured. Please contact support.`,
+        );
+      }
+      return;
+    }
+
+    setIsLoading(priceId);
+
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ priceId, mode: "subscription" }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Checkout error:", errorData);
+
+        if (response.status === 400 && errorData.currentTier) {
+          toast.error(
+            `You already have an active ${errorData.currentTier} subscription. Use the billing portal to change plans.`,
+          );
+          return;
+        }
+
+        throw new Error(errorData.error || "Failed to create checkout session");
+      }
+
+      const { sessionId, url } = await response.json();
+
+      if (url) {
+        window.location.href = url;
+      } else {
+        const stripe = await getStripe();
+        await stripe?.redirectToCheckout({ sessionId });
+      }
+    } catch (error) {
+      console.error("Checkout failed:", error);
+      toast.error("Failed to start checkout process");
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const handleMigrateSubscription = async () => {
+    setIsMigrating(true);
+    try {
+      const response = await fetch("/api/stripe/migrate-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Migration API error:", errorData);
+        throw new Error(
+          errorData.error ||
+            `Failed to migrate subscription (${response.status})`,
+        );
+      }
+
+      const result = await response.json();
+      toast.success(
+        "🎉 Subscription migrated successfully! You can now manage your billing through Stripe.",
+      );
+
+      // Refresh the page to show updated subscription
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error("Migration failed:", error);
+      if (error instanceof Error) {
+        toast.error(`Migration failed: ${error.message}`);
+      } else {
+        toast.error("Failed to migrate subscription");
+      }
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const handleSyncSubscription = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch("/api/stripe/sync-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Sync API error:", errorData);
+        throw new Error(errorData.error || "Failed to sync subscription");
+      }
+
+      const result = await response.json();
+      toast.success(
+        `🎉 Subscription synced! You're now on the ${result.tier} plan with ${result.credits.toLocaleString()} credits.`,
+      );
+
+      // Refresh the page to show updated subscription
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error("Sync failed:", error);
+      if (error instanceof Error) {
+        toast.error(`Sync failed: ${error.message}`);
+      } else {
+        toast.error("Failed to sync subscription");
+      }
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -194,6 +395,196 @@ export default function ProfilePage() {
                 </div>
               </CardHeader>
             </Card>
+
+            {/* Upgrade Cards - Only show for free tier users */}
+            {currentTier === "free" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    Upgrade Your Plan
+                  </CardTitle>
+                  <CardDescription>
+                    Get more credits, unlimited chats, and advanced features
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {/* Pro Plan */}
+                    <Card className="relative border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
+                      <CardContent className="p-4">
+                        <div className="text-center space-y-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto">
+                            <Zap className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-lg text-zinc-900 dark:text-white">
+                              Pro
+                            </h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                              Perfect for individuals
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">
+                              $39
+                              <span className="text-sm font-normal">/mo</span>
+                            </div>
+                            <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>{formatTokens(10000)} credits</span>
+                              </div>
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>3 chats</span>
+                              </div>
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>API access</span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() =>
+                              handleUpgrade(
+                                PRICING_TIERS.PRO.priceId || null,
+                                "Pro",
+                              )
+                            }
+                            disabled={isLoading === PRICING_TIERS.PRO.priceId}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            {isLoading === PRICING_TIERS.PRO.priceId ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <ArrowRight className="w-4 h-4 mr-2" />
+                                Upgrade to Pro
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Scale Plan */}
+                    <Card className="relative border-2 border-purple-200 hover:border-purple-400 transition-all duration-200 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20">
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1">
+                          Most Popular
+                        </Badge>
+                      </div>
+                      <CardContent className="p-4">
+                        <div className="text-center space-y-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto">
+                            <Rocket className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-lg text-zinc-900 dark:text-white">
+                              Scale
+                            </h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                              For growing teams
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">
+                              $199
+                              <span className="text-sm font-normal">/mo</span>
+                            </div>
+                            <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>{formatTokens(100000)} credits</span>
+                              </div>
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>25 chats</span>
+                              </div>
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>Priority support</span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() =>
+                              handleUpgrade(
+                                PRICING_TIERS.SCALE.priceId || null,
+                                "Scale",
+                              )
+                            }
+                            disabled={isLoading === PRICING_TIERS.SCALE.priceId}
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            {isLoading === PRICING_TIERS.SCALE.priceId ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <ArrowRight className="w-4 h-4 mr-2" />
+                                Upgrade to Scale
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Enterprise Plan */}
+                    <Card className="relative border-2 border-emerald-200 hover:border-emerald-400 transition-all duration-200 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
+                      <CardContent className="p-4">
+                        <div className="text-center space-y-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto">
+                            <Building className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-lg text-zinc-900 dark:text-white">
+                              Enterprise
+                            </h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                              For large organizations
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">
+                              Custom
+                            </div>
+                            <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>Unlimited credits</span>
+                              </div>
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>Unlimited chats</span>
+                              </div>
+                              <div className="flex items-center gap-1 justify-center">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>Dedicated support</span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => handleUpgrade(null, "Enterprise")}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            <ArrowRight className="w-4 h-4 mr-2" />
+                            Contact Sales
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Credit Usage Dashboard */}
             <div className="grid md:grid-cols-2 gap-6">
@@ -289,27 +680,342 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <Button
-                    onClick={handleManageBilling}
-                    variant="outline"
-                    className="w-full"
-                    disabled={isPortalLoading}
-                  >
-                    {isPortalLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
-                        Opening Portal...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Manage Billing
-                      </>
-                    )}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      onClick={handleManageBilling}
+                      variant="outline"
+                      className="w-full"
+                      disabled={isPortalLoading}
+                    >
+                      {isPortalLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                          Opening Portal...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Manage Billing
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        setIsSyncing(true);
+                        try {
+                          const response = await fetch(
+                            "/api/stripe/manual-webhook",
+                            {
+                              method: "POST",
+                            },
+                          );
+                          const result = await response.json();
+                          if (result.success) {
+                            toast.success(
+                              `🎉 Synced! You're now on ${result.tier} plan with ${result.credits.toLocaleString()} credits.`,
+                            );
+                            setTimeout(() => window.location.reload(), 1500);
+                          } else {
+                            throw new Error(result.error);
+                          }
+                        } catch (error) {
+                          console.error("Manual sync failed:", error);
+                          toast.error(
+                            "Sync failed: " +
+                              (error instanceof Error
+                                ? error.message
+                                : "Unknown error"),
+                          );
+                        } finally {
+                          setIsSyncing(false);
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRight className="w-4 h-4 mr-2" />
+                          Force Sync from Stripe
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Migration Warning for Manual Subscriptions */}
+            {subscription &&
+              currentTier !== "free" &&
+              "stripeCustomerId" in subscription &&
+              "stripeSubscriptionId" in subscription &&
+              (subscription.stripeCustomerId?.startsWith("manual_") ||
+                subscription.stripeCustomerId?.startsWith("test_") ||
+                subscription.stripeSubscriptionId?.startsWith("manual_")) && (
+                <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600" />
+                      <div>
+                        <CardTitle className="text-amber-900 dark:text-amber-100">
+                          Subscription Migration Required
+                        </CardTitle>
+                        <CardDescription className="text-amber-700 dark:text-amber-300">
+                          Your subscription needs to be migrated to Stripe for
+                          full billing management
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                          • Access billing portal to update payment methods
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                          • View and download invoices
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          • Manage subscription settings
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleMigrateSubscription}
+                        disabled={isMigrating}
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                      >
+                        {isMigrating ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                            Migrating...
+                          </>
+                        ) : (
+                          <>
+                            <ArrowRight className="w-4 h-4 mr-2" />
+                            Migrate Now
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+            {/* Credit Packs Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
+                  Buy Additional Credits
+                </CardTitle>
+                <CardDescription>
+                  Top up your account with extra AI credits for heavy usage
+                  periods
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Object.entries(CREDIT_PACKS).map(([packKey, pack]) => (
+                    <Card
+                      key={packKey}
+                      className="relative border-2 hover:border-amber-400/50 transition-all duration-200"
+                    >
+                      <CardContent className="p-4">
+                        <div className="text-center space-y-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center mx-auto">
+                            <Sparkles className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-lg text-zinc-900 dark:text-white">
+                              {formatCredits(pack.credits)} Credits
+                            </h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                              ~{formatTokens(pack.credits)} on GPT-4o-mini
+                            </p>
+                          </div>
+                          <div className="text-2xl font-bold text-zinc-900 dark:text-white">
+                            ${pack.price}
+                          </div>
+                          <Button
+                            onClick={() =>
+                              handleBuyCredits(
+                                pack.priceId,
+                                `${pack.credits} Credits`,
+                              )
+                            }
+                            disabled={isLoading === pack.priceId}
+                            className="w-full bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white"
+                          >
+                            {isLoading === pack.priceId ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-4 h-4 mr-2" />
+                                Buy Credits
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Model Usage Multipliers */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Info className="w-5 h-5" />
+                  AI Model Credit Costs
+                </CardTitle>
+                <CardDescription>
+                  Different AI models consume credits at different rates
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-zinc-900 dark:text-white">
+                      OpenAI Models
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <div>
+                          <span className="font-medium text-zinc-900 dark:text-white">
+                            GPT-4o-mini
+                          </span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Fast & efficient
+                          </p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        >
+                          1x credits
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <div>
+                          <span className="font-medium text-zinc-900 dark:text-white">
+                            GPT-4o
+                          </span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Most capable
+                          </p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                        >
+                          15x credits
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <div>
+                          <span className="font-medium text-zinc-900 dark:text-white">
+                            GPT-4-Turbo
+                          </span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Previous generation
+                          </p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                        >
+                          30x credits
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-zinc-900 dark:text-white">
+                      Anthropic Models
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <div>
+                          <span className="font-medium text-zinc-900 dark:text-white">
+                            Claude-3 Haiku
+                          </span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Fast & affordable
+                          </p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        >
+                          1x credits
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <div>
+                          <span className="font-medium text-zinc-900 dark:text-white">
+                            Claude-3.5 Sonnet
+                          </span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Balanced performance
+                          </p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        >
+                          10x credits
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <div>
+                          <span className="font-medium text-zinc-900 dark:text-white">
+                            Claude-3 Opus
+                          </span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Most powerful
+                          </p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                        >
+                          50x credits
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                        Credit Calculation
+                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                        Credits are calculated based on token usage and model
+                        pricing. Higher-tier models provide better reasoning but
+                        consume more credits per token.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Enhanced Recent Usage History */}
             <Card className="h-[600px] flex flex-col">

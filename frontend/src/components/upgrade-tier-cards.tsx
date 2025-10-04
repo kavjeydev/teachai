@@ -60,6 +60,15 @@ export function UpgradeTierCards({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("Checkout error:", errorData);
+
+        // Handle specific error cases
+        if (response.status === 400 && errorData.currentTier) {
+          toast.error(
+            `You already have an active ${errorData.currentTier} subscription. Use the billing portal to change plans.`,
+          );
+          return;
+        }
+
         throw new Error(errorData.error || "Failed to create checkout session");
       }
 

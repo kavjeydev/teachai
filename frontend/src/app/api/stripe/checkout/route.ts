@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { currentUser } from "@clerk/nextjs/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +31,37 @@ export async function POST(req: NextRequest) {
 
     if (!priceId) {
       return NextResponse.json({ error: "Price ID required" }, { status: 400 });
+    }
+
+    // Check if user already has an active subscription (for subscription mode)
+    if (mode === "subscription") {
+      const currentSubscription = await convex.query(
+        api.subscriptions.getSubscriptionByUserId,
+        { userId },
+      );
+
+      console.log("Checking existing subscription:", currentSubscription);
+
+      // Prevent multiple subscriptions for paid tiers
+      if (
+        currentSubscription &&
+        "tier" in currentSubscription &&
+        currentSubscription.tier !== "free" &&
+        "status" in currentSubscription &&
+        currentSubscription.status === "active"
+      ) {
+        console.log(
+          "User already has active subscription:",
+          currentSubscription.tier,
+        );
+        return NextResponse.json(
+          {
+            error: `You already have an active ${currentSubscription.tier} subscription. Please manage your plan through the billing portal.`,
+            currentTier: currentSubscription.tier,
+          },
+          { status: 400 },
+        );
+      }
     }
 
     // Debug logging
@@ -56,30 +91,95 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create checkout session with customer email for identification
+    // Create or get Stripe customer
+    let customerId: string;
+    // Try to find existing customer by email
+    const existingCustomers = await stripe.customers.list({
+      email:
+        user.emailAddresses[0]?.emailAddress || `user-${userId}@trainly.local`,
+      limit: 1,
+    });
+
+    if (existingCustomers.data.length > 0) {
+      customerId = existingCustomers.data[0].id;
+      // Update metadata if missing
+      if (!existingCustomers.data[0].metadata?.userId) {
+        await stripe.customers.update(customerId, {
+          metadata: {
+            userId: userId,
+            trainlyTier: "free", // Will be updated by webhook
+          },
+        });
+      }
+    } else {
+      // Create new customer
+      const customer = await stripe.customers.create({
+        email:
+          user.emailAddresses[0]?.emailAddress ||
+          `user-${userId}@trainly.local`,
+        name:
+          user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : undefined,
+        metadata: {
+          userId: userId,
+          trainlyTier: "free", // Will be updated by webhook
+        },
+      });
+      customerId = customer.id;
+    }
+
+    console.log("Customer prepared:", { customerId, userId });
+
+    // Verify customer exists in Stripe
+    try {
+      const customerCheck = await stripe.customers.retrieve(customerId);
+      console.log("Customer verified:", {
+        id: customerCheck.id,
+        email: (customerCheck as Stripe.Customer).email,
+        metadata: (customerCheck as Stripe.Customer).metadata,
+      });
+    } catch (customerError) {
+      console.error("Customer verification failed:", customerError);
+      return NextResponse.json(
+        { error: "Customer verification failed" },
+        { status: 500 },
+      );
+    }
+
+    // Create checkout session with customer
     const session = await stripe.checkout.sessions.create({
       mode: mode as "subscription" | "payment",
       payment_method_types: ["card"],
+      customer: customerId,
       line_items: [
         {
           price: priceId,
           quantity: 1,
         },
       ],
-      success_url: `${req.headers.get("origin")}/dashboard?success=true&user_id=${userId}&price_id=${priceId}`,
+      success_url: `${req.headers.get("origin")}/dashboard?success=true`,
       cancel_url: `${req.headers.get("origin")}/dashboard?canceled=true`,
-      customer_email:
-        user.emailAddresses[0]?.emailAddress || `user-${userId}@trainly.local`,
       metadata: {
         userId: userId,
       },
+    });
+
+    console.log("Checkout session created successfully:", {
+      sessionId: session.id,
+      url: session.url,
+      customer: session.customer,
+      mode: session.mode,
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error) {
     console.error("Checkout session creation failed:", error);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      {
+        error: "Failed to create checkout session",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 },
     );
   }

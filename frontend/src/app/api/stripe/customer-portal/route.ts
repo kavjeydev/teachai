@@ -38,11 +38,13 @@ export async function POST(req: NextRequest) {
     let stripeCustomerId: string;
 
     // If user has a valid Stripe customer ID, use it
+    // Exclude test customers and manual subscription customers
     if (
       subscription &&
       "stripeCustomerId" in subscription &&
       subscription.stripeCustomerId &&
-      !subscription.stripeCustomerId.startsWith("test_")
+      !subscription.stripeCustomerId.startsWith("test_") &&
+      !subscription.stripeCustomerId.startsWith("manual_")
     ) {
       stripeCustomerId = subscription.stripeCustomerId;
     } else {

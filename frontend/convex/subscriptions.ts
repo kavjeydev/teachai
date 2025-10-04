@@ -160,7 +160,7 @@ export const updateUserCredits = mutation({
     if (!userId) {
       const identity = await ctx.auth.getUserIdentity();
       if (!identity) {
-        throw new Error("Not authenticated");
+        throw new Error("Not authenticated and no userId provided");
       }
       userId = identity.subject;
     }
@@ -423,10 +423,12 @@ export const logBillingEvent = mutation({
   },
   handler: async (ctx, args) => {
     let userId = args.userId;
+
+    // If no userId provided, try to get from auth context (for client calls)
     if (!userId) {
       const identity = await ctx.auth.getUserIdentity();
       if (!identity) {
-        throw new Error("Not authenticated");
+        throw new Error("Not authenticated and no userId provided");
       }
       userId = identity.subject;
     }
@@ -924,5 +926,254 @@ export const manuallyActivateSubscription = mutation({
       credits: tierCredits,
       message: `Successfully activated ${args.tier} subscription with ${tierCredits} credits`,
     };
+  },
+});
+
+// Cancel subscription
+export const cancelSubscription = mutation({
+  args: {
+    userId: v.string(),
+    stripeSubscriptionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (subscription) {
+      await ctx.db.patch(subscription._id, {
+        status: "canceled",
+        cancelAtPeriodEnd: true,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+// Update subscription status
+export const updateSubscriptionStatus = mutation({
+  args: {
+    userId: v.string(),
+    stripeSubscriptionId: v.string(),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (
+      subscription &&
+      subscription.stripeSubscriptionId === args.stripeSubscriptionId
+    ) {
+      await ctx.db.patch(subscription._id, {
+        status: args.status,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+// Migrate manual subscription to real Stripe subscription
+export const migrateManualSubscription = mutation({
+  args: {
+    priceId: v.string(), // The Stripe price ID for the current tier
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    const userId = identity.subject;
+
+    // Get current subscription
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!subscription) {
+      throw new Error("No subscription found to migrate");
+    }
+
+    // Check if this is a manual subscription that needs migration
+    if (
+      !subscription.stripeCustomerId.startsWith("manual_") &&
+      !subscription.stripeCustomerId.startsWith("test_")
+    ) {
+      throw new Error("Subscription is already using real Stripe IDs");
+    }
+
+    // Return the migration data - the actual Stripe subscription will be created by the API route
+    return {
+      success: true,
+      currentTier: subscription.tier,
+      currentStatus: subscription.status,
+      currentPeriodStart: subscription.currentPeriodStart,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+      needsMigration: true,
+    };
+  },
+});
+
+// Debug function to check subscription status
+export const debugUserSubscription = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    const userId = identity.subject;
+
+    // Get all subscriptions for debugging
+    const allSubscriptions = await ctx.db.query("subscriptions").collect();
+
+    const userSubscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    return {
+      userId,
+      userSubscription,
+      totalSubscriptions: allSubscriptions.length,
+      allUserIds: allSubscriptions.map((s) => s.userId).slice(0, 5), // First 5 user IDs for comparison
+    };
+  },
+});
+
+// Force create Pro subscription (for fixing missing subscriptions)
+export const forceCreateProSubscription = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    const userId = identity.subject;
+
+    const now = Date.now();
+    const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+
+    // Delete any existing subscription first
+    const existing = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existing) {
+      await ctx.db.delete(existing._id);
+    }
+
+    // Create new Pro subscription
+    const subscriptionId = await ctx.db.insert("subscriptions", {
+      userId: userId,
+      stripeCustomerId: "manual_pro_customer",
+      stripeSubscriptionId: "manual_pro_subscription",
+      stripePriceId: "manual_pro_price",
+      tier: "pro",
+      status: "active",
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create/update Pro credits
+    const existingCredits = await ctx.db
+      .query("user_credits")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existingCredits) {
+      await ctx.db.patch(existingCredits._id, {
+        totalCredits: 10000,
+        usedCredits: existingCredits.usedCredits, // Keep existing usage
+        periodStart: now,
+        periodEnd: periodEnd,
+        lastResetAt: now,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("user_credits", {
+        userId: userId,
+        totalCredits: 10000,
+        usedCredits: 0,
+        periodStart: now,
+        periodEnd: periodEnd,
+        lastResetAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return {
+      success: true,
+      subscriptionId,
+      message: "Pro subscription created successfully",
+    };
+  },
+});
+
+// Server-side subscription update (for API routes without auth context)
+export const updateSubscriptionForUser = mutation({
+  args: {
+    userId: v.string(),
+    stripeCustomerId: v.string(),
+    stripeSubscriptionId: v.string(),
+    stripePriceId: v.string(),
+    tier: v.string(),
+    status: v.string(),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // This function doesn't require authentication since it's called from server-side API routes
+    // Find the user's subscription
+    const existing = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    const now = Date.now();
+
+    if (existing) {
+      // Update existing subscription
+      await ctx.db.patch(existing._id, {
+        stripeCustomerId: args.stripeCustomerId,
+        stripeSubscriptionId: args.stripeSubscriptionId,
+        stripePriceId: args.stripePriceId,
+        tier: args.tier,
+        status: args.status,
+        currentPeriodStart: args.currentPeriodStart,
+        currentPeriodEnd: args.currentPeriodEnd,
+        cancelAtPeriodEnd: false,
+        updatedAt: now,
+      });
+
+      return existing._id;
+    } else {
+      // Create new subscription
+      return await ctx.db.insert("subscriptions", {
+        userId: args.userId,
+        stripeCustomerId: args.stripeCustomerId,
+        stripeSubscriptionId: args.stripeSubscriptionId,
+        stripePriceId: args.stripePriceId,
+        tier: args.tier,
+        status: args.status,
+        currentPeriodStart: args.currentPeriodStart,
+        currentPeriodEnd: args.currentPeriodEnd,
+        cancelAtPeriodEnd: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
   },
 });

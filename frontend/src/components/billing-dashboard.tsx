@@ -41,6 +41,7 @@ import { UpgradeTierCards } from "@/components/upgrade-tier-cards";
 export function BillingDashboard() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
 
   const subscription = useQuery(api.subscriptions.getUserSubscription);
   const credits = useQuery(api.subscriptions.getUserCredits);
@@ -155,6 +156,42 @@ export function BillingDashboard() {
     }
   };
 
+  const handleMigrateSubscription = async () => {
+    setIsMigrating(true);
+    try {
+      const response = await fetch("/api/stripe/migrate-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to migrate subscription");
+      }
+
+      const result = await response.json();
+      toast.success(
+        "🎉 Subscription migrated successfully! You can now manage your billing through Stripe.",
+      );
+
+      // Refresh the page to show updated subscription
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error("Migration failed:", error);
+      if (error instanceof Error) {
+        toast.error(`Migration failed: ${error.message}`);
+      } else {
+        toast.error("Failed to migrate subscription");
+      }
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const currentTier = subscription?.tier || "free";
   const tierConfig =
     PRICING_TIERS[currentTier.toUpperCase() as keyof typeof PRICING_TIERS];
@@ -251,6 +288,64 @@ export function BillingDashboard() {
           </div>
         </CardHeader>
       </Card>
+
+      {/* Migration Warning for Manual Subscriptions */}
+      {subscription &&
+        currentTier !== "free" &&
+        "stripeCustomerId" in subscription &&
+        "stripeSubscriptionId" in subscription &&
+        (subscription.stripeCustomerId?.startsWith("manual_") ||
+          subscription.stripeCustomerId?.startsWith("test_") ||
+          subscription.stripeSubscriptionId?.startsWith("manual_")) && (
+          <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+                <div>
+                  <CardTitle className="text-amber-900 dark:text-amber-100">
+                    Subscription Migration Required
+                  </CardTitle>
+                  <CardDescription className="text-amber-700 dark:text-amber-300">
+                    Your subscription needs to be migrated to Stripe for full
+                    billing management
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                    • Access billing portal to update payment methods
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                    • View and download invoices
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    • Manage subscription settings
+                  </p>
+                </div>
+                <Button
+                  onClick={handleMigrateSubscription}
+                  disabled={isMigrating}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  {isMigrating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                      Migrating...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Migrate Now
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       {/* Credit Usage */}
       <Card>

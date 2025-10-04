@@ -29,48 +29,47 @@ export async function POST(req: NextRequest) {
 
     const userId = user.id;
 
-    console.log("🔧 Manual webhook trigger for userId:", userId);
+    // Get current subscription from your database
+    const currentSub = await convex.query(
+      api.subscriptions.getSubscriptionByUserId,
+      { userId },
+    );
 
-    // Get the user's Stripe customer
-    const customers = await stripe.customers.list({
-      email:
-        user.emailAddresses[0]?.emailAddress || `user-${userId}@trainly.local`,
-      limit: 1,
-    });
-
-    if (customers.data.length === 0) {
+    if (!currentSub || !("stripeCustomerId" in currentSub)) {
       return NextResponse.json(
-        { error: "No Stripe customer found" },
+        { error: "No subscription found to sync" },
         { status: 400 },
       );
     }
 
-    const customer = customers.data[0];
-    console.log("Found customer:", customer.id);
+    console.log("Current subscription in DB:", currentSub);
 
-    // Get the customer's subscriptions
+    // Get the latest subscription from Stripe
+    const customerId = currentSub.stripeCustomerId;
     const subscriptions = await stripe.subscriptions.list({
-      customer: customer.id,
+      customer: customerId,
+      status: "all",
       limit: 1,
     });
 
     if (subscriptions.data.length === 0) {
       return NextResponse.json(
-        { error: "No Stripe subscription found" },
+        { error: "No Stripe subscription found for this customer" },
         { status: 400 },
       );
     }
 
-    const subscription = subscriptions.data[0];
-    const priceId = subscription.items.data[0]?.price.id;
+    const stripeSubscription = subscriptions.data[0];
+    const priceId = stripeSubscription.items.data[0]?.price.id;
 
-    console.log("Found subscription:", {
-      id: subscription.id,
-      status: subscription.status,
+    console.log("Latest Stripe subscription:", {
+      id: stripeSubscription.id,
+      status: stripeSubscription.status,
       priceId,
+      customerId,
     });
 
-    // Map price to tier
+    // Map price ID to tier
     const getTierFromPriceId = (priceId: string | undefined): string => {
       const priceMap: Record<string, string> = {
         [process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!]: "pro",
@@ -82,43 +81,43 @@ export async function POST(req: NextRequest) {
     const tier = getTierFromPriceId(priceId);
     const credits = tier === "scale" ? 100000 : tier === "pro" ? 10000 : 500;
 
-    console.log("Mapped tier:", { tier, credits });
+    console.log("Mapped tier and credits:", { tier, credits });
 
-    // Manually update subscription in database
+    // Update subscription in database
     await convex.mutation(api.subscriptions.updateSubscriptionForUser, {
       userId: userId,
-      stripeCustomerId: customer.id,
-      stripeSubscriptionId: subscription.id,
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: stripeSubscription.id,
       stripePriceId: priceId!,
       tier,
-      status: subscription.status,
-      currentPeriodStart: subscription.current_period_start * 1000,
-      currentPeriodEnd: subscription.current_period_end * 1000,
+      status: stripeSubscription.status,
+      currentPeriodStart: stripeSubscription.current_period_start * 1000,
+      currentPeriodEnd: stripeSubscription.current_period_end * 1000,
     });
 
-    // Update credits
+    // Update credits for the new tier
     await convex.mutation(api.subscriptions.updateUserCredits, {
       userId,
       totalCredits: credits,
       resetUsage: true,
-      periodStart: subscription.current_period_start * 1000,
-      periodEnd: subscription.current_period_end * 1000,
+      periodStart: stripeSubscription.current_period_start * 1000,
+      periodEnd: stripeSubscription.current_period_end * 1000,
     });
 
-    console.log("✅ Manual webhook processing completed");
+    console.log("✅ Subscription synced successfully");
 
     return NextResponse.json({
       success: true,
-      message: "Subscription manually synced from Stripe",
+      message: "Subscription synced successfully",
       tier,
       credits,
-      subscriptionId: subscription.id,
+      stripeSubscriptionId: stripeSubscription.id,
     });
   } catch (error) {
-    console.error("Manual webhook failed:", error);
+    console.error("Sync failed:", error);
     return NextResponse.json(
       {
-        error: "Failed to process manual webhook",
+        error: "Failed to sync subscription",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },

@@ -12,7 +12,7 @@ import { Toaster } from "sonner";
 import { useState } from "react";
 import React from "react";
 import { useConvexAuth } from "@/hooks/use-auth-state";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { useSearchParams } from "next/navigation";
 
 export default function NoChat() {
@@ -25,61 +25,46 @@ export default function NoChat() {
 
   // Check if user just completed payment
   const paymentSuccess = searchParams.get("success");
-  const userId = searchParams.get("user_id");
-  const priceId = searchParams.get("price_id");
+  const paymentCanceled = searchParams.get("canceled");
 
   const addChat = useMutation(api.chats.createChat);
   const chatLimits = useQuery(api.chats.getUserChatLimits);
-  const manuallyActivateSubscription = useMutation(
-    api.subscriptions.manuallyActivateSubscription,
-  );
 
-  // Map price IDs to tiers
-  const getTierFromPriceId = (priceId: string): string => {
-    const priceMap: Record<string, string> = {
-      [process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!]: "pro",
-      [process.env.NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID!]: "startup",
-    };
-    return priceMap[priceId] || "pro";
+  // Function to get next tier for upgrade
+  const getNextTier = (currentTier: string) => {
+    switch (currentTier) {
+      case "free":
+        return PRICING_TIERS.PRO;
+      case "pro":
+        return PRICING_TIERS.SCALE;
+      case "scale":
+        return PRICING_TIERS.ENTERPRISE;
+      default:
+        return PRICING_TIERS.PRO; // fallback
+    }
   };
 
-  // Handle payment success and auto-activate subscription
+  // Handle payment success/cancel notifications
   React.useEffect(() => {
-    if (paymentSuccess && userId && user?.id === userId && priceId) {
-      const activateSubscription = async () => {
-        try {
-          const tier = getTierFromPriceId(priceId);
-
-          await manuallyActivateSubscription({ tier });
-
-          toast.success(
-            `🎉 Payment successful! Your ${tier.charAt(0).toUpperCase() + tier.slice(1)} subscription is now active!`,
-          );
-
-          // Clean up URL parameters
-          window.history.replaceState({}, "", "/dashboard");
-
-          // Refresh to show updated plan
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        } catch (error) {
-          console.error("Auto-activation failed:", error);
-          toast.error(
-            "Payment successful but activation failed. Please contact support.",
-          );
-        }
-      };
-
-      activateSubscription();
-    } else if (paymentSuccess && userId && user?.id === userId) {
-      // Fallback for payments without price_id
+    if (paymentSuccess) {
       toast.success(
-        "🎉 Payment successful! Please use manual activation below if your plan didn't update.",
+        "🎉 Payment successful! Your subscription is being activated by our system. This may take a few moments.",
       );
+
+      // Clean up URL parameters
+      window.history.replaceState({}, "", "/dashboard");
+
+      // Refresh after a delay to show updated subscription
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    } else if (paymentCanceled) {
+      toast.info("Payment was canceled. You can try again anytime.");
+
+      // Clean up URL parameters
       window.history.replaceState({}, "", "/dashboard");
     }
-  }, [paymentSuccess, userId, user?.id, priceId, manuallyActivateSubscription]);
+  }, [paymentSuccess, paymentCanceled]);
 
   const handleUpgrade = async (priceId: string, tierName: string) => {
     setIsUpgrading(true);
@@ -127,16 +112,15 @@ export default function NoChat() {
 
     // Check if user can create more chats
     if (!chatLimits.canCreateMore) {
-      const nextTier =
-        chatLimits.tierName === "free"
-          ? "Pro ($39/mo)"
-          : chatLimits.tierName === "pro"
-            ? "Scale ($199/mo)"
-            : "Enterprise";
+      const nextTier = getNextTier(chatLimits.tierName);
+      const nextTierDisplay =
+        nextTier.id === "enterprise"
+          ? "Enterprise"
+          : `${nextTier.name} ($${nextTier.price}/mo)`;
       toast.error(
         `You've reached your chat limit of ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} for the ${chatLimits.tierName} plan.`,
         {
-          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+          description: `Upgrade to ${nextTierDisplay} for more chats or archive existing ones.`,
           action: {
             label: "View Plans",
             onClick: () => window.open("/pricing", "_blank"),
@@ -155,14 +139,13 @@ export default function NoChat() {
       console.error("Failed to create chat:", error);
       if (error instanceof Error) {
         // Show the exact error message from the backend
-        const nextTier =
-          chatLimits.tierName === "free"
-            ? "Pro ($39/mo)"
-            : chatLimits.tierName === "pro"
-              ? "Scale ($199/mo)"
-              : "Enterprise";
+        const nextTier = getNextTier(chatLimits.tierName);
+        const nextTierDisplay =
+          nextTier.id === "enterprise"
+            ? "Enterprise"
+            : `${nextTier.name} ($${nextTier.price}/mo)`;
         toast.error(error.message, {
-          description: `Upgrade to ${nextTier} for more chats or archive existing ones.`,
+          description: `Upgrade to ${nextTierDisplay} for more chats or archive existing ones.`,
           action: {
             label: "View Plans",
             onClick: () => window.open("/pricing", "_blank"),
@@ -234,28 +217,42 @@ export default function NoChat() {
                     </p>
                   </div>
                   <div className="flex gap-3">
-                    <Button
-                      onClick={() =>
-                        handleUpgrade(
-                          process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
-                          "Pro",
-                        )
-                      }
-                      disabled={isUpgrading}
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      {isUpgrading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Upgrade to Pro
-                        </>
-                      )}
-                    </Button>
+                    {(() => {
+                      const nextTier = getNextTier(chatLimits.tierName);
+                      return (
+                        <Button
+                          onClick={() => {
+                            if (nextTier.id === "enterprise") {
+                              window.open(
+                                "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry",
+                                "_blank",
+                              );
+                            } else {
+                              handleUpgrade(nextTier.priceId!, nextTier.name);
+                            }
+                          }}
+                          disabled={isUpgrading}
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                              Processing...
+                            </>
+                          ) : nextTier.id === "enterprise" ? (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Contact Sales
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Upgrade to {nextTier.name}
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
                     <Button
                       onClick={() => window.open("/dashboard/manage", "_blank")}
                       variant="outline"
@@ -297,29 +294,49 @@ export default function NoChat() {
                     Or start with more powerful features
                   </p>
                   <div className="flex gap-3">
-                    <Button
-                      onClick={() =>
-                        handleUpgrade(
-                          process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
-                          "Pro",
-                        )
-                      }
-                      disabled={isUpgrading}
-                      variant="outline"
-                      className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-white transition-all duration-300"
-                    >
-                      {isUpgrading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Start Pro - $39/mo
-                        </>
-                      )}
-                    </Button>
+                    {(() => {
+                      const nextTier = getNextTier(
+                        chatLimits?.tierName || "free",
+                      );
+                      return (
+                        <Button
+                          onClick={() => {
+                            if (nextTier.id === "enterprise") {
+                              window.open(
+                                "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry",
+                                "_blank",
+                              );
+                            } else {
+                              handleUpgrade(nextTier.priceId!, nextTier.name);
+                            }
+                          }}
+                          disabled={isUpgrading}
+                          variant="outline"
+                          className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-white transition-all duration-300"
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                              Processing...
+                            </>
+                          ) : nextTier.id === "enterprise" ? (
+                            <>
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Contact Sales
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Start {nextTier.name} - $
+                              {typeof nextTier.price === "number"
+                                ? nextTier.price
+                                : "Custom"}
+                              /mo
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
                     <Button
                       onClick={() => window.open("/billing", "_blank")}
                       variant="ghost"
