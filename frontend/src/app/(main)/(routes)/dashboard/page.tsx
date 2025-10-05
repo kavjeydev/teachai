@@ -96,7 +96,9 @@ export default function NoChat() {
       }
     } catch (error) {
       console.error("Checkout failed:", error);
-      toast.error("Checkout failed. Please try again or contact support.");
+      toast.error(
+        "Checkout failed. Please try again or contact support at kavin11205@gmail.com.",
+      );
     } finally {
       setIsUpgrading(false);
     }
@@ -228,7 +230,7 @@ export default function NoChat() {
                           onClick={() => {
                             if (nextTier.id === "enterprise") {
                               window.open(
-                                "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry",
+                                "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
                                 "_blank",
                               );
                             } else {
@@ -307,7 +309,7 @@ export default function NoChat() {
                           onClick={() => {
                             if (nextTier.id === "enterprise") {
                               window.open(
-                                "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry",
+                                "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
                                 "_blank",
                               );
                             } else {

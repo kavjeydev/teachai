@@ -1014,7 +1014,7 @@ print('Total:', data['total'])`,
                 </a>
               </Button>
               <Button variant="outline" className="h-16 flex-col gap-2" asChild>
-                <a href="mailto:support@trainlyai.com">
+                <a href="mailto:kavin11205@gmail.com">
                   <ExternalLink className="w-5 h-5" />
                   <span>Contact Support</span>
                 </a>

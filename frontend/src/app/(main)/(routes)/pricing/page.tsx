@@ -46,7 +46,7 @@ export default function PricingPage() {
       // Handle Enterprise tier
       if (tierName === "Enterprise") {
         window.location.href =
-          "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry";
+          "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry";
         return;
       }
 
@@ -290,7 +290,7 @@ export default function PricingPage() {
                           <button
                             onClick={() => {
                               window.location.href =
-                                "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry";
+                                "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry";
                             }}
                             className={cn(
                               "w-full py-2.5 px-4 rounded-lg font-medium transition-all duration-200",
@@ -710,7 +710,7 @@ export default function PricingPage() {
                 <button
                   onClick={() =>
                     (window.location.href =
-                      "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry")
+                      "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry")
                   }
                   className="border border-zinc-300 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 px-6 py-2.5 rounded-lg font-medium transition-colors"
                 >

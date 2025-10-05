@@ -88,7 +88,9 @@ export function BillingDashboard() {
     packName: string,
   ) => {
     if (!priceId) {
-      toast.error("Credit pack not available. Please contact support.");
+      toast.error(
+        "Credit pack not available. Please contact support at kavin11205@gmail.com.",
+      );
       return;
     }
 

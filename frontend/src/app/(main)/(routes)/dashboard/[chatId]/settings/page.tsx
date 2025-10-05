@@ -314,7 +314,7 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
                     asChild
                   >
                     <a
-                      href="mailto:support@trainlyai.com"
+                      href="mailto:kavin11205@gmail.com"
                       className="flex items-center gap-3"
                     >
                       <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">

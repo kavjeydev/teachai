@@ -178,7 +178,7 @@ export function PlanManager() {
         if (newTier === "enterprise") {
           // Enterprise - redirect to contact
           window.location.href =
-            "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry";
+            "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry";
           return;
         } else if (newOrder > currentOrder) {
           // Upgrade - immediate via Stripe

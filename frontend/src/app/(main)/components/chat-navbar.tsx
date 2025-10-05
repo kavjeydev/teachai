@@ -101,7 +101,7 @@ export const ChatNavbar = ({
   const handleUpgrade = async (priceId: string, tierName: string) => {
     if (!priceId) {
       toast.error(
-        `${tierName} plan is not configured. Please contact support.`,
+        `${tierName} plan is not configured. Please contact support at kavin11205@gmail.com.`,
       );
       return;
     }

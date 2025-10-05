@@ -135,7 +135,9 @@ export default function ProfilePage() {
     packName: string,
   ) => {
     if (!priceId) {
-      toast.error("Credit pack not available. Please contact support.");
+      toast.error(
+        "Credit pack not available. Please contact support at kavin11205@gmail.com.",
+      );
       return;
     }
 
@@ -176,12 +178,12 @@ export default function ProfilePage() {
     if (!priceId) {
       if (tierName === "Enterprise") {
         window.open(
-          "mailto:hello@trainly.ai?subject=Enterprise%20Inquiry",
+          "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
           "_blank",
         );
       } else {
         toast.error(
-          `${tierName} plan is not configured. Please contact support.`,
+          `${tierName} plan is not configured. Please contact support at kavin11205@gmail.com.`,
         );
       }
       return;
