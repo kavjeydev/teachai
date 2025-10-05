@@ -16,6 +16,7 @@ export default defineSchema({
     websiteUrl: v.optional(v.string()),
     privacyPolicyUrl: v.optional(v.string()),
     isActive: v.boolean(),
+    isApiDisabled: v.optional(v.boolean()), // Whether API access is disabled for this app
     createdAt: v.number(),
     settings: v.object({
       allowDirectUploads: v.boolean(), // Whether users can upload directly

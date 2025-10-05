@@ -63,6 +63,7 @@ export const createApp = mutation({
       websiteUrl: args.websiteUrl,
       privacyPolicyUrl: args.privacyPolicyUrl,
       isActive: true,
+      isApiDisabled: false, // API access enabled by default
       createdAt: Date.now(),
       settings: {
         allowDirectUploads: true,
@@ -106,6 +107,7 @@ export const getDeveloperApps = query({
       websiteUrl: app.websiteUrl,
       privacyPolicyUrl: app.privacyPolicyUrl,
       isActive: app.isActive,
+      isApiDisabled: app.isApiDisabled || false, // Include API disabled status
       createdAt: app.createdAt,
       settings: app.settings,
     }));
@@ -139,6 +141,7 @@ export const getAppsForChat = query({
       websiteUrl: app.websiteUrl,
       privacyPolicyUrl: app.privacyPolicyUrl,
       isActive: app.isActive,
+      isApiDisabled: app.isApiDisabled || false, // Include API disabled status
       createdAt: app.createdAt,
       settings: app.settings,
     }));
@@ -789,6 +792,7 @@ export const getAppWithSettings = query({
       appId: app.appId,
       developerId: app.developerId,
       isActive: app.isActive,
+      isApiDisabled: app.isApiDisabled || false, // Include API disabled status
       settings: app.settings,
       name: app.name,
       parentChatId: app.parentChatId, // Add this for file inheritance
@@ -849,6 +853,7 @@ export const createOrUpdateAppWithParent = mutation({
         jwtSecret,
         parentChatId: args.parentChatId,
         isActive: true,
+        isApiDisabled: false, // API access enabled by default
         createdAt: Date.now(),
         settings: {
           allowDirectUploads: true,
@@ -866,6 +871,84 @@ export const createOrUpdateAppWithParent = mutation({
         action: "created",
       };
     }
+  },
+});
+
+// Toggle API access for an app
+export const toggleApiAccess = mutation({
+  args: { appId: v.string(), disable: v.boolean() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Verify app ownership
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || app.developerId !== developerId) {
+      throw new Error("App not found or unauthorized.");
+    }
+
+    // Update the API access status
+    await ctx.db.patch(app._id, {
+      isApiDisabled: args.disable,
+    });
+
+    // Log the action for audit purposes
+    await ctx.db.insert("app_audit_logs", {
+      appId: args.appId,
+      endUserId: developerId,
+      chatId: "system",
+      action: args.disable ? "disable_api_access" : "enable_api_access",
+      requestedCapability: "admin",
+      allowed: true,
+      timestamp: Date.now(),
+      metadata: {
+        errorReason: `API access ${args.disable ? "disabled" : "enabled"} by developer ${developerId}`,
+      },
+    });
+
+    return {
+      success: true,
+      appId: args.appId,
+      isApiDisabled: args.disable,
+      message: `API access has been ${args.disable ? "disabled" : "enabled"} for this app`,
+    };
+  },
+});
+
+// Get API access status for an app
+export const getApiAccessStatus = query({
+  args: { appId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Verify app ownership
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || app.developerId !== developerId) {
+      throw new Error("App not found or unauthorized.");
+    }
+
+    return {
+      appId: app.appId,
+      isApiDisabled: app.isApiDisabled || false,
+      isActive: app.isActive,
+    };
   },
 });
 
@@ -902,6 +985,7 @@ export const verifyAppSecret = query({
       appId: app.appId,
       developerId: app.developerId,
       isActive: app.isActive,
+      isApiDisabled: app.isApiDisabled || false, // Include API disabled status
       settings: app.settings,
       name: app.name,
       parentChatSettings: parentChatSettings,

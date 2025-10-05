@@ -28,6 +28,8 @@ import {
   AlertTriangle,
   Users,
   BookOpen,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -278,6 +280,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
   const enableApiAccess = useMutation(api.simple_api.enableApiAccess);
   const disableApiAccess = useMutation(api.simple_api.disableApiAccess);
   const createApp = useMutation(api.app_management.createApp);
+  const toggleApiAccess = useMutation(api.app_management.toggleApiAccess);
 
   const handleGenerateKey = async () => {
     setIsGenerating(true);
@@ -355,6 +358,22 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
       toast.error(error.message || "Failed to create app");
     } finally {
       setIsCreatingApp(false);
+    }
+  };
+
+  const handleToggleApiAccess = async (
+    appId: string,
+    currentlyDisabled: boolean,
+  ) => {
+    try {
+      const result = await toggleApiAccess({
+        appId,
+        disable: !currentlyDisabled, // Toggle the current state
+      });
+
+      toast.success(result.message);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to toggle API access");
     }
   };
 
@@ -668,12 +687,48 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                           {app.description}
                         </p>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
+                        >
+                          {app.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* API Access Toggle */}
+                    <div className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg mb-3">
+                      <div className="flex items-center gap-2">
+                        {app.isApiDisabled ? (
+                          <PowerOff className="w-4 h-4 text-red-500" />
+                        ) : (
+                          <Power className="w-4 h-4 text-green-500" />
+                        )}
+                        <div>
+                          <div className="font-medium text-zinc-900 dark:text-white text-sm">
+                            API Access
+                          </div>
+                          <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                            {app.isApiDisabled
+                              ? "API requests are blocked"
+                              : "API requests are allowed"}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant={app.isApiDisabled ? "default" : "destructive"}
+                        size="sm"
+                        onClick={() =>
+                          handleToggleApiAccess(
+                            app.appId,
+                            app.isApiDisabled || false,
+                          )
+                        }
+                        className="text-xs"
                       >
-                        {app.isActive ? "Active" : "Inactive"}
-                      </Badge>
+                        {app.isApiDisabled ? "Enable API" : "Disable API"}
+                      </Button>
                     </div>
 
                     <div className="space-y-2">

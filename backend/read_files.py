@@ -392,6 +392,14 @@ async def get_app_config_from_convex(app_id: str) -> Optional[V1AppConfig]:
                 logger.info(f"🔍 App data: {app_data}")
 
                 if app_data and app_data.get("isActive"):
+                    # Check if API access is disabled for this app
+                    if app_data.get("isApiDisabled", False):
+                        logger.warning(f"🚫 App {app_id} has API access disabled")
+                        raise HTTPException(
+                            status_code=403,
+                            detail=f"API access is disabled for this app. Please contact the app developer to enable API access."
+                        )
+
                     logger.info(f"✅ Found active app {app_id} in Convex, creating dynamic V1 config")
                     # For Convex apps, we'll determine the issuer and audience dynamically from the JWT token
                     # This allows users to use any OAuth provider without configuration
@@ -405,6 +413,9 @@ async def get_app_config_from_convex(app_id: str) -> Optional[V1AppConfig]:
                     logger.warning(f"⚠️ App {app_id} found but not active or missing data")
             else:
                 logger.warning(f"⚠️ Convex returned non-200 status: {response.status_code}")
+    except HTTPException:
+        # Re-raise HTTP exceptions (like API disabled)
+        raise
     except Exception as e:
         logger.error(f"Failed to get app config from Convex: {e}")
 
