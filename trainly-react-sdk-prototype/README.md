@@ -202,7 +202,101 @@ interface FileInfo {
 }
 ```
 
-### **2. Deleting Files**
+### **2. Bulk Upload Files**
+
+Upload multiple files at once (up to 10 files per request):
+
+```tsx
+import { useTrainly } from "@trainly/react";
+
+function BulkFileUpload() {
+  const { bulkUploadFiles } = useTrainly();
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 10) {
+      alert("Maximum 10 files allowed per bulk upload");
+      return;
+    }
+    setSelectedFiles(files);
+  };
+
+  const handleBulkUpload = async () => {
+    if (selectedFiles.length === 0) return;
+
+    try {
+      const result = await bulkUploadFiles(selectedFiles);
+
+      console.log(`Bulk upload completed: ${result.message}`);
+      console.log(
+        `Successful: ${result.successful_uploads}/${result.total_files}`,
+      );
+      console.log(`Total size: ${formatBytes(result.total_size_bytes)}`);
+
+      // Review individual file results
+      result.results.forEach((fileResult) => {
+        if (fileResult.success) {
+          console.log(`✅ ${fileResult.filename} - ${fileResult.message}`);
+        } else {
+          console.log(`❌ ${fileResult.filename} - ${fileResult.error}`);
+        }
+      });
+
+      // Clear selection after successful upload
+      setSelectedFiles([]);
+    } catch (error) {
+      console.error("Bulk upload failed:", error);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        multiple
+        accept=".pdf,.txt,.docx"
+        onChange={handleFileSelect}
+      />
+
+      {selectedFiles.length > 0 && (
+        <div>
+          <p>Selected files: {selectedFiles.length}</p>
+          <ul>
+            {selectedFiles.map((file, index) => (
+              <li key={index}>
+                {file.name} ({formatBytes(file.size)})
+              </li>
+            ))}
+          </ul>
+          <button onClick={handleBulkUpload}>
+            Upload {selectedFiles.length} Files
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Helper function for formatting file sizes
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+}
+```
+
+**Bulk Upload Features:**
+
+- ✅ **Efficient**: Upload up to 10 files in a single API call
+- ✅ **Detailed Results**: Individual success/failure status for each file
+- ✅ **Error Resilience**: Partial failures don't stop other files
+- ✅ **Progress Tracking**: Total size and success metrics
+- ✅ **Automatic Retry**: Token refresh handling built-in
+
+### **3. Deleting Files**
 
 Remove a specific file and free up storage space:
 
@@ -262,7 +356,7 @@ interface FileDeleteResult {
 }
 ```
 
-### **3. Pre-built File Manager Component**
+### **4. Pre-built File Manager Component**
 
 Use the ready-made component for complete file management:
 
@@ -303,7 +397,7 @@ function MyApp() {
 - 🎨 **Styled**: Clean, professional appearance
 - 📱 **Responsive**: Works on mobile and desktop
 
-### **4. Complete Integration Example**
+### **5. Complete Integration Example**
 
 Here's a full example showing all file operations together:
 
@@ -467,7 +561,7 @@ export function CompleteFileExample() {
 }
 ```
 
-### **5. Error Handling Best Practices**
+### **6. Error Handling Best Practices**
 
 ```tsx
 import { useTrainly } from "@trainly/react";
@@ -529,7 +623,7 @@ function RobustFileManager() {
 }
 ```
 
-### **6. TypeScript Support**
+### **7. TypeScript Support**
 
 Full TypeScript definitions included:
 
@@ -553,7 +647,7 @@ const handleTypedFileOps = async () => {
 };
 ```
 
-### **7. Security & Privacy Notes**
+### **8. Security & Privacy Notes**
 
 - 🔒 **V1 Only**: File management only works with V1 Trusted Issuer authentication
 - 👤 **User Isolation**: Users can only see and delete their own files
@@ -562,7 +656,7 @@ const handleTypedFileOps = async () => {
 - ⚠️ **Permanent Deletion**: Deleted files cannot be recovered
 - 🔐 **OAuth Required**: Must be authenticated with valid OAuth token
 
-### **8. Storage Management**
+### **9. Storage Management**
 
 File operations automatically update storage analytics:
 

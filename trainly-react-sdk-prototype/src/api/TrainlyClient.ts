@@ -4,6 +4,8 @@ import {
   UploadResult,
   FileListResult,
   FileDeleteResult,
+  BulkUploadResult,
+  BulkUploadFileResult,
 } from "../types";
 
 interface QueryResponse {
@@ -306,6 +308,110 @@ export class TrainlyClient {
         message: "File uploaded to your private workspace",
       };
     }
+  }
+
+  async bulkUploadFiles(files: File[]): Promise<BulkUploadResult> {
+    if (!this.scopedToken) {
+      throw new Error(
+        "Not connected. Call connect() or connectWithOAuthToken() first.",
+      );
+    }
+
+    if (!files || files.length === 0) {
+      throw new Error("No files provided for bulk upload.");
+    }
+
+    if (files.length > 10) {
+      throw new Error("Too many files. Maximum 10 files per bulk upload.");
+    }
+
+    // NEW: V1 Trusted Issuer mode
+    if (this.isV1Mode && this.config.appId) {
+      const formData = new FormData();
+
+      // Append all files to the form data
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await fetch(
+        `${this.config.baseUrl}/v1/me/chats/files/upload-bulk`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.scopedToken}`,
+            "X-App-ID": this.config.appId,
+          },
+          body: formData,
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          `V1 bulk upload failed: ${error.detail || response.statusText}`,
+        );
+      }
+
+      const data = await response.json();
+      return {
+        success: data.success,
+        total_files: data.total_files,
+        successful_uploads: data.successful_uploads,
+        failed_uploads: data.failed_uploads,
+        total_size_bytes: data.total_size_bytes,
+        chat_id: data.chat_id,
+        user_id: data.user_id,
+        results: data.results,
+        message: data.message,
+      };
+    }
+
+    // For non-V1 modes, fall back to sequential uploads
+    const results: BulkUploadFileResult[] = [];
+    let successful_uploads = 0;
+    let total_size_bytes = 0;
+
+    for (const file of files) {
+      try {
+        const uploadResult = await this.upload(file);
+        results.push({
+          filename: uploadResult.filename,
+          success: uploadResult.success,
+          error: null,
+          file_id: null, // Single upload doesn't return file_id
+          size_bytes: uploadResult.size,
+          processing_status: uploadResult.success ? "completed" : "failed",
+          message: uploadResult.message,
+        });
+
+        if (uploadResult.success) {
+          successful_uploads++;
+          total_size_bytes += uploadResult.size;
+        }
+      } catch (error) {
+        results.push({
+          filename: file.name,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          file_id: null,
+          size_bytes: file.size,
+          processing_status: "failed",
+        });
+      }
+    }
+
+    return {
+      success: successful_uploads > 0,
+      total_files: files.length,
+      successful_uploads,
+      failed_uploads: files.length - successful_uploads,
+      total_size_bytes,
+      chat_id: this.currentUserId || "",
+      user_id: this.currentUserId || "",
+      results,
+      message: `Bulk upload completed: ${successful_uploads}/${files.length} files processed successfully`,
+    };
   }
 
   async listFiles(): Promise<FileListResult> {

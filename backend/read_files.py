@@ -2254,6 +2254,151 @@ async def v1_user_file_upload(
         logger.error(f"V1 file upload failed for user {user_identity.get('user_id', 'unknown')}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
+@app.post("/v1/me/chats/files/upload-bulk")
+async def v1_user_bulk_file_upload(
+    files: List[UploadFile] = File(...),
+    authorization: str = Header(None, alias="authorization"),
+    app_id: str = Header(None, alias="x-app-id"),
+    request: Request = None
+):
+    """
+    V1 Bulk File Upload: User uploads multiple files to their permanent subchat
+
+    Upload multiple files at once. All files are processed and stored in the user's
+    permanent subchat, making them available for all future queries.
+
+    Returns detailed results for each file, including successes and failures.
+    """
+
+    if not app_id:
+        raise HTTPException(status_code=400, detail="X-App-ID header required")
+
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+
+    if len(files) > 10:  # Limit to 10 files per bulk upload
+        raise HTTPException(status_code=400, detail="Too many files (max 10 per bulk upload)")
+
+    # Authenticate user with their OAuth ID token
+    user_identity = await authenticate_v1_user(authorization, app_id)
+
+    # Get/create permanent subchat for this user (once for all files)
+    subchat = await get_or_create_user_subchat(
+        user_identity["app_id"],
+        user_identity["external_user_id"]
+    )
+
+    results = []
+    total_size = 0
+    successful_uploads = 0
+
+    for file in files:
+        file_result = {
+            "filename": file.filename or "unknown",
+            "success": False,
+            "error": None,
+            "file_id": None,
+            "size_bytes": 0,
+            "processing_status": "failed"
+        }
+
+        try:
+            # Validate individual file
+            file_size = read_files.get_file_size(file)
+            if file_size > MAX_FILE_SIZE:
+                file_result["error"] = f"File too large (max 5 MB), got {file_size} bytes"
+                results.append(file_result)
+                continue
+
+            if not file.filename:
+                file_result["error"] = "No filename provided"
+                results.append(file_result)
+                continue
+
+            # Sanitize filename
+            sanitized_filename = sanitize_filename(file.filename)
+            if not sanitized_filename:
+                file_result["error"] = "Invalid filename"
+                file_result["filename"] = file.filename
+                results.append(file_result)
+                continue
+
+            file_result["filename"] = sanitized_filename
+            file_result["size_bytes"] = file_size
+
+            # Extract text from file
+            text = read_files.extract_text(file)
+
+            # Sanitize extracted text
+            sanitized_text = sanitize_with_xss_detection(
+                text,
+                allow_html=False,
+                max_length=1000000,
+                context="v1_bulk_file_upload"
+            )
+
+            if not sanitized_text and text:
+                file_result["error"] = "File contains potentially malicious content"
+                results.append(file_result)
+                continue
+
+            # Check for recent duplicate uploads
+            file_content_hash = hashlib.md5(sanitized_text.encode()).hexdigest()[:16]
+            if _check_recent_upload(subchat["chatStringId"], sanitized_filename, file_content_hash):
+                file_result["success"] = True
+                file_result["processing_status"] = "duplicate_skipped"
+                file_result["message"] = "File already processed recently"
+                results.append(file_result)
+                successful_uploads += 1
+                continue
+
+            # Create embeddings in the user's permanent subchat
+            pdf_id = f"v1_{user_identity['user_id']}_{sanitized_filename}_{int(time.time())}"
+            file_result["file_id"] = pdf_id
+
+            create_payload = CreateNodesAndEmbeddingsRequest(
+                pdf_text=sanitized_text,
+                pdf_id=pdf_id,
+                chat_id=subchat["chatStringId"],
+                filename=sanitized_filename
+            )
+
+            # Process the file with analytics
+            await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
+
+            # Success!
+            file_result["success"] = True
+            file_result["processing_status"] = "completed"
+            file_result["message"] = "File uploaded and processed successfully"
+            total_size += file_size
+            successful_uploads += 1
+
+        except Exception as e:
+            file_result["error"] = str(e)
+            logger.error(f"Bulk upload failed for file {file_result['filename']}: {str(e)}")
+
+        results.append(file_result)
+
+    logger.info(f"V1 Bulk upload completed for user {user_identity['user_id']}: {successful_uploads}/{len(files)} successful")
+
+    return {
+        "success": successful_uploads > 0,
+        "total_files": len(files),
+        "successful_uploads": successful_uploads,
+        "failed_uploads": len(files) - successful_uploads,
+        "total_size_bytes": total_size,
+        "chat_id": subchat["chatStringId"],
+        "user_id": user_identity["user_id"],
+        "results": results,
+        "privacy_guarantee": {
+            "permanent_storage": True,
+            "user_private_subchat": True,
+            "developer_cannot_access": True,
+            "oauth_validated": True
+        },
+        "message": f"Bulk upload completed: {successful_uploads}/{len(files)} files processed successfully"
+    }
+
 @app.get("/v1/me/profile")
 async def v1_user_profile(
     authorization: str = Header(None, alias="authorization"),

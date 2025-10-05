@@ -17,6 +17,7 @@ import {
   FileInfo,
   FileListResult,
   FileDeleteResult,
+  BulkUploadResult,
 } from "@trainly/react";
 
 export function FileManagementExample() {
@@ -24,6 +25,7 @@ export function FileManagementExample() {
   const {
     ask,
     upload,
+    bulkUploadFiles,
     listFiles,
     deleteFile,
     connectWithOAuthToken,
@@ -35,6 +37,7 @@ export function FileManagementExample() {
   const [files, setFiles] = React.useState<FileInfo[]>([]);
   const [totalSize, setTotalSize] = React.useState(0);
   const [isLoadingFiles, setIsLoadingFiles] = React.useState(false);
+  const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
 
   // Auto-connect with OAuth when component mounts
   React.useEffect(() => {
@@ -124,6 +127,59 @@ export function FileManagementExample() {
     } catch (error) {
       console.error("Query failed:", error);
     }
+  };
+
+  const handleBulkUpload = async () => {
+    if (selectedFiles.length === 0) {
+      alert("Please select files first");
+      return;
+    }
+
+    try {
+      console.log(`Starting bulk upload of ${selectedFiles.length} files...`);
+      const result = await bulkUploadFiles(selectedFiles);
+
+      console.log("Bulk upload completed:", result);
+
+      // Show detailed results
+      const successCount = result.successful_uploads;
+      const failCount = result.failed_uploads;
+
+      let message = `Bulk Upload Results:\n\n`;
+      message += `✅ Successful: ${successCount}/${result.total_files}\n`;
+      message += `❌ Failed: ${failCount}\n`;
+      message += `📊 Total Size: ${formatBytes(result.total_size_bytes)}\n\n`;
+
+      if (result.results.length > 0) {
+        message += "Individual File Results:\n";
+        result.results.forEach((fileResult) => {
+          const status = fileResult.success ? "✅" : "❌";
+          message += `${status} ${fileResult.filename}`;
+          if (fileResult.error) {
+            message += ` - ${fileResult.error}`;
+          }
+          message += `\n`;
+        });
+      }
+
+      alert(message);
+
+      // Clear selected files and refresh list
+      setSelectedFiles([]);
+      await loadFiles();
+    } catch (error) {
+      console.error("Bulk upload failed:", error);
+      alert(`Bulk upload failed: ${error}`);
+    }
+  };
+
+  const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 10) {
+      alert("Maximum 10 files allowed per bulk upload");
+      return;
+    }
+    setSelectedFiles(files);
   };
 
   const formatBytes = (bytes: number): string => {
@@ -266,6 +322,42 @@ export function FileManagementExample() {
             📤 Upload File
           </label>
 
+          <input
+            type="file"
+            multiple
+            onChange={handleFileSelection}
+            accept=".pdf,.docx,.txt,.md,.csv,.json"
+            style={{ display: "none" }}
+            id="bulk-file-upload"
+          />
+          <label
+            htmlFor="bulk-file-upload"
+            style={{ ...styles.button, background: "#059669" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#047857";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#059669";
+            }}
+          >
+            📁 Select Multiple Files
+          </label>
+
+          {selectedFiles.length > 0 && (
+            <button
+              onClick={handleBulkUpload}
+              style={{ ...styles.button, background: "#dc2626" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#b91c1c";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#dc2626";
+              }}
+            >
+              🚀 Upload {selectedFiles.length} Files
+            </button>
+          )}
+
           <button
             onClick={loadFiles}
             disabled={isLoadingFiles}
@@ -309,6 +401,48 @@ export function FileManagementExample() {
           </button>
         </div>
       </div>
+
+      {/* Selected Files for Bulk Upload */}
+      {selectedFiles.length > 0 && (
+        <div
+          style={{
+            ...styles.storageOverview,
+            background: "#f0fdf4",
+            border: "1px solid #22c55e",
+          }}
+        >
+          <h3 style={{ color: "#059669" }}>
+            📁 Selected Files for Bulk Upload
+          </h3>
+          <p>
+            <strong>{selectedFiles.length} files selected</strong> •{" "}
+            <strong>
+              {formatBytes(
+                selectedFiles.reduce((total, file) => total + file.size, 0),
+              )}
+            </strong>{" "}
+            total
+          </p>
+          <div style={{ marginTop: "10px" }}>
+            {selectedFiles.map((file, index) => (
+              <div
+                key={index}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "4px 0",
+                  fontSize: "14px",
+                }}
+              >
+                <span>📄 {file.name}</span>
+                <span style={{ color: "#6b7280" }}>
+                  {formatBytes(file.size)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Custom File List */}
       <div>

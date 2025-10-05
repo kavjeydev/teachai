@@ -10,6 +10,7 @@ import {
   FileListResult,
   FileDeleteResult,
   TrainlyError,
+  BulkUploadResult,
 } from "./types";
 import { TrainlyClient } from "./api/TrainlyClient";
 
@@ -315,6 +316,52 @@ export function TrainlyProvider({
     }
   };
 
+  const bulkUploadFiles = async (files: File[]): Promise<BulkUploadResult> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await client.bulkUploadFiles(files);
+      return result;
+    } catch (err) {
+      // Check if it's an authentication error and we have a token refresh function
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (
+        getToken &&
+        appId &&
+        (errorMessage.includes("401") ||
+          errorMessage.includes("authentication") ||
+          errorMessage.includes("Unauthorized"))
+      ) {
+        try {
+          console.log("🔄 Token expired during bulk upload, refreshing...");
+          const newToken = await getToken();
+          if (newToken) {
+            await client.connectWithOAuthToken(newToken);
+            // Retry the bulk upload with fresh token
+            const result = await client.bulkUploadFiles(files);
+            console.log("✅ Bulk upload succeeded after token refresh");
+            return result;
+          }
+        } catch (refreshError) {
+          console.error(
+            "❌ Token refresh failed during bulk upload:",
+            refreshError,
+          );
+        }
+      }
+
+      const error: TrainlyError = {
+        code: "BULK_UPLOAD_FAILED",
+        message: "Failed to upload files",
+        details: err,
+      };
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const listFiles = async (): Promise<FileListResult> => {
     try {
       setIsLoading(true);
@@ -437,6 +484,7 @@ export function TrainlyProvider({
     ask,
     askWithCitations,
     upload,
+    bulkUploadFiles, // NEW: Bulk file upload method
     listFiles, // NEW: File management methods
     deleteFile,
     connectWithOAuthToken, // NEW: V1 OAuth connection method

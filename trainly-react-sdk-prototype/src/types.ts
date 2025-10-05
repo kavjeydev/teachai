@@ -41,6 +41,28 @@ export interface UploadResult {
   message?: string;
 }
 
+export interface BulkUploadFileResult {
+  filename: string;
+  success: boolean;
+  error: string | null;
+  file_id: string | null;
+  size_bytes: number;
+  processing_status: string;
+  message?: string;
+}
+
+export interface BulkUploadResult {
+  success: boolean;
+  total_files: number;
+  successful_uploads: number;
+  failed_uploads: number;
+  total_size_bytes: number;
+  chat_id: string;
+  user_id: string;
+  results: BulkUploadFileResult[];
+  message: string;
+}
+
 export interface FileInfo {
   file_id: string;
   filename: string;
@@ -90,6 +112,7 @@ export interface TrainlyContextValue {
   // NEW: File management functions
   listFiles: () => Promise<FileListResult>;
   deleteFile: (fileId: string) => Promise<FileDeleteResult>;
+  bulkUploadFiles: (files: File[]) => Promise<BulkUploadResult>;
 
   // NEW: V1 Authentication
   connectWithOAuthToken: (idToken: string) => Promise<void>;
