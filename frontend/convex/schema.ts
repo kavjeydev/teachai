@@ -426,4 +426,14 @@ export default defineSchema({
     .index("by_chat", ["chatId"])
     .index("by_queue_id", ["queueId"])
     .index("by_status", ["status"]),
+
+  // Custom graph relationship types per user
+  customRelationships: defineTable({
+    userId: v.string(), // User who created this custom relationship type
+    relationshipType: v.string(), // The custom relationship type name (e.g., "TEACHES", "MANAGES")
+    createdAt: v.number(), // When this custom type was created
+    lastUsed: v.optional(v.number()), // When this type was last used (for cleanup/analytics)
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_type", ["userId", "relationshipType"]),
 });

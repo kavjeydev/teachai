@@ -25,6 +25,9 @@ import {
   Target,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 interface GraphNode {
   id: string;
@@ -60,6 +63,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   refreshTrigger,
   disableAutoHighlight = false,
 }) => {
+  const { user } = useUser();
   const nvlRef = useRef<HTMLDivElement>(null);
   const nvlInstance = useRef<any>(null);
   const [graphData, setGraphData] = useState<GraphData>({
@@ -87,24 +91,80 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   const [relationshipProperties, setRelationshipProperties] = useState<
     Record<string, any>
   >({});
-  const [customRelationshipTypes, setCustomRelationshipTypes] = useState<
-    string[]
-  >([]);
+  // Get custom relationship types from Convex
+  const customRelationshipTypes =
+    useQuery(
+      api.customRelationships.getUserCustomRelationshipTypes,
+      user?.id ? { userId: user.id } : "skip",
+    ) ?? [];
 
-  // Load custom relationship types from localStorage on mount
+  // Convex mutations for managing custom relationship types
+  const addCustomRelationshipType = useMutation(
+    api.customRelationships.addCustomRelationshipType,
+  );
+  const updateCustomRelationshipUsage = useMutation(
+    api.customRelationships.updateCustomRelationshipUsage,
+  );
+  const migrateCustomRelationshipTypes = useMutation(
+    api.customRelationships.migrateCustomRelationshipTypes,
+  );
+
+  // Migration effect: Move localStorage data to Convex on first load
   useEffect(() => {
-    const savedTypes = localStorage.getItem("customRelationshipTypes");
-    if (savedTypes) {
-      try {
-        setCustomRelationshipTypes(JSON.parse(savedTypes));
-      } catch (error) {
-        console.warn(
-          "Failed to parse custom relationship types from localStorage:",
-          error,
-        );
+    if (user?.id && customRelationshipTypes.length === 0) {
+      // Check if there are any custom types in localStorage that need migration
+      const globalTypes = localStorage.getItem("customRelationshipTypes");
+      const userSpecificTypes = localStorage.getItem(
+        `customRelationshipTypes_${user.id}`,
+      );
+
+      let typesToMigrate: string[] = [];
+      if (userSpecificTypes) {
+        try {
+          typesToMigrate = JSON.parse(userSpecificTypes);
+        } catch (error) {
+          console.warn(
+            "Failed to parse user-specific custom relationship types:",
+            error,
+          );
+        }
+      } else if (globalTypes) {
+        try {
+          typesToMigrate = JSON.parse(globalTypes);
+        } catch (error) {
+          console.warn(
+            "Failed to parse global custom relationship types:",
+            error,
+          );
+        }
+      }
+
+      if (typesToMigrate.length > 0) {
+        migrateCustomRelationshipTypes({
+          userId: user.id,
+          relationshipTypes: typesToMigrate,
+        })
+          .then(() => {
+            console.log(
+              `Migrated ${typesToMigrate.length} custom relationship types to Convex`,
+            );
+            // Optionally clean up localStorage after successful migration
+            // localStorage.removeItem("customRelationshipTypes");
+            // localStorage.removeItem(`customRelationshipTypes_${user.id}`);
+          })
+          .catch((error) => {
+            console.warn(
+              "Failed to migrate custom relationship types to Convex:",
+              error,
+            );
+          });
       }
     }
-  }, []);
+  }, [
+    user?.id,
+    customRelationshipTypes.length,
+    migrateCustomRelationshipTypes,
+  ]);
 
   // Relationship editing state
   const [editingRelationship, setEditingRelationship] =
@@ -843,15 +903,28 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       ];
       if (
         !defaultTypes.includes(relationshipType) &&
-        !customRelationshipTypes.includes(relationshipType)
+        !customRelationshipTypes.includes(relationshipType) &&
+        user?.id
       ) {
-        const newCustomTypes = [...customRelationshipTypes, relationshipType];
-        setCustomRelationshipTypes(newCustomTypes);
-        // Save to localStorage for persistence
-        localStorage.setItem(
-          "customRelationshipTypes",
-          JSON.stringify(newCustomTypes),
-        );
+        // Add custom relationship type to Convex
+        addCustomRelationshipType({
+          userId: user.id,
+          relationshipType: relationshipType,
+        }).catch((error) => {
+          console.warn("Failed to add custom relationship type:", error);
+        });
+      } else if (
+        !defaultTypes.includes(relationshipType) &&
+        customRelationshipTypes.includes(relationshipType) &&
+        user?.id
+      ) {
+        // Update usage timestamp for existing custom type
+        updateCustomRelationshipUsage({
+          userId: user.id,
+          relationshipType: relationshipType,
+        }).catch((error) => {
+          console.warn("Failed to update custom relationship usage:", error);
+        });
       }
 
       // Update local state
