@@ -86,6 +86,499 @@ function MyComponent() {
 - ✅ **Zero Migration**: Works with your existing OAuth setup
 - ✅ **Simple Integration**: Just add `appId` and use `connectWithOAuthToken()`
 
+## 📁 **NEW: File Management**
+
+Now users can manage their uploaded files directly:
+
+```tsx
+import { useTrainly, TrainlyFileManager } from "@trainly/react";
+
+function MyApp() {
+  const { listFiles, deleteFile, upload } = useTrainly();
+
+  // List all user's files
+  const handleListFiles = async () => {
+    const result = await listFiles();
+    console.log(
+      `${result.total_files} files, ${result.total_size_bytes} bytes total`,
+    );
+    result.files.forEach((file) => {
+      console.log(
+        `${file.filename}: ${file.size_bytes} bytes, ${file.chunk_count} chunks`,
+      );
+    });
+  };
+
+  // Delete a specific file
+  const handleDeleteFile = async (fileId) => {
+    const result = await deleteFile(fileId);
+    console.log(
+      `Deleted ${result.filename}, freed ${result.size_bytes_freed} bytes`,
+    );
+  };
+
+  return (
+    <div>
+      <button onClick={handleListFiles}>List My Files</button>
+
+      {/* Pre-built file manager component */}
+      <TrainlyFileManager
+        onFileDeleted={(fileId, filename) => {
+          console.log(`File deleted: ${filename}`);
+        }}
+        onError={(error) => {
+          console.error("File operation failed:", error);
+        }}
+        showUploadButton={true}
+        maxFileSize={5} // MB
+      />
+    </div>
+  );
+}
+```
+
+### File Management Features
+
+- 📋 **List Files**: View all uploaded documents with metadata
+- 🗑️ **Delete Files**: Remove files and free up storage space
+- 📊 **Storage Analytics**: Track file sizes and storage usage
+- 🔄 **Auto-Refresh**: File list updates after uploads/deletions
+- 🎨 **Pre-built UI**: `TrainlyFileManager` component with styling
+- 🔒 **Privacy-First**: Only works in V1 mode with OAuth authentication
+
+## 📚 **Detailed File Management Documentation**
+
+### **1. Listing Files**
+
+Get all files uploaded to the user's permanent subchat:
+
+```tsx
+import { useTrainly } from "@trainly/react";
+
+function FileList() {
+  const { listFiles } = useTrainly();
+
+  const handleListFiles = async () => {
+    try {
+      const result = await listFiles();
+
+      console.log(`Total files: ${result.total_files}`);
+      console.log(`Total storage: ${formatBytes(result.total_size_bytes)}`);
+
+      result.files.forEach((file) => {
+        console.log(`📄 ${file.filename}`);
+        console.log(`   Size: ${formatBytes(file.size_bytes)}`);
+        console.log(`   Chunks: ${file.chunk_count}`);
+        console.log(
+          `   Uploaded: ${new Date(parseInt(file.upload_date)).toLocaleDateString()}`,
+        );
+        console.log(`   ID: ${file.file_id}`);
+      });
+    } catch (error) {
+      console.error("Failed to list files:", error);
+    }
+  };
+
+  return <button onClick={handleListFiles}>List My Files</button>;
+}
+```
+
+**Response Structure:**
+
+```typescript
+interface FileListResult {
+  success: boolean;
+  files: FileInfo[];
+  total_files: number;
+  total_size_bytes: number;
+}
+
+interface FileInfo {
+  file_id: string; // Unique identifier for deletion
+  filename: string; // Original filename
+  upload_date: string; // Unix timestamp (milliseconds)
+  size_bytes: number; // File size in bytes
+  chunk_count: number; // Number of text chunks created
+}
+```
+
+### **2. Deleting Files**
+
+Remove a specific file and free up storage space:
+
+```tsx
+import { useTrainly } from "@trainly/react";
+
+function FileDeleter() {
+  const { deleteFile, listFiles } = useTrainly();
+
+  const handleDeleteFile = async (fileId: string, filename: string) => {
+    // Always confirm before deletion
+    const confirmed = confirm(
+      `Delete "${filename}"? This will permanently remove the file and cannot be undone.`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const result = await deleteFile(fileId);
+
+      console.log(`✅ ${result.message}`);
+      console.log(`🗑️ Deleted: ${result.filename}`);
+      console.log(`💾 Storage freed: ${formatBytes(result.size_bytes_freed)}`);
+      console.log(`📊 Chunks removed: ${result.chunks_deleted}`);
+
+      // Optionally refresh file list
+      await listFiles();
+    } catch (error) {
+      console.error("Failed to delete file:", error);
+      alert(`Failed to delete file: ${error.message}`);
+    }
+  };
+
+  // Example: Delete first file
+  const deleteFirstFile = async () => {
+    const files = await listFiles();
+    if (files.files.length > 0) {
+      const firstFile = files.files[0];
+      await handleDeleteFile(firstFile.file_id, firstFile.filename);
+    }
+  };
+
+  return <button onClick={deleteFirstFile}>Delete First File</button>;
+}
+```
+
+**Response Structure:**
+
+```typescript
+interface FileDeleteResult {
+  success: boolean;
+  message: string; // Human-readable success message
+  file_id: string; // ID of deleted file
+  filename: string; // Name of deleted file
+  chunks_deleted: number; // Number of chunks removed
+  size_bytes_freed: number; // Storage space freed up
+}
+```
+
+### **3. Pre-built File Manager Component**
+
+Use the ready-made component for complete file management:
+
+```tsx
+import { TrainlyFileManager } from "@trainly/react";
+
+function MyApp() {
+  return (
+    <TrainlyFileManager
+      // Optional: Custom CSS class
+      className="my-custom-styles"
+      // Callback when file is deleted
+      onFileDeleted={(fileId, filename) => {
+        console.log(`File deleted: ${filename} (ID: ${fileId})`);
+        // Update your app state, show notification, etc.
+      }}
+      // Error handling callback
+      onError={(error) => {
+        console.error("File operation failed:", error);
+        // Show user-friendly error message
+        alert(`Error: ${error.message}`);
+      }}
+      // Show upload button in component
+      showUploadButton={true}
+      // Maximum file size in MB
+      maxFileSize={5}
+    />
+  );
+}
+```
+
+**Component Features:**
+
+- 📋 **File List**: Shows all files with metadata
+- 🔄 **Auto-Refresh**: Updates after uploads/deletions
+- ⚠️ **Confirmation**: Asks before deleting files
+- 📊 **Storage Stats**: Shows total files and storage used
+- 🎨 **Styled**: Clean, professional appearance
+- 📱 **Responsive**: Works on mobile and desktop
+
+### **4. Complete Integration Example**
+
+Here's a full example showing all file operations together:
+
+```tsx
+import React from "react";
+import { useAuth } from "@clerk/nextjs"; // or your OAuth provider
+import { useTrainly, TrainlyFileManager } from "@trainly/react";
+
+export function CompleteFileExample() {
+  const { getToken } = useAuth();
+  const {
+    ask,
+    upload,
+    listFiles,
+    deleteFile,
+    connectWithOAuthToken,
+    isConnected,
+  } = useTrainly();
+
+  const [files, setFiles] = React.useState([]);
+  const [storageUsed, setStorageUsed] = React.useState(0);
+
+  // Connect to Trainly on mount
+  React.useEffect(() => {
+    async function connect() {
+      const token = await getToken();
+      if (token) {
+        await connectWithOAuthToken(token);
+      }
+    }
+    connect();
+  }, []);
+
+  // Load files when connected
+  React.useEffect(() => {
+    if (isConnected) {
+      refreshFiles();
+    }
+  }, [isConnected]);
+
+  const refreshFiles = async () => {
+    try {
+      const result = await listFiles();
+      setFiles(result.files);
+      setStorageUsed(result.total_size_bytes);
+    } catch (error) {
+      console.error("Failed to load files:", error);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (files.length === 0) {
+      alert("No files to delete");
+      return;
+    }
+
+    const confirmed = confirm(
+      `Delete ALL ${files.length} files? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    let deletedCount = 0;
+    let totalFreed = 0;
+
+    for (const file of files) {
+      try {
+        const result = await deleteFile(file.file_id);
+        deletedCount++;
+        totalFreed += result.size_bytes_freed;
+        console.log(`Deleted: ${result.filename}`);
+      } catch (error) {
+        console.error(`Failed to delete ${file.filename}:`, error);
+      }
+    }
+
+    alert(`Deleted ${deletedCount} files, freed ${formatBytes(totalFreed)}`);
+    await refreshFiles();
+  };
+
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  };
+
+  if (!isConnected) {
+    return <div>Connecting to Trainly...</div>;
+  }
+
+  return (
+    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
+      <h1>📁 My File Workspace</h1>
+
+      {/* Storage Overview */}
+      <div
+        style={{
+          background: "#f8fafc",
+          padding: "20px",
+          borderRadius: "8px",
+          marginBottom: "20px",
+        }}
+      >
+        <h3>Storage Overview</h3>
+        <p>
+          <strong>{files.length} files</strong> using{" "}
+          <strong>{formatBytes(storageUsed)}</strong>
+        </p>
+        <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+          <button onClick={refreshFiles}>🔄 Refresh</button>
+          <button
+            onClick={handleBulkDelete}
+            disabled={files.length === 0}
+            style={{ background: "#dc2626", color: "white" }}
+          >
+            🗑️ Delete All Files
+          </button>
+        </div>
+      </div>
+
+      {/* File Manager Component */}
+      <TrainlyFileManager
+        onFileDeleted={(fileId, filename) => {
+          console.log(`File deleted: ${filename}`);
+          // Update local state
+          setFiles((prev) => prev.filter((f) => f.file_id !== fileId));
+          refreshFiles(); // Refresh to get accurate totals
+        }}
+        onError={(error) => {
+          alert(`Error: ${error.message}`);
+        }}
+        showUploadButton={true}
+        maxFileSize={5}
+      />
+
+      {/* AI Integration */}
+      <div
+        style={{
+          marginTop: "30px",
+          padding: "20px",
+          background: "#f0f9ff",
+          borderRadius: "8px",
+        }}
+      >
+        <h3>🤖 Ask AI About Your Files</h3>
+        <button
+          onClick={async () => {
+            const answer = await ask(
+              "What files do I have? Give me a summary of each.",
+            );
+            alert(`AI Response:\n\n${answer}`);
+          }}
+          style={{ background: "#059669", color: "white" }}
+        >
+          Get File Summary from AI
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### **5. Error Handling Best Practices**
+
+```tsx
+import { useTrainly } from "@trainly/react";
+
+function RobustFileManager() {
+  const { deleteFile, listFiles } = useTrainly();
+
+  const safeDeleteFile = async (fileId: string, filename: string) => {
+    try {
+      // 1. Confirm with user
+      const confirmed = confirm(`Delete "${filename}"?`);
+      if (!confirmed) return;
+
+      // 2. Attempt deletion
+      const result = await deleteFile(fileId);
+
+      // 3. Success feedback
+      console.log(`✅ Success: ${result.message}`);
+      return result;
+    } catch (error) {
+      // 4. Handle specific error types
+      if (error.message.includes("404")) {
+        alert("File not found - it may have already been deleted");
+      } else if (error.message.includes("401")) {
+        alert("Authentication expired - please refresh the page");
+      } else {
+        alert(`Failed to delete file: ${error.message}`);
+      }
+
+      console.error("Delete error:", error);
+      throw error;
+    }
+  };
+
+  const safeListFiles = async () => {
+    try {
+      return await listFiles();
+    } catch (error) {
+      console.error("List files error:", error);
+
+      if (error.message.includes("V1 mode")) {
+        alert("File management requires V1 OAuth authentication");
+      } else {
+        alert(`Failed to load files: ${error.message}`);
+      }
+
+      return { success: false, files: [], total_files: 0, total_size_bytes: 0 };
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={() => safeListFiles()}>Safe List Files</button>
+      <button onClick={() => safeDeleteFile("file_123", "example.pdf")}>
+        Safe Delete Example
+      </button>
+    </div>
+  );
+}
+```
+
+### **6. TypeScript Support**
+
+Full TypeScript definitions included:
+
+```typescript
+// Import types for better development experience
+import type {
+  FileInfo,
+  FileListResult,
+  FileDeleteResult,
+  TrainlyFileManagerProps,
+} from "@trainly/react";
+
+// Type-safe file operations
+const handleTypedFileOps = async () => {
+  const fileList: FileListResult = await listFiles();
+  const deleteResult: FileDeleteResult = await deleteFile("file_123");
+
+  // Full IntelliSense support
+  console.log(deleteResult.size_bytes_freed);
+  console.log(fileList.total_size_bytes);
+};
+```
+
+### **7. Security & Privacy Notes**
+
+- 🔒 **V1 Only**: File management only works with V1 Trusted Issuer authentication
+- 👤 **User Isolation**: Users can only see and delete their own files
+- 🛡️ **No Raw Access**: Developers never see file content, only AI responses
+- 📊 **Privacy-Safe Analytics**: Storage tracking without exposing user data
+- ⚠️ **Permanent Deletion**: Deleted files cannot be recovered
+- 🔐 **OAuth Required**: Must be authenticated with valid OAuth token
+
+### **8. Storage Management**
+
+File operations automatically update storage analytics:
+
+```tsx
+// Storage is tracked automatically
+const result = await deleteFile(fileId);
+console.log(`Freed ${result.size_bytes_freed} bytes`);
+
+// Check total storage
+const files = await listFiles();
+console.log(`Using ${files.total_size_bytes} bytes total`);
+
+// Parent app analytics are updated automatically
+// (visible in Trainly dashboard for developers)
+```
+
 ---
 
 ## 🚀 Original Quick Start (Legacy)

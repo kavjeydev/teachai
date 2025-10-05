@@ -259,6 +259,151 @@ export const trackFileUpload = mutation({
   },
 });
 
+// Track file deletion
+export const trackFileDeletion = mutation({
+  args: {
+    appId: v.string(),
+    endUserId: v.string(),
+    filename: v.string(),
+    fileSize: v.number(),
+    chatId: v.union(v.id("chats"), v.string()), // Accept both Convex ID and string ID
+  },
+  handler: async (ctx, args) => {
+    console.log(
+      `📊 [Analytics] Processing deletion: ${args.filename} (${args.fileSize} bytes) for app ${args.appId}`,
+    );
+
+    // Find the subchat (handle both Convex ID and string ID)
+    let subchat;
+    if (typeof args.chatId === "string") {
+      // String chat ID - find by chatId field
+      subchat = await ctx.db
+        .query("chats")
+        .filter((q) => q.eq(q.field("chatId"), args.chatId))
+        .first();
+    } else {
+      // Convex document ID - get directly
+      subchat = await ctx.db.get(args.chatId);
+    }
+
+    if (subchat) {
+      // Update subchat's own metadata (decrease file counts)
+      const subchatMetadata = (subchat as any).metadata || defaultMetadata;
+      await ctx.db.patch((subchat as any)._id, {
+        metadata: {
+          ...subchatMetadata,
+          totalFiles: Math.max(0, subchatMetadata.totalFiles - 1), // Ensure non-negative
+          totalStorageBytes: Math.max(
+            0,
+            subchatMetadata.totalStorageBytes - args.fileSize,
+          ),
+          totalFileSize: Math.max(
+            0,
+            (subchatMetadata.totalFileSize || 0) - args.fileSize,
+          ),
+          lastActivityAt: Date.now(),
+          lastMetadataUpdate: Date.now(),
+        },
+      });
+
+      console.log(
+        `📊 [Analytics] Updated subchat ${(subchat as any).chatId} own storage: -${args.fileSize} bytes (own total: ${Math.max(0, subchatMetadata.totalStorageBytes - args.fileSize)})`,
+      );
+
+      // Find the correct parent chat using the proper relationship
+      let parentChat = null;
+
+      if ((subchat as any).parentChatId) {
+        // Direct reference using string chatId - much more efficient
+        parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), (subchat as any).parentChatId))
+          .first();
+        console.log(
+          `📊 [Analytics] Found parent via parentChatId: ${(parentChat as any)?.chatId}`,
+        );
+      } else if ((subchat as any).parentAppId) {
+        // Legacy fallback - lookup by app's parentChatId
+        const app = await ctx.db
+          .query("apps")
+          .withIndex("by_appId", (q) =>
+            q.eq("appId", (subchat as any).parentAppId),
+          )
+          .first();
+
+        if (app && app.parentChatId) {
+          parentChat = await ctx.db.get(app.parentChatId);
+          console.log(
+            `📊 [Analytics] Found parent via app lookup: ${(parentChat as any)?.chatId}`,
+          );
+        }
+      }
+
+      // Update parent chat's aggregated storage metadata (decrease all subchat files)
+      if (parentChat) {
+        const parentMetadata = (parentChat as any).metadata || defaultMetadata;
+        const fileType = getFileType(args.filename);
+
+        const updatedParentMetadata = {
+          ...parentMetadata,
+          totalFiles: Math.max(0, parentMetadata.totalFiles - 1),
+          totalStorageBytes: Math.max(
+            0,
+            parentMetadata.totalStorageBytes - args.fileSize,
+          ),
+          totalFileSize: Math.max(
+            0,
+            (parentMetadata.totalFileSize || 0) - args.fileSize,
+          ),
+          lastActivityAt: Date.now(),
+          lastMetadataUpdate: Date.now(),
+
+          // Update file type distribution (decrease count)
+          fileTypeStats: {
+            ...parentMetadata.fileTypeStats,
+            [fileType]: Math.max(
+              0,
+              (parentMetadata.fileTypeStats?.[fileType] || 0) - 1,
+            ),
+          },
+
+          // Update user activity summary (decrease files uploaded)
+          userActivitySummary: parentMetadata.userActivitySummary.map(
+            (user: any) =>
+              user.userIdHash === hashUserId(args.endUserId)
+                ? {
+                    ...user,
+                    filesUploaded: Math.max(0, user.filesUploaded - 1),
+                    storageUsedBytes: Math.max(
+                      0,
+                      user.storageUsedBytes - args.fileSize,
+                    ),
+                    lastActiveAt: Date.now(),
+                  }
+                : user,
+          ),
+        };
+
+        await ctx.db.patch((parentChat as any)._id, {
+          metadata: updatedParentMetadata,
+        });
+
+        console.log(
+          `✅ [Analytics] Updated parent chat ${(parentChat as any).chatId} aggregated storage: -${args.fileSize} bytes (total: ${updatedParentMetadata.totalStorageBytes})`,
+        );
+      } else {
+        console.log(
+          `📊 [Analytics] No parent chat found for subchat ${(subchat as any).chatId} - only updated subchat storage`,
+        );
+      }
+    } else {
+      console.log(`📊 [Analytics] Chat ${args.chatId} not found`);
+    }
+
+    return { success: true };
+  },
+});
+
 // Track API query
 export const trackApiQuery = mutation({
   args: {

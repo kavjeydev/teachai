@@ -1,4 +1,10 @@
-import { TrainlyConfig, Citation, UploadResult } from "../types";
+import {
+  TrainlyConfig,
+  Citation,
+  UploadResult,
+  FileListResult,
+  FileDeleteResult,
+} from "../types";
 
 interface QueryResponse {
   answer: string;
@@ -300,6 +306,83 @@ export class TrainlyClient {
         message: "File uploaded to your private workspace",
       };
     }
+  }
+
+  async listFiles(): Promise<FileListResult> {
+    if (!this.scopedToken) {
+      throw new Error(
+        "Not connected. Call connect() or connectWithOAuthToken() first.",
+      );
+    }
+
+    // NEW: V1 Trusted Issuer mode
+    if (this.isV1Mode && this.config.appId) {
+      const response = await fetch(`${this.config.baseUrl}/v1/me/chats/files`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.scopedToken}`,
+          "X-App-ID": this.config.appId,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          `V1 list files failed: ${error.detail || response.statusText}`,
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    }
+
+    // For other modes, this functionality is not yet implemented
+    // as it requires chat-specific API endpoints
+    throw new Error(
+      "File listing is currently only available in V1 Trusted Issuer mode",
+    );
+  }
+
+  async deleteFile(fileId: string): Promise<FileDeleteResult> {
+    if (!this.scopedToken) {
+      throw new Error(
+        "Not connected. Call connect() or connectWithOAuthToken() first.",
+      );
+    }
+
+    if (!fileId) {
+      throw new Error("File ID is required");
+    }
+
+    // NEW: V1 Trusted Issuer mode
+    if (this.isV1Mode && this.config.appId) {
+      const response = await fetch(
+        `${this.config.baseUrl}/v1/me/chats/files/${encodeURIComponent(fileId)}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${this.scopedToken}`,
+            "X-App-ID": this.config.appId,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          `V1 delete file failed: ${error.detail || response.statusText}`,
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    }
+
+    // For other modes, this functionality is not yet implemented
+    // as it requires chat-specific API endpoints
+    throw new Error(
+      "File deletion is currently only available in V1 Trusted Issuer mode",
+    );
   }
 
   private extractChatId(): string {

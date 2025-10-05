@@ -742,6 +742,34 @@ async def track_file_upload(app_id: str, end_user_id: str, filename: str, file_s
     except Exception as e:
         logger.error(f"Failed to track file upload: {e}")
 
+async def track_file_deletion(app_id: str, end_user_id: str, filename: str, file_size: int, chat_id: str):
+    """Track file deletion for analytics"""
+    try:
+        # Call Convex to update metadata and decrease storage counts
+        convex_url = "https://colorless-finch-681.convex.cloud/api/run/chat_analytics/trackFileDeletion"
+
+        args = {
+            "appId": app_id,
+            "endUserId": end_user_id,
+            "filename": filename,
+            "fileSize": file_size,
+            "chatId": chat_id
+        }
+
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                convex_url,
+                json={
+                    "args": args,
+                    "format": "json"
+                },
+                timeout=5.0
+            )
+
+        logger.info(f"📊 Analytics: File deleted | App: {app_id} | Size: {format_bytes(file_size)} freed | Type: {get_file_type(filename)}")
+    except Exception as e:
+        logger.error(f"Failed to track file deletion: {e}")
+
 async def track_upload_analytics(chat_id: str, filename: str, pdf_text: str, actual_file_size: int = None):
     """Track upload analytics by extracting info from chat_id and determining if it's a sub-chat"""
     try:
@@ -2264,6 +2292,199 @@ async def v1_user_profile(
     }
 
 # ==============================================================================
+# File Management API Endpoints
+# ==============================================================================
+
+class FileInfo(BaseModel):
+    file_id: str
+    filename: str
+    upload_date: str
+    size_bytes: int
+    chunk_count: int
+
+class FileListResponse(BaseModel):
+    success: bool
+    files: List[FileInfo]
+    total_files: int
+    total_size_bytes: int
+
+class FileDeleteRequest(BaseModel):
+    file_id: str
+
+class FileDeleteResponse(BaseModel):
+    success: bool
+    message: str
+    file_id: str
+    filename: str
+    chunks_deleted: int
+    size_bytes_freed: int
+
+@app.get("/v1/me/chats/files", response_model=FileListResponse)
+async def v1_list_user_files(
+    authorization: str = Header(None, alias="authorization"),
+    app_id: str = Header(None, alias="x-app-id")
+):
+    """
+    V1 List User Files: Get all files in user's permanent subchat
+
+    Lists all documents that the user has uploaded to their private subchat,
+    including metadata like file size, upload date, and chunk count.
+    """
+
+    if not app_id:
+        raise HTTPException(status_code=400, detail="X-App-ID header required")
+
+    # Authenticate user with their OAuth ID token
+    user_identity = await authenticate_v1_user(authorization, app_id)
+
+    try:
+        # Get user's subchat info
+        subchat = await get_or_create_user_subchat(
+            user_identity["app_id"],
+            user_identity["external_user_id"]
+        )
+
+        # Query Neo4j for all documents in user's subchat
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # Get all documents with their metadata
+                query = """
+                MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                WHERE c.chatId = $chat_id
+                WITH d, count(c) as chunk_count
+                RETURN d.id as file_id, d.filename as filename,
+                       d.uploadDate as upload_date, d.sizeBytes as size_bytes,
+                       chunk_count
+                ORDER BY d.uploadDate DESC
+                """
+
+                result = session.run(query, chat_id=subchat["chatStringId"])
+
+                files = []
+                total_size = 0
+
+                for record in result:
+                    file_info = FileInfo(
+                        file_id=record["file_id"],
+                        filename=record["filename"] or "Unknown",
+                        upload_date=record["upload_date"] or "Unknown",
+                        size_bytes=record["size_bytes"] or 0,
+                        chunk_count=record["chunk_count"]
+                    )
+                    files.append(file_info)
+                    total_size += file_info.size_bytes
+
+                logger.info(f"📋 Listed {len(files)} files for user {user_identity['user_id']} in subchat {subchat['chatStringId']}")
+
+                return FileListResponse(
+                    success=True,
+                    files=files,
+                    total_files=len(files),
+                    total_size_bytes=total_size
+                )
+
+    except Exception as e:
+        logger.error(f"Failed to list files for user {user_identity.get('user_id', 'unknown')}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
+
+@app.delete("/v1/me/chats/files/{file_id}", response_model=FileDeleteResponse)
+async def v1_delete_user_file(
+    file_id: str,
+    authorization: str = Header(None, alias="authorization"),
+    app_id: str = Header(None, alias="x-app-id")
+):
+    """
+    V1 Delete User File: Delete a specific file from user's permanent subchat
+
+    Removes the document and all its chunks from Neo4j database,
+    and updates storage analytics to reflect the freed space.
+    """
+
+    if not app_id:
+        raise HTTPException(status_code=400, detail="X-App-ID header required")
+
+    # Authenticate user with their OAuth ID token
+    user_identity = await authenticate_v1_user(authorization, app_id)
+
+    # Sanitize file_id
+    sanitized_file_id = sanitize_text(file_id)
+    if not sanitized_file_id:
+        raise HTTPException(status_code=400, detail="Invalid file_id format")
+
+    try:
+        # Get user's subchat info
+        subchat = await get_or_create_user_subchat(
+            user_identity["app_id"],
+            user_identity["external_user_id"]
+        )
+
+        # Delete from Neo4j and get metadata for analytics
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # First, get file info before deletion for analytics
+                info_query = """
+                MATCH (d:Document {id: $file_id})-[:HAS_CHUNK]->(c:Chunk)
+                WHERE c.chatId = $chat_id
+                WITH d, count(c) as chunk_count
+                RETURN d.filename as filename, d.sizeBytes as size_bytes, chunk_count
+                """
+
+                info_result = session.run(info_query, file_id=sanitized_file_id, chat_id=subchat["chatStringId"])
+                file_info = info_result.single()
+
+                if not file_info:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"File {sanitized_file_id} not found in your subchat"
+                    )
+
+                filename = file_info["filename"] or "Unknown"
+                size_bytes = file_info["size_bytes"] or 0
+                chunk_count = file_info["chunk_count"]
+
+                # Now delete the document and all its chunks
+                delete_query = """
+                MATCH (d:Document {id: $file_id})-[r:HAS_CHUNK]->(c:Chunk)
+                WHERE c.chatId = $chat_id
+                DETACH DELETE d, c
+                """
+
+                delete_result = session.run(delete_query, file_id=sanitized_file_id, chat_id=subchat["chatStringId"])
+                summary = delete_result.consume()
+
+                if summary.counters.nodes_deleted == 0:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"No document found with id: {sanitized_file_id}"
+                    )
+
+                # Track file deletion for analytics
+                await track_file_deletion(
+                    user_identity["app_id"],
+                    user_identity["external_user_id"],
+                    filename,
+                    size_bytes,
+                    subchat["chatStringId"]
+                )
+
+                logger.info(f"🗑️ Deleted file {filename} ({size_bytes} bytes, {chunk_count} chunks) for user {user_identity['user_id']}")
+
+                return FileDeleteResponse(
+                    success=True,
+                    message=f"File '{filename}' deleted successfully",
+                    file_id=sanitized_file_id,
+                    filename=filename,
+                    chunks_deleted=chunk_count,
+                    size_bytes_freed=size_bytes
+                )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete file {sanitized_file_id} for user {user_identity.get('user_id', 'unknown')}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+# ==============================================================================
 # External Chat API Endpoints (Production Ready)
 # ==============================================================================
 
@@ -2728,13 +2949,24 @@ async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_
 
                 print(f"✅ Creating new document: {pdf_id} ({filename}) in chat {chat_id}")
 
-                # Create Document node
+                # Create Document node with metadata
+                current_timestamp = int(time.time() * 1000)  # Unix timestamp in milliseconds
                 query = """
                 MERGE (d:Document {id: $pdf_id})
-                SET d.chatId = $chat_id, d.filename = $filename
+                SET d.chatId = $chat_id,
+                    d.filename = $filename,
+                    d.uploadDate = $upload_date,
+                    d.sizeBytes = $size_bytes
                 RETURN d
                 """
-                result = session.run(query, pdf_id=pdf_id, chat_id=chat_id, filename=filename)
+                # Calculate text size in bytes for storage tracking
+                text_size_bytes = len(pdf_text.encode('utf-8')) if pdf_text else 0
+                result = session.run(query,
+                                   pdf_id=pdf_id,
+                                   chat_id=chat_id,
+                                   filename=filename,
+                                   upload_date=current_timestamp,
+                                   size_bytes=text_size_bytes)
                 print(f"Created document node: {result.single()}")
 
                 # Create chunks and embeddings

@@ -41,10 +41,42 @@ export interface UploadResult {
   message?: string;
 }
 
+export interface FileInfo {
+  file_id: string;
+  filename: string;
+  upload_date: string;
+  size_bytes: number;
+  chunk_count: number;
+}
+
+export interface FileListResult {
+  success: boolean;
+  files: FileInfo[];
+  total_files: number;
+  total_size_bytes: number;
+}
+
+export interface FileDeleteResult {
+  success: boolean;
+  message: string;
+  file_id: string;
+  filename: string;
+  chunks_deleted: number;
+  size_bytes_freed: number;
+}
+
 export interface TrainlyError {
   code: string;
   message: string;
   details?: any;
+}
+
+export interface TrainlyFileManagerProps {
+  className?: string;
+  onFileDeleted?: (fileId: string, filename: string) => void;
+  onError?: (error: Error) => void;
+  showUploadButton?: boolean;
+  maxFileSize?: number; // in MB
 }
 
 export interface TrainlyContextValue {
@@ -54,6 +86,10 @@ export interface TrainlyContextValue {
     question: string,
   ) => Promise<{ answer: string; citations: Citation[] }>;
   upload: (file: File) => Promise<UploadResult>;
+
+  // NEW: File management functions
+  listFiles: () => Promise<FileListResult>;
+  deleteFile: (fileId: string) => Promise<FileDeleteResult>;
 
   // NEW: V1 Authentication
   connectWithOAuthToken: (idToken: string) => Promise<void>;

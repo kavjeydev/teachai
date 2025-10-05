@@ -7,6 +7,8 @@ import {
   ChatMessage,
   Citation,
   UploadResult,
+  FileListResult,
+  FileDeleteResult,
   TrainlyError,
 } from "./types";
 import { TrainlyClient } from "./api/TrainlyClient";
@@ -313,6 +315,92 @@ export function TrainlyProvider({
     }
   };
 
+  const listFiles = async (): Promise<FileListResult> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await client.listFiles();
+      return result;
+    } catch (err) {
+      // Check if it's an authentication error and we have a token refresh function
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (
+        getToken &&
+        appId &&
+        (errorMessage.includes("401") ||
+          errorMessage.includes("authentication") ||
+          errorMessage.includes("Unauthorized"))
+      ) {
+        try {
+          console.log("🔄 Token expired during file listing, refreshing...");
+          const newToken = await getToken();
+          if (newToken) {
+            await client.connectWithOAuthToken(newToken);
+            // Retry the list with fresh token
+            const result = await client.listFiles();
+            console.log("✅ File listing succeeded after token refresh");
+            return result;
+          }
+        } catch (refreshError) {
+          console.error("❌ Token refresh failed:", refreshError);
+        }
+      }
+
+      const error: TrainlyError = {
+        code: "LIST_FILES_FAILED",
+        message: "Failed to list files",
+        details: err,
+      };
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteFile = async (fileId: string): Promise<FileDeleteResult> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await client.deleteFile(fileId);
+      return result;
+    } catch (err) {
+      // Check if it's an authentication error and we have a token refresh function
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (
+        getToken &&
+        appId &&
+        (errorMessage.includes("401") ||
+          errorMessage.includes("authentication") ||
+          errorMessage.includes("Unauthorized"))
+      ) {
+        try {
+          console.log("🔄 Token expired during file deletion, refreshing...");
+          const newToken = await getToken();
+          if (newToken) {
+            await client.connectWithOAuthToken(newToken);
+            // Retry the deletion with fresh token
+            const result = await client.deleteFile(fileId);
+            console.log("✅ File deletion succeeded after token refresh");
+            return result;
+          }
+        } catch (refreshError) {
+          console.error("❌ Token refresh failed:", refreshError);
+        }
+      }
+
+      const error: TrainlyError = {
+        code: "DELETE_FILE_FAILED",
+        message: "Failed to delete file",
+        details: err,
+      };
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const sendMessage = async (content: string): Promise<void> => {
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -349,6 +437,8 @@ export function TrainlyProvider({
     ask,
     askWithCitations,
     upload,
+    listFiles, // NEW: File management methods
+    deleteFile,
     connectWithOAuthToken, // NEW: V1 OAuth connection method
     isLoading,
     isConnected,
