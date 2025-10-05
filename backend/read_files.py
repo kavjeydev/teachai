@@ -618,10 +618,18 @@ async def get_or_create_user_subchat(app_id: str, end_user_id: str) -> Dict[str,
                 if existing_subchat:
                     # User already has a subchat - return existing
                     logger.info(f"👤 Returning existing subchat for user {end_user_id[:8]}... in app {app_id}")
+                    logger.debug(f"🔍 Existing subchat structure: {existing_subchat}")
+
+                    # Handle different possible response structures
+                    chat_string_id = existing_subchat.get("chatStringId") or existing_subchat.get("chatId")
+                    if not chat_string_id:
+                        logger.error(f"❌ No chatStringId or chatId found in subchat response: {existing_subchat}")
+                        raise ValueError("Invalid subchat response structure")
+
                     return {
                         "userChatId": existing_subchat["userChatId"],
-                        "chatId": existing_subchat["chatStringId"],
-                        "chatStringId": existing_subchat["chatStringId"],
+                        "chatId": chat_string_id,
+                        "chatStringId": chat_string_id,
                         "isNew": False,  # Existing user
                         "capabilities": existing_subchat.get("capabilities", ["ask", "upload"])
                     }
@@ -648,10 +656,18 @@ async def get_or_create_user_subchat(app_id: str, end_user_id: str) -> Dict[str,
                 new_subchat = create_result.get("value")
 
                 if new_subchat:
+                    logger.debug(f"🔍 New subchat structure: {new_subchat}")
+
+                    # Handle different possible response structures
+                    chat_string_id = new_subchat.get("chatStringId") or new_subchat.get("chatId")
+                    if not chat_string_id:
+                        logger.error(f"❌ No chatStringId or chatId found in new subchat response: {new_subchat}")
+                        raise ValueError("Invalid new subchat response structure")
+
                     return {
                         "userChatId": new_subchat["userChatId"],
-                        "chatId": new_subchat["chatStringId"],
-                        "chatStringId": new_subchat["chatStringId"],
+                        "chatId": chat_string_id,
+                        "chatStringId": chat_string_id,
                         "isNew": new_subchat.get("isNew", True),
                         "capabilities": new_subchat.get("capabilities", ["ask", "upload"])
                     }
@@ -2520,10 +2536,18 @@ async def v1_list_user_files(
                 total_size = 0
 
                 for record in result:
+                    # Convert upload_date from timestamp to string if it's a number
+                    upload_date_value = record["upload_date"]
+                    if isinstance(upload_date_value, (int, float)):
+                        # Convert timestamp to ISO format string
+                        upload_date_str = datetime.fromtimestamp(upload_date_value / 1000).isoformat()
+                    else:
+                        upload_date_str = str(upload_date_value) if upload_date_value else "Unknown"
+
                     file_info = FileInfo(
                         file_id=record["file_id"],
                         filename=record["filename"] or "Unknown",
-                        upload_date=record["upload_date"] or "Unknown",
+                        upload_date=upload_date_str,
                         size_bytes=record["size_bytes"] or 0,
                         chunk_count=record["chunk_count"]
                     )
@@ -4269,6 +4293,135 @@ async def remove_context(file_id: str): # TODO: add auth to this endpoint
         raise HTTPException(
             status_code=500,
             detail=f"Failed to delete Document node in Neo4j: {str(e)}"
+        )
+
+@app.post("/cleanup_chat_data/{chat_id}")
+async def cleanup_chat_data(chat_id: str, convex_id: str = Query(None), child_chat_ids: str = Query(None)):
+    """
+    Permanently delete all data associated with a chat cluster from Neo4j.
+    This includes the parent chat and all its subchats' documents and chunks.
+    """
+    try:
+        print(f"🗑️ DELETE_CHAT_CLUSTER: Starting deletion for chat_id: {chat_id}")
+
+        # Parse child chat IDs if provided
+        child_ids = []
+        if child_chat_ids:
+            child_ids = [id.strip() for id in child_chat_ids.split(',') if id.strip()]
+            print(f"🗑️ Child chat IDs provided: {child_ids}")
+
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # Build the WHERE clause to include all chat IDs (parent + children)
+                all_chat_ids = [chat_id]
+                if convex_id and convex_id != chat_id:
+                    all_chat_ids.append(convex_id)
+                all_chat_ids.extend(child_ids)
+
+                # Create IN clause for all chat IDs
+                chat_ids_list = ', '.join([f"'{id}'" for id in all_chat_ids])
+
+                # First, let's see what data exists for all these chat IDs (debugging)
+                debug_query = f"""
+                MATCH (d:Document)
+                WHERE d.chatId IN [{chat_ids_list}]
+                RETURN d.chatId as docChatId, d.id as docId, d.filename as filename
+                """
+                debug_result = session.run(debug_query)
+
+                print(f"🗑️ DEBUG: Looking for documents with chat IDs: {all_chat_ids}")
+
+                doc_count = 0
+                for record in debug_result:
+                    doc_count += 1
+                    print(f"🗑️ DEBUG: Found document - chatId: {record['docChatId']}, id: {record['docId']}, filename: {record['filename']}")
+
+                if doc_count == 0:
+                    print(f"🗑️ DEBUG: No documents found for any chat IDs")
+                else:
+                    print(f"🗑️ DEBUG: Found {doc_count} documents to delete")
+
+                # Now perform the actual deletion for all chat IDs
+                deletion_query = f"""
+                MATCH (d:Document)
+                WHERE d.chatId IN [{chat_ids_list}]
+                OPTIONAL MATCH (d)-[r:HAS_CHUNK]->(c:Chunk)
+                DETACH DELETE d, c
+                """
+
+                result = session.run(deletion_query)
+
+                summary = result.consume()
+                nodes_deleted = summary.counters.nodes_deleted
+                relationships_deleted = summary.counters.relationships_deleted
+
+                print(f"🗑️ SUCCESS: Deleted chat cluster for {chat_id} and {len(child_ids)} child chats: {nodes_deleted} nodes, {relationships_deleted} relationships")
+
+                return {
+                    "status": "success",
+                    "message": f"Chat cluster {chat_id} and {len(child_ids)} child chats deleted from Neo4j",
+                    "nodes_deleted": nodes_deleted,
+                    "relationships_deleted": relationships_deleted,
+                    "debug_info": {
+                        "parent_chat_id": chat_id,
+                        "child_chat_ids": child_ids,
+                        "total_chat_ids_processed": len(all_chat_ids),
+                        "documents_found_before_deletion": doc_count
+                    }
+                }
+
+    except Exception as e:
+        print(f"Failed to delete chat cluster: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete chat cluster from Neo4j: {str(e)}"
+        )
+
+@app.get("/debug_chat_data/{chat_id}")
+async def debug_chat_data(chat_id: str):
+    """
+    Debug endpoint to see what data exists for a chat_id in Neo4j
+    """
+    try:
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # Find all documents for this chat_id
+                query = """
+                MATCH (d:Document)
+                WHERE d.chatId = $chat_id OR d.chatId STARTS WITH $chat_id_prefix
+                OPTIONAL MATCH (d)-[r:HAS_CHUNK]->(c:Chunk)
+                RETURN d.chatId as docChatId, d.id as docId, d.filename as filename,
+                       count(c) as chunk_count
+                """
+                result = session.run(query,
+                                   chat_id=chat_id,
+                                   chat_id_prefix=f"subchat_{chat_id}_")
+
+                documents = []
+                total_chunks = 0
+                for record in result:
+                    doc_info = {
+                        "chatId": record["docChatId"],
+                        "docId": record["docId"],
+                        "filename": record["filename"],
+                        "chunk_count": record["chunk_count"]
+                    }
+                    documents.append(doc_info)
+                    total_chunks += record["chunk_count"] or 0
+
+                return {
+                    "chat_id": chat_id,
+                    "search_prefix": f"subchat_{chat_id}_",
+                    "documents_found": len(documents),
+                    "total_chunks": total_chunks,
+                    "documents": documents
+                }
+
+    except Exception as e:
+        print(f"Failed to debug chat data: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to debug chat data: {str(e)}"
         )
 
 # Graph API endpoints for interactive graph interface

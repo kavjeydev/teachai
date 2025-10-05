@@ -530,6 +530,174 @@ export const archive = mutation({
   },
 });
 
+// Get archived chats
+export const getArchivedChats = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const chats = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("isArchived"), true))
+      .order("desc")
+      .collect();
+
+    return chats;
+  },
+});
+
+// Restore chat from archive
+export const restoreFromArchive = mutation({
+  args: {
+    id: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("User not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingDocument = await ctx.db.get(args.id);
+
+    if (!existingDocument) {
+      throw new Error("Document not found.");
+    }
+
+    if (existingDocument.userId !== userId) {
+      throw new Error("Unauthorized to modify.");
+    }
+
+    if (!existingDocument.isArchived) {
+      throw new Error("Chat is not archived.");
+    }
+
+    // Check user's subscription and current chat limits before restoring
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    // Get current active (non-archived) chat count
+    const currentActiveChats = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .collect();
+
+    // Determine chat limit based on subscription tier
+    let chatLimit = 1; // Default free tier limit
+    let tierName = "free";
+
+    if (subscription && subscription.status === "active") {
+      const priceId = subscription.priceId;
+
+      if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) {
+        chatLimit = 10;
+        tierName = "pro";
+      } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID) {
+        chatLimit = 25;
+        tierName = "scale";
+      } else {
+        chatLimit = -1; // Enterprise - unlimited
+        tierName = "enterprise";
+      }
+    }
+
+    // Check if restoring this chat would exceed the limit
+    if (chatLimit !== -1 && currentActiveChats.length >= chatLimit) {
+      const nextTier =
+        tierName === "free"
+          ? "Pro ($39/mo)"
+          : tierName === "pro"
+            ? "Scale ($199/mo)"
+            : "Enterprise";
+
+      throw new Error(
+        `Cannot restore chat. You've reached your limit of ${chatLimit} active chat${chatLimit > 1 ? "s" : ""} for the ${tierName} plan. Upgrade to ${nextTier} or archive existing chats first.`,
+      );
+    }
+
+    const document = await ctx.db.patch(args.id, {
+      isArchived: false,
+    });
+
+    return document;
+  },
+});
+
+// Permanently delete chat and all associated data
+export const permanentlyDelete = mutation({
+  args: {
+    id: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("User not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const existingChat = await ctx.db.get(args.id);
+
+    if (!existingChat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (existingChat.userId !== userId) {
+      throw new Error("Unauthorized to delete.");
+    }
+
+    if (!existingChat.isArchived) {
+      throw new Error("Chat must be archived before permanent deletion.");
+    }
+
+    // Find all child chats (subchats) that belong to this parent chat
+    const childChats = await ctx.db
+      .query("chats")
+      .filter((q) => q.eq(q.field("parentChatId"), existingChat.chatId))
+      .collect();
+
+    // Delete all child chats first
+    for (const childChat of childChats) {
+      // Delete child chat
+      await ctx.db.delete(childChat._id);
+    }
+
+    console.log(
+      `🗑️ PERMANENT DELETE MUTATION CALLED for chat: ${existingChat.chatId}`,
+    );
+    console.log(`🗑️ Chat details:`, {
+      _id: existingChat._id,
+      chatId: existingChat.chatId,
+      title: existingChat.title,
+      isArchived: existingChat.isArchived,
+    });
+
+    // Neo4j cleanup will be handled by the frontend after this mutation completes
+
+    // Delete the parent chat
+    await ctx.db.delete(args.id);
+
+    return {
+      success: true,
+      chatId: existingChat.chatId,
+      convexId: existingChat._id, // Also return the Convex ID for Neo4j cleanup
+      deletedChildChats: childChats.length,
+      childChatIds: childChats.map((chat) => chat.chatId), // Return child chat IDs for Neo4j cleanup
+    };
+  },
+});
+
 export const changeVisibility = mutation({
   args: {
     id: v.id("chats"),
@@ -794,26 +962,6 @@ export const remove = mutation({
     // Delete the chat
     const chat = await ctx.db.delete(args.id);
     return chat;
-  },
-});
-
-export const getArchivedChats = query({
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated.");
-    }
-
-    const userId = identity.subject;
-
-    const chats = await ctx.db
-      .query("chats")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("isArchived"), true))
-      .order("desc")
-      .collect();
-
-    return chats;
   },
 });
 

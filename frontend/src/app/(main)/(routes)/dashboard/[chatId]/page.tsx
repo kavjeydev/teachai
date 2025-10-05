@@ -4,7 +4,7 @@ require("dotenv").config({ path: ".env.local" });
 import { useState, useEffect, useRef, useCallback } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
-import { File, Paperclip, Send, Sparkles } from "lucide-react";
+import { File, Paperclip, Send, Sparkles, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { Id } from "../../../../../../convex/_generated/dataModel";
@@ -504,6 +504,15 @@ function Dashboard({ params }: ChatIdPageProps) {
   // File upload handler - now uses queue system
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setFileKey(new Date());
+
+    // Check if chat is archived
+    if (currentChat?.isArchived) {
+      toast.error(
+        "Cannot upload files to an archived chat. Please restore it first.",
+      );
+      return;
+    }
+
     const files = e.target.files;
     if (!files || files.length === 0) {
       toast.error("No files selected.");
@@ -528,10 +537,22 @@ function Dashboard({ params }: ChatIdPageProps) {
   };
 
   const triggerFileInput = () => {
+    if (currentChat?.isArchived) {
+      toast.error(
+        "Cannot upload files to an archived chat. Please restore it first.",
+      );
+      return;
+    }
     fileInputRef.current?.click();
   };
 
   const triggerFolderInput = () => {
+    if (currentChat?.isArchived) {
+      toast.error(
+        "Cannot upload files to an archived chat. Please restore it first.",
+      );
+      return;
+    }
     folderInputRef.current?.click();
   };
 
@@ -566,6 +587,9 @@ function Dashboard({ params }: ChatIdPageProps) {
   // File queue system
   const fileQueue = useFileQueue({
     chatId: effectiveChatId!,
+    chatInfo: displayChat
+      ? { chatType: displayChat.chatType, chatId: displayChat.chatId }
+      : undefined,
     onFileProcessed: (fileId, fileName) => {
       // Add file to context when processed
       console.log(
@@ -1104,6 +1128,14 @@ function Dashboard({ params }: ChatIdPageProps) {
     const messageStart = performance.now();
     logUserAction("send_message_start");
 
+    // Check if chat is archived
+    if (currentChat?.isArchived) {
+      toast.error(
+        "Cannot send messages to an archived chat. Please restore it first.",
+      );
+      return;
+    }
+
     const editorContent = editor?.getHTML() || "";
     if (!editorContent.trim() || editorContent === "<p></p>") {
       toast.error("Message cannot be empty.");
@@ -1460,7 +1492,27 @@ function Dashboard({ params }: ChatIdPageProps) {
 
         {/* Enhanced Input Area */}
         <div className="px-12 pb-8 pt-4 max-w-5xl mx-auto w-full">
-          <div className="bg-gradient-to-br from-white via-white to-zinc-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-900 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-2xl rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-br from-white via-white to-zinc-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-900 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-2xl rounded-3xl overflow-hidden relative">
+            {/* Archived Chat Overlay */}
+            {currentChat?.isArchived && (
+              <div className="absolute inset-0 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm z-50 rounded-3xl flex items-center justify-center">
+                <div className="text-center p-8">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-zinc-200 dark:bg-zinc-700 rounded-full flex items-center justify-center">
+                    <Archive className="w-8 h-8 text-zinc-500 dark:text-zinc-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                    Chat Archived
+                  </h3>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4 max-w-md">
+                    This chat has been archived and is no longer accessible for
+                    new messages or file uploads.
+                  </p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    Restore this chat from the sidebar to continue using it.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Context Files - Elegant Collapsible Design */}
             {displayChat?.context?.length ? (
               <ContextFilesSection

@@ -28,6 +28,7 @@ import {
   Download,
   Share,
   Archive,
+  RotateCcw,
   FolderPlus,
   Folder,
   FolderOpen,
@@ -45,16 +46,20 @@ import {
   CreditCard,
 } from "lucide-react";
 import { BillingDashboard } from "@/components/billing-dashboard";
+import { ChatDeleteDialog } from "@/components/chat-delete-dialog";
 
 export default function ChatManagementPage() {
   const { user } = useUser();
   const router = useRouter();
 
   const chats = useQuery(api.chats.getChats);
+  const archivedChats = useQuery(api.chats.getArchivedChats);
   const chatLimits = useQuery(api.chats.getUserChatLimits);
   const userFolders = useQuery(api.chats.getFolders);
   const addChat = useMutation(api.chats.createChat);
   const archiveChat = useMutation(api.chats.archive);
+  const restoreChat = useMutation(api.chats.restoreFromArchive);
+  const permanentlyDeleteChat = useMutation(api.chats.permanentlyDelete);
   const renameChat = useMutation(api.chats.rename);
   const createFolder = useMutation(api.chats.createFolder);
   const moveToFolder = useMutation(api.chats.moveToFolder);
@@ -80,6 +85,10 @@ export default function ChatManagementPage() {
   const [showDeleteFolderModal, setShowDeleteFolderModal] = useState(false);
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
   const [folderChatCount, setFolderChatCount] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState<any>(null);
+  const [isPermanentDelete, setIsPermanentDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Calculate folder counts
   const folderCounts = useMemo(() => {
@@ -92,6 +101,7 @@ export default function ChatManagementPage() {
         return new Date(chat._creationTime) > weekAgo;
       }).length,
       uncategorized: chats.filter((chat) => !chat.folderId).length,
+      archived: archivedChats?.length || 0,
     };
 
     // Add counts for user-created folders
@@ -104,7 +114,7 @@ export default function ChatManagementPage() {
     }
 
     return counts;
-  }, [chats, userFolders]);
+  }, [chats, archivedChats, userFolders]);
 
   // Folder organization - combine default and user folders
   const allFolders = useMemo(() => {
@@ -122,6 +132,12 @@ export default function ChatManagementPage() {
         icon: Folder,
         color: "text-zinc-600",
       },
+      {
+        id: "archived",
+        name: "Archived",
+        icon: Archive,
+        color: "text-orange-600",
+      },
     ];
 
     const customFolders =
@@ -137,15 +153,19 @@ export default function ChatManagementPage() {
 
   // Filter and sort chats
   const filteredAndSortedChats = useMemo(() => {
-    if (!chats) return [];
+    // Use archived chats if archived folder is selected, otherwise use regular chats
+    const sourceChats =
+      selectedFolder === "archived" ? archivedChats || [] : chats || [];
 
-    let filtered = chats.filter((chat) => {
+    if (!sourceChats.length) return [];
+
+    let filtered = sourceChats.filter((chat) => {
       const matchesSearch = chat.title
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
 
       let matchesFolder = true;
-      if (selectedFolder !== "all") {
+      if (selectedFolder !== "all" && selectedFolder !== "archived") {
         switch (selectedFolder) {
           case "recent":
             const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -210,7 +230,7 @@ export default function ChatManagementPage() {
 
       return sortOrder === "asc" ? comparison : -comparison;
     });
-  }, [chats, searchQuery, sortBy, sortOrder, selectedFolder]);
+  }, [chats, archivedChats, searchQuery, sortBy, sortOrder, selectedFolder]);
 
   const onCreate = async () => {
     // Check if user can create more chats
@@ -233,9 +253,8 @@ export default function ChatManagementPage() {
     }
   };
 
-  const onDelete = (chatId: Id<"chats">) => {
-    archiveChat({ id: chatId });
-    toast.success("Chat moved to trash");
+  const onDelete = (chat: any) => {
+    handleArchiveChat(chat);
   };
 
   const startEditing = (chat: any) => {
@@ -336,6 +355,108 @@ export default function ChatManagementPage() {
     setFolderChatCount(chatCount);
     setFolderToDelete(folderId);
     setShowDeleteFolderModal(true);
+  };
+
+  const handleArchiveChat = (chat: any) => {
+    setChatToDelete(chat);
+    setIsPermanentDelete(false);
+    setDeleteDialogOpen(true);
+  };
+
+  const handlePermanentDelete = (chat: any) => {
+    setChatToDelete(chat);
+    setIsPermanentDelete(true);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleRestoreChat = async (chat: any) => {
+    try {
+      await restoreChat({ id: chat._id });
+      toast.success(`"${chat.title}" restored successfully!`);
+    } catch (error: any) {
+      console.error("Failed to restore chat:", error);
+
+      // Show specific error message with upgrade option if it's a limit error
+      if (error.message && error.message.includes("reached your limit")) {
+        toast.error(error.message, {
+          duration: 8000,
+          action: {
+            label: "View Plans",
+            onClick: () => window.open("/pricing", "_blank"),
+          },
+        });
+      } else {
+        toast.error(error.message || "Failed to restore chat");
+      }
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!chatToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      if (isPermanentDelete) {
+        // First, delete from Convex database
+        const result = await permanentlyDeleteChat({ id: chatToDelete._id });
+        console.log(
+          `🗑️ Convex deletion completed for chat: ${chatToDelete.title}`,
+        );
+
+        // Then, cleanup Neo4j data from frontend
+        try {
+          const backendUrl =
+            process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000";
+          // Remove trailing slash to avoid double slashes
+          const baseUrl = backendUrl.endsWith("/")
+            ? backendUrl.slice(0, -1)
+            : backendUrl;
+          // Include child chat IDs if they exist
+          const childChatIdsParam =
+            result.childChatIds && result.childChatIds.length > 0
+              ? `&child_chat_ids=${encodeURIComponent(result.childChatIds.join(","))}`
+              : "";
+          const cleanupUrl = `${baseUrl}/cleanup_chat_data/${result.chatId}?convex_id=${result.convexId}${childChatIdsParam}`;
+
+          console.log(`🗑️ Calling Neo4j cleanup from frontend: ${cleanupUrl}`);
+
+          const neo4jResponse = await fetch(cleanupUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (neo4jResponse.ok) {
+            const neo4jResult = await neo4jResponse.json();
+            console.log(`✅ Neo4j cleanup successful:`, neo4jResult);
+            console.log(
+              `✅ Nodes deleted: ${neo4jResult.nodes_deleted}, Relationships deleted: ${neo4jResult.relationships_deleted}`,
+            );
+          } else {
+            console.error(`❌ Neo4j cleanup failed: ${neo4jResponse.status}`);
+            const errorText = await neo4jResponse.text();
+            console.error(`❌ Error response: ${errorText}`);
+            // Don't fail the whole operation if Neo4j cleanup fails
+          }
+        } catch (neo4jError) {
+          console.error(`💥 Error calling Neo4j cleanup:`, neo4jError);
+          // Don't fail the whole operation if Neo4j cleanup fails
+        }
+
+        toast.success(`"${chatToDelete.title}" permanently deleted.`);
+      } else {
+        await archiveChat({ id: chatToDelete._id });
+        toast.success(`"${chatToDelete.title}" archived successfully!`);
+      }
+      setDeleteDialogOpen(false);
+      setChatToDelete(null);
+    } catch (error: any) {
+      console.error("Failed to delete/archive chat:", error);
+      toast.error(error.message || "Operation failed");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (!user) {
@@ -619,36 +740,69 @@ export default function ChatManagementPage() {
                             >
                               <Eye className="w-3 h-3 text-zinc-500" />
                             </button>
-                            <button
-                              onClick={() => {
-                                setChatToMove(chat._id);
-                                setShowMoveModal(true);
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                              title="Move to Folder"
-                            >
-                              <Folder className="w-3 h-3 text-zinc-500" />
-                            </button>
-                            <button
-                              onClick={() => startEditing(chat)}
-                              className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                              title="Rename"
-                            >
-                              <Edit3 className="w-3 h-3 text-zinc-500" />
-                            </button>
-                            <button
-                              onClick={() => onDelete(chat._id)}
-                              className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash className="w-3 h-3 text-red-500" />
-                            </button>
+                            {selectedFolder !== "archived" && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setChatToMove(chat._id);
+                                    setShowMoveModal(true);
+                                  }}
+                                  className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                                  title="Move to Folder"
+                                >
+                                  <Folder className="w-3 h-3 text-zinc-500" />
+                                </button>
+                                <button
+                                  onClick={() => startEditing(chat)}
+                                  className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                                  title="Rename"
+                                >
+                                  <Edit3 className="w-3 h-3 text-zinc-500" />
+                                </button>
+                              </>
+                            )}
+                            {selectedFolder === "archived" ? (
+                              // Archived chat actions
+                              <>
+                                <button
+                                  onClick={() => handleRestoreChat(chat)}
+                                  className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
+                                  title="Restore Chat"
+                                >
+                                  <RotateCcw className="w-3 h-3 text-green-500" />
+                                </button>
+                                <button
+                                  onClick={() => handlePermanentDelete(chat)}
+                                  className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                                  title="Delete Permanently"
+                                >
+                                  <Trash className="w-3 h-3 text-red-500" />
+                                </button>
+                              </>
+                            ) : (
+                              // Active chat actions
+                              <button
+                                onClick={() => onDelete(chat)}
+                                className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                                title="Archive"
+                              >
+                                <Archive className="w-3 h-3 text-orange-500" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
                         <div
-                          className="cursor-pointer"
-                          onClick={() => router.push(`/dashboard/${chat._id}`)}
+                          className={
+                            selectedFolder === "archived"
+                              ? "cursor-default opacity-60"
+                              : "cursor-pointer"
+                          }
+                          onClick={() => {
+                            if (selectedFolder !== "archived") {
+                              router.push(`/dashboard/${chat._id}`);
+                            }
+                          }}
                         >
                           {editingChatId === chat._id ? (
                             <Input
@@ -718,8 +872,12 @@ export default function ChatManagementPage() {
                       // List View - Table Style
                       <div className="flex items-center gap-4 p-4">
                         <div
-                          className="flex items-center gap-4 flex-1 cursor-pointer"
-                          onClick={() => router.push(`/dashboard/${chat._id}`)}
+                          className={`flex items-center gap-4 flex-1 ${selectedFolder === "archived" ? "cursor-default opacity-60" : "cursor-pointer"}`}
+                          onClick={() => {
+                            if (selectedFolder !== "archived") {
+                              router.push(`/dashboard/${chat._id}`);
+                            }
+                          }}
                         >
                           <div className="w-10 h-10 bg-gradient-to-br from-amber-400/20 to-amber-100 dark:from-amber-400/20 dark:to-zinc-700 rounded-xl flex items-center justify-center flex-shrink-0">
                             <MessageSquare className="w-5 h-5 text-amber-400" />
@@ -774,53 +932,80 @@ export default function ChatManagementPage() {
                         </div>
 
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleFavorite(chat._id);
-                            }}
-                            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                            title={chat.isFavorited ? "Unfavorite" : "Favorite"}
-                          >
-                            {chat.isFavorited ? (
-                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 hover:text-yellow-600" />
-                            ) : (
-                              <Star className="w-4 h-4 text-zinc-300 hover:text-yellow-500" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() =>
-                              router.push(`/dashboard/${chat._id}/graph`)
-                            }
-                            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                            title="View Graph"
-                          >
-                            <Eye className="w-4 h-4 text-zinc-500" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setChatToMove(chat._id);
-                              setShowMoveModal(true);
-                            }}
-                            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                            title="Move to Folder"
-                          >
-                            <Folder className="w-4 h-4 text-zinc-500" />
-                          </button>
-                          <button
-                            onClick={() => startEditing(chat)}
-                            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                            title="Rename"
-                          >
-                            <Edit3 className="w-4 h-4 text-zinc-500" />
-                          </button>
-                          <button
-                            onClick={() => onDelete(chat._id)}
-                            className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash className="w-4 h-4 text-red-500" />
-                          </button>
+                          {selectedFolder !== "archived" && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleFavorite(chat._id);
+                                }}
+                                className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                                title={
+                                  chat.isFavorited ? "Unfavorite" : "Favorite"
+                                }
+                              >
+                                {chat.isFavorited ? (
+                                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 hover:text-yellow-600" />
+                                ) : (
+                                  <Star className="w-4 h-4 text-zinc-300 hover:text-yellow-500" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() =>
+                                  router.push(`/dashboard/${chat._id}/graph`)
+                                }
+                                className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                                title="View Graph"
+                              >
+                                <Eye className="w-4 h-4 text-zinc-500" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setChatToMove(chat._id);
+                                  setShowMoveModal(true);
+                                }}
+                                className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                                title="Move to Folder"
+                              >
+                                <Folder className="w-4 h-4 text-zinc-500" />
+                              </button>
+                              <button
+                                onClick={() => startEditing(chat)}
+                                className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                                title="Rename"
+                              >
+                                <Edit3 className="w-4 h-4 text-zinc-500" />
+                              </button>
+                            </>
+                          )}
+                          {selectedFolder === "archived" ? (
+                            // Archived chat actions
+                            <>
+                              <button
+                                onClick={() => handleRestoreChat(chat)}
+                                className="p-2 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
+                                title="Restore Chat"
+                              >
+                                <RotateCcw className="w-4 h-4 text-green-500" />
+                              </button>
+                              <button
+                                onClick={() => handlePermanentDelete(chat)}
+                                className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                                title="Delete Permanently"
+                              >
+                                <Trash className="w-4 h-4 text-red-500" />
+                              </button>
+                            </>
+                          ) : (
+                            // Active chat actions
+                            <button
+                              onClick={() => onDelete(chat)}
+                              className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                              title="Archive"
+                            >
+                              <Archive className="w-4 h-4 text-orange-500" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -990,6 +1175,20 @@ export default function ChatManagementPage() {
           </div>
         </div>
       )}
+
+      {/* Chat Delete Dialog */}
+      <ChatDeleteDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setChatToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        chatTitle={chatToDelete?.title || ""}
+        isPermanentDelete={isPermanentDelete}
+        isLoading={isDeleting}
+        subchatCount={0} // TODO: Calculate subchat count if needed
+      />
     </div>
   );
 }

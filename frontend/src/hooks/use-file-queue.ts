@@ -110,12 +110,14 @@ export interface UploadQueue {
 
 interface UseFileQueueProps {
   chatId: Id<"chats">;
+  chatInfo?: { chatType?: string; chatId?: string }; // Optional chat info to avoid extra queries
   onFileProcessed?: (fileId: string, fileName: string) => void;
   onQueueComplete?: (queueId: string) => void;
 }
 
 export function useFileQueue({
   chatId,
+  chatInfo,
   onFileProcessed,
   onQueueComplete,
 }: UseFileQueueProps) {
@@ -321,22 +323,34 @@ export function useFileQueue({
           return updated;
         });
 
-        // Check if this is a subchat by getting chat info first
+        // Check if this is a subchat and get the correct chat ID to use
         let isSubchat = false;
-        try {
-          const chatInfo = await convex.query(api.chats.getChatById, {
-            id: chatId,
-          });
-          isSubchat = chatInfo?.chatType === "app_subchat";
-          console.log(
-            `🔍 Chat type detected: ${chatInfo?.chatType}, isSubchat: ${isSubchat}`,
-          );
-        } catch (error) {
-          console.warn(
-            "Failed to get chat info, assuming regular chat:",
-            error,
-          );
+        let actualChatId = chatId as string; // Default to the passed chatId
+
+        // Use passed chatInfo if available, otherwise detect from chatId format
+        if (chatInfo) {
+          isSubchat = chatInfo.chatType === "app_subchat";
+          if (isSubchat && chatInfo.chatId) {
+            actualChatId = chatInfo.chatId;
+            console.log(
+              `🔍 SUBCHAT DETECTED - Using string chatId: ${actualChatId} instead of Convex _id: ${chatId}`,
+            );
+          }
+        } else {
+          // Fallback: detect subchat from string format
+          const chatIdStr = chatId as string;
+          if (chatIdStr && chatIdStr.startsWith("subchat_")) {
+            isSubchat = true;
+            actualChatId = chatIdStr;
+            console.log(
+              `🔍 SUBCHAT DETECTED by string format: ${actualChatId}`,
+            );
+          }
         }
+
+        console.log(
+          `🔍 Chat type detected: ${chatInfo?.chatType || "unknown"}, isSubchat: ${isSubchat}`,
+        );
 
         // For subchats, skip embeddings creation since V1 API handles it
         if (isSubchat) {
@@ -381,13 +395,13 @@ export function useFileQueue({
         const embeddingsPayload = {
           pdf_text: extractData.text,
           pdf_id: uniqueFileId,
-          chat_id: chatId as string,
+          chat_id: actualChatId,
           filename: queuedFile.fileName,
         };
 
         console.log("📤 Uploading file with payload:", {
           filename: queuedFile.fileName,
-          chat_id: chatId as string,
+          chat_id: actualChatId,
           pdf_id: uniqueFileId,
           text_length: extractData.text.length,
         });

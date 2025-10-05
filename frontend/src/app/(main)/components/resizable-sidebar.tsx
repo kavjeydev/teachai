@@ -25,6 +25,10 @@ import {
   Menu,
   X,
   LogOut,
+  Archive,
+  RotateCcw,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -34,71 +38,144 @@ import { useNavigationLoading } from "@/components/app-loading-provider";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
+import { ChatDeleteDialog } from "@/components/chat-delete-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ResizableSidebarParams {
   chatId?: Id<"chats">;
 }
 
-// Memoized chat item component for better performance
+// Enhanced chat item component with archive/delete actions
 const ChatItem = React.memo(
   ({
     chat,
     isActive,
     onClick,
     isNavigatingTo,
+    isArchived = false,
+    onArchive,
+    onRestore,
+    onPermanentDelete,
   }: {
     chat: any;
     isActive: boolean;
     onClick: () => void;
     isNavigatingTo?: boolean;
+    isArchived?: boolean;
+    onArchive?: (chat: any) => void;
+    onRestore?: (chat: any) => void;
+    onPermanentDelete?: (chat: any) => void;
   }) => {
-    const handleClick = () => {
+    const handleClick = (e: React.MouseEvent) => {
+      // Prevent navigation if clicking on the dropdown
+      if ((e.target as HTMLElement).closest("[data-dropdown-trigger]")) {
+        return;
+      }
       onClick();
     };
 
     return (
-      <button
-        onClick={handleClick}
+      <div
         className={cn(
           "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 group",
           isActive && "bg-amber-400/10 border border-amber-400/20",
           isNavigatingTo && "bg-amber-400/5", // Immediate feedback
         )}
       >
-        <div
-          className={cn(
-            "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
-            isActive
-              ? "bg-amber-400 text-white"
-              : isNavigatingTo
-                ? "bg-amber-400/50 text-white"
-                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400",
-          )}
+        <button
+          onClick={handleClick}
+          className="flex items-center gap-3 flex-1 min-w-0"
         >
-          <MessageSquare className="h-3 w-3" />
-        </div>
-        <div className="flex-1 min-w-0 text-left">
           <div
             className={cn(
-              "text-sm font-medium truncate",
+              "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
               isActive
-                ? "text-amber-400"
+                ? "bg-amber-400 text-white"
                 : isNavigatingTo
-                  ? "text-amber-400/70"
-                  : "text-zinc-900 dark:text-white",
+                  ? "bg-amber-400/50 text-white"
+                  : isArchived
+                    ? "bg-zinc-300 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400"
+                    : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400",
             )}
           >
-            {chat.title}
+            {isArchived ? (
+              <Archive className="h-3 w-3" />
+            ) : (
+              <MessageSquare className="h-3 w-3" />
+            )}
           </div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-            {chat.context?.length || 0} docs •{" "}
-            {new Date(chat._creationTime).toLocaleDateString()}
+          <div className="flex-1 min-w-0 text-left">
+            <div
+              className={cn(
+                "text-sm font-medium truncate",
+                isActive
+                  ? "text-amber-400"
+                  : isNavigatingTo
+                    ? "text-amber-400/70"
+                    : isArchived
+                      ? "text-zinc-500 dark:text-zinc-400"
+                      : "text-zinc-900 dark:text-white",
+              )}
+            >
+              {chat.title}
+            </div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+              {chat.context?.length || 0} docs •{" "}
+              {new Date(chat._creationTime).toLocaleDateString()}
+            </div>
           </div>
-        </div>
+        </button>
+
         {isNavigatingTo && !isActive && (
           <div className="w-3 h-3 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
         )}
-      </button>
+
+        {/* Actions dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              data-dropdown-trigger
+              className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-4 w-4 text-zinc-500" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {isArchived ? (
+              <>
+                <DropdownMenuItem
+                  onClick={() => onRestore?.(chat)}
+                  className="flex items-center gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Restore Chat
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onPermanentDelete?.(chat)}
+                  className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Permanently
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem
+                onClick={() => onArchive?.(chat)}
+                className="flex items-center gap-2 text-amber-600 focus:text-amber-600"
+              >
+                <Archive className="h-4 w-4" />
+                Archive Chat
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     );
   },
 );
@@ -120,6 +197,10 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   }, [pathname, chatId]);
 
   const chats = useQuery(api.chats.getChats, canQuery ? undefined : skipQuery);
+  const archivedChats = useQuery(
+    api.chats.getArchivedChats,
+    canQuery ? undefined : skipQuery,
+  );
   const chatLimits = useQuery(
     api.chats.getUserChatLimits,
     canQuery ? undefined : skipQuery,
@@ -129,6 +210,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
     canQuery ? undefined : skipQuery,
   );
   const addChat = useMutation(api.chats.createChat);
+  const archiveChat = useMutation(api.chats.archive);
+  const restoreChat = useMutation(api.chats.restoreFromArchive);
+  const permanentlyDeleteChat = useMutation(api.chats.permanentlyDelete);
 
   // Sidebar state
   const [sidebarWidth, setSidebarWidth] = React.useState(320); // Default 320px
@@ -136,6 +220,11 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const [isResizing, setIsResizing] = React.useState(false);
   const [showContent, setShowContent] = React.useState(true); // For smooth expand animation
   const [isNavigatingToManage, setIsNavigatingToManage] = React.useState(false);
+  const [showArchivedChats, setShowArchivedChats] = React.useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [chatToDelete, setChatToDelete] = React.useState<any>(null);
+  const [isPermanentDelete, setIsPermanentDelete] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const sidebarRef = React.useRef<HTMLDivElement>(null);
 
   // Load saved state from localStorage
@@ -284,6 +373,114 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
       } else {
         toast.error("Failed to create chat");
       }
+    }
+  };
+
+  const handleArchiveChat = (chat: any) => {
+    setChatToDelete(chat);
+    setIsPermanentDelete(false);
+    setDeleteDialogOpen(true);
+  };
+
+  const handlePermanentDelete = (chat: any) => {
+    setChatToDelete(chat);
+    setIsPermanentDelete(true);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleRestoreChat = async (chat: any) => {
+    try {
+      await restoreChat({ id: chat._id });
+      toast.success(`"${chat.title}" restored successfully!`);
+    } catch (error: any) {
+      console.error("Failed to restore chat:", error);
+
+      // Show specific error message with upgrade option if it's a limit error
+      if (error.message && error.message.includes("reached your limit")) {
+        toast.error(error.message, {
+          duration: 8000,
+          action: {
+            label: "View Plans",
+            onClick: () => window.open("/pricing", "_blank"),
+          },
+        });
+      } else {
+        toast.error(error.message || "Failed to restore chat");
+      }
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!chatToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      if (isPermanentDelete) {
+        // First, delete from Convex database
+        const result = await permanentlyDeleteChat({ id: chatToDelete._id });
+        console.log(
+          `🗑️ Convex deletion completed for chat: ${chatToDelete.title}`,
+        );
+
+        // Then, cleanup Neo4j data from frontend
+        try {
+          const backendUrl =
+            process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000";
+          // Remove trailing slash to avoid double slashes
+          const baseUrl = backendUrl.endsWith("/")
+            ? backendUrl.slice(0, -1)
+            : backendUrl;
+          // Include child chat IDs if they exist
+          const childChatIdsParam =
+            result.childChatIds && result.childChatIds.length > 0
+              ? `&child_chat_ids=${encodeURIComponent(result.childChatIds.join(","))}`
+              : "";
+          const cleanupUrl = `${baseUrl}/cleanup_chat_data/${result.chatId}?convex_id=${result.convexId}${childChatIdsParam}`;
+
+          console.log(`🗑️ Calling Neo4j cleanup from frontend: ${cleanupUrl}`);
+
+          const neo4jResponse = await fetch(cleanupUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (neo4jResponse.ok) {
+            const neo4jResult = await neo4jResponse.json();
+            console.log(`✅ Neo4j cleanup successful:`, neo4jResult);
+            console.log(
+              `✅ Nodes deleted: ${neo4jResult.nodes_deleted}, Relationships deleted: ${neo4jResult.relationships_deleted}`,
+            );
+          } else {
+            console.error(`❌ Neo4j cleanup failed: ${neo4jResponse.status}`);
+            const errorText = await neo4jResponse.text();
+            console.error(`❌ Error response: ${errorText}`);
+            // Don't fail the whole operation if Neo4j cleanup fails
+          }
+        } catch (neo4jError) {
+          console.error(`💥 Error calling Neo4j cleanup:`, neo4jError);
+          // Don't fail the whole operation if Neo4j cleanup fails
+        }
+
+        toast.success(`"${chatToDelete.title}" permanently deleted.`);
+        // Redirect to dashboard after permanent deletion
+        router.push("/dashboard");
+      } else {
+        await archiveChat({ id: chatToDelete._id });
+        toast.success(`"${chatToDelete.title}" archived successfully!`);
+        // Check if we're currently viewing the archived chat and redirect if so
+        if (currentChatId === chatToDelete._id) {
+          router.push("/dashboard");
+        }
+      }
+      setDeleteDialogOpen(false);
+      setChatToDelete(null);
+    } catch (error: any) {
+      console.error("Failed to delete/archive chat:", error);
+      toast.error(error.message || "Operation failed");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -466,6 +663,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                               onClick={() =>
                                 navigateTo(`/dashboard/${chat._id}`)
                               }
+                              onArchive={handleArchiveChat}
                             />
                           </div>
                         ))}
@@ -505,6 +703,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                                 onClick={() =>
                                   navigateTo(`/dashboard/${chat._id}`)
                                 }
+                                onArchive={handleArchiveChat}
                               />
                             </div>
                           ))}
@@ -537,6 +736,51 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Archived Chats */}
+                  {archivedChats && archivedChats.length > 0 && (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-400 font-semibold mb-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Archive className="h-3 w-3" />
+                          <span>Archived</span>
+                          <span className="text-xs bg-zinc-200 dark:bg-zinc-700 px-2 py-0.5 rounded-full">
+                            {archivedChats.length}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() =>
+                            setShowArchivedChats(!showArchivedChats)
+                          }
+                          className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                        >
+                          <ChevronRight
+                            className={cn(
+                              "h-3 w-3 transition-transform",
+                              showArchivedChats && "rotate-90",
+                            )}
+                          />
+                        </button>
+                      </div>
+                      {showArchivedChats && (
+                        <div className="space-y-1">
+                          {archivedChats.map((chat) => (
+                            <div key={chat._id}>
+                              <ChatItem
+                                chat={chat}
+                                isActive={false} // Archived chats are not navigable
+                                isNavigatingTo={false}
+                                onClick={() => {}} // No-op for archived chats
+                                isArchived={true}
+                                onRestore={handleRestoreChat}
+                                onPermanentDelete={handlePermanentDelete}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Quick Actions */}
                   <div className="mb-6">
@@ -746,6 +990,20 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
       {/* Overlay when resizing */}
       {isResizing && <div className="fixed inset-0 z-50 cursor-col-resize" />}
+
+      {/* Chat Delete Dialog */}
+      <ChatDeleteDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setChatToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        chatTitle={chatToDelete?.title || ""}
+        isPermanentDelete={isPermanentDelete}
+        isLoading={isDeleting}
+        subchatCount={0} // TODO: Calculate subchat count if needed
+      />
     </>
   );
 }
