@@ -1,14 +1,5 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "npm install --legacy-peer-deps",
-  "functions": {
-    "app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "env": {
-    "NODE_OPTIONS": "--max-old-space-size=8192"
-  }
+  "installCommand": "npm install --legacy-peer-deps"
 }
