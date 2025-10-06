@@ -21,7 +21,7 @@ import {
   BarChart3,
   Shield,
   Globe,
-  Clock
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -44,8 +44,13 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
   const [rateLimitRpm, setRateLimitRpm] = useState(60);
 
   // Convex mutations and queries
-  const integrationKeys = useQuery(api.api_keys.getChatIntegrationKeys, { chatId });
-  const usageStats = useQuery(api.api_keys.getChatUsageStats, { chatId, timeRange: "7d" });
+  const integrationKeys = useQuery(api.api_keys.getChatIntegrationKeys, {
+    chatId,
+  });
+  const usageStats = useQuery(api.api_keys.getChatUsageStats, {
+    chatId,
+    timeRange: "7d",
+  });
   const createKey = useMutation(api.api_keys.createIntegrationKey);
   const revokeKey = useMutation(api.api_keys.revokeIntegrationKey);
   const updateKey = useMutation(api.api_keys.updateIntegrationKey);
@@ -56,7 +61,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
       const result = await createKey({
         chatId,
         scopes,
-        allowedOrigins: allowedOrigins.filter(origin => origin.trim()),
+        allowedOrigins: allowedOrigins.filter((origin) => origin.trim()),
         rateLimitRpm,
         description: description || "Generated from dashboard",
       });
@@ -80,11 +85,15 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
   };
 
   const handleRevokeKey = async (keyId: Id<"integration_keys">) => {
-    if (!confirm("Are you sure you want to revoke this API key? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to revoke this API key? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
-    setRevokingKeys(prev => new Set([...prev, keyId]));
+    setRevokingKeys((prev) => new Set([...prev, keyId]));
     try {
       await revokeKey({ integrationKeyId: keyId });
       toast.success("Integration key revoked successfully");
@@ -92,7 +101,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
       console.error("Failed to revoke key:", error);
       toast.error("Failed to revoke integration key");
     } finally {
-      setRevokingKeys(prev => {
+      setRevokingKeys((prev) => {
         const newSet = new Set(prev);
         newSet.delete(keyId);
         return newSet;
@@ -106,9 +115,9 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
   };
 
   const toggleKeyVisibility = (keyId: string) => {
-    setShowKeyValue(prev => ({
+    setShowKeyValue((prev) => ({
       ...prev,
-      [keyId]: !prev[keyId]
+      [keyId]: !prev[keyId],
     }));
   };
 
@@ -118,17 +127,23 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
       month: "short",
       day: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
 
   const getScopeColor = (scope: string) => {
     const colors = {
-      "chat.query": "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-      "graph.read": "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-      "graph.write": "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+      "chat.query":
+        "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+      "graph.read":
+        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+      "graph.write":
+        "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
     };
-    return colors[scope as keyof typeof colors] || "bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300";
+    return (
+      colors[scope as keyof typeof colors] ||
+      "bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300"
+    );
   };
 
   return (
@@ -193,10 +208,14 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                 </div>
               </div>
               <div className="text-center">
-                <div className={cn(
-                  "text-2xl font-bold",
-                  usageStats.errorRate < 0.05 ? "text-green-600" : "text-red-600"
-                )}>
+                <div
+                  className={cn(
+                    "text-2xl font-bold",
+                    usageStats.errorRate < 0.05
+                      ? "text-green-600"
+                      : "text-red-600",
+                  )}
+                >
                   {(usageStats.errorRate * 100).toFixed(1)}%
                 </div>
                 <div className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -229,10 +248,22 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
               <Label>Scopes (Permissions)</Label>
               <div className="space-y-2 mt-2">
                 {[
-                  { id: "chat.query", label: "Query Chat", description: "Ask questions and get answers" },
-                  { id: "graph.read", label: "Read Graph", description: "Access knowledge graph structure" },
-                  { id: "graph.write", label: "Write Graph", description: "Modify nodes and relationships" }
-                ].map(scope => (
+                  {
+                    id: "chat.query",
+                    label: "Query Chat",
+                    description: "Ask questions and get answers",
+                  },
+                  {
+                    id: "graph.read",
+                    label: "Read Graph",
+                    description: "Access knowledge graph structure",
+                  },
+                  {
+                    id: "graph.write",
+                    label: "Write Graph",
+                    description: "Modify nodes and relationships",
+                  },
+                ].map((scope) => (
                   <label key={scope.id} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -241,7 +272,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                         if (e.target.checked) {
                           setScopes([...scopes, scope.id]);
                         } else {
-                          setScopes(scopes.filter(s => s !== scope.id));
+                          setScopes(scopes.filter((s) => s !== scope.id));
                         }
                       }}
                       className="rounded border-zinc-300"
@@ -263,7 +294,9 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                 id="origins"
                 placeholder="https://myapp.com&#10;https://staging.myapp.com&#10;* (for development only)"
                 value={allowedOrigins.join("\n")}
-                onChange={(e) => setAllowedOrigins(e.target.value.split("\n").filter(Boolean))}
+                onChange={(e) =>
+                  setAllowedOrigins(e.target.value.split("\n").filter(Boolean))
+                }
                 rows={3}
               />
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
@@ -272,14 +305,18 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
             </div>
 
             <div>
-              <Label htmlFor="rateLimit">Rate Limit (Requests per minute)</Label>
+              <Label htmlFor="rateLimit">
+                Rate Limit (Requests per minute)
+              </Label>
               <Input
                 id="rateLimit"
                 type="number"
                 min="1"
                 max="300"
                 value={rateLimitRpm}
-                onChange={(e) => setRateLimitRpm(parseInt(e.target.value) || 60)}
+                onChange={(e) =>
+                  setRateLimitRpm(parseInt(e.target.value) || 60)
+                }
               />
             </div>
 
@@ -298,7 +335,10 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                   "Create Integration Key"
                 )}
               </Button>
-              <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateForm(false)}
+              >
                 Cancel
               </Button>
             </div>
@@ -322,7 +362,8 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                 No API Keys Yet
               </h3>
               <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-                Create your first integration key to start using this chat as an API.
+                Create your first integration key to start using this chat as an
+                API.
               </p>
               <Button
                 onClick={() => setShowCreateForm(true)}
@@ -363,12 +404,18 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                       size="sm"
                       onClick={() => toggleKeyVisibility(key.keyId)}
                     >
-                      {showKeyValue[key.keyId] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showKeyValue[key.keyId] ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(key.keyId, "Integration key")}
+                      onClick={() =>
+                        copyToClipboard(key.keyId, "Integration key")
+                      }
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
@@ -395,7 +442,9 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                   <Label>Integration Key</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
-                      value={showKeyValue[key.keyId] ? key.keyId : "•".repeat(40)}
+                      value={
+                        showKeyValue[key.keyId] ? key.keyId : "•".repeat(40)
+                      }
                       readOnly
                       className="font-mono text-sm"
                     />
@@ -409,7 +458,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                 <div>
                   <Label>Permissions</Label>
                   <div className="flex gap-2 mt-1">
-                    {key.scopes.map(scope => (
+                    {key.capabilities.map((scope: string) => (
                       <Badge key={scope} className={getScopeColor(scope)}>
                         {scope}
                       </Badge>
@@ -425,10 +474,10 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                       Allowed Origins
                     </Label>
                     <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                      {key.allowedOrigins.length === 1 && key.allowedOrigins[0] === "*"
+                      {key.allowedOrigins.length === 1 &&
+                      key.allowedOrigins[0] === "*"
                         ? "All origins (development only)"
-                        : key.allowedOrigins.join(", ")
-                      }
+                        : key.allowedOrigins.join(", ")}
                     </div>
                   </div>
 
@@ -460,10 +509,12 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                       </div>
                     </div>
                     <div>
-                      <div className={cn(
-                        "text-lg font-semibold",
-                        key.isRevoked ? "text-red-600" : "text-green-600"
-                      )}>
+                      <div
+                        className={cn(
+                          "text-lg font-semibold",
+                          key.isRevoked ? "text-red-600" : "text-green-600",
+                        )}
+                      >
                         {key.isRevoked ? "Revoked" : "Active"}
                       </div>
                       <div className="text-xs text-zinc-600 dark:text-zinc-400">
@@ -478,7 +529,9 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
                   <Label>Quick Integration</Label>
                   <div className="mt-2 space-y-2">
                     <div className="bg-zinc-900 dark:bg-zinc-950 rounded-lg p-3">
-                      <div className="text-xs text-zinc-400 mb-1">JavaScript</div>
+                      <div className="text-xs text-zinc-400 mb-1">
+                        JavaScript
+                      </div>
                       <code className="text-xs text-green-400 font-mono">
                         {`const client = new TeachAIClient({
   integrationKey: '${showKeyValue[key.keyId] ? key.keyId : "cik_your_key"}',
@@ -524,13 +577,15 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
               View API Docs
             </Button>
             <Button
-              onClick={() => copyToClipboard(
-                `curl -X POST https://api.teachai.com/v1/chats/${chatId}/query \\
+              onClick={() =>
+                copyToClipboard(
+                  `curl -X POST https://api.teachai.com/v1/chats/${chatId}/query \\
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"messages":[{"role":"user","content":"Hello!"}]}'`,
-                "cURL example"
-              )}
+                  "cURL example",
+                )
+              }
             >
               Copy cURL Example
             </Button>

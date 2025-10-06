@@ -11,7 +11,7 @@ import { Doc } from "./_generated/dataModel";
 export const createIntegrationKey = mutation({
   args: {
     chatId: v.id("chats"),
-    scopes: v.array(v.string()),
+    capabilities: v.array(v.string()),
     allowedOrigins: v.optional(v.array(v.string())),
     rateLimitRpm: v.optional(v.number()),
     description: v.optional(v.string()),
@@ -40,9 +40,10 @@ export const createIntegrationKey = mutation({
     // Store integration key metadata in Convex
     const integrationKey = await ctx.db.insert("integration_keys", {
       keyId,
+      keyType: "direct_chat",
       chatId: args.chatId,
       userId,
-      scopes: args.scopes,
+      capabilities: args.capabilities,
       allowedOrigins: args.allowedOrigins || ["*"],
       rateLimitRpm: args.rateLimitRpm || 60,
       description: args.description || "Generated from dashboard",
@@ -61,7 +62,7 @@ export const createIntegrationKey = mutation({
     return {
       keyId,
       integrationKeyId: integrationKey,
-      scopes: args.scopes,
+      capabilities: args.capabilities,
       allowedOrigins: args.allowedOrigins || ["*"],
       rateLimitRpm: args.rateLimitRpm || 60,
     };
@@ -88,13 +89,13 @@ export const getUserIntegrationKeys = query({
     // Get chat titles for each key
     const keysWithChatInfo = await Promise.all(
       keys.map(async (key) => {
-        const chat = await ctx.db.get(key.chatId);
+        const chat = key.chatId ? await ctx.db.get(key.chatId) : null;
         return {
           ...key,
           chatTitle: chat?.title || "Unknown Chat",
           chatVisibility: chat?.visibility || "private",
         };
-      })
+      }),
     );
 
     return keysWithChatInfo;
@@ -172,7 +173,7 @@ export const revokeIntegrationKey = mutation({
       .collect();
 
     // If no more active keys, disable API access for the chat
-    if (remainingKeys.length === 0) {
+    if (remainingKeys.length === 0 && integrationKey.chatId) {
       await ctx.db.patch(integrationKey.chatId, {
         hasApiAccess: false,
         apiKeyDisabled: true,
@@ -211,8 +212,10 @@ export const updateIntegrationKey = mutation({
 
     // Update the key
     const updates: any = {};
-    if (args.allowedOrigins !== undefined) updates.allowedOrigins = args.allowedOrigins;
-    if (args.rateLimitRpm !== undefined) updates.rateLimitRpm = args.rateLimitRpm;
+    if (args.allowedOrigins !== undefined)
+      updates.allowedOrigins = args.allowedOrigins;
+    if (args.rateLimitRpm !== undefined)
+      updates.rateLimitRpm = args.rateLimitRpm;
     if (args.description !== undefined) updates.description = args.description;
 
     await ctx.db.patch(args.integrationKeyId, updates);
@@ -242,6 +245,10 @@ export const logApiUsage = mutation({
 
     if (!integrationKey) {
       throw new Error("Integration key not found.");
+    }
+
+    if (!integrationKey.chatId) {
+      throw new Error("Integration key does not have an associated chat.");
     }
 
     // Update usage statistics
@@ -300,36 +307,50 @@ export const getChatUsageStats = query({
       "7d": 7 * 24 * 60 * 60 * 1000,
       "30d": 30 * 24 * 60 * 60 * 1000,
     };
-    const range = timeRanges[args.timeRange as keyof typeof timeRanges] || timeRanges["7d"];
+    const range =
+      timeRanges[args.timeRange as keyof typeof timeRanges] || timeRanges["7d"];
     const since = now - range;
 
     // Get usage logs
     const logs = await ctx.db
       .query("api_usage_logs")
       .withIndex("by_chat_timestamp", (q) =>
-        q.eq("chatId", args.chatId).gte("timestamp", since)
+        q.eq("chatId", args.chatId).gte("timestamp", since),
       )
       .collect();
 
     // Calculate statistics
     const totalRequests = logs.length;
-    const totalTokens = logs.reduce((sum, log) => sum + (log.tokensUsed || 0), 0);
-    const successfulRequests = logs.filter(log => log.statusCode < 400).length;
-    const errorRate = totalRequests > 0 ? (totalRequests - successfulRequests) / totalRequests : 0;
-    const avgResponseTime = logs.length > 0
-      ? logs.reduce((sum, log) => sum + (log.responseTime || 0), 0) / logs.length
-      : 0;
+    const totalTokens = logs.reduce(
+      (sum, log) => sum + (log.tokensUsed || 0),
+      0,
+    );
+    const successfulRequests = logs.filter(
+      (log) => log.statusCode < 400,
+    ).length;
+    const errorRate =
+      totalRequests > 0
+        ? (totalRequests - successfulRequests) / totalRequests
+        : 0;
+    const avgResponseTime =
+      logs.length > 0
+        ? logs.reduce((sum, log) => sum + (log.responseTime || 0), 0) /
+          logs.length
+        : 0;
 
     // Group by endpoint
-    const endpointStats = logs.reduce((acc, log) => {
-      const endpoint = log.endpoint;
-      if (!acc[endpoint]) {
-        acc[endpoint] = { count: 0, tokens: 0 };
-      }
-      acc[endpoint].count++;
-      acc[endpoint].tokens += log.tokensUsed || 0;
-      return acc;
-    }, {} as Record<string, { count: number; tokens: number }>);
+    const endpointStats = logs.reduce(
+      (acc, log) => {
+        const endpoint = log.endpoint;
+        if (!acc[endpoint]) {
+          acc[endpoint] = { count: 0, tokens: 0 };
+        }
+        acc[endpoint].count++;
+        acc[endpoint].tokens += log.tokensUsed || 0;
+        return acc;
+      },
+      {} as Record<string, { count: number; tokens: number }>,
+    );
 
     return {
       timeRange: args.timeRange || "7d",
@@ -370,16 +391,18 @@ export const getKeyHealth = query({
     }
 
     // Get recent usage (last 24 hours)
-    const since = Date.now() - (24 * 60 * 60 * 1000);
+    const since = Date.now() - 24 * 60 * 60 * 1000;
     const recentLogs = await ctx.db
       .query("api_usage_logs")
       .withIndex("by_key_timestamp", (q) =>
-        q.eq("integrationKeyId", args.integrationKeyId).gte("timestamp", since)
+        q.eq("integrationKeyId", args.integrationKeyId).gte("timestamp", since),
       )
       .collect();
 
     const recentRequests = recentLogs.length;
-    const recentErrors = recentLogs.filter(log => log.statusCode >= 400).length;
+    const recentErrors = recentLogs.filter(
+      (log) => log.statusCode >= 400,
+    ).length;
 
     return {
       keyId: integrationKey.keyId,
@@ -392,7 +415,7 @@ export const getKeyHealth = query({
       recentRequests,
       recentErrors,
       errorRate: recentRequests > 0 ? recentErrors / recentRequests : 0,
-      scopes: integrationKey.scopes,
+      capabilities: integrationKey.capabilities,
       allowedOrigins: integrationKey.allowedOrigins,
       rateLimitRpm: integrationKey.rateLimitRpm,
     };

@@ -893,7 +893,7 @@ export const recalculateAnalyticsMetrics = internalMutation({
       .collect();
 
     // Get all unique sub-chat IDs
-    const allSubchatIds = new Set();
+    const allSubchatIds = new Set<Id<"chats">>();
 
     // Add direct subchats
     directSubchats.forEach((subchat) => allSubchatIds.add(subchat._id));
@@ -909,7 +909,7 @@ export const recalculateAnalyticsMetrics = internalMutation({
     });
 
     // Fetch all actual sub-chat documents
-    const allSubchats = [];
+    const allSubchats: Doc<"chats">[] = [];
     for (const subchatId of allSubchatIds) {
       const subchat = await ctx.db.get(subchatId);
       if (subchat) {
@@ -1203,7 +1203,7 @@ export const debugChatStructure = query({
 // Fix chat setup (set proper chatType and initialize metadata)
 export const fixChatSetup = mutation({
   args: { chatId: v.id("chats") },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated.");
@@ -1233,7 +1233,7 @@ export const fixChatSetup = mutation({
 
     // Also trigger a recalculation to get accurate metrics
     // This will find and count all sub-chats and files
-    const recalcResult = await ctx.runMutation(
+    const recalcResult: any = await ctx.runMutation(
       internal.chat_analytics.recalculateAnalyticsMetrics,
       {
         chatId: args.chatId,

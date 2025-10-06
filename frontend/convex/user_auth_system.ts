@@ -209,8 +209,7 @@ export const verifyUserAuthToken = query({
       return null;
     }
 
-    // Update last used
-    await ctx.db.patch(authToken._id, { lastUsed: Date.now() });
+    // Note: Cannot update lastUsed in a query - this should be done in a separate mutation
 
     return {
       trainlyUserId: authToken.trainlyUserId,
