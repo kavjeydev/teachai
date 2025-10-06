@@ -60,7 +60,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
     try {
       const result = await createKey({
         chatId,
-        scopes,
+        capabilities: scopes,
         allowedOrigins: allowedOrigins.filter((origin) => origin.trim()),
         rateLimitRpm,
         description: description || "Generated from dashboard",

@@ -5,41 +5,43 @@ import validator from "validator";
 const configureDOMPurify = () => {
   if (typeof window !== "undefined") {
     // Add a hook to sanitize attributes
-    DOMPurify.addHook('afterSanitizeAttributes', function(node) {
+    DOMPurify.addHook("afterSanitizeAttributes", function (node) {
       // Remove any onclick, onload, onerror, etc. attributes
       const attributes = node.attributes;
       if (attributes) {
         for (let i = attributes.length - 1; i >= 0; i--) {
           const attr = attributes[i];
-          if (attr.name.toLowerCase().startsWith('on')) {
+          if (attr.name.toLowerCase().startsWith("on")) {
             node.removeAttribute(attr.name);
           }
           // Also remove data attributes that could contain JavaScript
-          if (attr.name.toLowerCase().startsWith('data-') &&
-              /javascript:|data:|vbscript:|on\w+=/i.test(attr.value)) {
+          if (
+            attr.name.toLowerCase().startsWith("data-") &&
+            /javascript:|data:|vbscript:|on\w+=/i.test(attr.value)
+          ) {
             node.removeAttribute(attr.name);
           }
         }
       }
 
       // Remove dangerous href attributes
-      if (node.tagName === 'A') {
-        const href = node.getAttribute('href');
+      if (node.tagName === "A") {
+        const href = node.getAttribute("href");
         if (href && /^(javascript:|data:|vbscript:)/i.test(href)) {
-          node.removeAttribute('href');
+          node.removeAttribute("href");
         }
       }
 
       // Ensure links open in new tab for security
-      if (node.tagName === 'A' && node.getAttribute('href')) {
-        node.setAttribute('target', '_blank');
-        node.setAttribute('rel', 'noopener noreferrer');
+      if (node.tagName === "A" && node.getAttribute("href")) {
+        node.setAttribute("target", "_blank");
+        node.setAttribute("rel", "noopener noreferrer");
       }
     });
 
     // Hook to remove dangerous CSS
-    DOMPurify.addHook('uponSanitizeElement', function(node, data) {
-      if (data.tagName === 'style') {
+    DOMPurify.addHook("uponSanitizeElement", function (node, data) {
+      if (data.tagName === "style") {
         // Remove style tags completely
         node.parentNode?.removeChild(node);
       }
@@ -58,7 +60,7 @@ configureDOMPurify();
  */
 export function sanitizeHTML(
   dirty: string,
-  options: DOMPurify.Config = {}
+  options: DOMPurify.Config = {},
 ): string {
   if (typeof window === "undefined") {
     return "";
@@ -66,22 +68,61 @@ export function sanitizeHTML(
 
   const defaultConfig: DOMPurify.Config = {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'i', 'b', 'code', 'pre',
-      'blockquote', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4',
-      'h5', 'h6', 'a', 'span', 'div'
+      "p",
+      "br",
+      "strong",
+      "em",
+      "u",
+      "i",
+      "b",
+      "code",
+      "pre",
+      "blockquote",
+      "ul",
+      "ol",
+      "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "a",
+      "span",
+      "div",
     ],
-    ALLOWED_ATTR: ['href', 'title', 'class', 'id', 'target', 'rel'],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOWED_ATTR: ["href", "title", "class", "id", "target", "rel"],
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
     SANITIZE_DOM: true,
     KEEP_CONTENT: false,
-    FORBID_TAGS: ['script', 'object', 'embed', 'style', 'link', 'meta', 'iframe', 'frame', 'frameset'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit'],
-    ...options
+    FORBID_TAGS: [
+      "script",
+      "object",
+      "embed",
+      "style",
+      "link",
+      "meta",
+      "iframe",
+      "frame",
+      "frameset",
+    ],
+    FORBID_ATTR: [
+      "onerror",
+      "onload",
+      "onclick",
+      "onmouseover",
+      "onfocus",
+      "onblur",
+      "onchange",
+      "onsubmit",
+    ],
+    ...options,
   };
 
-  return DOMPurify.sanitize(dirty, defaultConfig as any) as string;
+  return DOMPurify.sanitize(dirty, defaultConfig as any) as unknown as string;
 }
 
 /**
@@ -90,8 +131,8 @@ export function sanitizeHTML(
  * @returns Sanitized text string
  */
 export function sanitizeText(input: string): string {
-  if (!input || typeof input !== 'string') {
-    return '';
+  if (!input || typeof input !== "string") {
+    return "";
   }
 
   return validator.escape(input.trim());
@@ -103,12 +144,14 @@ export function sanitizeText(input: string): string {
  * @returns Sanitized email or empty string if invalid
  */
 export function sanitizeEmail(email: string): string {
-  if (!email || typeof email !== 'string') {
-    return '';
+  if (!email || typeof email !== "string") {
+    return "";
   }
 
   const trimmed = email.trim().toLowerCase();
-  return validator.isEmail(trimmed) ? validator.normalizeEmail(trimmed) || '' : '';
+  return validator.isEmail(trimmed)
+    ? validator.normalizeEmail(trimmed) || ""
+    : "";
 }
 
 /**
@@ -117,33 +160,37 @@ export function sanitizeEmail(email: string): string {
  * @returns Sanitized URL or empty string if invalid
  */
 export function sanitizeURL(url: string): string {
-  if (!url || typeof url !== 'string') {
-    return '';
+  if (!url || typeof url !== "string") {
+    return "";
   }
 
   const trimmed = url.trim();
 
   // Allow relative URLs for internal navigation
-  if (trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) {
+  if (
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("./") ||
+    trimmed.startsWith("../")
+  ) {
     // Basic validation for relative URLs
     if (!/[<>"'`\s]/.test(trimmed)) {
       return trimmed;
     }
-    return '';
+    return "";
   }
 
   // Validate absolute URLs
   const isValidURL = validator.isURL(trimmed, {
-    protocols: ['http', 'https'],
+    protocols: ["http", "https"],
     require_protocol: true,
     require_host: true,
     require_valid_protocol: true,
     allow_underscores: false,
     allow_trailing_dot: false,
-    allow_protocol_relative_urls: false
+    allow_protocol_relative_urls: false,
   });
 
-  return isValidURL ? trimmed : '';
+  return isValidURL ? trimmed : "";
 }
 
 /**
@@ -152,15 +199,15 @@ export function sanitizeURL(url: string): string {
  * @returns Sanitized filename
  */
 export function sanitizeFilename(filename: string): string {
-  if (!filename || typeof filename !== 'string') {
-    return '';
+  if (!filename || typeof filename !== "string") {
+    return "";
   }
 
   // Remove path traversal attempts and dangerous characters
   return filename
-    .replace(/[\/\\:*?"<>|]/g, '') // Remove dangerous characters
-    .replace(/\.\./g, '') // Remove path traversal
-    .replace(/^\.+/, '') // Remove leading dots
+    .replace(/[\/\\:*?"<>|]/g, "") // Remove dangerous characters
+    .replace(/\.\./g, "") // Remove path traversal
+    .replace(/^\.+/, "") // Remove leading dots
     .trim()
     .substring(0, 255); // Limit length
 }
@@ -171,7 +218,7 @@ export function sanitizeFilename(filename: string): string {
  * @returns Parsed and validated JSON object or null if invalid
  */
 export function sanitizeJSON(jsonString: string): any {
-  if (!jsonString || typeof jsonString !== 'string') {
+  if (!jsonString || typeof jsonString !== "string") {
     return null;
   }
 
@@ -180,11 +227,11 @@ export function sanitizeJSON(jsonString: string): any {
 
     // Recursively sanitize string values in the JSON
     const sanitizeValue = (value: any): any => {
-      if (typeof value === 'string') {
+      if (typeof value === "string") {
         return sanitizeText(value);
       } else if (Array.isArray(value)) {
         return value.map(sanitizeValue);
-      } else if (value && typeof value === 'object') {
+      } else if (value && typeof value === "object") {
         const sanitized: any = {};
         for (const [key, val] of Object.entries(value)) {
           const sanitizedKey = sanitizeText(key);
@@ -209,19 +256,23 @@ export function sanitizeJSON(jsonString: string): any {
  * @returns Sanitized chat ID or empty string if invalid
  */
 export function sanitizeChatId(chatId: string): string {
-  if (!chatId || typeof chatId !== 'string') {
-    return '';
+  if (!chatId || typeof chatId !== "string") {
+    return "";
   }
 
   // Assuming chat IDs should be alphanumeric with specific length
   const trimmed = chatId.trim();
 
   // Basic validation - adjust pattern based on your chat ID format
-  if (/^[a-zA-Z0-9_-]+$/.test(trimmed) && trimmed.length >= 3 && trimmed.length <= 50) {
+  if (
+    /^[a-zA-Z0-9_-]+$/.test(trimmed) &&
+    trimmed.length >= 3 &&
+    trimmed.length <= 50
+  ) {
     return trimmed;
   }
 
-  return '';
+  return "";
 }
 
 /**
@@ -230,18 +281,22 @@ export function sanitizeChatId(chatId: string): string {
  * @returns Sanitized API key or empty string if invalid
  */
 export function sanitizeApiKey(apiKey: string): string {
-  if (!apiKey || typeof apiKey !== 'string') {
-    return '';
+  if (!apiKey || typeof apiKey !== "string") {
+    return "";
   }
 
   const trimmed = apiKey.trim();
 
   // Basic validation for API key format (adjust based on your format)
-  if (/^[a-zA-Z0-9_-]+$/.test(trimmed) && trimmed.length >= 10 && trimmed.length <= 100) {
+  if (
+    /^[a-zA-Z0-9_-]+$/.test(trimmed) &&
+    trimmed.length >= 10 &&
+    trimmed.length <= 100
+  ) {
     return trimmed;
   }
 
-  return '';
+  return "";
 }
 
 /**
@@ -250,9 +305,12 @@ export function sanitizeApiKey(apiKey: string): string {
  * @param allowHTML - Whether to allow limited HTML tags
  * @returns Sanitized message
  */
-export function sanitizeUserMessage(message: string, allowHTML: boolean = false): string {
-  if (!message || typeof message !== 'string') {
-    return '';
+export function sanitizeUserMessage(
+  message: string,
+  allowHTML: boolean = false,
+): string {
+  if (!message || typeof message !== "string") {
+    return "";
   }
 
   if (allowHTML) {
@@ -272,16 +330,16 @@ export function sanitizeUserMessage(message: string, allowHTML: boolean = false)
 export function sanitizeWithLength(
   input: string,
   maxLength: number = 1000,
-  minLength: number = 0
+  minLength: number = 0,
 ): string {
-  if (!input || typeof input !== 'string') {
-    return '';
+  if (!input || typeof input !== "string") {
+    return "";
   }
 
   const sanitized = sanitizeText(input);
 
   if (sanitized.length < minLength || sanitized.length > maxLength) {
-    return '';
+    return "";
   }
 
   return sanitized;
@@ -321,14 +379,14 @@ const XSS_PATTERNS = [
  * @returns True if XSS patterns are detected
  */
 export function detectXSS(input: string): boolean {
-  if (!input || typeof input !== 'string') {
+  if (!input || typeof input !== "string") {
     return false;
   }
 
   const decoded = decodeURIComponent(input);
   const normalized = decoded.toLowerCase();
 
-  return XSS_PATTERNS.some(pattern => pattern.test(normalized));
+  return XSS_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
 /**
@@ -339,24 +397,24 @@ export function detectXSS(input: string): boolean {
  */
 export function sanitizeWithXSSDetection(
   input: string,
-  options: { allowHTML?: boolean; maxLength?: number } = {}
+  options: { allowHTML?: boolean; maxLength?: number } = {},
 ): string {
   const { allowHTML = false, maxLength = 1000 } = options;
 
-  if (!input || typeof input !== 'string') {
-    return '';
+  if (!input || typeof input !== "string") {
+    return "";
   }
 
   // Detect XSS patterns first
   if (detectXSS(input)) {
-    console.warn('XSS patterns detected in input:', input.substring(0, 100));
-    return '';
+    console.warn("XSS patterns detected in input:", input.substring(0, 100));
+    return "";
   }
 
   // Length check
   if (input.length > maxLength) {
-    console.warn('Input exceeds maximum length:', input.length);
-    return '';
+    console.warn("Input exceeds maximum length:", input.length);
+    return "";
   }
 
   // Sanitize based on options
@@ -376,13 +434,13 @@ export function sanitizeWithXSSDetection(
  */
 export function sanitizeUserInput(
   input: string,
-  context: string = 'general',
-  options: { allowHTML?: boolean; maxLength?: number; minLength?: number } = {}
+  context: string = "general",
+  options: { allowHTML?: boolean; maxLength?: number; minLength?: number } = {},
 ): string {
   const { allowHTML = false, maxLength = 1000, minLength = 0 } = options;
 
-  if (!input || typeof input !== 'string') {
-    return '';
+  if (!input || typeof input !== "string") {
+    return "";
   }
 
   const trimmed = input.trim();
@@ -390,18 +448,21 @@ export function sanitizeUserInput(
   // Length validation
   if (trimmed.length < minLength) {
     console.warn(`Input too short in ${context}:`, trimmed.length);
-    return '';
+    return "";
   }
 
   if (trimmed.length > maxLength) {
     console.warn(`Input too long in ${context}:`, trimmed.length);
-    return '';
+    return "";
   }
 
   // XSS detection
   if (detectXSS(trimmed)) {
-    console.warn(`XSS attempt detected in ${context}:`, trimmed.substring(0, 50));
-    return '';
+    console.warn(
+      `XSS attempt detected in ${context}:`,
+      trimmed.substring(0, 50),
+    );
+    return "";
   }
 
   // Sanitize
@@ -409,7 +470,9 @@ export function sanitizeUserInput(
 
   // Log if significant sanitization occurred
   if (sanitized.length < trimmed.length * 0.8) {
-    console.warn(`Significant content removed during sanitization in ${context}`);
+    console.warn(
+      `Significant content removed during sanitization in ${context}`,
+    );
   }
 
   return sanitized;
@@ -421,12 +484,12 @@ export function sanitizeUserInput(
  * @returns HTML with inline event handlers removed
  */
 export function removeInlineEventHandlers(html: string): string {
-  if (!html || typeof html !== 'string') {
-    return '';
+  if (!html || typeof html !== "string") {
+    return "";
   }
 
   // Remove all on* attributes
-  return html.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
+  return html.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, "");
 }
 
 /**
@@ -435,19 +498,19 @@ export function removeInlineEventHandlers(html: string): string {
  * @returns Sanitized CSS
  */
 export function sanitizeCSS(css: string): string {
-  if (!css || typeof css !== 'string') {
-    return '';
+  if (!css || typeof css !== "string") {
+    return "";
   }
 
   // Remove dangerous CSS patterns
   let sanitized = css
-    .replace(/expression\s*\(/gi, '') // Remove CSS expressions
-    .replace(/javascript\s*:/gi, '') // Remove javascript: URLs
-    .replace(/vbscript\s*:/gi, '') // Remove vbscript: URLs
-    .replace(/@import\s+[^;]+;/gi, '') // Remove @import statements
-    .replace(/behavior\s*:/gi, '') // Remove IE behavior property
-    .replace(/binding\s*:/gi, '') // Remove XBL binding
-    .replace(/-moz-binding\s*:/gi, ''); // Remove Mozilla binding
+    .replace(/expression\s*\(/gi, "") // Remove CSS expressions
+    .replace(/javascript\s*:/gi, "") // Remove javascript: URLs
+    .replace(/vbscript\s*:/gi, "") // Remove vbscript: URLs
+    .replace(/@import\s+[^;]+;/gi, "") // Remove @import statements
+    .replace(/behavior\s*:/gi, "") // Remove IE behavior property
+    .replace(/binding\s*:/gi, "") // Remove XBL binding
+    .replace(/-moz-binding\s*:/gi, ""); // Remove Mozilla binding
 
   return sanitized;
 }

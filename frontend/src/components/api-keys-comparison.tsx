@@ -25,7 +25,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Id } from "@/convex/_generated/dataModel";
+import { Id } from "../../convex/_generated/dataModel";
 
 interface ApiKeysComparisonProps {
   chatId: Id<"chats">;

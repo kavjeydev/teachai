@@ -67,6 +67,7 @@ export const ChatNavbar = ({
   );
   const [isRenaming, setIsRenaming] = React.useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = React.useState(false);
+  const [isUpgrading, setIsUpgrading] = React.useState(false);
 
   // Get subscription status to show/hide upgrade CTA
   const subscription = useQuery(api.subscriptions.getUserSubscription);

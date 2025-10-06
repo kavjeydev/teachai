@@ -270,17 +270,19 @@ export function SubscriptionManager() {
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center gap-2 text-sm">
                         <Check className="w-3 h-3 text-green-600" />
-                        <span>{tier.features.chats} chats/APIs</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Check className="w-3 h-3 text-green-600" />
                         <span>
-                          {formatTokens(tier.features.credits)} included
+                          {tier.limits?.maxChats || "Unlimited"} chats/APIs
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <Check className="w-3 h-3 text-green-600" />
-                        <span>{tier.features.storage} storage</span>
+                        <span>
+                          {formatTokens(Number(tier.features.credits))} included
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Check className="w-3 h-3 text-green-600" />
+                        <span>{tier.features.fileStorage} storage</span>
                       </div>
                     </div>
 

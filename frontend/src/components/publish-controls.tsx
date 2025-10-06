@@ -252,7 +252,7 @@ export function PublishControls({
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleRollback}
-                        variant="destructive"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Rollback Changes
                       </AlertDialogAction>

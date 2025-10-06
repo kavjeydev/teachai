@@ -69,9 +69,10 @@ export function ApiSettingsSlideout({
   });
 
   // Recalculate metrics mutation
-  const recalculateMetrics = useMutation(
-    api.chat_analytics.recalculateAnalyticsMetrics,
-  );
+  // Note: recalculateAnalyticsMetrics is an internal mutation and cannot be called directly
+  // const recalculateMetrics = useMutation(
+  //   api.chat_analytics.recalculateAnalyticsMetrics,
+  // );
 
   // Migration mutation
   const migrateAllChatsMetadata = useMutation(
@@ -91,8 +92,9 @@ export function ApiSettingsSlideout({
   const handleRecalculateMetrics = async () => {
     setIsRecalculating(true);
     try {
-      await recalculateMetrics({ chatId });
-      toast.success("Analytics metrics recalculated successfully!");
+      // Note: This functionality requires a public wrapper mutation
+      // await recalculateMetrics({ chatId });
+      toast.info("Metrics recalculation is currently disabled");
     } catch (error) {
       console.error("Failed to recalculate metrics:", error);
       toast.error("Failed to recalculate metrics");

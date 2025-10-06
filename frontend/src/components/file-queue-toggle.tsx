@@ -19,7 +19,7 @@ export const FileQueueToggle: React.FC<FileQueueToggleProps> = ({
   isActive = false,
   className,
 }) => {
-  const activeQueues = queues.filter((q) => q.status === "active");
+  const activeQueues = queues.filter((q) => q.status === "processing");
   const hasActivity = activeQueues.length > 0;
   const totalActiveFiles = activeQueues.reduce(
     (sum, queue) => sum + queue.totalFiles,
