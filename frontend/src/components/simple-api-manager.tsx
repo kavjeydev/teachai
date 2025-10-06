@@ -352,7 +352,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
       setCreatedJwtSecret(result.jwtSecret);
       setShowAppSecret(true);
       toast.success(
-        "App created! Your app secret and JWT secret are ready to use.",
+        "App created and published! Chat settings auto-published and app is live.",
       );
     } catch (error: any) {
       toast.error(error.message || "Failed to create app");
@@ -688,6 +688,22 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={`${
+                            app.status === "live"
+                              ? "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
+                              : app.status === "draft"
+                                ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700"
+                                : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/30 dark:text-gray-200 dark:border-gray-700"
+                          }`}
+                        >
+                          {app.status === "live"
+                            ? "Live"
+                            : app.status === "draft"
+                              ? "Draft"
+                              : "Stale"}
+                        </Badge>
                         <Badge
                           variant="outline"
                           className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"

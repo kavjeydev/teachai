@@ -18,11 +18,24 @@ export default defineSchema({
     isActive: v.boolean(),
     isApiDisabled: v.optional(v.boolean()), // Whether API access is disabled for this app
     createdAt: v.number(),
+    status: v.optional(
+      v.union(v.literal("stale"), v.literal("draft"), v.literal("live")),
+    ), // App status: stale (not created), draft (changes made), live (published)
+    publishedAt: v.optional(v.number()), // When the app was last published
+    publishedBy: v.optional(v.string()), // Who published the app
     settings: v.object({
       allowDirectUploads: v.boolean(), // Whether users can upload directly
       maxUsersPerApp: v.optional(v.number()),
       allowedCapabilities: v.array(v.string()), // ["ask", "upload", "export_summaries"]
     }),
+    // Published settings for API consumption
+    publishedSettings: v.optional(
+      v.object({
+        allowDirectUploads: v.boolean(),
+        maxUsersPerApp: v.optional(v.number()),
+        allowedCapabilities: v.array(v.string()),
+      }),
+    ),
   })
     .index("by_developer", ["developerId"])
     .index("by_appId", ["appId"]),

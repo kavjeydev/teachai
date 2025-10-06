@@ -71,6 +71,7 @@ export const ChatNavbar = ({
   // Get subscription status to show/hide upgrade CTA
   const subscription = useQuery(api.subscriptions.getUserSubscription);
   const credits = useQuery(api.subscriptions.getUserCredits);
+  const userApps = useQuery(api.app_management.getAppsForChat, { chatId });
   const renameChat = useMutation(api.chats.rename);
   const initializeCredits = useMutation(
     api.subscriptions.initializeUserCredits,
@@ -255,6 +256,7 @@ export const ChatNavbar = ({
             chatId={chatId}
             hasUnpublishedChanges={currentChat?.hasUnpublishedChanges}
             publishedAt={currentChat?.publishedSettings?.publishedAt}
+            hasApps={userApps ? userApps.length > 0 : false}
             onPublish={() => {
               // Trigger refresh of chat data if needed
             }}

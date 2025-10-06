@@ -39,6 +39,7 @@ interface NavbarPublishStatusProps {
   chatId: Id<"chats">;
   hasUnpublishedChanges?: boolean;
   publishedAt?: number;
+  hasApps?: boolean; // Whether any apps have been created for this chat
   onPublish?: () => void;
   onRollback?: () => void;
 }
@@ -47,6 +48,7 @@ export function NavbarPublishStatus({
   chatId,
   hasUnpublishedChanges = false,
   publishedAt,
+  hasApps = false,
   onPublish,
   onRollback,
 }: NavbarPublishStatusProps) {
@@ -92,9 +94,12 @@ export function NavbarPublishStatus({
     return new Date(timestamp).toLocaleString();
   };
 
-  if (!hasUnpublishedChanges && !publishedAt) {
-    return null; // Don't show anything if no settings have been configured
-  }
+  // Determine the status
+  const isStale = !hasApps && !publishedAt;
+  const isDraft = hasUnpublishedChanges;
+  const isLive = !hasUnpublishedChanges && publishedAt;
+
+  // Always show the component - it will display Stale, Draft, or Live status
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -103,12 +108,19 @@ export function NavbarPublishStatus({
           variant="ghost"
           size="sm"
           className={`h-8 px-3 gap-2 text-xs font-medium transition-all duration-200 ${
-            hasUnpublishedChanges
-              ? "bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:hover:bg-amber-900/40 dark:text-amber-200 dark:border-amber-700"
-              : "bg-green-100 hover:bg-green-200 text-green-800 border border-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/40 dark:text-green-200 dark:border-green-700"
+            isStale
+              ? "bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300 dark:bg-gray-900/30 dark:hover:bg-gray-900/40 dark:text-gray-200 dark:border-gray-700"
+              : isDraft
+                ? "bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:hover:bg-amber-900/40 dark:text-amber-200 dark:border-amber-700"
+                : "bg-green-100 hover:bg-green-200 text-green-800 border border-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/40 dark:text-green-200 dark:border-green-700"
           }`}
         >
-          {hasUnpublishedChanges ? (
+          {isStale ? (
+            <>
+              <AlertTriangle className="h-3 w-3" />
+              Stale
+            </>
+          ) : isDraft ? (
             <>
               <Clock className="h-3 w-3" />
               Draft
@@ -125,7 +137,25 @@ export function NavbarPublishStatus({
         <div className="p-4 space-y-4">
           {/* Status Header */}
           <div className="flex items-center gap-3">
-            {hasUnpublishedChanges ? (
+            {isStale ? (
+              <>
+                <AlertTriangle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-200">
+                    No App Created
+                  </h3>
+                  <p className="text-xs text-gray-700 dark:text-gray-300">
+                    Create an app to make this chat available via API
+                  </p>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  Stale
+                </Badge>
+              </>
+            ) : isDraft ? (
               <>
                 <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 <div className="flex-1">
@@ -166,7 +196,12 @@ export function NavbarPublishStatus({
 
           {/* Description */}
           <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-            {hasUnpublishedChanges ? (
+            {isStale ? (
+              <>
+                No apps have been created for this chat yet. Create an app in
+                the API Settings to make this chat accessible via API.
+              </>
+            ) : isDraft ? (
               <>
                 Your API is still using the previously published settings. Test
                 your changes in the chat, then publish when ready.
@@ -176,106 +211,109 @@ export function NavbarPublishStatus({
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant={hasUnpublishedChanges ? "default" : "outline"}
-                    size="sm"
-                    disabled={
-                      isPublishing || (!hasUnpublishedChanges && !publishedAt)
-                    }
-                    className={`flex-1 ${
-                      hasUnpublishedChanges
-                        ? "bg-blue-600 hover:bg-blue-700"
-                        : ""
-                    }`}
-                  >
-                    <Upload className="h-3 w-3 mr-2" />
-                    {isPublishing ? "Publishing..." : "Publish"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Publish Settings to API?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will make your current settings live for your API.
-                      Any applications using your API will immediately start
-                      using these new settings.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handlePublish}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Publish Changes
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              {publishedAt && hasUnpublishedChanges && (
+          {/* Action Buttons - Only show for non-stale states */}
+          {!isStale && (
+            <div className="space-y-3">
+              <div className="flex gap-2">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
-                      variant="outline"
+                      variant={hasUnpublishedChanges ? "default" : "outline"}
                       size="sm"
-                      disabled={isRollingBack}
+                      disabled={
+                        isPublishing || (!hasUnpublishedChanges && !publishedAt)
+                      }
+                      className={`flex-1 ${
+                        hasUnpublishedChanges
+                          ? "bg-blue-600 hover:bg-blue-700"
+                          : ""
+                      }`}
                     >
-                      <RotateCcw className="h-3 w-3 mr-2" />
-                      {isRollingBack ? "Rolling back..." : "Rollback"}
+                      <Upload className="h-3 w-3 mr-2" />
+                      {isPublishing ? "Publishing..." : "Publish"}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>
-                        Rollback to Published Settings?
+                        Publish Settings to API?
                       </AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will discard your current draft changes and restore
-                        the settings that are currently published to your API.
+                        This will make your current settings live for your API.
+                        Any applications using your API will immediately start
+                        using these new settings.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={handleRollback}
-                        variant="destructive"
+                        onClick={handlePublish}
+                        className="bg-blue-600 hover:bg-blue-700"
                       >
-                        Rollback Changes
+                        Publish Changes
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+
+                {publishedAt && hasUnpublishedChanges && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isRollingBack}
+                      >
+                        <RotateCcw className="h-3 w-3 mr-2" />
+                        {isRollingBack ? "Rolling back..." : "Rollback"}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Rollback to Published Settings?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will discard your current draft changes and
+                          restore the settings that are currently published to
+                          your API.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleRollback}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Rollback Changes
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+
+              {/* Version History Button */}
+              {publishedAt && (
+                <VersionHistorySlideout
+                  chatId={chatId}
+                  onVersionRollback={() => {
+                    onRollback?.();
+                  }}
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start"
+                    >
+                      <History className="h-3 w-3 mr-2" />
+                      View Version History
+                    </Button>
+                  }
+                />
               )}
             </div>
-
-            {/* Version History Button */}
-            {publishedAt && (
-              <VersionHistorySlideout
-                chatId={chatId}
-                onVersionRollback={() => {
-                  onRollback?.();
-                }}
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                  >
-                    <History className="h-3 w-3 mr-2" />
-                    View Version History
-                  </Button>
-                }
-              />
-            )}
-          </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { api } from "../../../../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,9 @@ export default function RegisterAppPage() {
       });
 
       setResult(result as AppCreationResult);
-      toast.success("App created successfully!");
+      toast.success(
+        "App created and published! Chat settings auto-published and app is live.",
+      );
     } catch (error: any) {
       toast.error(error.message || "Failed to create app");
     } finally {

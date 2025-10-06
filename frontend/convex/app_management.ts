@@ -51,6 +51,35 @@ export const createApp = mutation({
     const appSecret = generateAppSecret();
     const jwtSecret = generateJwtSecret();
 
+    const defaultSettings = {
+      allowDirectUploads: true,
+      maxUsersPerApp: 10000, // Default limit
+      allowedCapabilities: ["ask", "upload"], // Default safe capabilities
+    };
+
+    // If a parent chat is specified, ensure it has published settings
+    if (args.parentChatId) {
+      const parentChat = await ctx.db.get(args.parentChatId);
+      if (parentChat && !parentChat.publishedSettings) {
+        // Auto-publish the parent chat with default settings
+        const defaultChatSettings = {
+          selectedModel: parentChat.selectedModel || "gpt-4o-mini",
+          customPrompt: parentChat.customPrompt || undefined,
+          temperature: parentChat.temperature || 0.7,
+          maxTokens: parentChat.maxTokens || 1000,
+          conversationHistoryLimit: parentChat.conversationHistoryLimit || 10,
+          context: parentChat.context || [],
+          publishedAt: Date.now(),
+          publishedBy: developerId,
+        };
+
+        await ctx.db.patch(args.parentChatId, {
+          publishedSettings: defaultChatSettings,
+          hasUnpublishedChanges: false,
+        });
+      }
+    }
+
     const app = await ctx.db.insert("apps", {
       appId,
       name: args.name,
@@ -65,11 +94,11 @@ export const createApp = mutation({
       isActive: true,
       isApiDisabled: false, // API access enabled by default
       createdAt: Date.now(),
-      settings: {
-        allowDirectUploads: true,
-        maxUsersPerApp: 10000, // Default limit
-        allowedCapabilities: ["ask", "upload"], // Default safe capabilities
-      },
+      status: "live", // Automatically publish default settings
+      publishedAt: Date.now(),
+      publishedBy: developerId,
+      settings: defaultSettings,
+      publishedSettings: defaultSettings, // Automatically publish the default settings
     });
 
     return {
@@ -109,7 +138,11 @@ export const getDeveloperApps = query({
       isActive: app.isActive,
       isApiDisabled: app.isApiDisabled || false, // Include API disabled status
       createdAt: app.createdAt,
+      status: app.status || "stale", // Default to stale for existing apps
+      publishedAt: app.publishedAt,
+      publishedBy: app.publishedBy,
       settings: app.settings,
+      publishedSettings: app.publishedSettings,
     }));
   },
 });
@@ -143,7 +176,11 @@ export const getAppsForChat = query({
       isActive: app.isActive,
       isApiDisabled: app.isApiDisabled || false, // Include API disabled status
       createdAt: app.createdAt,
+      status: app.status || "stale", // Default to stale for existing apps
+      publishedAt: app.publishedAt,
+      publishedBy: app.publishedBy,
       settings: app.settings,
+      publishedSettings: app.publishedSettings,
     }));
   },
 });
@@ -756,6 +793,96 @@ export const regenerateJwtSecret = mutation({
   },
 });
 
+// Publish app settings to make them live for API
+export const publishAppSettings = mutation({
+  args: {
+    appId: v.string(),
+    description: v.optional(v.string()), // Optional description for this version
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Verify app ownership
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || app.developerId !== developerId) {
+      throw new Error("App not found or unauthorized.");
+    }
+
+    const now = Date.now();
+
+    // Create published settings from current draft settings
+    const publishedSettings = {
+      allowDirectUploads: app.settings.allowDirectUploads,
+      maxUsersPerApp: app.settings.maxUsersPerApp,
+      allowedCapabilities: app.settings.allowedCapabilities,
+    };
+
+    await ctx.db.patch(app._id, {
+      status: "live",
+      publishedAt: now,
+      publishedBy: developerId,
+      publishedSettings,
+    });
+
+    return {
+      publishedAt: now,
+      publishedSettings,
+    };
+  },
+});
+
+// Update app settings (marks as draft if previously published)
+export const updateAppSettings = mutation({
+  args: {
+    appId: v.string(),
+    settings: v.object({
+      allowDirectUploads: v.boolean(),
+      maxUsersPerApp: v.optional(v.number()),
+      allowedCapabilities: v.array(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const developerId = identity.subject;
+
+    // Verify app ownership
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_appId", (q) => q.eq("appId", args.appId))
+      .first();
+
+    if (!app || app.developerId !== developerId) {
+      throw new Error("App not found or unauthorized.");
+    }
+
+    // If app was previously published, mark as draft
+    const newStatus = app.publishedSettings ? "draft" : app.status || "stale";
+
+    await ctx.db.patch(app._id, {
+      settings: args.settings,
+      status: newStatus,
+    });
+
+    return {
+      status: newStatus,
+      settings: args.settings,
+    };
+  },
+});
+
 // Get app with parent chat settings (for backend)
 export const getAppWithSettings = query({
   args: { appId: v.string() },
@@ -793,7 +920,9 @@ export const getAppWithSettings = query({
       developerId: app.developerId,
       isActive: app.isActive,
       isApiDisabled: app.isApiDisabled || false, // Include API disabled status
-      settings: app.settings,
+      status: app.status || "stale",
+      // Use published settings for API consumption, fallback to current settings for backward compatibility
+      settings: app.publishedSettings || app.settings,
       name: app.name,
       parentChatId: app.parentChatId, // Add this for file inheritance
       parentChatSettings: parentChatSettings,

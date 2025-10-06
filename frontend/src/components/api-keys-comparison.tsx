@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { api } from "../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +89,9 @@ export function ApiKeysComparison({
         websiteUrl: "http://localhost:3000",
       });
 
-      toast.success("App created successfully! Save your app secret securely.");
+      toast.success(
+        "App created and published! Chat settings auto-published and app is live.",
+      );
       setShowCreateAppForm(false);
       setAppName("");
       setAppDescription("");
