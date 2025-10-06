@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 /**
  * 📊 Chat Analytics & Metadata Management
@@ -782,8 +783,8 @@ export const getAppPerformanceDashboard = query({
           formatted: formatBytes(metadata.totalStorageBytes),
         },
         averageFileSize: {
-          bytes: metadata.averageFileSize,
-          formatted: formatBytes(metadata.averageFileSize),
+          bytes: metadata.averageFileSize || 0,
+          formatted: formatBytes(metadata.averageFileSize || 0),
         },
         fileTypeBreakdown: metadata.fileTypeStats,
         filesPerUser:
@@ -853,16 +854,12 @@ function formatBytes(bytes: number): string {
 }
 
 // Recalculate analytics metrics from actual data
-export const recalculateAnalyticsMetrics = mutation({
+export const recalculateAnalyticsMetrics = internalMutation({
   args: { chatId: v.id("chats") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated.");
-    }
-
+    // Internal mutation - no auth check needed
     const chat = await ctx.db.get(args.chatId);
-    if (!chat || chat.userId !== identity.subject) {
+    if (!chat) {
       throw new Error("Not authorized.");
     }
 
@@ -944,7 +941,7 @@ export const recalculateAnalyticsMetrics = mutation({
       totalFiles += subchatContext.length;
 
       // Update file type distribution
-      subchatContext.forEach((file) => {
+      subchatContext.forEach((file: { filename: string; fileId: string }) => {
         const fileType = getFileType(file.filename);
         fileTypeStats[fileType]++;
       });
@@ -1237,7 +1234,7 @@ export const fixChatSetup = mutation({
     // Also trigger a recalculation to get accurate metrics
     // This will find and count all sub-chats and files
     const recalcResult = await ctx.runMutation(
-      "chat_analytics:recalculateAnalyticsMetrics",
+      internal.chat_analytics.recalculateAnalyticsMetrics,
       {
         chatId: args.chatId,
       },

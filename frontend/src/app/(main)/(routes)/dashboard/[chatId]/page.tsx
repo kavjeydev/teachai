@@ -1,6 +1,5 @@
 "use client";
 
-require("dotenv").config({ path: ".env.local" });
 import { useState, useEffect, useRef, useCallback } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";

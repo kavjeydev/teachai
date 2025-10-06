@@ -597,7 +597,7 @@ export const restoreFromArchive = mutation({
     let tierName = "free";
 
     if (subscription && subscription.status === "active") {
-      const priceId = subscription.priceId;
+      const priceId = subscription.stripePriceId;
 
       if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) {
         chatLimit = 10;

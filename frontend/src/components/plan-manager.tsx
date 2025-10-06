@@ -25,7 +25,6 @@ import {
   X,
   Calendar,
   RefreshCw,
-  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getStripe } from "@/lib/stripe";

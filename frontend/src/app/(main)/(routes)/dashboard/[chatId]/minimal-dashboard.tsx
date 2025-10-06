@@ -92,7 +92,7 @@ export default function MinimalDashboard({ params }: MinimalDashboardProps) {
                     )}
                   </div>
                 ))
-            ) : (
+              ) : (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center text-zinc-500 dark:text-zinc-400">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -100,6 +100,7 @@ export default function MinimalDashboard({ params }: MinimalDashboardProps) {
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {/* Minimal Input - Same width as messages */}
