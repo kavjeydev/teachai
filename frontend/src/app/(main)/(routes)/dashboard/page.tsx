@@ -9,14 +9,14 @@ import { PlusCircle, Sparkles } from "lucide-react";
 import { ResizableSidebar } from "../../components/resizable-sidebar";
 import { useSidebarWidth } from "@/hooks/use-sidebar-width";
 import { Toaster } from "sonner";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import React from "react";
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { useSearchParams } from "next/navigation";
 import { usePendingUpgrade } from "@/hooks/use-pending-upgrade";
 
-export default function NoChat() {
+function NoChatContent() {
   const { user } = useUser();
   const { sidebarWidth } = useSidebarWidth();
   const [isCreating, setIsCreating] = useState(false);
@@ -358,5 +358,19 @@ export default function NoChat() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NoChat() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+        </div>
+      }
+    >
+      <NoChatContent />
+    </Suspense>
   );
 }

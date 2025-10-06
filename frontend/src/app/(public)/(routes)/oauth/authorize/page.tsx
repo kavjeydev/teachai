@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { SignInButton } from "@clerk/nextjs";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Shield, CheckCircle, AlertTriangle, ArrowLeft } from "lucide-react";
 
-export default function OAuthAuthorizePage() {
+function OAuthAuthorizeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, isSignedIn } = useUser();
@@ -265,5 +265,19 @@ export default function OAuthAuthorizePage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function OAuthAuthorizePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+        </div>
+      }
+    >
+      <OAuthAuthorizeContent />
+    </Suspense>
   );
 }
