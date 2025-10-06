@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useUser, SignInButton } from "@clerk/clerk-react";
 import { useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
@@ -31,7 +31,7 @@ import { toast } from "sonner";
  * This is where users get their secure auth tokens that developers never see.
  */
 
-export default function AppAuthorizePage() {
+function AppAuthorizeContent() {
   const { user, isLoaded } = useUser();
   const searchParams = useSearchParams();
   const [isAuthorizing, setIsAuthorizing] = useState(false);
@@ -432,5 +432,19 @@ export default function AppAuthorizePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AppAuthorizePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+        </div>
+      }
+    >
+      <AppAuthorizeContent />
+    </Suspense>
   );
 }
