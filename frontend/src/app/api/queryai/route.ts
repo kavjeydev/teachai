@@ -8,10 +8,11 @@ import {
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   const apiKey = req.headers.get("x-api-key");
-  const convexUrl =
-    "https://agile-ermine-199.convex.cloud/api/run/chats/getChatByIdExposed";
-  const trackingUrl =
-    "https://agile-ermine-199.convex.cloud/api/run/chat_analytics/trackApiQuery";
+
+  // Use environment variable instead of hardcoded URL
+  const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL!;
+  const convexUrl = `${CONVEX_URL}/api/run/chats/getChatByIdExposed`;
+  const trackingUrl = `${CONVEX_URL}/api/run/chat_analytics/trackApiQuery`;
 
   const body = await req.json();
 

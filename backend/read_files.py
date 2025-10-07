@@ -717,7 +717,8 @@ async def track_subchat_creation(app_id: str, end_user_id: str, chat_id: str):
     try:
         # In production, this would call Convex to update chat metadata
         # For demonstration, we'll call a Convex function to track this
-        convex_url = "https://colorless-finch-681.convex.cloud/api/run/chat_analytics/trackSubchatCreation"
+        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = f"{convex_base_url}/api/run/chat_analytics/trackSubchatCreation"
 
         async with httpx.AsyncClient() as client:
             await client.post(
@@ -741,7 +742,8 @@ async def track_file_upload(app_id: str, end_user_id: str, filename: str, file_s
     """Track file upload for analytics"""
     try:
         # Call Convex to update metadata
-        convex_url = "https://colorless-finch-681.convex.cloud/api/run/chat_analytics/trackFileUpload"
+        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = f"{convex_base_url}/api/run/chat_analytics/trackFileUpload"
 
         args = {
             "appId": app_id,
@@ -773,7 +775,8 @@ async def track_file_deletion(app_id: str, end_user_id: str, filename: str, file
     """Track file deletion for analytics"""
     try:
         # Call Convex to update metadata and decrease storage counts
-        convex_url = "https://colorless-finch-681.convex.cloud/api/run/chat_analytics/trackFileDeletion"
+        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = f"{convex_base_url}/api/run/chat_analytics/trackFileDeletion"
 
         args = {
             "appId": app_id,
@@ -871,7 +874,8 @@ async def track_api_query(app_id: str, end_user_id: str, response_time: float, s
     """Track API query for performance analytics"""
     try:
         # Call Convex to update metadata
-        convex_url = "https://colorless-finch-681.convex.cloud/api/run/chat_analytics/trackApiQuery"
+        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = f"{convex_base_url}/api/run/chat_analytics/trackApiQuery"
 
         async with httpx.AsyncClient() as client:
             await client.post(
@@ -1271,12 +1275,13 @@ def get_convex_url():
         not os.getenv("HEROKU_APP_NAME")         # Not on Heroku
     )
 
+    # Use environment variable for Convex URL
+    convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+
     if is_local:
-        convex_url = "https://colorless-finch-681.convex.cloud"  # Dev deployment
-        logger.info("🔧 Using DEV Convex deployment (local environment detected)")
+        logger.info(f"🔧 Using Convex deployment (local environment detected): {convex_url}")
     else:
-        convex_url = "https://colorless-finch-681.convex.cloud"     # Prod deployment
-        logger.info("🚀 Using PROD Convex deployment (production environment detected)")
+        logger.info(f"🚀 Using Convex deployment (production environment detected): {convex_url}")
 
     return f"{convex_url}/api/run/chats/getChatByIdExposed"
 
@@ -5079,7 +5084,8 @@ async def secure_chat_query(
 
     # Verify user auth token with Convex
     try:
-        convex_url = "https://colorless-finch-681.convex.cloud/api/run/user_auth_system/verifyUserAuthToken"
+        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = f"{convex_base_url}/api/run/user_auth_system/verifyUserAuthToken"
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -5359,9 +5365,10 @@ async def privacy_first_query(
         developer_user_id = claims.app_id
 
         try:
+            convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
             async with httpx.AsyncClient() as client:
                 app_response = await client.post(
-                    "https://colorless-finch-681.convex.cloud/api/run/app_management/getAppWithSettings",
+                    f"{convex_base_url}/api/run/app_management/getAppWithSettings",
                     json={
                         "args": {"appId": claims.app_id},
                         "format": "json"

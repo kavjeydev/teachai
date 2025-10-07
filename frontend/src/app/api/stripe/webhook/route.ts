@@ -38,6 +38,17 @@ async function callConvexMutation(functionPath: string, args: any) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Debug logging for production
+    console.log("🎯 Webhook called - Environment check:", {
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      stripeKeyType: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_")
+        ? "LIVE"
+        : "TEST",
+      hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
+      convexUrl: CONVEX_SITE_URL?.substring(0, 40) + "...",
+      timestamp: new Date().toISOString(),
+    });
+
     // Initialize Stripe with runtime check
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
