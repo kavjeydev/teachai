@@ -92,10 +92,26 @@ export function CustomScopesManager({
   const [scopes, setScopes] = useState<ScopeDefinition[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Type guard to validate scope type
+  const isValidScopeType = (
+    type: string,
+  ): type is "string" | "number" | "boolean" => {
+    return type === "string" || type === "number" || type === "boolean";
+  };
+
   // Load scopes from Convex into local state
   useEffect(() => {
     if (scopeConfig) {
-      setScopes(scopeConfig.scopes || []);
+      // Cast and validate scope types from Convex
+      const validatedScopes: ScopeDefinition[] = (scopeConfig.scopes || []).map(
+        (scope) => ({
+          name: scope.name,
+          type: isValidScopeType(scope.type) ? scope.type : "string", // Default to string if invalid
+          required: scope.required,
+          description: scope.description,
+        }),
+      );
+      setScopes(validatedScopes);
       setHasChanges(false);
     }
   }, [scopeConfig]);
