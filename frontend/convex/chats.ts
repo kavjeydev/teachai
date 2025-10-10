@@ -2354,3 +2354,111 @@ export const getUserChatLimits = query({
     };
   },
 });
+
+// ==============================================================================
+// Custom Scopes Management
+// ==============================================================================
+
+export const updateScopeConfig = mutation({
+  args: {
+    chatId: v.id("chats"),
+    scopeConfig: v.object({
+      scopes: v.array(
+        v.object({
+          name: v.string(),
+          type: v.string(),
+          required: v.boolean(),
+          description: v.optional(v.string()),
+        }),
+      ),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Get the chat and verify ownership
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+
+    if (chat.userId !== userId) {
+      throw new Error("Not authorized to update this chat");
+    }
+
+    // Update the scope configuration
+    await ctx.db.patch(args.chatId, {
+      scopeConfig: args.scopeConfig,
+    });
+
+    return {
+      success: true,
+      message: "Scope configuration saved successfully",
+    };
+  },
+});
+
+export const getScopeConfig = query({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Get the chat and verify ownership
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+
+    if (chat.userId !== userId) {
+      throw new Error("Not authorized to view this chat");
+    }
+
+    return chat.scopeConfig || { scopes: [] };
+  },
+});
+
+export const clearScopeConfig = mutation({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Get the chat and verify ownership
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+
+    if (chat.userId !== userId) {
+      throw new Error("Not authorized to update this chat");
+    }
+
+    // Clear the scope configuration
+    await ctx.db.patch(args.chatId, {
+      scopeConfig: undefined,
+    });
+
+    return {
+      success: true,
+      message: "Scope configuration cleared",
+    };
+  },
+});

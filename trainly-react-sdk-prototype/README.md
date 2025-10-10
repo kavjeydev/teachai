@@ -86,9 +86,58 @@ function MyComponent() {
 - ✅ **Zero Migration**: Works with your existing OAuth setup
 - ✅ **Simple Integration**: Just add `appId` and use `connectWithOAuthToken()`
 
-## 📁 **NEW: File Management**
+## 🏷️ **NEW: Custom Scopes (Zero Config)**
 
-Now users can manage their uploaded files directly:
+Tag your documents with custom attributes for powerful filtering and organization:
+
+```tsx
+import { useTrainly } from "@trainly/react";
+
+function MyApp() {
+  const { upload, ask } = useTrainly();
+
+  // 1. Upload with scopes - use any keys you want!
+  await upload(file, {
+    playlist_id: "xyz123",
+    workspace_id: "acme_corp",
+    project: "alpha",
+  });
+
+  // 2. Query with scope filters - only get results from matching documents
+  const answer = await ask("What are the key features?", {
+    scope_filters: { playlist_id: "xyz123" },
+  });
+  // ☝️ Only searches documents with playlist_id="xyz123"
+
+  // Query with multiple filters
+  const answer2 = await ask("Show me updates", {
+    scope_filters: {
+      workspace_id: "acme_corp",
+      project: "alpha",
+    },
+  });
+  // ☝️ Only searches documents matching ALL specified scopes
+
+  // Query everything (no filters)
+  const answer3 = await ask("What do I have?");
+  // ☝️ Searches ALL user's documents
+}
+```
+
+**No setup required!** Just pass any key-value pairs - perfect for multi-tenant apps, playlist systems, workspace organization, and more.
+
+**Use Cases:**
+
+- 🎵 **Playlist Apps**: Filter by `playlist_id` to query specific playlists
+- 🏢 **Multi-Tenant SaaS**: Filter by `tenant_id` or `workspace_id`
+- 📁 **Project Management**: Filter by `project_id` or `team_id`
+- 👥 **User Segmentation**: Filter by `user_tier`, `department`, etc.
+
+[📖 Full Scopes Guide](./SCOPES_GUIDE.md)
+
+## 📁 **File Management**
+
+Users can manage their uploaded files directly:
 
 ```tsx
 import { useTrainly, TrainlyFileManager } from "@trainly/react";
@@ -142,6 +191,67 @@ function MyApp() {
 - 📋 **List Files**: View all uploaded documents with metadata
 - 🗑️ **Delete Files**: Remove files and free up storage space
 - 📊 **Storage Analytics**: Track file sizes and storage usage
+
+## 🏷️ **NEW in v1.4.0: Custom Scopes**
+
+Tag your documents with custom attributes for powerful data segmentation!
+
+```tsx
+import { useTrainly } from "@trainly/react";
+
+function PlaylistUploader({ playlistId }) {
+  const { upload } = useTrainly();
+
+  const handleUpload = async (file: File) => {
+    // Upload with custom scope values
+    await upload(file, {
+      playlist_id: playlistId,
+      user_id: currentUser.id,
+      is_public: false,
+    });
+  };
+
+  return (
+    <input type="file" onChange={(e) => handleUpload(e.target.files[0])} />
+  );
+}
+```
+
+### Scope Features
+
+- 🎯 **Data Segmentation**: Keep playlists, workspaces, or projects separate
+- ⚡ **Faster Queries**: Filter at database level before vector search
+- 🔒 **Complete Isolation**: Multi-tenant apps with full data privacy
+- 🎨 **Flexible**: Define any custom attributes you need
+
+### With TrainlyUpload Component
+
+```tsx
+<TrainlyUpload
+  variant="drag-drop"
+  scopeValues={{
+    playlist_id: "playlist_123",
+    workspace_id: "workspace_456",
+  }}
+  onUpload={(files) => console.log("Uploaded with scopes!")}
+/>
+```
+
+### Complete Documentation
+
+See **[SCOPES_GUIDE.md](./SCOPES_GUIDE.md)** for:
+
+- Complete API reference
+- Real-world examples
+- Advanced patterns
+- Testing & debugging
+- Migration guide
+
+**Quick Reference:**
+
+- `upload(file, scopeValues)` - Upload with scopes
+- `bulkUploadFiles(files, scopeValues)` - Bulk upload with scopes
+- `<TrainlyUpload scopeValues={{...}} />` - Component with scopes
 - 🔄 **Auto-Refresh**: File list updates after uploads/deletions
 - 🎨 **Pre-built UI**: `TrainlyFileManager` component with styling
 - 🔒 **Privacy-First**: Only works in V1 mode with OAuth authentication

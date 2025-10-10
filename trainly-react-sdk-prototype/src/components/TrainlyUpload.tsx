@@ -11,6 +11,7 @@ export interface TrainlyUploadProps {
   className?: string;
   onUpload?: (files: File[]) => void;
   onError?: (error: string) => void;
+  scopeValues?: Record<string, string | number | boolean>; // NEW: Custom scopes support
 }
 
 export function TrainlyUpload({
@@ -21,6 +22,7 @@ export function TrainlyUpload({
   className = "",
   onUpload,
   onError,
+  scopeValues,
 }: TrainlyUploadProps) {
   const { upload, isLoading } = useTrainly();
   const [isDragOver, setIsDragOver] = React.useState(false);
@@ -45,7 +47,7 @@ export function TrainlyUpload({
     // Upload files
     try {
       for (const file of fileArray) {
-        await upload(file);
+        await upload(file, scopeValues);
       }
       onUpload?.(fileArray);
     } catch (err) {

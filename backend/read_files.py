@@ -87,12 +87,14 @@ class QuestionRequest(BaseModel):
     custom_prompt: Union[str, None] = None  # Optional custom system prompt
     temperature: Optional[float] = 0.7  # Default temperature
     max_tokens: Optional[int] = 1000  # Default max tokens
+    scope_filters: Optional[Dict[str, Union[str, int, bool]]] = {}  # Optional scope filters
 
 class CreateNodesAndEmbeddingsRequest(BaseModel):
     pdf_text: str
     pdf_id: str
     chat_id: str
     filename: str
+    scope_values: Optional[Dict[str, Union[str, int, bool]]] = {}
 
 # API Models for external access
 class ApiQuestionRequest(BaseModel):
@@ -101,6 +103,7 @@ class ApiQuestionRequest(BaseModel):
     custom_prompt: Optional[str] = None   # Will use chat's saved prompt if not provided
     temperature: Optional[float] = None   # Will use chat's saved temperature if not provided
     max_tokens: Optional[int] = None      # Will use chat's saved max_tokens if not provided
+    scope_filters: Optional[Dict[str, Union[str, int, bool]]] = {}  # Optional scope filters
 
 class ApiAnswerResponse(BaseModel):
     answer: str
@@ -108,6 +111,280 @@ class ApiAnswerResponse(BaseModel):
     chat_id: str
     model: str
     usage: dict
+
+# ==============================================================================
+# Custom Scoping System
+# ==============================================================================
+
+class ScopeDefinition(BaseModel):
+    """Definition of a custom scope field"""
+    name: str  # e.g., "playlist_id", "workspace_id", "project_id"
+    type: str = "string"  # string, number, boolean
+    required: bool = False
+    description: Optional[str] = None
+
+class AppScopeConfig(BaseModel):
+    """Configuration for custom scopes in an app/chat"""
+    scopes: List[ScopeDefinition] = []
+
+class ScopeValues(BaseModel):
+    """Values for custom scopes when uploading or querying"""
+    values: Dict[str, Union[str, int, bool]] = {}
+
+class CreateNodesWithScopesRequest(BaseModel):
+    """Extended request with custom scope support"""
+    pdf_text: str
+    pdf_id: str
+    chat_id: str
+    filename: str
+    scope_values: Optional[Dict[str, Union[str, int, bool]]] = {}
+
+class ApiQuestionWithScopesRequest(BaseModel):
+    """Extended API question request with scope filtering"""
+    question: str
+    selected_model: Optional[str] = None
+    custom_prompt: Optional[str] = None
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+    scope_filters: Optional[Dict[str, Union[str, int, bool]]] = {}
+
+# In-memory scope configuration storage (in production, this would be in a database)
+SCOPE_CONFIGS: Dict[str, AppScopeConfig] = {}
+
+def validate_scope_name(name: str) -> bool:
+    """Validate that scope name follows conventions"""
+    import re
+    # Allow alphanumeric, underscores, and hyphens
+    return bool(re.match(r'^[a-zA-Z][a-zA-Z0-9_-]{0,63}$', name))
+
+def validate_scope_value(value: Union[str, int, bool], scope_type: str) -> bool:
+    """Validate that a scope value matches its type"""
+    if scope_type == "string":
+        return isinstance(value, str) and len(value) <= 255
+    elif scope_type == "number":
+        return isinstance(value, (int, float))
+    elif scope_type == "boolean":
+        return isinstance(value, bool)
+    return False
+
+def sanitize_scope_value(value: Union[str, int, bool]) -> str:
+    """Sanitize scope value for Neo4j query"""
+    if isinstance(value, str):
+        # Sanitize string values for Neo4j
+        safe_value = value.replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"')
+        return f"'{safe_value}'"
+    elif isinstance(value, bool):
+        return "true" if value else "false"
+    else:
+        return str(value)
+
+def build_scope_properties(scope_values: Dict[str, Union[str, int, bool]],
+                          scope_config: Optional[AppScopeConfig] = None,
+                          node_var: str = None,
+                          for_set_clause: bool = False) -> tuple[str, Dict[str, Union[str, int, bool]]]:
+    """Build Neo4j property string for scopes using parameterized queries
+
+    Args:
+        scope_values: Dictionary of scope key-value pairs
+        scope_config: Optional scope configuration for validation
+        node_var: Node variable name (e.g., "d" for Document, "c" for Chunk)
+        for_set_clause: If True, format for SET clause (d.key = $param), else for CREATE (key: $param)
+
+    Returns:
+        tuple: (property_string, params_dict)
+        Example SET: (",\n    d.test = $scope_test", {"scope_test": "dev"})
+        Example CREATE: (", test: $scope_test", {"scope_test": "dev"})
+    """
+    if not scope_values:
+        return "", {}
+
+    properties = []
+    params = {}
+
+    for key, value in scope_values.items():
+        if not validate_scope_name(key):
+            continue
+
+        # Validate against config if provided
+        if scope_config:
+            scope_def = next((s for s in scope_config.scopes if s.name == key), None)
+            if scope_def and not validate_scope_value(value, scope_def.type):
+                continue
+
+        # Use parameterized query instead of string interpolation
+        param_name = f"scope_{key}"
+
+        if for_set_clause and node_var:
+            # For SET clause: d.test = $scope_test
+            properties.append(f"{node_var}.{key} = ${param_name}")
+        else:
+            # For CREATE clause: test: $scope_test
+            properties.append(f"{key}: ${param_name}")
+
+        params[param_name] = value
+
+    if for_set_clause:
+        prop_string = ",\n    " + ",\n    ".join(properties) if properties else ""
+    else:
+        prop_string = ", " + ", ".join(properties) if properties else ""
+
+    return prop_string, params
+
+def build_scope_where_clause(scope_filters: Dict[str, Union[str, int, bool]],
+                             node_var: str = "c",
+                             scope_config: Optional[AppScopeConfig] = None) -> str:
+    """Build WHERE clause for scope filtering"""
+    if not scope_filters:
+        return ""
+
+    conditions = []
+    for key, value in scope_filters.items():
+        if not validate_scope_name(key):
+            continue
+
+        # Validate against config if provided
+        if scope_config:
+            scope_def = next((s for s in scope_config.scopes if s.name == key), None)
+            if scope_def and not validate_scope_value(value, scope_def.type):
+                continue
+
+        sanitized_value = sanitize_scope_value(value)
+        conditions.append(f"{node_var}.{key} = {sanitized_value}")
+
+    return " AND " + " AND ".join(conditions) if conditions else ""
+
+async def get_scope_config(chat_id: str) -> Optional[AppScopeConfig]:
+    """Get scope configuration for a chat from Convex"""
+    try:
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        async with httpx.AsyncClient() as client:
+            # For V1 subchats, extract app_id and get scope config from parent app
+            if chat_id.startswith("subchat_app_"):
+                # Parse subchat ID: subchat_app_{app_id}_user_{user_id}_{timestamp}
+                import re
+                match = re.match(r'subchat_(app_[a-zA-Z0-9_]+)_user_', chat_id)
+                if match:
+                    app_id = match.group(1)
+                    logger.info(f"🔍 V1 subchat detected, extracted app_id: {app_id}")
+
+                    # Get app details to find parent chat
+                    app_response = await client.post(
+                        f"{convex_url}/api/run/app_management/getAppWithSettings",
+                        json={
+                            "args": {"appId": app_id},
+                            "format": "json"
+                        },
+                        headers={"Content-Type": "application/json"}
+                    )
+
+                    if app_response.status_code == 200:
+                        app_result = app_response.json()
+                        app_data = app_result.get("value")
+
+                        if app_data:
+                            parent_chat_id = app_data.get("parentChatId")
+                            logger.info(f"🔍 Found parent chat ID for app {app_id}: {parent_chat_id}")
+
+                            if parent_chat_id:
+                                # Get scope config from parent chat (using exposed endpoint)
+                                parent_response = await client.post(
+                                    f"{convex_url}/api/run/chats/getChatByIdExposed",
+                                    json={
+                                        "args": {"id": parent_chat_id},
+                                        "format": "json"
+                                    },
+                                    headers={"Content-Type": "application/json"}
+                                )
+
+                                if parent_response.status_code == 200:
+                                    parent_result = parent_response.json()
+                                    parent_data = parent_result.get("value")
+
+                                    if parent_data:
+                                        logger.info(f"🔍 Parent chat data keys: {list(parent_data.keys())}")
+                                        if "scopeConfig" in parent_data:
+                                            scope_data = parent_data["scopeConfig"]
+                                            logger.info(f"✅ Found scope config from parent chat {parent_chat_id}: {scope_data}")
+                                            return AppScopeConfig(**scope_data)
+                                        else:
+                                            logger.info(f"⚠️  Parent chat {parent_chat_id} has no scopeConfig field")
+                                    else:
+                                        logger.info(f"⚠️  Parent chat {parent_chat_id} returned null/empty data")
+
+            # Standard flow for regular chats (using exposed endpoint)
+            response = await client.post(
+                f"{convex_url}/api/run/chats/getChatByIdExposed",
+                json={
+                    "args": {"id": chat_id},
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                chat_data = result.get("value")
+
+                logger.info(f"🔍 Chat data for {chat_id}: has_data={chat_data is not None}, has_scopeConfig={'scopeConfig' in chat_data if chat_data else False}")
+
+                if chat_data and "scopeConfig" in chat_data:
+                    scope_data = chat_data["scopeConfig"]
+                    logger.info(f"✅ Found scope config directly on chat {chat_id}: {scope_data}")
+                    return AppScopeConfig(**scope_data)
+
+                # If this is a subchat and no scope config found, try parent chat
+                if chat_id.startswith("subchat_") and chat_data:
+                    parent_chat_id = chat_data.get("parentChatId")
+                    logger.info(f"🔍 Subchat detected, parent_chat_id={parent_chat_id}")
+                    if parent_chat_id:
+                        logger.info(f"🔍 Subchat {chat_id} has no scope config, checking parent {parent_chat_id}")
+                        parent_response = await client.post(
+                            f"{convex_url}/api/run/chats/getChatByIdExposed",
+                            json={
+                                "args": {"id": parent_chat_id},
+                                "format": "json"
+                            },
+                            headers={"Content-Type": "application/json"}
+                        )
+
+                        if parent_response.status_code == 200:
+                            parent_result = parent_response.json()
+                            parent_data = parent_result.get("value")
+                            if parent_data and "scopeConfig" in parent_data:
+                                scope_data = parent_data["scopeConfig"]
+                                logger.info(f"✅ Inherited scope config from parent chat: {list(scope_data.get('scopes', []))}")
+                                return AppScopeConfig(**scope_data)
+    except Exception as e:
+        logger.warning(f"Could not load scope config for chat {chat_id}: {e}")
+
+    # Check in-memory cache as fallback
+    return SCOPE_CONFIGS.get(chat_id)
+
+async def save_scope_config(chat_id: str, scope_config: AppScopeConfig) -> bool:
+    """Save scope configuration for a chat"""
+    try:
+        # Store in memory (in production, this would update Convex)
+        SCOPE_CONFIGS[chat_id] = scope_config
+
+        # Also update in Convex
+        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{convex_url}/api/run/chats/updateChatScopeConfig",
+                json={
+                    "args": {
+                        "chatId": chat_id,
+                        "scopeConfig": scope_config.dict()
+                    },
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Failed to save scope config: {e}")
+        return False
 
 app = FastAPI(
     title="Trainly API with V1 Trusted Issuer Authentication",
@@ -2018,6 +2295,7 @@ async def v1_user_query(
     messages: str = Form(...),  # JSON string of messages array
     response_tokens: int = Form(150),
     stream: bool = Form(False),
+    scope_filters: str = Form("{}"),  # JSON string of scope filters (e.g., {"playlist_id": "xyz123"})
     authorization: str = Header(None, alias="authorization"),
     app_id: str = Header(None, alias="x-app-id"),
     request: Request = None
@@ -2032,6 +2310,9 @@ async def v1_user_query(
     4. Trainly validates token against registered app config
     5. Creates/uses permanent subchat for this user
     6. Returns AI response based on user's private data
+
+    Optional scope_filters parameter allows filtering results by custom scope values
+    (e.g., {"playlist_id": "xyz123", "workspace_id": "acme_corp"})
     """
 
     if not app_id:
@@ -2059,6 +2340,14 @@ async def v1_user_query(
 
     except (json.JSONDecodeError, ValueError) as e:
         raise HTTPException(status_code=400, detail="Invalid messages JSON format")
+
+    # Parse scope filters
+    try:
+        parsed_scope_filters = json.loads(scope_filters) if scope_filters else {}
+        if parsed_scope_filters:
+            logger.info(f"🔍 V1 Query with scope filters: {parsed_scope_filters}")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid scope_filters JSON")
 
     # Sanitize the query
     sanitized_question = sanitize_with_xss_detection(
@@ -2135,7 +2424,8 @@ async def v1_user_query(
             selected_model=selected_model,    # Use inherited or default model
             temperature=temperature,          # Use inherited or default temperature
             max_tokens=max_tokens,           # Use inherited or default max_tokens
-            custom_prompt=custom_prompt      # Use inherited custom prompt
+            custom_prompt=custom_prompt,     # Use inherited custom prompt
+            scope_filters=parsed_scope_filters  # Apply scope filters for data filtering
         )
 
         # Get the answer using existing logic
@@ -2184,6 +2474,7 @@ async def v1_user_query(
 @app.post("/v1/me/chats/files/upload")
 async def v1_user_file_upload(
     file: UploadFile = File(...),
+    scope_values: str = Form("{}"),
     authorization: str = Header(None, alias="authorization"),
     app_id: str = Header(None, alias="x-app-id"),
     request: Request = None
@@ -2193,6 +2484,9 @@ async def v1_user_file_upload(
 
     Files are processed and stored in the user's permanent subchat,
     making them available for all future queries.
+
+    Optional scope_values parameter can be used to add custom attributes
+    to the uploaded document (e.g., {"playlist_id": "playlist_123"})
     """
 
     if not app_id:
@@ -2200,6 +2494,13 @@ async def v1_user_file_upload(
 
     # Authenticate user with their OAuth ID token
     user_identity = await authenticate_v1_user(authorization, app_id)
+
+    # Parse scope values
+    import json
+    try:
+        parsed_scope_values = json.loads(scope_values) if scope_values else {}
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid scope_values JSON")
 
     # Validate file
     file_size = read_files.get_file_size(file)
@@ -2255,11 +2556,15 @@ async def v1_user_file_upload(
             pdf_text=sanitized_text,
             pdf_id=pdf_id,
             chat_id=subchat["chatStringId"],  # Store in permanent subchat
-            filename=sanitized_filename
+            filename=sanitized_filename,
+            scope_values=parsed_scope_values  # Add scope values
         )
 
         # Process the file with analytics (analytics will be tracked after successful processing)
         await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
+
+        if parsed_scope_values:
+            logger.info(f"📊 File uploaded with scopes: {parsed_scope_values}")
 
         logger.info(f"V1 File uploaded for user {user_identity['user_id']} to subchat {subchat['chatStringId']}")
 
@@ -2289,6 +2594,7 @@ async def v1_user_file_upload(
 @app.post("/v1/me/chats/files/upload-bulk")
 async def v1_user_bulk_file_upload(
     files: List[UploadFile] = File(...),
+    scope_values: str = Form("{}"),
     authorization: str = Header(None, alias="authorization"),
     app_id: str = Header(None, alias="x-app-id"),
     request: Request = None
@@ -2300,6 +2606,9 @@ async def v1_user_bulk_file_upload(
     permanent subchat, making them available for all future queries.
 
     Returns detailed results for each file, including successes and failures.
+
+    Optional scope_values parameter applies the same scopes to all uploaded files
+    (e.g., {"playlist_id": "playlist_123"})
     """
 
     if not app_id:
@@ -2313,6 +2622,13 @@ async def v1_user_bulk_file_upload(
 
     # Authenticate user with their OAuth ID token
     user_identity = await authenticate_v1_user(authorization, app_id)
+
+    # Parse scope values (will be applied to all files in this upload)
+    import json
+    try:
+        parsed_scope_values = json.loads(scope_values) if scope_values else {}
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid scope_values JSON")
 
     # Get/create permanent subchat for this user (once for all files)
     subchat = await get_or_create_user_subchat(
@@ -2392,7 +2708,8 @@ async def v1_user_bulk_file_upload(
                 pdf_text=sanitized_text,
                 pdf_id=pdf_id,
                 chat_id=subchat["chatStringId"],
-                filename=sanitized_filename
+                filename=sanitized_filename,
+                scope_values=parsed_scope_values  # Add scope values
             )
 
             # Process the file with analytics
@@ -2412,6 +2729,8 @@ async def v1_user_bulk_file_upload(
         results.append(file_result)
 
     logger.info(f"V1 Bulk upload completed for user {user_identity['user_id']}: {successful_uploads}/{len(files)} successful")
+    if parsed_scope_values:
+        logger.info(f"📊 Bulk upload used scopes: {parsed_scope_values}")
 
     return {
         "success": successful_uploads > 0,
@@ -3072,13 +3391,14 @@ async def create_nodes_and_embeddings_with_analytics(payload: CreateNodesAndEmbe
     pdf_id = sanitize_text(payload.pdf_id)
     chat_id = sanitize_chat_id(payload.chat_id)
     filename = sanitize_filename(payload.filename)
+    scope_values = payload.scope_values if hasattr(payload, 'scope_values') else {}
 
     if not pdf_text or not pdf_id or not chat_id or not filename:
         raise HTTPException(status_code=400, detail="Invalid input data or potentially malicious content detected")
 
     try:
-        # Call the main processing function
-        result = await create_nodes_and_embeddings_internal(pdf_text, pdf_id, chat_id, filename)
+        # Call the main processing function with scope values
+        result = await create_nodes_and_embeddings_internal(pdf_text, pdf_id, chat_id, filename, scope_values)
 
         # Track analytics with actual file size if available
         logger.info(f"🔍 Starting analytics tracking for upload: {filename} in chat {chat_id}")
@@ -3101,7 +3421,8 @@ async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
     """Public endpoint - calls internal function without file size"""
     return await create_nodes_and_embeddings_with_analytics(payload, None)
 
-async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_id: str, filename: str):
+async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_id: str, filename: str,
+                                               scope_values: Optional[Dict[str, Union[str, int, bool]]] = None):
     # Sanitize all inputs
     pdf_text = sanitize_with_xss_detection(
         pdf_text,
@@ -3115,6 +3436,32 @@ async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_
 
     if not pdf_text or not pdf_id or not chat_id or not filename:
         raise HTTPException(status_code=400, detail="Invalid input data or potentially malicious content detected")
+
+    # Get scope configuration for validation
+    scope_config = await get_scope_config(chat_id)
+
+    # Validate and build scope properties
+    scope_props_set = ""  # For SET clause (Document)
+    scope_props_create = ""  # For CREATE clause (Chunk)
+    scope_params = {}
+    if scope_values:
+        if scope_config:
+            # Validate required scopes if config exists
+            for scope_def in scope_config.scopes:
+                if scope_def.required and scope_def.name not in scope_values:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Required scope '{scope_def.name}' is missing"
+                    )
+            scope_props_set, scope_params = build_scope_properties(scope_values, scope_config, node_var="d", for_set_clause=True)
+            scope_props_create, _ = build_scope_properties(scope_values, scope_config, for_set_clause=False)
+            logger.info(f"📊 Adding custom scopes to nodes (validated): {scope_values}")
+        else:
+            # No config found, but allow scopes anyway (for development/testing)
+            scope_props_set, scope_params = build_scope_properties(scope_values, None, node_var="d", for_set_clause=True)
+            scope_props_create, _ = build_scope_properties(scope_values, None, for_set_clause=False)
+            logger.info(f"📊 Adding custom scopes to nodes (unvalidated): {scope_values}")
+
     try:
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
@@ -3134,60 +3481,71 @@ async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_
 
                 print(f"✅ Creating new document: {pdf_id} ({filename}) in chat {chat_id}")
 
-                # Create Document node with metadata
+                # Create Document node with metadata and custom scopes
                 current_timestamp = int(time.time() * 1000)  # Unix timestamp in milliseconds
-                query = """
-                MERGE (d:Document {id: $pdf_id})
+                query = f"""
+                MERGE (d:Document {{id: $pdf_id}})
                 SET d.chatId = $chat_id,
                     d.filename = $filename,
                     d.uploadDate = $upload_date,
-                    d.sizeBytes = $size_bytes
+                    d.sizeBytes = $size_bytes{scope_props_set}
                 RETURN d
                 """
                 # Calculate text size in bytes for storage tracking
                 text_size_bytes = len(pdf_text.encode('utf-8')) if pdf_text else 0
-                result = session.run(query,
-                                   pdf_id=pdf_id,
-                                   chat_id=chat_id,
-                                   filename=filename,
-                                   upload_date=current_timestamp,
-                                   size_bytes=text_size_bytes)
-                print(f"Created document node: {result.single()}")
+
+                # Merge base params with scope params
+                query_params = {
+                    "pdf_id": pdf_id,
+                    "chat_id": chat_id,
+                    "filename": filename,
+                    "upload_date": current_timestamp,
+                    "size_bytes": text_size_bytes,
+                    **scope_params  # Add scope parameters
+                }
+
+                result = session.run(query, **query_params)
+                print(f"Created document node with scopes: {result.single()}")
 
                 # Create chunks and embeddings
                 chunks = chunk_text(pdf_text)
                 print(f"Creating {len(chunks)} chunks for document {pdf_id}")
 
-                # First, create all chunks
+                # First, create all chunks with custom scopes
                 chunk_ids = []
                 for i, chunk in enumerate(chunks):
                     embedding = get_embedding(chunk)
                     chunk_id = f"{pdf_id}-{i}"
                     chunk_ids.append(chunk_id)
 
-                    query = """
-                    MATCH (d:Document {id: $pdf_id})
-                    CREATE (c:Chunk {
+                    query = f"""
+                    MATCH (d:Document {{id: $pdf_id}})
+                    CREATE (c:Chunk {{
                         id: $chunk_id,
                         text: $text,
                         embedding: $embedding,
-                        chatId: $chat_id
-                    })
-                    CREATE (d)-[:HAS_CHUNK {order: $order}]->(c)
+                        chatId: $chat_id{scope_props_create}
+                    }})
+                    CREATE (d)-[:HAS_CHUNK {{order: $order}}]->(c)
                     RETURN c
                     """
 
-                    result = session.run(query,
-                                       pdf_id=pdf_id,
-                                       chunk_id=chunk_id,
-                                       text=chunk,
-                                       embedding=embedding,
-                                       chat_id=chat_id,
-                                       order=i)
+                    # Merge base params with scope params
+                    chunk_params = {
+                        "pdf_id": pdf_id,
+                        "chunk_id": chunk_id,
+                        "text": chunk,
+                        "embedding": embedding,
+                        "chat_id": chat_id,
+                        "order": i,
+                        **scope_params  # Add scope parameters
+                    }
+
+                    result = session.run(query, **chunk_params)
 
                     chunk_result = result.single()
                     if chunk_result:
-                        print(f"Created chunk {i}: {chunk_result['c']['id']}")
+                        print(f"Created chunk {i} with scopes: {chunk_result['c']['id']}")
                     else:
                         print(f"Failed to create chunk {i}")
                         raise Exception(f"Failed to create chunk {i}")
@@ -3537,6 +3895,14 @@ async def answer_question(payload: QuestionRequest):
         # Generate question embedding
         question_embedding = get_embedding(question)
 
+        # Get scope configuration and filters
+        scope_config = await get_scope_config(chat_id)
+        scope_filters = payload.scope_filters if hasattr(payload, 'scope_filters') else {}
+        scope_where_clause = build_scope_where_clause(scope_filters, "c", scope_config)
+
+        if scope_filters:
+            logger.info(f"📊 Applying scope filters: {scope_filters}")
+
         # Check if this is a subchat and get parent chat ID for file inheritance
         parent_chat_id = None
         logger.info(f"🔍 Checking if {chat_id} is a subchat...")
@@ -3576,17 +3942,17 @@ async def answer_question(payload: QuestionRequest):
                     # Include chunks from both subchat and parent chat (all files)
                     query = f"""
                     MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                    WHERE c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}'
+                    WHERE (c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}'){scope_where_clause}
                     RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
                     """
-                    logger.info(f"📋 Including ALL files from subchat and parent chat {parent_chat_id}")
+                    logger.info(f"📋 Including ALL files from subchat and parent chat {parent_chat_id} with scope filters")
                 else:
                     query = f"""
                     MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                    WHERE c.chatId = '{chat_id}'
+                    WHERE c.chatId = '{chat_id}'{scope_where_clause}
                     RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
                     """
-                    logger.info(f"📋 Using subchat files only")
+                    logger.info(f"📋 Using subchat files only with scope filters")
                 results = session.run(query)
 
 
@@ -6189,6 +6555,258 @@ async def user_chat_query(
     except Exception as e:
         logger.error(f"Query failed: {e}")
         raise HTTPException(status_code=500, detail="Query failed")
+
+# ==============================================================================
+# Scope Management API Endpoints
+# ==============================================================================
+
+@app.post("/v1/{chat_id}/scopes/configure")
+async def configure_scopes(
+    chat_id: str,
+    scope_config: AppScopeConfig,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    Configure custom scopes for a chat.
+
+    This allows developers to define custom scope fields like playlist_id, workspace_id, etc.
+    that will be used to segment data within the chat.
+
+    Example:
+    {
+        "scopes": [
+            {
+                "name": "playlist_id",
+                "type": "string",
+                "required": true,
+                "description": "ID of the playlist this document belongs to"
+            },
+            {
+                "name": "workspace_id",
+                "type": "string",
+                "required": false,
+                "description": "Optional workspace identifier"
+            }
+        ]
+    }
+    """
+    try:
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        # Validate scope names
+        for scope_def in scope_config.scopes:
+            if not validate_scope_name(scope_def.name):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid scope name: {scope_def.name}. Must start with letter and contain only alphanumeric, underscores, hyphens."
+                )
+
+            if scope_def.type not in ["string", "number", "boolean"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid scope type: {scope_def.type}. Must be string, number, or boolean."
+                )
+
+        # Save the configuration
+        success = await save_scope_config(sanitized_chat_id, scope_config)
+
+        if success:
+            logger.info(f"✅ Scope configuration saved for chat {sanitized_chat_id}: {[s.name for s in scope_config.scopes]}")
+            return {
+                "success": True,
+                "message": "Scope configuration saved successfully",
+                "chat_id": sanitized_chat_id,
+                "scopes": [s.dict() for s in scope_config.scopes]
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to save scope configuration")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to configure scopes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/v1/{chat_id}/scopes")
+async def get_scopes(
+    chat_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    Get the current scope configuration for a chat.
+
+    Returns the list of configured scopes and their definitions.
+    """
+    try:
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        scope_config = await get_scope_config(sanitized_chat_id)
+
+        if scope_config:
+            return {
+                "chat_id": sanitized_chat_id,
+                "scopes": [s.dict() for s in scope_config.scopes]
+            }
+        else:
+            return {
+                "chat_id": sanitized_chat_id,
+                "scopes": []
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get scopes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/v1/{chat_id}/scopes")
+async def delete_scopes(
+    chat_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    Delete/clear all scope configurations for a chat.
+
+    Note: This does not remove scope properties from existing nodes,
+    it only clears the scope configuration.
+    """
+    try:
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        # Clear in-memory config
+        if sanitized_chat_id in SCOPE_CONFIGS:
+            del SCOPE_CONFIGS[sanitized_chat_id]
+
+        # Also clear in Convex (you would implement this based on your Convex schema)
+        logger.info(f"🗑️ Cleared scope configuration for chat {sanitized_chat_id}")
+
+        return {
+            "success": True,
+            "message": "Scope configuration cleared",
+            "chat_id": sanitized_chat_id
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete scopes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/v1/{chat_id}/upload_with_scopes")
+async def upload_file_with_scopes(
+    chat_id: str,
+    file: UploadFile = File(...),
+    scope_values: str = Form("{}"),  # JSON string of scope values
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    Upload a file with custom scope values.
+
+    This endpoint allows you to upload a file and tag it with custom scope values.
+    For example, if you've configured a playlist_id scope, you can specify which
+    playlist this file belongs to.
+
+    Example scope_values:
+    {
+        "playlist_id": "playlist_123",
+        "workspace_id": "workspace_456"
+    }
+    """
+    try:
+        import json
+
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        # Parse scope values
+        try:
+            parsed_scope_values = json.loads(scope_values)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid scope_values JSON")
+
+        # Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file uploaded")
+
+        sanitized_filename = sanitize_filename(file.filename)
+        if not sanitized_filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+
+        # Get actual file size
+        file.file.seek(0, 2)  # Seek to end
+        file_size = file.file.tell()
+        file.file.seek(0)  # Reset to beginning
+
+        if file_size > 5 * 1024 * 1024:  # 5 MB limit
+            raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
+
+        # Extract text from file
+        file_content = await file.read()
+        file_obj = io.BytesIO(file_content)
+
+        # Determine file type and extract text
+        if sanitized_filename.endswith('.pdf'):
+            from pypdf import PdfReader
+            reader = PdfReader(file_obj)
+            text = "\n".join([page.extract_text() for page in reader.pages])
+        elif sanitized_filename.endswith('.txt'):
+            text = file_content.decode('utf-8')
+        elif sanitized_filename.endswith('.docx'):
+            import docx
+            doc = docx.Document(file_obj)
+            text = "\n".join([para.text for para in doc.paragraphs])
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+
+        # Sanitize extracted text
+        sanitized_text = sanitize_with_xss_detection(
+            text,
+            allow_html=False,
+            max_length=1000000,
+            context="file_upload_with_scopes"
+        )
+
+        if not sanitized_text and text:
+            raise HTTPException(status_code=400, detail="File contains potentially malicious content")
+
+        # Create embeddings with scope values
+        pdf_id = f"{sanitized_chat_id}_{sanitized_filename}_{int(time.time())}"
+
+        create_payload = CreateNodesAndEmbeddingsRequest(
+            pdf_text=sanitized_text,
+            pdf_id=pdf_id,
+            chat_id=sanitized_chat_id,
+            filename=sanitized_filename,
+            scope_values=parsed_scope_values
+        )
+
+        # Process the file
+        await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
+
+        logger.info(f"📤 File uploaded with scopes for chat {sanitized_chat_id}: {parsed_scope_values}")
+
+        return {
+            "success": True,
+            "filename": sanitized_filename,
+            "file_id": pdf_id,
+            "chat_id": sanitized_chat_id,
+            "scope_values": parsed_scope_values,
+            "size_bytes": file_size,
+            "message": "File uploaded successfully with custom scope values"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to upload file with scopes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

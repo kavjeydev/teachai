@@ -1,7 +1,7 @@
 {
   "name": "@trainly/react",
-  "version": "1.3.1",
-  "description": "Dead simple RAG integration for React apps with OAuth authentication",
+  "version": "1.4.3",
+  "description": "Dead simple RAG integration for React apps with OAuth authentication and custom scopes",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -28,7 +28,11 @@
     "document-chat",
     "file-management",
     "file-upload",
-    "file-deletion"
+    "file-deletion",
+    "custom-scopes",
+    "scope-filtering",
+    "data-segmentation",
+    "multi-tenant"
   ],
   "author": "Trainly",
   "license": "MIT",

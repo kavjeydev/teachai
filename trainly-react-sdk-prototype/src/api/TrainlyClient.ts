@@ -107,7 +107,10 @@ export class TrainlyClient {
 
   async ask(
     question: string,
-    options: { includeCitations?: boolean } = {},
+    options: {
+      includeCitations?: boolean;
+      scope_filters?: Record<string, string | number | boolean>;
+    } = {},
   ): Promise<QueryResponse> {
     if (!this.scopedToken) {
       throw new Error(
@@ -117,6 +120,19 @@ export class TrainlyClient {
 
     // NEW: V1 Trusted Issuer mode
     if (this.isV1Mode && this.config.appId) {
+      const params: Record<string, string> = {
+        messages: JSON.stringify([{ role: "user", content: question }]),
+        response_tokens: "150",
+      };
+
+      // Add scope filters if provided
+      if (
+        options.scope_filters &&
+        Object.keys(options.scope_filters).length > 0
+      ) {
+        params.scope_filters = JSON.stringify(options.scope_filters);
+      }
+
       const response = await fetch(`${this.config.baseUrl}/v1/me/chats/query`, {
         method: "POST",
         headers: {
@@ -124,10 +140,7 @@ export class TrainlyClient {
           "X-App-ID": this.config.appId,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({
-          messages: JSON.stringify([{ role: "user", content: question }]),
-          response_tokens: "150",
-        }),
+        body: new URLSearchParams(params),
       });
 
       if (!response.ok) {
@@ -184,7 +197,10 @@ export class TrainlyClient {
     };
   }
 
-  async upload(file: File): Promise<UploadResult> {
+  async upload(
+    file: File,
+    scopeValues?: Record<string, string | number | boolean>,
+  ): Promise<UploadResult> {
     if (!this.scopedToken) {
       throw new Error(
         "Not connected. Call connect() or connectWithOAuthToken() first.",
@@ -195,6 +211,11 @@ export class TrainlyClient {
     if (this.isV1Mode && this.config.appId) {
       const formData = new FormData();
       formData.append("file", file);
+
+      // Add scope values if provided
+      if (scopeValues && Object.keys(scopeValues).length > 0) {
+        formData.append("scope_values", JSON.stringify(scopeValues));
+      }
 
       const response = await fetch(
         `${this.config.baseUrl}/v1/me/chats/files/upload`,
@@ -230,6 +251,11 @@ export class TrainlyClient {
       // Direct API mode - upload to specific chat
       const formData = new FormData();
       formData.append("file", file);
+
+      // Add scope values if provided
+      if (scopeValues && Object.keys(scopeValues).length > 0) {
+        formData.append("scope_values", JSON.stringify(scopeValues));
+      }
 
       const response = await fetch(
         `${this.config.baseUrl}/v1/${this.extractChatId()}/upload_file`,
@@ -310,7 +336,10 @@ export class TrainlyClient {
     }
   }
 
-  async bulkUploadFiles(files: File[]): Promise<BulkUploadResult> {
+  async bulkUploadFiles(
+    files: File[],
+    scopeValues?: Record<string, string | number | boolean>,
+  ): Promise<BulkUploadResult> {
     if (!this.scopedToken) {
       throw new Error(
         "Not connected. Call connect() or connectWithOAuthToken() first.",
@@ -333,6 +362,11 @@ export class TrainlyClient {
       files.forEach((file) => {
         formData.append("files", file);
       });
+
+      // Add scope values if provided
+      if (scopeValues && Object.keys(scopeValues).length > 0) {
+        formData.append("scope_values", JSON.stringify(scopeValues));
+      }
 
       const response = await fetch(
         `${this.config.baseUrl}/v1/me/chats/files/upload-bulk`,
@@ -374,7 +408,7 @@ export class TrainlyClient {
 
     for (const file of files) {
       try {
-        const uploadResult = await this.upload(file);
+        const uploadResult = await this.upload(file, scopeValues);
         results.push({
           filename: uploadResult.filename,
           success: uploadResult.success,

@@ -103,16 +103,28 @@ export interface TrainlyFileManagerProps {
 
 export interface TrainlyContextValue {
   // Core functions
-  ask: (question: string) => Promise<string>;
+  ask: (
+    question: string,
+    options?: {
+      includeCitations?: boolean;
+      scope_filters?: Record<string, string | number | boolean>;
+    },
+  ) => Promise<{ answer: string; citations?: Citation[] }>;
   askWithCitations: (
     question: string,
-  ) => Promise<{ answer: string; citations: Citation[] }>;
-  upload: (file: File) => Promise<UploadResult>;
+  ) => Promise<{ answer: string; citations: Citation[] }>; // Deprecated - use ask() with options
+  upload: (
+    file: File,
+    scopeValues?: Record<string, string | number | boolean>,
+  ) => Promise<UploadResult>;
 
   // NEW: File management functions
   listFiles: () => Promise<FileListResult>;
   deleteFile: (fileId: string) => Promise<FileDeleteResult>;
-  bulkUploadFiles: (files: File[]) => Promise<BulkUploadResult>;
+  bulkUploadFiles: (
+    files: File[],
+    scopeValues?: Record<string, string | number | boolean>,
+  ) => Promise<BulkUploadResult>;
 
   // NEW: V1 Authentication
   connectWithOAuthToken: (idToken: string) => Promise<void>;

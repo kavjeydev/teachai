@@ -10,6 +10,7 @@ export interface TrainlyChatProps {
   showCitations?: boolean;
   enableFileUpload?: boolean;
   theme?: "light" | "dark" | "auto";
+  scopeFilters?: Record<string, string | number | boolean>; // NEW: Filter queries by scope
   onMessage?: (message: {
     role: "user" | "assistant";
     content: string;
@@ -24,11 +25,22 @@ export function TrainlyChat({
   showCitations = true,
   enableFileUpload = true,
   theme = "auto",
+  scopeFilters,
   onMessage,
   onError,
 }: TrainlyChatProps) {
-  const { messages, sendMessage, isLoading, error, clearError } = useTrainly();
+  const { ask } = useTrainly();
   const [input, setInput] = React.useState("");
+  const [messages, setMessages] = React.useState<
+    Array<{
+      id: string;
+      role: "user" | "assistant";
+      content: string;
+      citations?: Array<{ source: string; snippet: string; score?: number }>;
+    }>
+  >([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<{ message: string } | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -44,18 +56,49 @@ export function TrainlyChat({
     }
   }, [error, onError]);
 
+  const clearError = () => setError(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const messageContent = input.trim();
     setInput("");
+    setError(null);
 
+    // Add user message
+    const userMessage = {
+      id: Date.now().toString(),
+      role: "user" as const,
+      content: messageContent,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    onMessage?.(userMessage);
+
+    setIsLoading(true);
     try {
-      await sendMessage(messageContent);
-      onMessage?.({ role: "user", content: messageContent });
+      // Query with scope filters if provided
+      const response = await ask(messageContent, {
+        includeCitations: showCitations,
+        scope_filters: scopeFilters,
+      });
+
+      // Add assistant response
+      const assistantMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant" as const,
+        content: response.answer,
+        citations: response.citations,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+      onMessage?.(assistantMessage);
     } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to send message";
+      setError({ message: errorMsg });
       console.error("Failed to send message:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 

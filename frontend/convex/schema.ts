@@ -247,6 +247,20 @@ export default defineSchema({
     apiKeyDisabled: v.boolean(),
     hasApiAccess: v.optional(v.boolean()),
     visibility: v.string(),
+
+    // Custom scopes configuration for data segmentation
+    scopeConfig: v.optional(
+      v.object({
+        scopes: v.array(
+          v.object({
+            name: v.string(),
+            type: v.string(), // "string", "number", "boolean"
+            required: v.boolean(),
+            description: v.optional(v.string()),
+          }),
+        ),
+      }),
+    ),
   })
     .index("by_user", ["userId"])
     .index("by_title", ["title"])

@@ -206,12 +206,18 @@ export function TrainlyProvider({
     }
   };
 
-  const ask = async (question: string): Promise<string> => {
+  const ask = async (
+    question: string,
+    options?: {
+      includeCitations?: boolean;
+      scope_filters?: Record<string, string | number | boolean>;
+    },
+  ): Promise<{ answer: string; citations?: Citation[] }> => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await client.ask(question);
-      return response.answer;
+      const response = await client.ask(question, options || {});
+      return response;
     } catch (err) {
       // Check if it's an authentication error and we have a token refresh function
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -228,9 +234,9 @@ export function TrainlyProvider({
           if (newToken) {
             await client.connectWithOAuthToken(newToken);
             // Retry the query with fresh token
-            const response = await client.ask(question);
+            const response = await client.ask(question, options || {});
             console.log("✅ Query succeeded after token refresh");
-            return response.answer;
+            return response;
           }
         } catch (refreshError) {
           console.error("❌ Token refresh failed:", refreshError);
@@ -249,35 +255,25 @@ export function TrainlyProvider({
     }
   };
 
+  // Legacy wrapper for backward compatibility (deprecated - use ask() with options instead)
   const askWithCitations = async (
     question: string,
   ): Promise<{ answer: string; citations: Citation[] }> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await client.ask(question, { includeCitations: true });
-      return {
-        answer: response.answer,
-        citations: response.citations || [],
-      };
-    } catch (err) {
-      const error: TrainlyError = {
-        code: "QUERY_FAILED",
-        message: "Failed to get answer with citations",
-        details: err,
-      };
-      setError(error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+    const response = await ask(question, { includeCitations: true });
+    return {
+      answer: response.answer,
+      citations: response.citations || [],
+    };
   };
 
-  const upload = async (file: File): Promise<UploadResult> => {
+  const upload = async (
+    file: File,
+    scopeValues?: Record<string, string | number | boolean>,
+  ): Promise<UploadResult> => {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await client.upload(file);
+      const result = await client.upload(file, scopeValues);
       return result;
     } catch (err) {
       // Check if it's an authentication error and we have a token refresh function
@@ -295,7 +291,7 @@ export function TrainlyProvider({
           if (newToken) {
             await client.connectWithOAuthToken(newToken);
             // Retry the upload with fresh token
-            const result = await client.upload(file);
+            const result = await client.upload(file, scopeValues);
             console.log("✅ Upload succeeded after token refresh");
             return result;
           }
@@ -316,11 +312,14 @@ export function TrainlyProvider({
     }
   };
 
-  const bulkUploadFiles = async (files: File[]): Promise<BulkUploadResult> => {
+  const bulkUploadFiles = async (
+    files: File[],
+    scopeValues?: Record<string, string | number | boolean>,
+  ): Promise<BulkUploadResult> => {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await client.bulkUploadFiles(files);
+      const result = await client.bulkUploadFiles(files, scopeValues);
       return result;
     } catch (err) {
       // Check if it's an authentication error and we have a token refresh function
@@ -338,7 +337,7 @@ export function TrainlyProvider({
           if (newToken) {
             await client.connectWithOAuthToken(newToken);
             // Retry the bulk upload with fresh token
-            const result = await client.bulkUploadFiles(files);
+            const result = await client.bulkUploadFiles(files, scopeValues);
             console.log("✅ Bulk upload succeeded after token refresh");
             return result;
           }
@@ -482,7 +481,7 @@ export function TrainlyProvider({
 
   const value: TrainlyContextValue = {
     ask,
-    askWithCitations,
+    askWithCitations, // Deprecated - kept for backward compatibility
     upload,
     bulkUploadFiles, // NEW: Bulk file upload method
     listFiles, // NEW: File management methods
