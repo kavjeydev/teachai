@@ -2473,16 +2473,22 @@ async def v1_user_query(
 
 @app.post("/v1/me/chats/files/upload")
 async def v1_user_file_upload(
-    file: UploadFile = File(...),
+    file: UploadFile = File(None),
+    text_content: str = Form(None),
+    content_name: str = Form(None),
     scope_values: str = Form("{}"),
     authorization: str = Header(None, alias="authorization"),
     app_id: str = Header(None, alias="x-app-id"),
     request: Request = None
 ):
     """
-    V1 File Upload: User uploads files to their permanent subchat
+    V1 File Upload: User uploads files OR text content to their permanent subchat
 
-    Files are processed and stored in the user's permanent subchat,
+    Supports two modes:
+    1. File upload: Provide 'file' parameter
+    2. Text upload: Provide 'text_content' and 'content_name' parameters
+
+    Files/content are processed and stored in the user's permanent subchat,
     making them available for all future queries.
 
     Optional scope_values parameter can be used to add custom attributes
@@ -2502,30 +2508,61 @@ async def v1_user_file_upload(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid scope_values JSON")
 
-    # Validate file
-    file_size = read_files.get_file_size(file)
-    if file_size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file uploaded")
+    # Determine if this is a file or text upload
+    is_text_upload = text_content is not None
+    is_file_upload = file is not None
 
-    # Sanitize filename
-    sanitized_filename = sanitize_filename(file.filename)
-    if not sanitized_filename:
-        raise HTTPException(status_code=400, detail="Invalid filename")
+    if not is_text_upload and not is_file_upload:
+        raise HTTPException(status_code=400, detail="Either 'file' or 'text_content' must be provided")
 
-    try:
+    if is_text_upload and is_file_upload:
+        raise HTTPException(status_code=400, detail="Provide either 'file' or 'text_content', not both")
+
+    if is_text_upload:
+        # Text upload mode
+        if not content_name:
+            raise HTTPException(status_code=400, detail="'content_name' is required when uploading text")
+
+        # Sanitize content name
+        sanitized_filename = sanitize_filename(content_name)
+        if not sanitized_filename:
+            raise HTTPException(status_code=400, detail="Invalid content_name")
+
+        # Use text content directly
+        text = text_content
+        file_size = len(text_content.encode('utf-8'))
+
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="Text content too large (max 5 MB)")
+    else:
+        # File upload mode
+        file_size = read_files.get_file_size(file)
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file uploaded")
+
+        # Sanitize filename
+        sanitized_filename = sanitize_filename(file.filename)
+        if not sanitized_filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+
         # Get actual file size
         file_size = read_files.get_file_size(file)
 
+    try:
         # Create/get permanent subchat for this user
         subchat = await get_or_create_user_subchat(
             user_identity["app_id"],
             user_identity["external_user_id"]
         )
 
-        # Extract text from file
-        text = read_files.extract_text(file)
+        # Extract text from file or use provided text
+        if is_text_upload:
+            # Text already assigned above
+            pass
+        else:
+            text = read_files.extract_text(file)
 
         # Sanitize extracted text
         sanitized_text = sanitize_with_xss_detection(
@@ -2593,35 +2630,45 @@ async def v1_user_file_upload(
 
 @app.post("/v1/me/chats/files/upload-bulk")
 async def v1_user_bulk_file_upload(
-    files: List[UploadFile] = File(...),
+    files: List[UploadFile] = File(None),
+    text_contents: str = Form(None),  # JSON array of text content strings
+    content_names: str = Form(None),  # JSON array of content names
     scope_values: str = Form("{}"),
     authorization: str = Header(None, alias="authorization"),
     app_id: str = Header(None, alias="x-app-id"),
     request: Request = None
 ):
     """
-    V1 Bulk File Upload: User uploads multiple files to their permanent subchat
+    V1 Bulk File Upload: User uploads multiple files OR text content to their permanent subchat
 
-    Upload multiple files at once. All files are processed and stored in the user's
+    Supports two modes:
+    1. File upload: Provide 'files' parameter (list of files)
+    2. Text upload: Provide 'text_contents' and 'content_names' parameters (JSON arrays)
+
+    Upload multiple files/content at once. All are processed and stored in the user's
     permanent subchat, making them available for all future queries.
 
-    Returns detailed results for each file, including successes and failures.
+    Returns detailed results for each file/content, including successes and failures.
 
-    Optional scope_values parameter applies the same scopes to all uploaded files
+    Optional scope_values parameter applies the same scopes to all uploaded files/content
     (e.g., {"playlist_id": "playlist_123"})
     """
 
     if not app_id:
         raise HTTPException(status_code=400, detail="X-App-ID header required")
 
-    if not files:
-        raise HTTPException(status_code=400, detail="No files provided")
-
-    if len(files) > 10:  # Limit to 10 files per bulk upload
-        raise HTTPException(status_code=400, detail="Too many files (max 10 per bulk upload)")
-
     # Authenticate user with their OAuth ID token
     user_identity = await authenticate_v1_user(authorization, app_id)
+
+    # Determine upload mode
+    is_text_upload = text_contents is not None
+    is_file_upload = files is not None
+
+    if not is_text_upload and not is_file_upload:
+        raise HTTPException(status_code=400, detail="Either 'files' or 'text_contents' must be provided")
+
+    if is_text_upload and is_file_upload:
+        raise HTTPException(status_code=400, detail="Provide either 'files' or 'text_contents', not both")
 
     # Parse scope values (will be applied to all files in this upload)
     import json
@@ -2629,6 +2676,46 @@ async def v1_user_bulk_file_upload(
         parsed_scope_values = json.loads(scope_values) if scope_values else {}
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid scope_values JSON")
+
+    # Prepare items to process (either files or text content)
+    items_to_process = []
+
+    if is_text_upload:
+        # Parse text contents and content names
+        try:
+            text_list = json.loads(text_contents) if text_contents else []
+            names_list = json.loads(content_names) if content_names else []
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON format for text_contents or content_names")
+
+        if not text_list:
+            raise HTTPException(status_code=400, detail="No text content provided")
+
+        if len(text_list) != len(names_list):
+            raise HTTPException(status_code=400, detail="text_contents and content_names must have the same length")
+
+        if len(text_list) > 10:
+            raise HTTPException(status_code=400, detail="Too many items (max 10 per bulk upload)")
+
+        for text_content, content_name in zip(text_list, names_list):
+            items_to_process.append({
+                "type": "text",
+                "content": text_content,
+                "name": content_name
+            })
+    else:
+        # File upload mode
+        if not files:
+            raise HTTPException(status_code=400, detail="No files provided")
+
+        if len(files) > 10:
+            raise HTTPException(status_code=400, detail="Too many files (max 10 per bulk upload)")
+
+        for file in files:
+            items_to_process.append({
+                "type": "file",
+                "file": file
+            })
 
     # Get/create permanent subchat for this user (once for all files)
     subchat = await get_or_create_user_subchat(
@@ -2640,9 +2727,9 @@ async def v1_user_bulk_file_upload(
     total_size = 0
     successful_uploads = 0
 
-    for file in files:
+    for item in items_to_process:
         file_result = {
-            "filename": file.filename or "unknown",
+            "filename": "unknown",
             "success": False,
             "error": None,
             "file_id": None,
@@ -2651,31 +2738,66 @@ async def v1_user_bulk_file_upload(
         }
 
         try:
-            # Validate individual file
-            file_size = read_files.get_file_size(file)
-            if file_size > MAX_FILE_SIZE:
-                file_result["error"] = f"File too large (max 5 MB), got {file_size} bytes"
-                results.append(file_result)
-                continue
+            if item["type"] == "text":
+                # Text content processing
+                text_content = item["content"]
+                content_name = item["name"]
 
-            if not file.filename:
-                file_result["error"] = "No filename provided"
-                results.append(file_result)
-                continue
+                if not content_name:
+                    file_result["error"] = "content_name is required"
+                    results.append(file_result)
+                    continue
 
-            # Sanitize filename
-            sanitized_filename = sanitize_filename(file.filename)
-            if not sanitized_filename:
-                file_result["error"] = "Invalid filename"
-                file_result["filename"] = file.filename
-                results.append(file_result)
-                continue
+                # Sanitize content name
+                sanitized_filename = sanitize_filename(content_name)
+                if not sanitized_filename:
+                    file_result["error"] = "Invalid content_name"
+                    file_result["filename"] = content_name
+                    results.append(file_result)
+                    continue
 
-            file_result["filename"] = sanitized_filename
-            file_result["size_bytes"] = file_size
+                file_result["filename"] = sanitized_filename
 
-            # Extract text from file
-            text = read_files.extract_text(file)
+                # Calculate size
+                file_size = len(text_content.encode('utf-8'))
+                if file_size > MAX_FILE_SIZE:
+                    file_result["error"] = f"Text content too large (max 5 MB), got {file_size} bytes"
+                    file_result["size_bytes"] = file_size
+                    results.append(file_result)
+                    continue
+
+                file_result["size_bytes"] = file_size
+                text = text_content
+            else:
+                # File processing
+                file = item["file"]
+                file_result["filename"] = file.filename or "unknown"
+
+                # Validate individual file
+                file_size = read_files.get_file_size(file)
+                if file_size > MAX_FILE_SIZE:
+                    file_result["error"] = f"File too large (max 5 MB), got {file_size} bytes"
+                    results.append(file_result)
+                    continue
+
+                if not file.filename:
+                    file_result["error"] = "No filename provided"
+                    results.append(file_result)
+                    continue
+
+                # Sanitize filename
+                sanitized_filename = sanitize_filename(file.filename)
+                if not sanitized_filename:
+                    file_result["error"] = "Invalid filename"
+                    file_result["filename"] = file.filename
+                    results.append(file_result)
+                    continue
+
+                file_result["filename"] = sanitized_filename
+                file_result["size_bytes"] = file_size
+
+                # Extract text from file
+                text = read_files.extract_text(file)
 
             # Sanitize extracted text
             sanitized_text = sanitize_with_xss_detection(

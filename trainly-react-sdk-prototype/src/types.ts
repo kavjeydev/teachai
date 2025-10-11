@@ -41,6 +41,11 @@ export interface UploadResult {
   message?: string;
 }
 
+export interface TextContent {
+  text: string;
+  contentName: string;
+}
+
 export interface BulkUploadFileResult {
   filename: string;
   success: boolean;
@@ -117,12 +122,21 @@ export interface TrainlyContextValue {
     file: File,
     scopeValues?: Record<string, string | number | boolean>,
   ) => Promise<UploadResult>;
+  uploadText: (
+    text: string,
+    contentName: string,
+    scopeValues?: Record<string, string | number | boolean>,
+  ) => Promise<UploadResult>;
 
   // NEW: File management functions
   listFiles: () => Promise<FileListResult>;
   deleteFile: (fileId: string) => Promise<FileDeleteResult>;
   bulkUploadFiles: (
     files: File[],
+    scopeValues?: Record<string, string | number | boolean>,
+  ) => Promise<BulkUploadResult>;
+  bulkUploadText: (
+    textContents: TextContent[],
     scopeValues?: Record<string, string | number | boolean>,
   ) => Promise<BulkUploadResult>;
 

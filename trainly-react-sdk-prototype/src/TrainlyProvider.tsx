@@ -11,6 +11,7 @@ import {
   FileDeleteResult,
   TrainlyError,
   BulkUploadResult,
+  TextContent,
 } from "./types";
 import { TrainlyClient } from "./api/TrainlyClient";
 
@@ -312,6 +313,57 @@ export function TrainlyProvider({
     }
   };
 
+  const uploadText = async (
+    text: string,
+    contentName: string,
+    scopeValues?: Record<string, string | number | boolean>,
+  ): Promise<UploadResult> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await client.uploadText(text, contentName, scopeValues);
+      return result;
+    } catch (err) {
+      // Check if it's an authentication error and we have a token refresh function
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (
+        getToken &&
+        appId &&
+        (errorMessage.includes("401") ||
+          errorMessage.includes("authentication") ||
+          errorMessage.includes("Unauthorized"))
+      ) {
+        try {
+          console.log("🔄 Token expired during text upload, refreshing...");
+          const newToken = await getToken();
+          if (newToken) {
+            await client.connectWithOAuthToken(newToken);
+            // Retry the text upload with fresh token
+            const result = await client.uploadText(
+              text,
+              contentName,
+              scopeValues,
+            );
+            console.log("✅ Text upload succeeded after token refresh");
+            return result;
+          }
+        } catch (refreshError) {
+          console.error("❌ Token refresh failed:", refreshError);
+        }
+      }
+
+      const error: TrainlyError = {
+        code: "TEXT_UPLOAD_FAILED",
+        message: "Failed to upload text content",
+        details: err,
+      };
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const bulkUploadFiles = async (
     files: File[],
     scopeValues?: Record<string, string | number | boolean>,
@@ -352,6 +404,60 @@ export function TrainlyProvider({
       const error: TrainlyError = {
         code: "BULK_UPLOAD_FAILED",
         message: "Failed to upload files",
+        details: err,
+      };
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const bulkUploadText = async (
+    textContents: TextContent[],
+    scopeValues?: Record<string, string | number | boolean>,
+  ): Promise<BulkUploadResult> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await client.bulkUploadText(textContents, scopeValues);
+      return result;
+    } catch (err) {
+      // Check if it's an authentication error and we have a token refresh function
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (
+        getToken &&
+        appId &&
+        (errorMessage.includes("401") ||
+          errorMessage.includes("authentication") ||
+          errorMessage.includes("Unauthorized"))
+      ) {
+        try {
+          console.log(
+            "🔄 Token expired during bulk text upload, refreshing...",
+          );
+          const newToken = await getToken();
+          if (newToken) {
+            await client.connectWithOAuthToken(newToken);
+            // Retry the bulk text upload with fresh token
+            const result = await client.bulkUploadText(
+              textContents,
+              scopeValues,
+            );
+            console.log("✅ Bulk text upload succeeded after token refresh");
+            return result;
+          }
+        } catch (refreshError) {
+          console.error(
+            "❌ Token refresh failed during bulk text upload:",
+            refreshError,
+          );
+        }
+      }
+
+      const error: TrainlyError = {
+        code: "BULK_TEXT_UPLOAD_FAILED",
+        message: "Failed to upload text content",
         details: err,
       };
       setError(error);
@@ -483,7 +589,9 @@ export function TrainlyProvider({
     ask,
     askWithCitations, // Deprecated - kept for backward compatibility
     upload,
+    uploadText, // NEW: Text content upload
     bulkUploadFiles, // NEW: Bulk file upload method
+    bulkUploadText, // NEW: Bulk text content upload
     listFiles, // NEW: File management methods
     deleteFile,
     connectWithOAuthToken, // NEW: V1 OAuth connection method
