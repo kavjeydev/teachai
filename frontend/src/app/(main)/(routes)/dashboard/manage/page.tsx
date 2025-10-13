@@ -411,17 +411,13 @@ export default function ChatManagementPage() {
           const baseUrl = backendUrl.endsWith("/")
             ? backendUrl.slice(0, -1)
             : backendUrl;
-          // Include child chat IDs if they exist
-          const childChatIdsParam =
-            result.childChatIds && result.childChatIds.length > 0
-              ? `&child_chat_ids=${encodeURIComponent(result.childChatIds.join(","))}`
-              : "";
-          const cleanupUrl = `${baseUrl}/cleanup_chat_data/${result.chatId}?convex_id=${result.convexId}${childChatIdsParam}`;
 
-          console.log(`🗑️ Calling Neo4j cleanup from frontend: ${cleanupUrl}`);
+          // Delete nodes for the main chat
+          const cleanupUrl = `${baseUrl}/delete_chat_nodes/${result.chatId}`;
+          console.log(`🗑️ Calling Neo4j cleanup for main chat: ${cleanupUrl}`);
 
           const neo4jResponse = await fetch(cleanupUrl, {
-            method: "POST",
+            method: "DELETE",
             headers: {
               "Content-Type": "application/json",
             },
@@ -429,7 +425,10 @@ export default function ChatManagementPage() {
 
           if (neo4jResponse.ok) {
             const neo4jResult = await neo4jResponse.json();
-            console.log(`✅ Neo4j cleanup successful:`, neo4jResult);
+            console.log(
+              `✅ Neo4j cleanup successful for main chat:`,
+              neo4jResult,
+            );
             console.log(
               `✅ Nodes deleted: ${neo4jResult.nodes_deleted}, Relationships deleted: ${neo4jResult.relationships_deleted}`,
             );
@@ -438,6 +437,41 @@ export default function ChatManagementPage() {
             const errorText = await neo4jResponse.text();
             console.error(`❌ Error response: ${errorText}`);
             // Don't fail the whole operation if Neo4j cleanup fails
+          }
+
+          // Also delete nodes for child chats if they exist
+          if (result.childChatIds && result.childChatIds.length > 0) {
+            console.log(
+              `🗑️ Deleting nodes for ${result.childChatIds.length} child chats`,
+            );
+            for (const childChatId of result.childChatIds) {
+              try {
+                const childCleanupUrl = `${baseUrl}/delete_chat_nodes/${childChatId}`;
+                const childResponse = await fetch(childCleanupUrl, {
+                  method: "DELETE",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                });
+
+                if (childResponse.ok) {
+                  const childResult = await childResponse.json();
+                  console.log(
+                    `✅ Deleted nodes for child chat ${childChatId}:`,
+                    childResult,
+                  );
+                } else {
+                  console.warn(
+                    `⚠️ Failed to delete nodes for child chat ${childChatId}`,
+                  );
+                }
+              } catch (childError) {
+                console.error(
+                  `💥 Error deleting child chat nodes ${childChatId}:`,
+                  childError,
+                );
+              }
+            }
           }
         } catch (neo4jError) {
           console.error(`💥 Error calling Neo4j cleanup:`, neo4jError);

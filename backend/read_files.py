@@ -4788,6 +4788,41 @@ async def remove_context(file_id: str): # TODO: add auth to this endpoint
             detail=f"Failed to delete Document node in Neo4j: {str(e)}"
         )
 
+@app.delete("/delete_chat_nodes/{chat_id}")
+async def delete_chat_nodes(chat_id: str): # TODO: add auth to this endpoint
+    """Delete all nodes associated with a chat by chatId.
+    This is used for cleanup when permanently deleting a chat."""
+    try:
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # Delete all nodes with this chatId
+                query = """
+                MATCH (n)
+                WHERE n.chatId = $chat_id
+                DETACH DELETE n
+                """
+                result = session.run(query, chat_id=chat_id)
+
+                summary = result.consume()
+                nodes_deleted = summary.counters.nodes_deleted
+                relationships_deleted = summary.counters.relationships_deleted
+
+                print(f"Deleted {nodes_deleted} nodes and {relationships_deleted} relationships for chat {chat_id}")
+
+                return {
+                    "status": "success",
+                    "message": f"All nodes for chat {chat_id} deleted",
+                    "nodes_deleted": nodes_deleted,
+                    "relationships_deleted": relationships_deleted
+                }
+
+    except Exception as e:
+        print(f"Failed to delete chat nodes: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete chat nodes in Neo4j: {str(e)}"
+        )
+
 @app.post("/cleanup_chat_data/{chat_id}")
 async def cleanup_chat_data(chat_id: str, convex_id: str = Query(None), child_chat_ids: str = Query(None)):
     """

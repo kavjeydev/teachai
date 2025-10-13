@@ -141,7 +141,7 @@ export default function Home() {
               }`}
             >
               <span className="block text-zinc-900 dark:text-white mb-2 tracking-tighter">
-                AI you can
+                <span className="text-amber-400">APIs</span> for AI you can
               </span>
               <span className="block text-zinc-900 dark:text-white tracking-tighter">
                 see & shape
