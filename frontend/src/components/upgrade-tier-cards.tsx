@@ -27,7 +27,6 @@ export function UpgradeTierCards({
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
   const handleUpgrade = async (priceId: string | null, tierName: string) => {
-    console.log("handleUpgrade called:", { priceId, tierName }); // Debug log
 
     if (!priceId) {
       if (tierName === "Enterprise") {
@@ -46,7 +45,6 @@ export function UpgradeTierCards({
     setIsLoading(priceId);
 
     try {
-      console.log("Making checkout request..."); // Debug log
       const response = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: {
@@ -55,7 +53,6 @@ export function UpgradeTierCards({
         body: JSON.stringify({ priceId, mode: "subscription" }),
       });
 
-      console.log("Checkout response:", response.status); // Debug log
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -73,7 +70,6 @@ export function UpgradeTierCards({
       }
 
       const { sessionId, url } = await response.json();
-      console.log("Got checkout URL:", url); // Debug log
 
       if (url) {
         window.open(url, "_blank");
@@ -120,18 +116,6 @@ export function UpgradeTierCards({
     PRICING_TIERS.SCALE,
     PRICING_TIERS.ENTERPRISE,
   ].filter((tier) => tier.id !== currentTier);
-
-  // Debug log to check priceIds
-  React.useEffect(() => {
-    console.log(
-      "Available tiers:",
-      availableTiers.map((tier) => ({
-        name: tier.name,
-        priceId: tier.priceId,
-        id: tier.id,
-      })),
-    );
-  }, [availableTiers]);
 
   if (compact) {
     return (

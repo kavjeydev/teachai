@@ -1,17 +1,17 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 /**
- * TeachAI Chat API SDK
+ * TrainlyAI Chat API SDK
  *
- * Easy-to-use TypeScript/JavaScript SDK for integrating with TeachAI Chat APIs.
+ * Easy-to-use TypeScript/JavaScript SDK for integrating with TrainlyAI Chat APIs.
  * Handles authentication, rate limiting, and provides type-safe interfaces.
  *
  * Usage:
  * ```typescript
- * const client = new TeachAIClient({
+ * const client = new TrainlyAIClient({
  *   integrationKey: 'cik_your_integration_key',
  *   chatId: 'your_chat_id',
- *   baseUrl: 'https://api.teachai.com'
+ *   baseUrl: 'https://api.TrainlyAI.com'
  * });
  *
  * const response = await client.query({
@@ -21,7 +21,7 @@ import { useState } from 'react';
  */
 
 export interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -76,7 +76,7 @@ export interface GraphResponse {
   center_node?: string;
 }
 
-export interface TeachAIClientConfig {
+export interface TrainlyAIClientConfig {
   integrationKey: string;
   chatId: string;
   baseUrl?: string;
@@ -86,33 +86,33 @@ export interface TeachAIClientConfig {
 }
 
 export interface StreamEvent {
-  type: 'context' | 'content' | 'end' | 'error';
+  type: "context" | "content" | "end" | "error";
   data: any;
 }
 
-export class TeachAIError extends Error {
+export class TrainlyAIError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public code?: string
+    public code?: string,
   ) {
     super(message);
-    this.name = 'TeachAIError';
+    this.name = "TrainlyAIError";
   }
 }
 
-export class TeachAIClient {
-  private config: Required<TeachAIClientConfig>;
+export class TrainlyAIClient {
+  private config: Required<TrainlyAIClientConfig>;
   private accessToken?: string;
   private tokenExpiry?: number;
 
-  constructor(config: TeachAIClientConfig) {
+  constructor(config: TrainlyAIClientConfig) {
     this.config = {
-      baseUrl: 'https://api.teachai.com',
+      baseUrl: "https://api.trainlyai.com",
       timeout: 30000,
       retryAttempts: 3,
       debug: false,
-      ...config
+      ...config,
     };
   }
 
@@ -121,45 +121,52 @@ export class TeachAIClient {
    */
   private async getAccessToken(): Promise<string> {
     // Check if current token is still valid (with 30s buffer)
-    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry - 30000) {
+    if (
+      this.accessToken &&
+      this.tokenExpiry &&
+      Date.now() < this.tokenExpiry - 30000
+    ) {
       return this.accessToken;
     }
 
     // Exchange integration key for new JWT token
     try {
-      const response = await fetch(`${this.config.baseUrl}/v1/tokens/exchange`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.integrationKey}`
+      const response = await fetch(
+        `${this.config.baseUrl}/v1/tokens/exchange`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.config.integrationKey}`,
+          },
+          body: JSON.stringify({
+            chat_id: this.config.chatId,
+            requested_scopes: ["chat.query", "graph.read"],
+          }),
         },
-        body: JSON.stringify({
-          chat_id: this.config.chatId,
-          requested_scopes: ['chat.query', 'graph.read']
-        })
-      });
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new TeachAIError(
-          error.error || 'Token exchange failed',
+        throw new TrainlyAIError(
+          error.error || "Token exchange failed",
           response.status,
-          'TOKEN_EXCHANGE_FAILED'
+          "TOKEN_EXCHANGE_FAILED",
         );
       }
 
       const tokenData = await response.json();
       this.accessToken = tokenData.access_token;
-      this.tokenExpiry = Date.now() + (tokenData.expires_in * 1000);
+      this.tokenExpiry = Date.now() + tokenData.expires_in * 1000;
 
       if (this.config.debug) {
-        console.log('TeachAI: Token refreshed successfully');
+        console.log("TrainlyAI: Token refreshed successfully");
       }
 
       return this.accessToken!;
     } catch (error) {
-      if (error instanceof TeachAIError) throw error;
-      throw new TeachAIError('Failed to exchange token', 500, 'NETWORK_ERROR');
+      if (error instanceof TrainlyAIError) throw error;
+      throw new TrainlyAIError("Failed to exchange token", 500, "NETWORK_ERROR");
     }
   }
 
@@ -168,26 +175,28 @@ export class TeachAIClient {
    */
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const token = await this.getAccessToken();
 
     const response = await fetch(`${this.config.baseUrl}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        ...options.headers
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
       },
-      signal: AbortSignal.timeout(this.config.timeout)
+      signal: AbortSignal.timeout(this.config.timeout),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new TeachAIError(
+      const error = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      throw new TrainlyAIError(
         error.error || `HTTP ${response.status}`,
         response.status,
-        error.type || 'API_ERROR'
+        error.type || "API_ERROR",
       );
     }
 
@@ -199,16 +208,19 @@ export class TeachAIClient {
    */
   async query(request: QueryRequest): Promise<QueryResponse> {
     if (this.config.debug) {
-      console.log('TeachAI: Sending query', {
+      console.log("TrainlyAI: Sending query", {
         messageCount: request.messages.length,
-        model: request.model
+        model: request.model,
       });
     }
 
-    return this.request<QueryResponse>(`/v1/chats/${this.config.chatId}/query`, {
-      method: 'POST',
-      body: JSON.stringify(request)
-    });
+    return this.request<QueryResponse>(
+      `/v1/chats/${this.config.chatId}/query`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      },
+    );
   }
 
   /**
@@ -216,31 +228,37 @@ export class TeachAIClient {
    */
   async queryStream(
     request: QueryRequest,
-    onEvent: (event: StreamEvent) => void
+    onEvent: (event: StreamEvent) => void,
   ): Promise<void> {
     const token = await this.getAccessToken();
 
-    const response = await fetch(`${this.config.baseUrl}/v1/chats/${this.config.chatId}/query/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'text/event-stream'
+    const response = await fetch(
+      `${this.config.baseUrl}/v1/chats/${this.config.chatId}/query/stream`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify(request),
       },
-      body: JSON.stringify(request)
-    });
+    );
 
     if (!response.ok) {
-      throw new TeachAIError(`Stream failed: ${response.status}`, response.status);
+      throw new TrainlyAIError(
+        `Stream failed: ${response.status}`,
+        response.status,
+      );
     }
 
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new TeachAIError('Failed to get stream reader', 500);
+      throw new TrainlyAIError("Failed to get stream reader", 500);
     }
 
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
 
     try {
       while (true) {
@@ -248,16 +266,16 @@ export class TeachAIClient {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
               onEvent(data);
             } catch (e) {
-              console.warn('Failed to parse SSE data:', line);
+              console.warn("Failed to parse SSE data:", line);
             }
           }
         }
@@ -272,7 +290,7 @@ export class TeachAIClient {
    */
   async getNodes(nodeIds: string[]): Promise<GraphNode[]> {
     return this.request<GraphNode[]>(
-      `/v1/chats/${this.config.chatId}/nodes?node_ids=${nodeIds.join(',')}`
+      `/v1/chats/${this.config.chatId}/nodes?node_ids=${nodeIds.join(",")}`,
     );
   }
 
@@ -285,12 +303,14 @@ export class TeachAIClient {
     limit?: number;
   }): Promise<GraphResponse> {
     const params = new URLSearchParams();
-    if (options?.centerNode) params.set('center_node', options.centerNode);
-    if (options?.hops) params.set('hops', options.hops.toString());
-    if (options?.limit) params.set('limit', options.limit.toString());
+    if (options?.centerNode) params.set("center_node", options.centerNode);
+    if (options?.hops) params.set("hops", options.hops.toString());
+    if (options?.limit) params.set("limit", options.limit.toString());
 
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return this.request<GraphResponse>(`/v1/chats/${this.config.chatId}/graph${query}`);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return this.request<GraphResponse>(
+      `/v1/chats/${this.config.chatId}/graph${query}`,
+    );
   }
 
   /**
@@ -309,14 +329,17 @@ export class TeachAIClient {
   /**
    * Helper method for simple question-answer
    */
-  async ask(question: string, options?: {
-    model?: string;
-    temperature?: number;
-    max_tokens?: number;
-  }): Promise<string> {
+  async ask(
+    question: string,
+    options?: {
+      model?: string;
+      temperature?: number;
+      max_tokens?: number;
+    },
+  ): Promise<string> {
     const response = await this.query({
-      messages: [{ role: 'user', content: question }],
-      ...options
+      messages: [{ role: "user", content: question }],
+      ...options,
     });
 
     return response.answer;
@@ -333,26 +356,26 @@ export class TeachAIClient {
       model?: string;
       temperature?: number;
       max_tokens?: number;
-    }
+    },
   ): Promise<void> {
-    let fullAnswer = '';
+    let fullAnswer = "";
 
     await this.queryStream(
       {
-        messages: [{ role: 'user', content: question }],
+        messages: [{ role: "user", content: question }],
         stream: true,
-        ...options
+        ...options,
       },
       (event) => {
-        if (event.type === 'content') {
+        if (event.type === "content") {
           fullAnswer += event.data;
           onContent(event.data);
-        } else if (event.type === 'end') {
+        } else if (event.type === "end") {
           onComplete?.(fullAnswer);
-        } else if (event.type === 'error') {
-          throw new TeachAIError(event.data, 500, 'STREAM_ERROR');
+        } else if (event.type === "error") {
+          throw new TrainlyAIError(event.data, 500, "STREAM_ERROR");
         }
-      }
+      },
     );
   }
 }
@@ -361,12 +384,14 @@ export class TeachAIClient {
 // React Hooks for Easy Integration
 // ==============================================================================
 
-export function useTeachAI(config: TeachAIClientConfig) {
-  const [client] = useState(() => new TeachAIClient(config));
+export function useTrainlyAI(config: TrainlyAIClientConfig) {
+  const [client] = useState(() => new TrainlyAIClient(config));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const query = async (request: QueryRequest): Promise<QueryResponse | null> => {
+  const query = async (
+    request: QueryRequest,
+  ): Promise<QueryResponse | null> => {
     setLoading(true);
     setError(null);
 
@@ -374,7 +399,8 @@ export function useTeachAI(config: TeachAIClientConfig) {
       const response = await client.query(request);
       return response;
     } catch (err) {
-      const errorMessage = err instanceof TeachAIError ? err.message : 'Unknown error';
+      const errorMessage =
+        err instanceof TrainlyAIError ? err.message : "Unknown error";
       setError(errorMessage);
       return null;
     } finally {
@@ -384,7 +410,7 @@ export function useTeachAI(config: TeachAIClientConfig) {
 
   const ask = async (question: string): Promise<string | null> => {
     const response = await query({
-      messages: [{ role: 'user', content: question }]
+      messages: [{ role: "user", content: question }],
     });
     return response?.answer || null;
   };
@@ -394,7 +420,7 @@ export function useTeachAI(config: TeachAIClientConfig) {
     loading,
     error,
     query,
-    ask
+    ask,
   };
 }
 
@@ -402,29 +428,42 @@ export function useTeachAI(config: TeachAIClientConfig) {
 // Utility Functions
 // ==============================================================================
 
-export function createIntegrationKey(chatId: string, scopes: string[] = ['chat.query']): Promise<{
+export function createIntegrationKey(
+  chatId: string,
+  scopes: string[] = ["chat.query"],
+): Promise<{
   integration_key: string;
   chat_id: string;
   scopes: string[];
 }> {
   // This would be called from your dashboard to create new integration keys
   // Implementation depends on your existing auth system
-  throw new Error('Integration key creation must be done through the TeachAI dashboard');
+  throw new Error(
+    "Integration key creation must be done through the TrainlyAI dashboard",
+  );
 }
 
-export function validateConfig(config: TeachAIClientConfig): void {
+export function validateConfig(config: TrainlyAIClientConfig): void {
   if (!config.integrationKey) {
-    throw new TeachAIError('Integration key is required', 400, 'INVALID_CONFIG');
+    throw new TrainlyAIError(
+      "Integration key is required",
+      400,
+      "INVALID_CONFIG",
+    );
   }
 
   if (!config.chatId) {
-    throw new TeachAIError('Chat ID is required', 400, 'INVALID_CONFIG');
+    throw new TrainlyAIError("Chat ID is required", 400, "INVALID_CONFIG");
   }
 
-  if (config.integrationKey && !config.integrationKey.startsWith('cik_')) {
-    throw new TeachAIError('Invalid integration key format', 400, 'INVALID_CONFIG');
+  if (config.integrationKey && !config.integrationKey.startsWith("cik_")) {
+    throw new TrainlyAIError(
+      "Invalid integration key format",
+      400,
+      "INVALID_CONFIG",
+    );
   }
 }
 
 // For CommonJS compatibility
-export default TeachAIClient;
+export default TrainlyAIClient;

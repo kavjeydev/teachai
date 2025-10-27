@@ -355,32 +355,6 @@ print(response)
       }
     }
 
-    // Delete any remaining nodes for this chat (including text-based nodes)
-    try {
-      const cleanupResponse = await fetch(
-        (process.env.NEXT_PUBLIC_BASE_URL as string) +
-          `delete_chat_nodes/${currentChat?.chatId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (cleanupResponse.ok) {
-        const cleanupData = await cleanupResponse.json();
-        console.log("✅ Cleaned up remaining chat nodes:", cleanupData);
-      } else {
-        console.warn(
-          "⚠️ Failed to cleanup remaining chat nodes, but continuing with deletion",
-        );
-      }
-    } catch (error) {
-      console.warn("⚠️ Error during chat nodes cleanup:", error);
-      // Continue with chat deletion even if cleanup fails
-    }
-
     deleteForever({
       id: chatId,
     });

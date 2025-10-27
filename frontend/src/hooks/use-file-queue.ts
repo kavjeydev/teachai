@@ -184,34 +184,22 @@ export function useFileQueue({
     async (queuedFile: QueuedFile, queueId: string, chatId: Id<"chats">) => {
       const fileKey = `${queueId}-${queuedFile.id}`;
 
-      console.log(
-        `🚀 processFile called for: ${queuedFile.fileName} (key: ${fileKey})`,
-      );
-      console.log(`📊 Current abort controllers: ${abortControllers.size}`);
-      console.log(`📊 Current cancelled files: ${cancelledFiles.size}`);
 
       // Create a global key to track this specific file across all instances
       const globalFileKey = `${chatId}_${queuedFile.fileName}_${queuedFile.fileSize}`;
 
       // Check if this exact file is already being processed globally
       if (globalProcessingFiles.has(globalFileKey)) {
-        console.log(
-          `🚫 DUPLICATE DETECTED: ${queuedFile.fileName} is already being processed globally, skipping`,
-        );
         return;
       }
 
       // Check if this file is already being processed in this instance
       if (abortControllers.has(fileKey)) {
-        console.log(
-          `⚠️ File ${queuedFile.fileName} is already being processed locally, skipping duplicate call`,
-        );
         return;
       }
 
       // Mark this file as being processed globally
       globalProcessingFiles.add(globalFileKey);
-      console.log(`🔒 Locked processing for: ${globalFileKey}`);
 
       // Create AbortController for this file
       const abortController = new AbortController();
@@ -225,15 +213,10 @@ export function useFileQueue({
         // Create a more deterministic file ID based on file content and name
         const uniqueFileId = `file_${queuedFile.fileName.replace(/[^a-zA-Z0-9]/g, "_")}_${queuedFile.fileSize}_${Date.now()}`;
 
-        console.log(
-          `🆔 Generated uniqueFileId: ${uniqueFileId} for ${queuedFile.fileName}`,
-        );
 
         // Check if already cancelled before starting
         if (abortController.signal.aborted || cancelledFiles.has(fileKey)) {
-          console.log(
-            `🚫 File ${queuedFile.fileName} was cancelled before processing started`,
-          );
+
           return;
         }
 
@@ -332,9 +315,7 @@ export function useFileQueue({
           isSubchat = chatInfo.chatType === "app_subchat";
           if (isSubchat && chatInfo.chatId) {
             actualChatId = chatInfo.chatId;
-            console.log(
-              `🔍 SUBCHAT DETECTED - Using string chatId: ${actualChatId} instead of Convex _id: ${chatId}`,
-            );
+
           }
         } else {
           // Fallback: detect subchat from string format
@@ -342,24 +323,13 @@ export function useFileQueue({
           if (chatIdStr && chatIdStr.startsWith("subchat_")) {
             isSubchat = true;
             actualChatId = chatIdStr;
-            console.log(
-              `🔍 SUBCHAT DETECTED by string format: ${actualChatId}`,
-            );
+
           }
         }
 
-        console.log(
-          `🔍 Chat type detected: ${chatInfo?.chatType || "unknown"}, isSubchat: ${isSubchat}`,
-        );
 
         // For subchats, skip embeddings creation since V1 API handles it
         if (isSubchat) {
-          console.log(
-            `🎯 SUBCHAT DETECTED - Skipping frontend embeddings creation for ${queuedFile.fileName}`,
-          );
-          console.log(
-            `📋 V1 API will handle Neo4j processing for subchat uploads`,
-          );
 
           // Just mark as completed without calling create_nodes_and_embeddings
           setActiveQueues((prev) => {
@@ -399,18 +369,6 @@ export function useFileQueue({
           filename: queuedFile.fileName,
         };
 
-        console.log("📤 Uploading file with payload:", {
-          filename: queuedFile.fileName,
-          chat_id: actualChatId,
-          pdf_id: uniqueFileId,
-          text_length: extractData.text.length,
-        });
-
-        console.log(
-          "🌐 Calling backend endpoint:",
-          baseUrl + "create_nodes_and_embeddings",
-        );
-
         const nodesResponse = await fetch(
           baseUrl + "create_nodes_and_embeddings",
           {
@@ -435,17 +393,6 @@ export function useFileQueue({
           );
         }
 
-        const nodesData = await nodesResponse.json();
-
-        // Process the uploaded document normally
-
-        // Update Convex database to persist the completion
-        console.log("Attempting to update file progress:", {
-          convexFileId: queuedFile.convexFileId,
-          fileName: queuedFile.fileName,
-          hasConvexFileId: !!queuedFile.convexFileId,
-        });
-
         if (queuedFile.convexFileId) {
           try {
             const result = await updateFileProgress({
@@ -453,10 +400,7 @@ export function useFileQueue({
               status: "completed", // Use 'completed' to match database schema
               progress: 100,
             });
-            console.log(
-              "Successfully updated file progress in Convex:",
-              result,
-            );
+
           } catch (error) {
             console.error("Failed to update file progress in Convex:", error);
             console.error("Error details:", {
@@ -540,16 +484,13 @@ export function useFileQueue({
 
         // Final check before marking as completed - don't call onFileProcessed if cancelled
         if (!cancelledFiles.has(fileKey)) {
-          console.log(
-            `🎯 Calling onFileProcessed for: ${queuedFile.fileName} with ID: ${uniqueFileId}`,
-          );
+
           onFileProcessed?.(uniqueFileId, queuedFile.fileName);
           toast.success(`${queuedFile.fileName} processed successfully!`);
         }
       } catch (error) {
         // Handle AbortError (cancellation) silently
         if (error instanceof Error && error.name === "AbortError") {
-          console.log(`File processing cancelled: ${queuedFile.fileName}`);
           return;
         }
 
@@ -618,7 +559,6 @@ export function useFileQueue({
         // Remove from global processing set
         const globalFileKey = `${chatId}_${queuedFile.fileName}_${queuedFile.fileSize}`;
         globalProcessingFiles.delete(globalFileKey);
-        console.log(`🔓 Unlocked processing for: ${globalFileKey}`);
       }
     },
     [onFileProcessed, onQueueComplete, cancelledFiles],
@@ -632,12 +572,6 @@ export function useFileQueue({
       // Process files sequentially to avoid overwhelming the server
       for (const file of queue.files) {
         const fileKey = `${queue.queueId}-${file.id}`;
-        console.log(`Processing file ${file.fileName}:`, {
-          status: file.status,
-          hasFileObject: "file" in file,
-          convexFileId: (file as any).convexFileId,
-          cancelled: cancelledFiles.has(fileKey),
-        });
 
         // Only process files that have the File object (QueuedFile type)
         if (
@@ -712,11 +646,6 @@ export function useFileQueue({
 
         setActiveQueues((prev) => new Map(prev.set(queueId, newQueue)));
 
-        // Add files to Convex queue
-        console.log(
-          "Adding files to Convex queue:",
-          queuedFiles.map((f) => f.fileName),
-        );
         const convexFileIds = await addFilesToQueue({
           queueId,
           chatId,
@@ -728,7 +657,6 @@ export function useFileQueue({
           })),
         });
 
-        console.log("Received Convex file IDs:", convexFileIds);
 
         // Validate the response from Convex
         if (!convexFileIds || !Array.isArray(convexFileIds)) {
@@ -795,20 +723,12 @@ export function useFileQueue({
               ...file,
               convexFileId: convexId,
             };
-            console.log(
-              `✅ Updated file ${file.fileName} with convexFileId:`,
-              updatedFile.convexFileId,
-            );
             return updatedFile;
           });
 
           const updatedQueue = { ...queue, files: updatedFiles };
           updated.set(queueId, updatedQueue);
 
-          // Start processing in background immediately with the updated queue
-          console.log(
-            `🚀 Starting processing for queue ${queueId} with ${updatedFiles.length} files`,
-          );
           setTimeout(() => {
             processQueue(updatedQueue);
           }, 0);
@@ -892,23 +812,6 @@ export function useFileQueue({
   // Merge with active queues to get real-time updates for processing files
   const allQueuesWithFiles = (queues || []).map((convexQueue) => {
     const activeQueue = activeQueues.get(convexQueue.queueId);
-
-    // Debug logging
-    if (process.env.NODE_ENV === "development") {
-      console.log(`Queue ${convexQueue.queueId}:`, {
-        hasActiveQueue: !!activeQueue,
-        convexQueueStatus: convexQueue.status,
-        activeQueueStatus: activeQueue?.status,
-        convexFiles: convexQueue.files?.map((f) => ({
-          name: f.fileName,
-          status: f.status,
-        })),
-        activeFiles: activeQueue?.files?.map((f: any) => ({
-          name: f.fileName,
-          status: f.status,
-        })),
-      });
-    }
 
     if (activeQueue) {
       // Always use active queue data when available (for real-time updates)

@@ -125,7 +125,6 @@ export default function PricingPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.log("API Error Response:", errorData);
 
         // Handle specific case where user already has an active subscription
         if (
@@ -133,7 +132,6 @@ export default function PricingPage() {
           errorData.error.includes("already have an active") &&
           errorData.error.includes("subscription")
         ) {
-          console.log("Showing toast for subscription error:", errorData.error);
           toast.info(errorData.error);
           return;
         }
@@ -149,7 +147,6 @@ export default function PricingPage() {
           error.includes("already have an active") &&
           error.includes("subscription")
         ) {
-          console.log("Showing toast for response error:", error);
           toast.info(error);
           return;
         }

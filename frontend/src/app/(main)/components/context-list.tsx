@@ -72,15 +72,10 @@ export function ContextList({
   };
 
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
-    console.log("🗑️ Starting context deletion for fileId:", fileId);
-    console.log(
-      "🗑️ Full URL will be:",
-      (process.env.NEXT_PUBLIC_BASE_URL as string) + `remove_context/${fileId}`,
-    );
+
 
     onErase(chatId, fileId);
 
-    console.log("🌐 Calling backend to remove context from Neo4j...");
     const modusResponse = await fetch(
       (process.env.NEXT_PUBLIC_BASE_URL as string) + `remove_context/${fileId}`,
       {
@@ -101,7 +96,6 @@ export function ContextList({
     }
 
     const responseData = await modusResponse.json();
-    console.log("✅ Neo4j deletion successful:", responseData);
 
     // Trigger graph refresh after successful deletion
     if (onContextDeleted) {

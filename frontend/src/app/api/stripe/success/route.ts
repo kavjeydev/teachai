@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
     // In production, this would be called by the webhook after verifying the payment
 
     // This is a simplified version - in production you'd verify the session with Stripe first
-    console.log(`Activating Pro subscription for user ${userId} after successful payment`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

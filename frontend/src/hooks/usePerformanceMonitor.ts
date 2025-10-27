@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from "react";
 
 interface PerformanceMetrics {
   navigationStart: number;
@@ -28,7 +28,9 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
     const measureWebVitals = () => {
       try {
         // First Contentful Paint
-        const fcpEntry = performance.getEntriesByName('first-contentful-paint')[0] as PerformanceEntry;
+        const fcpEntry = performance.getEntriesByName(
+          "first-contentful-paint",
+        )[0] as PerformanceEntry;
 
         // Largest Contentful Paint
         new PerformanceObserver((list) => {
@@ -37,7 +39,7 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
           if (metricsRef.current) {
             metricsRef.current.largestContentfulPaint = lastEntry.startTime;
           }
-        }).observe({ type: 'largest-contentful-paint', buffered: true });
+        }).observe({ type: "largest-contentful-paint", buffered: true });
 
         // Cumulative Layout Shift
         new PerformanceObserver((list) => {
@@ -50,15 +52,16 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
           if (metricsRef.current) {
             metricsRef.current.cumulativeLayoutShift = cls;
           }
-        }).observe({ type: 'layout-shift', buffered: true });
+        }).observe({ type: "layout-shift", buffered: true });
 
         // First Input Delay
         new PerformanceObserver((list) => {
           const firstEntry = list.getEntries()[0];
           if (metricsRef.current && firstEntry) {
-            metricsRef.current.firstInputDelay = (firstEntry as any).processingStart - firstEntry.startTime;
+            metricsRef.current.firstInputDelay =
+              (firstEntry as any).processingStart - firstEntry.startTime;
           }
-        }).observe({ type: 'first-input', buffered: true });
+        }).observe({ type: "first-input", buffered: true });
 
         // Initialize metrics
         metricsRef.current = {
@@ -67,18 +70,17 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
           domContentLoaded: 0,
           firstContentfulPaint: fcpEntry ? fcpEntry.startTime : undefined,
         };
-
       } catch (error) {
-        console.warn('Performance monitoring error:', error);
+        console.warn("Performance monitoring error:", error);
       }
     };
 
     // Wait for page to load before measuring
-    if (document.readyState === 'complete') {
+    if (document.readyState === "complete") {
       measureWebVitals();
     } else {
-      window.addEventListener('load', measureWebVitals);
-      return () => window.removeEventListener('load', measureWebVitals);
+      window.addEventListener("load", measureWebVitals);
+      return () => window.removeEventListener("load", measureWebVitals);
     }
   }, []);
 
@@ -90,13 +92,13 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
     }
 
     // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.log(`📊 Page Load: ${pageName} - ${loadTime.toFixed(2)}ms`);
     }
 
     // Send to analytics in production
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'page_load_time', {
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "page_load_time", {
         page_name: pageName,
         load_time: Math.round(loadTime),
       });
@@ -107,13 +109,15 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
     const timestamp = performance.now();
 
     // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🎯 User Action: ${action}${duration ? ` - ${duration.toFixed(2)}ms` : ''}`);
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `🎯 User Action: ${action}${duration ? ` - ${duration.toFixed(2)}ms` : ""}`,
+      );
     }
 
     // Send to analytics
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'user_action', {
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "user_action", {
         action_name: action,
         duration: duration ? Math.round(duration) : undefined,
         timestamp: Math.round(timestamp),
@@ -143,7 +147,8 @@ export function useRenderPerformance(componentName: string) {
 
   useEffect(() => {
     const renderTime = performance.now() - renderStartRef.current;
-    if (renderTime > 100) { // Only log slow renders
+    if (renderTime > 100) {
+      // Only log slow renders
       logUserAction(`render_${componentName}`, renderTime);
     }
   });

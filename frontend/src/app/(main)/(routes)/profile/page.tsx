@@ -73,13 +73,7 @@ export default function ProfilePage() {
       )
     : 0;
 
-  // Debug log to check if component is rendering
-  console.log(
-    "Profile page - current tier:",
-    currentTier,
-    "subscription:",
-    subscription,
-  );
+
 
   // Filter and search credit history
   const filteredCreditHistory = useMemo(() => {
@@ -112,7 +106,6 @@ export default function ProfilePage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log("Billing portal error:", errorData); // Debug logging
         throw new Error(errorData.error || "Failed to open billing portal");
       }
 

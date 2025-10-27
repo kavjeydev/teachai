@@ -139,7 +139,6 @@ export function BillingDashboard() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log("Billing portal error:", errorData); // Debug logging
         throw new Error(errorData.error || "Failed to open billing portal");
       }
 

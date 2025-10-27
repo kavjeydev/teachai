@@ -145,9 +145,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           relationshipTypes: typesToMigrate,
         })
           .then(() => {
-            console.log(
-              `Migrated ${typesToMigrate.length} custom relationship types to Convex`,
-            );
+
             // Optionally clean up localStorage after successful migration
             // localStorage.removeItem("customRelationshipTypes");
             // localStorage.removeItem(`customRelationshipTypes_${user.id}`);
@@ -269,26 +267,21 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       if (nvlRef.current) {
         // Single click handler
         nvlRef.current.addEventListener("click", (evt: MouseEvent) => {
-          console.log("🖱️ Click event triggered");
           const { nvlTargets } = nvlInstance.current.getHits(evt);
 
           if (nvlTargets.nodes.length > 0) {
             // Node clicked
             const node = nvlTargets.nodes[0];
-            console.log("🔍 Node clicked:", node.id);
+
             handleNodeClick(node.data || node);
           } else if (nvlTargets.relationships.length > 0) {
             // Relationship clicked
             const rel = nvlTargets.relationships[0];
-            console.log("🔗 Relationship clicked - full object:", rel);
-            console.log("🔗 Relationship ID:", rel.id);
-            console.log("🔗 Relationship data:", rel.data);
+
             handleRelationshipClick(rel.data || rel);
           } else {
             // Canvas clicked
-            console.log("🖱️ Canvas clicked");
             if (creatingRelationshipRef.current) {
-              console.log("🚫 Canceling relationship creation");
               cancelRelationshipCreation();
             } else {
               setSelectedNode(null);
@@ -326,12 +319,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Event handler functions for NVL
   const handleNodeClick = (nodeEventData: any) => {
-    console.log("🖱️ Node clicked:", nodeEventData);
-    console.log("🔗 Creating relationship (state):", creatingRelationship);
-    console.log(
-      "🔗 Creating relationship (ref):",
-      creatingRelationshipRef.current,
-    );
 
     // For single clicks, the node data might be in different places
     let nodeData, nodeId;
@@ -346,15 +333,12 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       nodeId = nodeEventData?.id;
     }
 
-    console.log("🆔 Resolved node ID:", nodeId);
 
     if (!nodeId) {
-      console.log("❌ No node ID found");
       return;
     }
 
     if (creatingRelationshipRef.current) {
-      console.log("🎯 Calling handleRelationshipNodeClick with:", nodeId);
       handleRelationshipNodeClick(nodeId);
     } else {
       // Try multiple approaches to find the node data
@@ -465,11 +449,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   const handleRelationshipClick = (relEventData: any) => {
     if (creatingRelationship) return;
-
-    console.log("🔗 handleRelationshipClick received:", relEventData);
-    console.log("🔗 relEventData.data:", relEventData.data);
-    console.log("🔗 relEventData.id:", relEventData.id);
-
     // Extract the actual relationship data - try multiple approaches
     let relData = null;
     let relId = null;
@@ -484,23 +463,13 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       relId = relEventData?.id;
     }
 
-    console.log("🔗 Resolved relationship data:", relData);
-    console.log("🔗 Resolved relationship ID:", relId);
 
     if (!relId) {
-      console.log("❌ No relationship ID found");
       return;
     }
 
     // Find the relationship in our graph data
     const fullRelData = graphData.relationships.find((r) => r.id === relId);
-
-    console.log("🔍 Looking for relationship with ID:", relId);
-    console.log(
-      "🔍 Available relationships:",
-      graphData.relationships.map((r) => ({ id: r.id, type: r.type })),
-    );
-    console.log("🔍 Found relationship data:", fullRelData);
 
     if (fullRelData) {
       setSelectedRelationship(fullRelData);
@@ -509,10 +478,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       setEditingRelationship(null);
       toast.success("Relationship selected - view details in sidebar");
     } else {
-      // If we can't find it in our graph data, create a temporary one from NVL data
-      console.log(
-        "⚠️ Relationship not found in graphData, creating from NVL data",
-      );
       const tempRelData = {
         id: relId,
         source: relData.from,
@@ -521,7 +486,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           relData.captions?.[0]?.value || relData.properties?.type || "UNKNOWN",
         properties: relData.properties || {},
       };
-      console.log("🔧 Created temporary relationship data:", tempRelData);
       setSelectedRelationship(tempRelData);
       setSelectedNode(null);
       setEditingNode(null);
@@ -532,20 +496,8 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Handle relationship creation node clicks
   const handleRelationshipNodeClick = (nodeId: string) => {
-    console.log("🎯 handleRelationshipNodeClick called with:", nodeId);
-    console.log("🎯 Current sourceNode (state):", sourceNode);
-    console.log("🎯 Current sourceNode (ref):", sourceNodeRef.current);
-    console.log("🎯 Current targetNode (state):", targetNode);
-    console.log("🎯 Current targetNode (ref):", targetNodeRef.current);
-    console.log("🎯 Checking conditions:");
-    console.log("🎯   !sourceNodeRef.current =", !sourceNodeRef.current);
-    console.log(
-      "🎯   sourceNodeRef.current !== nodeId =",
-      sourceNodeRef.current !== nodeId,
-    );
 
     if (!sourceNodeRef.current) {
-      console.log("🔵 Setting source node to:", nodeId);
       setSourceNode(nodeId);
       sourceNodeRef.current = nodeId;
 
@@ -563,7 +515,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         "Source node selected (blue). Click another node to create relationship.",
       );
     } else if (sourceNodeRef.current !== nodeId) {
-      console.log("🟢 Setting target node to:", nodeId);
       setTargetNode(nodeId);
       targetNodeRef.current = nodeId;
 
@@ -581,7 +532,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         "Target node selected (green)! Configure relationship in the sidebar.",
       );
     } else {
-      console.log("❌ Cannot create relationship to the same node");
       toast.error("Cannot create relationship to the same node.");
     }
   };
@@ -592,10 +542,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     setLoadingProgress(0);
 
     try {
-      console.log(
-        "🔍 Loading graph data from:",
-        `${baseUrl}graph_data/${chatId}`,
-      );
+
 
       if (!baseUrl) {
         throw new Error(
@@ -663,7 +610,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         try {
           setLoadingProgress(80);
           // Clear existing graph data first to ensure deleted nodes are removed
-          console.log("🧹 Clearing existing graph data...");
 
           // Get current nodes and relationships to remove them
           try {
@@ -672,26 +618,19 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
             if (currentNodes && currentNodes.length > 0) {
               const nodeIds = currentNodes.map((node: any) => node.id);
-              console.log("🗑️ Removing existing nodes:", nodeIds);
               nvlInstance.current.removeNodesWithIds(nodeIds);
             }
 
             if (currentRels && currentRels.length > 0) {
               const relIds = currentRels.map((rel: any) => rel.id);
-              console.log("🗑️ Removing existing relationships:", relIds);
               nvlInstance.current.removeRelationshipsWithIds(relIds);
             }
           } catch (clearError) {
             console.warn("⚠️ Error clearing existing graph data:", clearError);
-            console.log("🔄 Proceeding with data update anyway...");
           }
 
           setLoadingProgress(90);
           // Add the fresh data from the backend
-          console.log("📊 Adding fresh graph data...", {
-            nodes: nvlNodes.length,
-            relationships: nvlRelationships.length,
-          });
           nvlInstance.current.addAndUpdateElementsInGraph(
             nvlNodes,
             nvlRelationships,
@@ -725,8 +664,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             setLoadingProgress(100);
           }, 1000);
         } catch (renderError) {
-          console.error("Error rendering NVL graph:", renderError);
-          console.log("🔄 Trying fallback approach without clearing...");
 
           // Fallback: just update the graph without clearing
           try {
@@ -736,7 +673,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             );
             // Fallback graph update successful
           } catch (fallbackError) {
-            console.error("❌ Fallback also failed:", fallbackError);
             toast.error("Failed to render graph data");
           }
         }
@@ -830,7 +766,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
   // Relationship creation functions
   const startRelationshipCreation = () => {
-    console.log("🚀 Starting relationship creation");
     setCreatingRelationship(true);
     creatingRelationshipRef.current = true;
     setSourceNode(null);
@@ -1234,7 +1169,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     if (!nvlInstance.current || !graphData.nodes) return;
 
     try {
-      console.log("🧹 Clearing any existing node highlighting...");
       // Reset all nodes to default colors and sizes
       const resetNodes = graphData.nodes.map((node) => ({
         id: node.id,
@@ -1264,7 +1198,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         resetNodes,
         nvlRelationships,
       );
-      console.log("✅ Node highlighting cleared successfully");
     } catch (error) {
       console.error("Error clearing node highlighting:", error);
     }
@@ -1283,12 +1216,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
     try {
       // Get the chunk IDs that were used in reasoning
       const usedChunkIds = reasoningContext.map((ctx) => ctx.chunk_id);
-      console.log("🎯 Highlighting chunk IDs:", usedChunkIds);
-      console.log(
-        "📊 Available graph nodes:",
-        graphData.nodes.map((n) => n.id),
-      );
-      console.log("🔗 Backend to NVL mapping:", backendIdToNvlId);
 
       // Check for exact matches
       const exactMatches = usedChunkIds.filter((chunkId) =>
@@ -1303,7 +1230,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         );
         return { chunkId, matchingNode: matchingNode?.id };
       });
-      console.log("🔍 Partial matches:", partialMatches);
 
       // Create updated nodes array with highlighting
       const updatedNodes = graphData.nodes.map((node) => {
@@ -1313,12 +1239,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           (chunkId) => node.id.includes(chunkId) || chunkId.includes(node.id),
         );
         const isReasoningNode = isExactMatch || isPartialMatch;
-
-        if (isReasoningNode) {
-          console.log(
-            `🎯 Highlighting node: ${node.id} (${getNodeDisplayLabel(node)}) - Match type: ${isExactMatch ? "exact" : "partial"}`,
-          );
-        }
 
         const updatedNode = {
           id: node.id,
@@ -1348,9 +1268,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           ),
       ).length;
 
-      console.log(
-        `📊 Total nodes: ${updatedNodes.length}, Actually highlighted: ${highlightedCount}`,
-      );
 
       // Update the graph with highlighted nodes
       const nvlRelationships = graphData.relationships.map((rel) => ({
@@ -1364,7 +1281,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         },
       }));
 
-      console.log("🔄 Updating graph with highlighted nodes...");
       nvlInstance.current.addAndUpdateElementsInGraph(
         updatedNodes,
         nvlRelationships,
@@ -1372,13 +1288,11 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
 
       // Force a visual refresh
       if (nvlInstance.current.refresh) {
-        console.log("🔄 Forcing graph refresh...");
         nvlInstance.current.refresh();
       }
 
       // Try alternative update methods
       if (nvlInstance.current.render) {
-        console.log("🔄 Forcing graph render...");
         nvlInstance.current.render();
       }
 
@@ -1386,7 +1300,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       if (usedChunkIds.length > 0) {
         // Try to select the first highlighted node to make it more visible
         const firstHighlightedNodeId = usedChunkIds[0];
-        console.log("Attempting to select/focus node:", firstHighlightedNodeId);
 
         setTimeout(() => {
           // Try different methods to focus on the node
@@ -1402,7 +1315,6 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         }, 500);
       }
 
-      console.log(`Highlighted ${usedChunkIds.length} reasoning nodes`);
     } catch (error) {
       console.error("Error highlighting reasoning nodes:", error);
     }
@@ -1411,9 +1323,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   // Trigger highlighting when reasoning context changes
   useEffect(() => {
     if (disableAutoHighlight) {
-      console.log(
-        "Auto-highlighting is disabled - clearing any existing highlighting",
-      );
+
       setTimeout(() => {
         clearHighlighting();
       }, 1500);
@@ -1425,20 +1335,14 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
       Array.isArray(reasoningContext) &&
       reasoningContext.length > 0
     ) {
-      console.log(
-        "Triggering node highlighting for context:",
-        reasoningContext,
-      );
-      console.log("Backend to NVL ID mapping:", backendIdToNvlId);
+
 
       // Add a small delay to ensure the graph is fully loaded
       setTimeout(() => {
         highlightReasoningNodes();
       }, 1500);
     } else {
-      console.log(
-        "No reasoning context provided or context is empty - clearing any existing highlighting",
-      );
+
       // Clear any existing highlighting when no reasoning context is provided
       setTimeout(() => {
         clearHighlighting();
@@ -1449,21 +1353,10 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
   // Trigger graph refresh when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
-      console.log("🔄 Graph refresh triggered:", refreshTrigger);
-      console.log("🔄 Reloading graph data due to context deletion...");
+
       loadGraphData();
     }
   }, [refreshTrigger]);
-
-  // Debug state changes
-  useEffect(() => {
-    console.log(
-      "🔄 State changed - sourceNode:",
-      sourceNode,
-      "targetNode:",
-      targetNode,
-    );
-  }, [sourceNode, targetNode]);
 
   return (
     <div className="flex h-full w-full">
