@@ -389,6 +389,37 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="relative border-t border-zinc-200 dark:border-white/10 py-12">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="text-sm text-zinc-500 dark:text-white/50 font-light">
+              © {new Date().getFullYear()} Trainly AI. All rights reserved.
+            </div>
+            <div className="flex gap-8">
+              <button
+                onClick={() => router.push("/privacy-policy")}
+                className="text-sm text-zinc-600 dark:text-white/70 hover:text-amber-400 dark:hover:text-amber-400 transition-colors duration-200 font-light"
+              >
+                Privacy Policy
+              </button>
+              <button
+                onClick={() => router.push("/terms-of-service")}
+                className="text-sm text-zinc-600 dark:text-white/70 hover:text-amber-400 dark:hover:text-amber-400 transition-colors duration-200 font-light"
+              >
+                Terms of Service
+              </button>
+              <button
+                onClick={() => router.push("/data-handling")}
+                className="text-sm text-zinc-600 dark:text-white/70 hover:text-amber-400 dark:hover:text-amber-400 transition-colors duration-200 font-light"
+              >
+                Data Handling
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
