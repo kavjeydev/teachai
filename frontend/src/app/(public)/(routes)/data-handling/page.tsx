@@ -7,7 +7,13 @@ export default function DataHandling() {
         </h1>
 
         <div className="prose prose-zinc dark:prose-invert max-w-none">
-          {/* Content will be added here */}
+          <p>
+            Trainly parses uploaded files in memory and stores only derived text
+            chunks and embeddings.
+          </p>
+          <p>Data is partitioned per app/user.</p>
+          <p>You can delete your data anytime.</p>
+          <p>Please don&apos;t upload confidential or regulated data.</p>
         </div>
       </div>
     </div>

@@ -82,10 +82,10 @@ word-break: break-word !important;
       `;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-black dark:to-zinc-950 py-20">
-      <div className="max-w-5xl mx-auto px-6">
+    <div className="min-h-screen bg-gradient-to-br from-white via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-black dark:to-zinc-950 text-zinc-900 dark:text-white py-20">
+      <div className="max-w-4xl mx-auto px-6">
         <div
-          className="bg-white dark:bg-zinc-900/50 rounded-lg shadow-lg p-8 md:p-12"
+          className="prose prose-zinc dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{ __html: privacyPolicyHTML }}
         />
       </div>
