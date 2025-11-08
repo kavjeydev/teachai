@@ -282,7 +282,10 @@ export default function PricingPage() {
 
                       {/* CTA Button */}
                       <div className="mb-8">
-                        {/* Use Clerk SignUpButton for all tiers when user is not signed in, except Enterprise */}
+                        {/* Use Clerk auth modals when user is not signed in:
+                           - Enterprise: mailto
+                           - Free: Sign up modal
+                           - Pro/Scale: Sign in modal */}
                         {!authState.isSignedIn && tier.id === "enterprise" ? (
                           <button
                             onClick={() => {
@@ -297,7 +300,7 @@ export default function PricingPage() {
                           >
                             Contact sales
                           </button>
-                        ) : !authState.isSignedIn ? (
+                        ) : !authState.isSignedIn && tier.id === "free" ? (
                           <SignUpButton mode="modal">
                             <button
                               className={cn(
@@ -308,11 +311,23 @@ export default function PricingPage() {
                               )}
                               type="button"
                             >
-                              {tier.id === "free"
-                                ? "Get started"
-                                : "Sign up to upgrade"}
+                              Get started
                             </button>
                           </SignUpButton>
+                        ) : !authState.isSignedIn ? (
+                          <SignInButton mode="modal">
+                            <button
+                              className={cn(
+                                "w-full py-2.5 px-4 rounded-lg font-medium transition-all duration-200",
+                                tier.popular
+                                  ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100"
+                                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700",
+                              )}
+                              type="button"
+                            >
+                              Sign in to upgrade
+                            </button>
+                          </SignInButton>
                         ) : (
                           <button
                             onClick={() =>

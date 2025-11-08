@@ -352,9 +352,32 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice, stripe: Stripe) {
     invoice.billing_reason === "subscription_cycle" ||
     invoice.billing_reason === "subscription_create"
   ) {
-    console.log("✅ This is a subscription invoice, processing normally");
-    // Handle subscription billing cycle - reset credits for the new period
-    // This is where subscription renewals would be processed
+    console.log("✅ This is a subscription invoice, processing renewal");
+
+    // For subscription renewals, fetch the subscription and process it
+    const subscriptionId = (invoice as any).subscription as string;
+    if (!subscriptionId) {
+      console.log("❌ No subscription ID found in invoice");
+      return;
+    }
+
+    try {
+      // Retrieve the full subscription details
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      console.log("📋 Retrieved subscription for renewal:", {
+        id: subscription.id,
+        status: subscription.status,
+        customerId: subscription.customer,
+        billing_reason: invoice.billing_reason,
+      });
+
+      // Process the subscription renewal (this will reset credits)
+      await handleSubscriptionChange(subscription, stripe);
+      console.log("✅ Subscription renewal processed successfully");
+    } catch (error) {
+      console.error("❌ Error processing subscription renewal:", error);
+      throw error;
+    }
   } else {
     console.log(
       "⚠️ This is NOT a subscription invoice, skipping subscription logic",
