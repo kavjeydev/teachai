@@ -25,7 +25,11 @@ import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
-import { sanitizeHTML, sanitizeUserMessage, sanitizeText } from "@/lib/sanitization";
+import {
+  sanitizeHTML,
+  sanitizeUserMessage,
+  sanitizeText,
+} from "@/lib/sanitization";
 import { Badge } from "@/components/ui/badge";
 import { Toaster, toast } from "sonner";
 
@@ -400,7 +404,9 @@ export default function Dashboard({ params }: ChatIdPageProps) {
                               );
                               const language = match ? match[1] : "";
                               // Sanitize code content
-                              const sanitizedCode = sanitizeText(String(children).replace(/\n$/, ""));
+                              const sanitizedCode = sanitizeText(
+                                String(children).replace(/\n$/, ""),
+                              );
                               return language ? (
                                 <CodeBlock
                                   language={language}

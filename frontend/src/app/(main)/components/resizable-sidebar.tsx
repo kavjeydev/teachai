@@ -8,179 +8,31 @@ import { useRouter, usePathname } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   PlusCircle,
-  Home,
   Settings,
-  MessageSquare,
-  Star,
-  Clock,
   LayoutGrid,
   ChevronRight,
   ChevronLeft,
-  Network,
-  Code,
   GripVertical,
-  Menu,
-  X,
   LogOut,
-  Archive,
-  RotateCcw,
-  Trash2,
-  MoreHorizontal,
+  Rocket,
+  Wrench,
+  Key,
+  BarChart3,
+  TestTube,
+  Network,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigationLoading } from "@/components/app-loading-provider";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useConvexAuth } from "@/hooks/use-auth-state";
-import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
-import { ChatDeleteDialog } from "@/components/chat-delete-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface ResizableSidebarParams {
   chatId?: Id<"chats">;
 }
-
-// Enhanced chat item component with archive/delete actions
-const ChatItem = React.memo(
-  ({
-    chat,
-    isActive,
-    onClick,
-    isNavigatingTo,
-    isArchived = false,
-    onArchive,
-    onRestore,
-    onPermanentDelete,
-  }: {
-    chat: any;
-    isActive: boolean;
-    onClick: () => void;
-    isNavigatingTo?: boolean;
-    isArchived?: boolean;
-    onArchive?: (chat: any) => void;
-    onRestore?: (chat: any) => void;
-    onPermanentDelete?: (chat: any) => void;
-  }) => {
-    const handleClick = (e: React.MouseEvent) => {
-      // Prevent navigation if clicking on the dropdown
-      if ((e.target as HTMLElement).closest("[data-dropdown-trigger]")) {
-        return;
-      }
-      onClick();
-    };
-
-    return (
-      <div
-        className={cn(
-          "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 group",
-          isActive && "bg-amber-400/10 border border-amber-400/20",
-          isNavigatingTo && "bg-amber-400/5", // Immediate feedback
-        )}
-      >
-        <button
-          onClick={handleClick}
-          className="flex items-center gap-3 flex-1 min-w-0"
-        >
-          <div
-            className={cn(
-              "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
-              isActive
-                ? "bg-amber-400 text-white"
-                : isNavigatingTo
-                  ? "bg-amber-400/50 text-white"
-                  : isArchived
-                    ? "bg-zinc-300 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400"
-                    : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400",
-            )}
-          >
-            {isArchived ? (
-              <Archive className="h-3 w-3" />
-            ) : (
-              <MessageSquare className="h-3 w-3" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <div
-              className={cn(
-                "text-sm font-medium truncate",
-                isActive
-                  ? "text-amber-400"
-                  : isNavigatingTo
-                    ? "text-amber-400/70"
-                    : isArchived
-                      ? "text-zinc-500 dark:text-zinc-400"
-                      : "text-zinc-900 dark:text-white",
-              )}
-            >
-              {chat.title}
-            </div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-              {chat.context?.length || 0} docs •{" "}
-              {new Date(chat._creationTime).toLocaleDateString()}
-            </div>
-          </div>
-        </button>
-
-        {isNavigatingTo && !isActive && (
-          <div className="w-3 h-3 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
-        )}
-
-        {/* Actions dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              data-dropdown-trigger
-              className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal className="h-4 w-4 text-zinc-500" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            {isArchived ? (
-              <>
-                <DropdownMenuItem
-                  onClick={() => onRestore?.(chat)}
-                  className="flex items-center gap-2"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Restore Chat
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => onPermanentDelete?.(chat)}
-                  className="flex items-center gap-2 text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Permanently
-                </DropdownMenuItem>
-              </>
-            ) : (
-              <DropdownMenuItem
-                onClick={() => onArchive?.(chat)}
-                className="flex items-center gap-2 text-amber-600 focus:text-amber-600"
-              >
-                <Archive className="h-4 w-4" />
-                Archive Chat
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    );
-  },
-);
-
-ChatItem.displayName = "ChatItem";
 
 export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const router = useRouter();
@@ -188,44 +40,46 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const { user } = useUser();
   const { startNavigation } = useNavigationLoading();
   const { canQuery, skipQuery } = useConvexAuth();
-  const { navigateTo, isNavigating } = useSmoothNavigation();
-
-  // Extract current chatId from URL for immediate highlighting
-  const currentChatId = React.useMemo(() => {
-    const match = pathname.match(/\/dashboard\/([^\/]+)/);
-    return match ? match[1] : chatId;
-  }, [pathname, chatId]);
 
   const chats = useQuery(api.chats.getChats, canQuery ? undefined : skipQuery);
-  const archivedChats = useQuery(
-    api.chats.getArchivedChats,
-    canQuery ? undefined : skipQuery,
-  );
   const chatLimits = useQuery(
     api.chats.getUserChatLimits,
     canQuery ? undefined : skipQuery,
   );
-  const favoriteChats = useQuery(
-    api.chats.getFavoriteChats,
-    canQuery ? undefined : skipQuery,
-  );
   const addChat = useMutation(api.chats.createChat);
-  const archiveChat = useMutation(api.chats.archive);
-  const restoreChat = useMutation(api.chats.restoreFromArchive);
-  const permanentlyDeleteChat = useMutation(api.chats.permanentlyDelete);
 
   // Sidebar state
-  const [sidebarWidth, setSidebarWidth] = React.useState(320); // Default 320px
+  const [sidebarWidth, setSidebarWidth] = React.useState(250); // Default 200px
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isResizing, setIsResizing] = React.useState(false);
   const [showContent, setShowContent] = React.useState(true); // For smooth expand animation
   const [isNavigatingToManage, setIsNavigatingToManage] = React.useState(false);
-  const [showArchivedChats, setShowArchivedChats] = React.useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [chatToDelete, setChatToDelete] = React.useState<any>(null);
-  const [isPermanentDelete, setIsPermanentDelete] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [activeView, setActiveView] = React.useState<string>("testing");
   const sidebarRef = React.useRef<HTMLDivElement>(null);
+
+  // Sync activeView with URL pathname
+  React.useEffect(() => {
+    if (pathname === "/") {
+      setActiveView("home");
+    } else if (pathname.includes("/dashboard/manage")) {
+      setActiveView("manage");
+    } else if (pathname.includes("/graph")) {
+      setActiveView("graph");
+    } else if (pathname.includes("/testing")) {
+      setActiveView("testing");
+    } else if (pathname.includes("/api-keys")) {
+      setActiveView("api-keys");
+    } else if (pathname.includes("/custom-settings")) {
+      setActiveView("custom-settings");
+    } else if (pathname.includes("/usage")) {
+      setActiveView("usage");
+    } else if (pathname === "/dashboard") {
+      setActiveView("manage");
+    } else if (pathname.includes("/dashboard/")) {
+      // Default to testing for regular dashboard pages
+      setActiveView("testing");
+    }
+  }, [pathname]);
 
   // Load saved state from localStorage
   React.useEffect(() => {
@@ -303,24 +157,6 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
     };
   }, [isResizing]);
 
-  // Get recent chats (last 5)
-  const recentChats = React.useMemo(() => {
-    if (!chats) return [];
-    return chats
-      .sort(
-        (a, b) =>
-          new Date(b._creationTime).getTime() -
-          new Date(a._creationTime).getTime(),
-      )
-      .slice(0, 5);
-  }, [chats]);
-
-  // Get pinned chats (optimized filtering)
-  const pinnedChats = React.useMemo(() => {
-    if (!favoriteChats) return [];
-    return favoriteChats;
-  }, [favoriteChats]);
-
   const onCreate = async () => {
     // Wait for chat limits to load if not available yet
     if (!chatLimits) {
@@ -351,7 +187,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
     }
 
     try {
-      await addChat({ title: "Untitled Chat" });
+      const newChatId = await addChat({ title: "Untitled Chat" });
+      // Navigate to testing view when creating new chat
+      router.push(`/dashboard/${newChatId}/testing`);
       toast.success("Created new chat!");
     } catch (error) {
       if (error instanceof Error) {
@@ -373,107 +211,6 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
       } else {
         toast.error("Failed to create chat");
       }
-    }
-  };
-
-  const handleArchiveChat = (chat: any) => {
-    setChatToDelete(chat);
-    setIsPermanentDelete(false);
-    setDeleteDialogOpen(true);
-  };
-
-  const handlePermanentDelete = (chat: any) => {
-    setChatToDelete(chat);
-    setIsPermanentDelete(true);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleRestoreChat = async (chat: any) => {
-    try {
-      await restoreChat({ id: chat._id });
-      toast.success(`"${chat.title}" restored successfully!`);
-    } catch (error: any) {
-      console.error("Failed to restore chat:", error);
-
-      // Show specific error message with upgrade option if it's a limit error
-      if (error.message && error.message.includes("reached your limit")) {
-        toast.error(error.message, {
-          duration: 8000,
-          action: {
-            label: "View Plans",
-            onClick: () => window.open("/pricing", "_blank"),
-          },
-        });
-      } else {
-        toast.error(error.message || "Failed to restore chat");
-      }
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!chatToDelete) return;
-
-    setIsDeleting(true);
-    try {
-      if (isPermanentDelete) {
-        // First, delete from Convex database
-        const result = await permanentlyDeleteChat({ id: chatToDelete._id });
-
-
-        // Then, cleanup Neo4j data from frontend
-        try {
-          const backendUrl =
-            process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000";
-          // Remove trailing slash to avoid double slashes
-          const baseUrl = backendUrl.endsWith("/")
-            ? backendUrl.slice(0, -1)
-            : backendUrl;
-          // Include child chat IDs if they exist
-          const childChatIdsParam =
-            result.childChatIds && result.childChatIds.length > 0
-              ? `&child_chat_ids=${encodeURIComponent(result.childChatIds.join(","))}`
-              : "";
-          const cleanupUrl = `${baseUrl}/cleanup_chat_data/${result.chatId}?convex_id=${result.convexId}${childChatIdsParam}`;
-
-
-          const neo4jResponse = await fetch(cleanupUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          if (neo4jResponse.ok) {
-            const neo4jResult = await neo4jResponse.json();
-          } else {
-            console.error(`❌ Neo4j cleanup failed: ${neo4jResponse.status}`);
-            const errorText = await neo4jResponse.text();
-            console.error(`❌ Error response: ${errorText}`);
-            // Don't fail the whole operation if Neo4j cleanup fails
-          }
-        } catch (neo4jError) {
-          console.error(`💥 Error calling Neo4j cleanup:`, neo4jError);
-          // Don't fail the whole operation if Neo4j cleanup fails
-        }
-
-        toast.success(`"${chatToDelete.title}" permanently deleted.`);
-        // Redirect to dashboard after permanent deletion
-        router.push("/dashboard");
-      } else {
-        await archiveChat({ id: chatToDelete._id });
-        toast.success(`"${chatToDelete.title}" archived successfully!`);
-        // Check if we're currently viewing the archived chat and redirect if so
-        if (currentChatId === chatToDelete._id) {
-          router.push("/dashboard");
-        }
-      }
-      setDeleteDialogOpen(false);
-      setChatToDelete(null);
-    } catch (error: any) {
-      console.error("Failed to delete/archive chat:", error);
-      toast.error(error.message || "Operation failed");
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -499,7 +236,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className="fixed left-0 top-0 h-full z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border-r border-zinc-200/50 dark:border-zinc-800/50"
+        className="fixed left-0 top-0 h-full z-40 bg-white/95 dark:bg-[#090909] backdrop-blur-2xl"
         style={{
           width: `${currentWidth}px`,
           transition: isResizing ? "none" : "width 300ms ease-out",
@@ -509,7 +246,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
           {/* Header */}
           <div
             className={cn(
-              "border-b border-zinc-200/50 dark:border-zinc-800/50",
+              "border-zinc-200/50 dark:border-zinc-800/50",
               isCollapsed ? "p-2" : "p-3",
             )}
           >
@@ -588,217 +325,305 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     </Button>
                   </div>
 
-                  {/* Navigation */}
+                  {/* Navigation Menu */}
                   <div className="mb-6">
-                    <div className="space-y-1">
+                    <div className="space-y-0">
+                      {/* Get Started */}
                       <button
                         onClick={() => router.push("/")}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 h-12 rounded-lg transition-all duration-200 group",
+                          activeView === "home"
+                            ? "bg-amber-400/10 border border-amber-400/20"
+                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        )}
                       >
-                        <Home className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
-                        <span className="text-sm font-medium text-zinc-900 dark:text-white group-hover:text-amber-400">
-                          Home
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            activeView === "home"
+                              ? "bg-amber-400 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                          )}
+                        >
+                          <Rocket className="w-4 h-4" />
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            activeView === "home"
+                              ? "text-amber-400"
+                              : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                          )}
+                        >
+                          Get Started
                         </span>
                       </button>
 
+                      {/* Manage Chats */}
+                      <button
+                        onClick={() => router.push("/dashboard/manage")}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          activeView === "manage"
+                            ? "bg-amber-400/10 border border-amber-400/20"
+                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            activeView === "manage"
+                              ? "bg-amber-400 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                          )}
+                        >
+                          <LayoutGrid className="w-4 h-4" />
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm font-medium flex-1 text-left",
+                            activeView === "manage"
+                              ? "text-amber-400"
+                              : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                          )}
+                        >
+                          Manage Chats
+                        </span>
+                        <span className="text-xs text-zinc-400">
+                          {chats?.length || 0}
+                        </span>
+                      </button>
+
+                      {/* Graph */}
                       <button
                         onClick={() => {
-                          setIsNavigatingToManage(true);
-                          const navigation = startNavigation("My Chats");
-                          router.push("/dashboard/manage");
-                          // Reset loading state after navigation
-                          setTimeout(() => {
-                            setIsNavigatingToManage(false);
-                            navigation.finish();
-                          }, 1000);
-                        }}
-                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
-                        disabled={isNavigatingToManage}
-                      >
-                        <div className="flex items-center gap-3">
-                          <LayoutGrid className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
-                          <span className="text-sm font-medium text-zinc-900 dark:text-white group-hover:text-amber-400">
-                            My Chats
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {isNavigatingToManage ? (
-                            <div className="w-3 h-3 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
-                          ) : (
-                            <>
-                              <span className="text-xs text-zinc-400">
-                                {chats?.length || 0}
-                              </span>
-                              <ChevronRight className="w-3 h-3 text-zinc-400 group-hover:text-amber-400" />
-                            </>
-                          )}
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Pinned Chats */}
-                  {pinnedChats.length > 0 && (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 font-semibold mb-3 text-sm">
-                        <Star className="h-3 w-3" />
-                        <span>Pinned</span>
-                      </div>
-                      <div className="space-y-1">
-                        {pinnedChats.map((chat) => (
-                          <div key={chat._id}>
-                            <ChatItem
-                              chat={chat}
-                              isActive={chat._id === currentChatId}
-                              isNavigatingTo={isNavigating(
-                                `/dashboard/${chat._id}`,
-                              )}
-                              onClick={() =>
-                                navigateTo(`/dashboard/${chat._id}`)
-                              }
-                              onArchive={handleArchiveChat}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Recent Chats */}
-                  <div className="mb-6">
-                    <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 font-semibold mb-3 text-sm">
-                      <Clock className="h-3 w-3" />
-                      <span>Recent</span>
-                    </div>
-                    <div className="space-y-1">
-                      {!chats
-                        ? // Loading skeletons with improved styling
-                          Array.from({ length: 3 }).map((_, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-3 p-2 animate-pulse"
-                            >
-                              <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-800 rounded-lg"></div>
-                              <div className="flex-1 space-y-1">
-                                <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4"></div>
-                                <div className="h-2 bg-zinc-100 dark:bg-zinc-900 rounded w-1/2"></div>
-                              </div>
-                            </div>
-                          ))
-                        : recentChats.map((chat) => (
-                            <div key={chat._id}>
-                              <ChatItem
-                                chat={chat}
-                                isActive={chat._id === currentChatId}
-                                isNavigatingTo={isNavigating(
-                                  `/dashboard/${chat._id}`,
-                                )}
-                                onClick={() =>
-                                  navigateTo(`/dashboard/${chat._id}`)
-                                }
-                                onArchive={handleArchiveChat}
-                              />
-                            </div>
-                          ))}
-
-                      {/* See All Chats Link */}
-                      <div>
-                        <button
-                          onClick={() => {
-                            setIsNavigatingToManage(true);
-                            router.push("/dashboard/manage");
-                            setTimeout(
-                              () => setIsNavigatingToManage(false),
-                              1000,
-                            );
-                          }}
-                          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group mt-2"
-                          disabled={isNavigatingToManage}
-                        >
-                          <span className="text-sm text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
-                            {isNavigatingToManage
-                              ? "Loading..."
-                              : "View all chats"}
-                          </span>
-                          {isNavigatingToManage ? (
-                            <div className="w-3 h-3 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
-                          ) : (
-                            <ChevronRight className="w-3 h-3 text-zinc-400 group-hover:text-amber-400" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Archived Chats */}
-                  {archivedChats && archivedChats.length > 0 && (
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-400 font-semibold mb-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Archive className="h-3 w-3" />
-                          <span>Archived</span>
-                          <span className="text-xs bg-zinc-200 dark:bg-zinc-700 px-2 py-0.5 rounded-full">
-                            {archivedChats.length}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() =>
-                            setShowArchivedChats(!showArchivedChats)
+                          if (!chatId) {
+                            toast.error("Please select a chat first");
+                            return;
                           }
-                          className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                        >
-                          <ChevronRight
-                            className={cn(
-                              "h-3 w-3 transition-transform",
-                              showArchivedChats && "rotate-90",
-                            )}
-                          />
-                        </button>
-                      </div>
-                      {showArchivedChats && (
-                        <div className="space-y-1">
-                          {archivedChats.map((chat) => (
-                            <div key={chat._id}>
-                              <ChatItem
-                                chat={chat}
-                                isActive={false} // Archived chats are not navigable
-                                isNavigatingTo={false}
-                                onClick={() => {}} // No-op for archived chats
-                                isArchived={true}
-                                onRestore={handleRestoreChat}
-                                onPermanentDelete={handlePermanentDelete}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Quick Actions */}
-                  <div className="mb-6">
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() =>
-                          currentChatId &&
-                          router.push(`/dashboard/${currentChatId}/graph`)
-                        }
-                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
-                        disabled={!currentChatId}
+                          router.push(`/dashboard/${chatId}/graph`);
+                        }}
+                        disabled={!chatId}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          !chatId
+                            ? "opacity-40 cursor-not-allowed"
+                            : activeView === "graph"
+                              ? "bg-amber-400/10 border border-amber-400/20"
+                              : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        )}
+                        title={!chatId ? "Select a chat first" : "Graph View"}
                       >
-                        <Network className="h-4 w-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
-                        <span className="text-xs text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            !chatId
+                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              : activeView === "graph"
+                                ? "bg-amber-400 text-white"
+                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                          )}
+                        >
+                          <Network className="w-4 h-4" />
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            !chatId
+                              ? "text-zinc-400"
+                              : activeView === "graph"
+                                ? "text-amber-400"
+                                : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                          )}
+                        >
                           Graph
                         </span>
                       </button>
 
+                      {/* Testing - Shows chat interface for selected chat */}
                       <button
-                        onClick={() => window.open("/api-docs", "_blank")}
-                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
+                        onClick={() => {
+                          if (!chatId) {
+                            toast.error("Please select a chat first");
+                            return;
+                          }
+                          router.push(`/dashboard/${chatId}/testing`);
+                        }}
+                        disabled={!chatId}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          !chatId
+                            ? "opacity-40 cursor-not-allowed"
+                            : activeView === "testing"
+                              ? "bg-amber-400/10 border border-amber-400/20"
+                              : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        )}
+                        title={!chatId ? "Select a chat first" : "Sandbox"}
                       >
-                        <Code className="h-4 w-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
-                        <span className="text-xs text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
-                          API
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            !chatId
+                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              : activeView === "testing"
+                                ? "bg-amber-400 text-white"
+                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                          )}
+                        >
+                          <TestTube className="w-4 h-4" />
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            !chatId
+                              ? "text-zinc-400"
+                              : activeView === "testing"
+                                ? "text-amber-400"
+                                : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                          )}
+                        >
+                          Sandbox
+                        </span>
+                      </button>
+
+                      {/* API Keys */}
+                      <button
+                        onClick={() => {
+                          if (!chatId) {
+                            toast.error("Please select a chat first");
+                            return;
+                          }
+                          router.push(`/dashboard/${chatId}/api-keys`);
+                        }}
+                        disabled={!chatId}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          !chatId
+                            ? "opacity-40 cursor-not-allowed"
+                            : activeView === "api-keys"
+                              ? "bg-amber-400/10 border border-amber-400/20"
+                              : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        )}
+                        title={!chatId ? "Select a chat first" : "API Keys"}
+                      >
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            !chatId
+                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              : activeView === "api-keys"
+                                ? "bg-amber-400 text-white"
+                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                          )}
+                        >
+                          <Key className="w-4 h-4" />
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            !chatId
+                              ? "text-zinc-400"
+                              : activeView === "api-keys"
+                                ? "text-amber-400"
+                                : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                          )}
+                        >
+                          API Keys
+                        </span>
+                      </button>
+
+                      {/* Custom Settings */}
+                      <button
+                        onClick={() => {
+                          if (!chatId) {
+                            toast.error("Please select a chat first");
+                            return;
+                          }
+                          router.push(`/dashboard/${chatId}/custom-settings`);
+                        }}
+                        disabled={!chatId}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          !chatId
+                            ? "opacity-40 cursor-not-allowed"
+                            : activeView === "custom-settings"
+                              ? "bg-amber-400/10 border border-amber-400/20"
+                              : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        )}
+                        title={
+                          !chatId ? "Select a chat first" : "Custom Settings"
+                        }
+                      >
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            !chatId
+                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              : activeView === "custom-settings"
+                                ? "bg-amber-400 text-white"
+                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                          )}
+                        >
+                          <Wrench className="w-4 h-4" />
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            !chatId
+                              ? "text-zinc-400"
+                              : activeView === "custom-settings"
+                                ? "text-amber-400"
+                                : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                          )}
+                        >
+                          Custom Settings
+                        </span>
+                      </button>
+
+                      {/* Usage */}
+                      <button
+                        onClick={() => {
+                          if (!chatId) {
+                            toast.error("Please select a chat first");
+                            return;
+                          }
+                          router.push(`/dashboard/${chatId}/usage`);
+                        }}
+                        disabled={!chatId}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          !chatId
+                            ? "opacity-40 cursor-not-allowed"
+                            : activeView === "usage"
+                              ? "bg-amber-400/10 border border-amber-400/20"
+                              : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        )}
+                        title={!chatId ? "Select a chat first" : "Usage"}
+                      >
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            !chatId
+                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              : activeView === "usage"
+                                ? "bg-amber-400 text-white"
+                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                          )}
+                        >
+                          <BarChart3 className="w-4 h-4" />
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            !chatId
+                              ? "text-zinc-400"
+                              : activeView === "usage"
+                                ? "text-amber-400"
+                                : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                          )}
+                        >
+                          Usage
                         </span>
                       </button>
                     </div>
@@ -820,81 +645,140 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
                   <button
                     onClick={() => router.push("/")}
-                    className="w-10 h-10 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center mx-auto"
-                    title="Home"
+                    className={cn(
+                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      activeView === "home"
+                        ? "bg-amber-400/10 ring-2 ring-amber-400/30"
+                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    )}
+                    title="Get Started"
                   >
-                    <Home className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                    <Rocket className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                  </button>
+
+                  <button
+                    onClick={() => router.push("/dashboard/manage")}
+                    className={cn(
+                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      activeView === "manage"
+                        ? "bg-amber-400/10 ring-2 ring-amber-400/30"
+                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    )}
+                    title="Manage Chats"
+                  >
+                    <LayoutGrid className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                   </button>
 
                   <button
                     onClick={() => {
-                      setIsNavigatingToManage(true);
-                      router.push("/dashboard/manage");
-                      setTimeout(() => setIsNavigatingToManage(false), 1000);
+                      if (!chatId) {
+                        toast.error("Please select a chat first");
+                        return;
+                      }
+                      router.push(`/dashboard/${chatId}/graph`);
                     }}
-                    className="w-10 h-10 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center relative mx-auto"
-                    title={`My Chats (${chats?.length || 0})`}
-                    disabled={isNavigatingToManage}
-                  >
-                    {isNavigatingToManage ? (
-                      <div className="w-4 h-4 border border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <LayoutGrid className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                        {chats && chats.length > 0 && (
-                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-white text-xs rounded-full flex items-center justify-center">
-                            {chats.length > 9 ? "9" : chats.length}
-                          </div>
-                        )}
-                      </>
+                    disabled={!chatId}
+                    className={cn(
+                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      !chatId
+                        ? "opacity-40 cursor-not-allowed"
+                        : activeView === "graph"
+                          ? "bg-amber-400/10 ring-2 ring-amber-400/30"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
                     )}
+                    title={!chatId ? "Select a chat first" : "Graph View"}
+                  >
+                    <Network className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!chatId) {
+                        toast.error("Please select a chat first");
+                        return;
+                      }
+                      router.push(`/dashboard/${chatId}/testing`);
+                    }}
+                    disabled={!chatId}
+                    className={cn(
+                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      !chatId
+                        ? "opacity-40 cursor-not-allowed"
+                        : activeView === "testing"
+                          ? "bg-amber-400/10 ring-2 ring-amber-400/30"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    )}
+                    title={!chatId ? "Select a chat first" : "Sandbox"}
+                  >
+                    <TestTube className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!chatId) {
+                        toast.error("Please select a chat first");
+                        return;
+                      }
+                      router.push(`/dashboard/${chatId}/api-keys`);
+                    }}
+                    disabled={!chatId}
+                    className={cn(
+                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      !chatId
+                        ? "opacity-40 cursor-not-allowed"
+                        : activeView === "api-keys"
+                          ? "bg-amber-400/10 ring-2 ring-amber-400/30"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    )}
+                    title={!chatId ? "Select a chat first" : "API Keys"}
+                  >
+                    <Key className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!chatId) {
+                        toast.error("Please select a chat first");
+                        return;
+                      }
+                      router.push(`/dashboard/${chatId}/custom-settings`);
+                    }}
+                    disabled={!chatId}
+                    className={cn(
+                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      !chatId
+                        ? "opacity-40 cursor-not-allowed"
+                        : activeView === "custom-settings"
+                          ? "bg-amber-400/10 ring-2 ring-amber-400/30"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    )}
+                    title={!chatId ? "Select a chat first" : "Custom Settings"}
+                  >
+                    <Wrench className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!chatId) {
+                        toast.error("Please select a chat first");
+                        return;
+                      }
+                      router.push(`/dashboard/${chatId}/usage`);
+                    }}
+                    disabled={!chatId}
+                    className={cn(
+                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      !chatId
+                        ? "opacity-40 cursor-not-allowed"
+                        : activeView === "usage"
+                          ? "bg-amber-400/10 ring-2 ring-amber-400/30"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    )}
+                    title={!chatId ? "Select a chat first" : "Usage"}
+                  >
+                    <BarChart3 className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                   </button>
                 </div>
-
-                {/* Divider */}
-                <div className="w-6 h-px bg-zinc-200 dark:bg-zinc-800 mx-auto"></div>
-
-                {/* Recent Chats - Collapsed */}
-                <div className="space-y-2 w-full">
-                  {recentChats.slice(0, 3).map((chat) => (
-                    <button
-                      key={chat._id}
-                      onClick={() => router.push(`/dashboard/${chat._id}`)}
-                      className={cn(
-                        "w-10 h-10 rounded-lg transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center mx-auto",
-                        chat._id === currentChatId &&
-                          "bg-amber-400/10 ring-2 ring-amber-400/30",
-                      )}
-                      title={chat.title}
-                    >
-                      <div
-                        className={cn(
-                          "w-5 h-5 rounded-md flex items-center justify-center",
-                          chat._id === currentChatId
-                            ? "bg-amber-400 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400",
-                        )}
-                      >
-                        <MessageSquare className="h-3 w-3" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Quick Access to Graph */}
-                {currentChatId && (
-                  <div className="pt-2 w-full">
-                    <button
-                      onClick={() =>
-                        router.push(`/dashboard/${currentChatId}/graph`)
-                      }
-                      className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center mx-auto"
-                      title="Graph View"
-                    >
-                      <Network className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                    </button>
-                  </div>
-                )}
               </div>
             ) : null}
           </div>
@@ -926,7 +810,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   </div>
                 </button>
                 <div className="flex items-center gap-1">
-                  <Button
+                  {/* <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => router.push("/profile")}
@@ -934,7 +818,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     title="Profile Settings"
                   >
                     <Settings className="h-4 w-4" />
-                  </Button>
+                  </Button> */}
                   <SignOutButton>
                     <Button
                       variant="ghost"
@@ -983,20 +867,6 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
       {/* Overlay when resizing */}
       {isResizing && <div className="fixed inset-0 z-50 cursor-col-resize" />}
-
-      {/* Chat Delete Dialog */}
-      <ChatDeleteDialog
-        isOpen={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setChatToDelete(null);
-        }}
-        onConfirm={handleConfirmDelete}
-        chatTitle={chatToDelete?.title || ""}
-        isPermanentDelete={isPermanentDelete}
-        isLoading={isDeleting}
-        subchatCount={0} // TODO: Calculate subchat count if needed
-      />
     </>
   );
 }

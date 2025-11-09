@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { ResizableSidebar } from "@/app/(main)/components/resizable-sidebar";
+import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
 import { useSidebarWidth } from "@/hooks/use-sidebar-width";
 import { Button } from "@/components/ui/button";
 import {
@@ -243,36 +244,17 @@ export default function ProfilePage() {
 
       {/* Main Content Area - Responsive to sidebar width */}
       <div
-        className="h-screen flex flex-col"
+        className="h-[100vh] flex flex-col relative bg-gradient-to-b px-4 pb-4 from-white via-white to-white dark:from-[#090909] dark:via-[#090909] dark:to-[#090909] rounded-3xl"
         style={{
           marginLeft: `${sidebarWidth}px`,
           transition: "margin-left 300ms ease-out",
         }}
       >
-        {/* Header */}
-        <div className="border-b border-zinc-200/50 dark:border-zinc-800/50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="h-8 w-8 p-0"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-                Profile & Usage
-              </h1>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Monitor your subscription and AI credit usage
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Chat Navbar */}
+        <ChatNavbar />
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-6">
           <div className="max-w-4xl mx-auto space-y-6">
             {/* User Info */}
             <Card>

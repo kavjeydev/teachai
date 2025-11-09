@@ -466,13 +466,13 @@ export function AppSidebar({
 
                       {/* Enhanced Chat Actions */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
+                        {/* <button
                           onClick={() => startEditing(chat)}
                           className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
                           title="Rename chat"
                         >
                           <Settings className="w-3 h-3 text-zinc-500" />
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => onDelete(chat._id)}
                           className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
@@ -558,7 +558,7 @@ export function AppSidebar({
             </div>
           </button>
           <div className="flex items-center gap-1">
-            <Button
+            {/* <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push("/profile")}
@@ -566,7 +566,7 @@ export function AppSidebar({
               title="Profile Settings"
             >
               <Settings className="h-4 w-4" />
-            </Button>
+            </Button> */}
             <SignOutButton>
               <Button
                 variant="ghost"

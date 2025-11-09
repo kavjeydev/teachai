@@ -26,6 +26,11 @@ import {
   Settings,
   Crown,
   Sparkles,
+  ChevronDown,
+  MessageSquare,
+  Clock,
+  Search,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -41,26 +46,31 @@ import { useRouter } from "next/navigation";
 import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { NavbarPublishStatus } from "@/components/navbar-publish-status";
 import { StorageUsageIndicator } from "@/components/storage-usage-indicator";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface ChatNavbarProps {
-  chatId: Id<"chats">;
-  onGraphToggle?: () => void;
-  isGraphOpen?: boolean;
-  reasoningContextCount?: number;
-  onApiSettingsToggle?: () => void;
+  chatId?: Id<"chats">;
 }
 
-export const ChatNavbar = ({
-  chatId,
-  onGraphToggle,
-  isGraphOpen,
-  reasoningContextCount,
-  onApiSettingsToggle,
-}: ChatNavbarProps) => {
+export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
   const router = useRouter();
-  const currentChat = useQuery(api.chats.getChatById, {
-    id: chatId,
-  });
+  const currentChat = useQuery(
+    api.chats.getChatById,
+    chatId ? { id: chatId } : "skip",
+  );
+  const allChats = useQuery(api.chats.getChats);
   const [editingTitle, setEditingTitle] = React.useState("");
   const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(
     null,
@@ -68,11 +78,16 @@ export const ChatNavbar = ({
   const [isRenaming, setIsRenaming] = React.useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = React.useState(false);
   const [isUpgrading, setIsUpgrading] = React.useState(false);
+  const [chatSelectorOpen, setChatSelectorOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   // Get subscription status to show/hide upgrade CTA
   const subscription = useQuery(api.subscriptions.getUserSubscription);
   const credits = useQuery(api.subscriptions.getUserCredits);
-  const userApps = useQuery(api.app_management.getAppsForChat, { chatId });
+  const userApps = useQuery(
+    api.app_management.getAppsForChat,
+    chatId ? { chatId } : "skip",
+  );
   const renameChat = useMutation(api.chats.rename);
   const initializeCredits = useMutation(
     api.subscriptions.initializeUserCredits,
@@ -86,7 +101,9 @@ export const ChatNavbar = ({
     }
   }, [subscription, initializeCredits]);
 
-  const finishEditing = async (chatId: Id<"chats">) => {
+  const finishEditing = async (chatId: Id<"chats"> | undefined) => {
+    if (!chatId) return;
+
     setIsRenaming(true);
     try {
       await renameChat({ id: chatId, title: editingTitle });
@@ -143,6 +160,8 @@ export const ChatNavbar = ({
   };
 
   async function handleVisibilityChange(selectedValue: string): Promise<void> {
+    if (!chatId) return;
+
     setIsUpdatingVisibility(true);
     try {
       await updateVisibility({
@@ -157,17 +176,175 @@ export const ChatNavbar = ({
     }
   }
 
+  // Sort chats by recent activity
+  const sortedChats = React.useMemo(() => {
+    if (!allChats) return [];
+    return [...allChats].sort(
+      (a, b) =>
+        new Date(b._creationTime).getTime() -
+        new Date(a._creationTime).getTime(),
+    );
+  }, [allChats]);
+
+  // Filter chats based on search query
+  const filteredChats = React.useMemo(() => {
+    if (!searchQuery) return sortedChats;
+    const query = searchQuery.toLowerCase();
+    return sortedChats.filter((chat) =>
+      chat.title.toLowerCase().includes(query),
+    );
+  }, [sortedChats, searchQuery]);
+
+  const handleChatSelect = (selectedChatId: string) => {
+    if (selectedChatId !== chatId) {
+      // Navigate to testing view of the selected chat
+      router.push(`/dashboard/${selectedChatId}/testing`);
+      setChatSelectorOpen(false);
+      setSearchQuery("");
+      toast.success("Switched chat");
+    }
+  };
+
+  // Clear search when popover closes
+  React.useEffect(() => {
+    if (!chatSelectorOpen) {
+      setSearchQuery("");
+    }
+  }, [chatSelectorOpen]);
+
   return (
-    <div className="flex items-center justify-between w-full h-12 px-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50">
-      <div className="flex items-center gap-4">
+    <div className="flex items-center justify-between w-full h-16 px-4 bg-white/80 dark:bg-[#090909] backdrop-blur-xl">
+      <div className="flex items-center gap-2">
+        {/* Chat Selector Dropdown */}
+        <Popover open={chatSelectorOpen} onOpenChange={setChatSelectorOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className={cn(
+                "flex items-center gap-2 px-2 py-1 rounded-lg transition-all duration-200 group",
+                !chatId
+                  ? "cursor-default"
+                  : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+              )}
+            >
+              <div className="flex flex-col items-start">
+                <h1
+                  className={cn(
+                    "text-sm font-semibold max-w-[200px] truncate transition-colors",
+                    !chatId
+                      ? "text-zinc-400 dark:text-zinc-500"
+                      : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                  )}
+                >
+                  {!chatId
+                    ? "No chat selected"
+                    : currentChat?.title || "Loading..."}
+                </h1>
+              </div>
+              <ChevronsUpDown
+                className={cn(
+                  "w-4 h-4 transition-colors",
+                  !chatId
+                    ? "text-zinc-300 dark:text-zinc-600"
+                    : "text-zinc-400 group-hover:text-amber-400",
+                )}
+              />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[400px] p-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl"
+            align="start"
+          >
+            <Command className="rounded-lg">
+              <div className="flex items-center border-b border-zinc-200 dark:border-zinc-700 px-3">
+                <Search className="mr-2 h-4 w-4 shrink-0 text-zinc-500" />
+                <input
+                  placeholder="Search chats..."
+                  className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-white"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <CommandList className="max-h-[300px] overflow-y-auto">
+                {filteredChats.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-zinc-500">
+                    No chats found.
+                  </div>
+                ) : (
+                  <CommandGroup>
+                    {filteredChats.map((chat) => (
+                      <CommandItem
+                        key={chat._id}
+                        value={chat._id}
+                        onSelect={() => handleChatSelect(chat._id)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-md mx-1 my-0.5",
+                          chat._id === chatId &&
+                            "bg-amber-400/10 border border-amber-400/20",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
+                            chat._id === chatId
+                              ? "bg-amber-400 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
+                          )}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className={cn(
+                              "text-sm font-medium truncate",
+                              chat._id === chatId
+                                ? "text-amber-400"
+                                : "text-zinc-900 dark:text-white",
+                            )}
+                          >
+                            {chat.title}
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                            {chat.context?.length || 0} docs •{" "}
+                            {new Date(chat._creationTime).toLocaleDateString()}
+                          </div>
+                        </div>
+                        {chat._id === chatId && (
+                          <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></div>
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        {/* Divider */}
+        <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700"></div>
+
+        {/* Rename Chat Dialog (Separate button) */}
         <Dialog>
-          <DialogTrigger>
-            <div className="flex items-center gap-2 group cursor-pointer">
-              <Edit3 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-400 transition-colors" />
-              <h1 className="text-lg font-semibold text-zinc-900 dark:text-white group-hover:text-amber-400 transition-colors">
-                {currentChat?.title}
-              </h1>
-            </div>
+          <DialogTrigger asChild>
+            <button
+              className={cn(
+                "p-2 rounded-md transition-colors",
+                !chatId
+                  ? "cursor-not-allowed opacity-40"
+                  : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+              )}
+              title={!chatId ? "No chat selected" : "Rename chat"}
+              disabled={!chatId}
+            >
+              <Edit3
+                className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  !chatId
+                    ? "text-zinc-300 dark:text-zinc-600"
+                    : "text-zinc-400 hover:text-amber-400",
+                )}
+              />
+            </button>
           </DialogTrigger>
 
           <DialogContent className="sm:max-w-[425px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
@@ -235,6 +412,14 @@ export const ChatNavbar = ({
           </Button>
         )}
 
+        <div
+          className="text-sm text-black dark:text-white cursor-pointer font-bold hover:text-amber-400 transition-all duration-300
+          hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-lg px-2 py-1"
+          onClick={() => window.open("https://docs.trainlyai.com", "_blank")}
+        >
+          Documentation
+        </div>
+
         {/* Credit Counter & Storage Usage - Show for all users */}
         {credits && (
           <div className="hidden sm:flex items-center gap-1.5">
@@ -251,8 +436,8 @@ export const ChatNavbar = ({
           </div>
         )}
 
-        {/* Publish Status - Show for paid users */}
-        {subscription?.tier !== "free" && (
+        {/* Publish Status - Show for paid users with selected chat */}
+        {chatId && subscription?.tier !== "free" && (
           <NavbarPublishStatus
             chatId={chatId}
             hasUnpublishedChanges={currentChat?.hasUnpublishedChanges}
@@ -267,51 +452,22 @@ export const ChatNavbar = ({
           />
         )}
 
-        {/* Settings Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onApiSettingsToggle}
-          className="h-8 px-3 gap-2 transition-colors text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-amber-400"
-          title={
-            subscription?.tier === "free"
-              ? "Chat Settings & API Access (Pro Feature)"
-              : "Chat Settings & API Access"
-          }
-        >
-          <Settings className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">API Settings</span>
-        </Button>
-
-        {/* Graph Toggle Button */}
-        {onGraphToggle && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onGraphToggle}
+        <Select onValueChange={handleVisibilityChange} disabled={!chatId}>
+          <SelectTrigger
             className={cn(
-              "h-8 px-3 gap-2 transition-colors text-sm relative",
-              isGraphOpen
-                ? "bg-amber-400/10 text-amber-400 border-amber-400/20 border"
-                : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
+              "w-[120px] h-8 text-sm border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 transition-colors",
+              !chatId
+                ? "opacity-40 cursor-not-allowed"
+                : "hover:border-amber-400/50",
             )}
           >
-            <Network className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Graph</span>
-            {reasoningContextCount && reasoningContextCount > 0 && (
-              <div
-                className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"
-                title={`${reasoningContextCount} reasoning nodes available`}
-              />
-            )}
-          </Button>
-        )}
-
-        <Select onValueChange={handleVisibilityChange}>
-          <SelectTrigger className="w-[120px] h-8 text-sm border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-amber-400/50 transition-colors">
             <SelectValue
               placeholder={
-                currentChat?.visibility === "public" ? "Public" : "Private"
+                !chatId
+                  ? "No chat"
+                  : currentChat?.visibility === "public"
+                    ? "Public"
+                    : "Private"
               }
             />
           </SelectTrigger>
@@ -339,17 +495,19 @@ export const ChatNavbar = ({
           </SelectContent>
         </Select>
 
-        <Badge
-          className={cn(
-            "border font-medium",
-            currentChat?.visibility === "public"
-              ? "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400"
-              : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-700",
-          )}
-          variant="outline"
-        >
-          {currentChat?.visibility}
-        </Badge>
+        {chatId && (
+          <Badge
+            className={cn(
+              "border font-medium",
+              currentChat?.visibility === "public"
+                ? "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400"
+                : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-700",
+            )}
+            variant="outline"
+          >
+            {currentChat?.visibility}
+          </Badge>
+        )}
 
         <ThemeSwitcher />
       </div>
