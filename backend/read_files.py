@@ -3172,7 +3172,7 @@ async def api_answer_question(
         async with httpx.AsyncClient() as client:
             # First get published settings
             published_response = await client.post(
-                f"{CONVEX_URL}/api/run/chats/getPublishedSettings",
+                f"{CONVEX_URL}/api/run/chats/getPublishedSettingsByChatId",
                 json={
                     "args": {"chatId": chat_id},
                     "format": "json"
@@ -3329,7 +3329,7 @@ async def api_answer_question_stream(
         async with httpx.AsyncClient() as client:
             # First get published settings
             published_response = await client.post(
-                f"{CONVEX_URL}/api/run/chats/getPublishedSettings",
+                f"{CONVEX_URL}/api/run/chats/getPublishedSettingsByChatId",
                 json={
                     "args": {"chatId": chat_id},
                     "format": "json"

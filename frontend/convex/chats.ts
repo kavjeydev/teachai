@@ -1572,7 +1572,7 @@ export const getVersionHistory = query({
   },
 });
 
-// Get published settings for API consumption
+// Get published settings for API consumption (by internal Convex ID)
 export const getPublishedSettings = query({
   args: {
     chatId: v.id("chats"),
@@ -1585,6 +1585,26 @@ export const getPublishedSettings = query({
 
     // ONLY return published settings - no fallback to current settings
     // The API should only work with explicitly published settings
+    return chat.publishedSettings || null;
+  },
+});
+
+// Get published settings by chatId field (for API - uses string chatId, not internal _id)
+export const getPublishedSettingsByChatId = query({
+  args: {
+    chatId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const chat = await ctx.db
+      .query("chats")
+      .withIndex("by_chatId", (q) => q.eq("chatId", args.chatId))
+      .first();
+
+    if (!chat) {
+      return null;
+    }
+
+    // ONLY return published settings - no fallback to current settings
     return chat.publishedSettings || null;
   },
 });
