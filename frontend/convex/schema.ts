@@ -163,6 +163,8 @@ export default defineSchema({
     maxTokens: v.optional(v.number()), // Default to 1000 if not set
     // Conversation history limit (number of previous messages to include)
     conversationHistoryLimit: v.optional(v.number()), // Default to 20 if not set
+    // Unhinged mode (uses Grok's unhinged AI model)
+    unhingedMode: v.optional(v.boolean()), // Default to false if not set
 
     // Published state for API - these are the settings that the API actually uses
     // When developers make changes, they edit the draft settings above, then publish to make them live
@@ -173,6 +175,7 @@ export default defineSchema({
         temperature: v.optional(v.number()), // Published temperature
         maxTokens: v.optional(v.number()), // Published max tokens
         conversationHistoryLimit: v.optional(v.number()), // Published conversation history limit
+        unhingedMode: v.optional(v.boolean()), // Published unhinged mode
         context: v.optional(
           v.array(
             v.object({
@@ -199,6 +202,7 @@ export default defineSchema({
           temperature: v.optional(v.number()),
           maxTokens: v.optional(v.number()),
           conversationHistoryLimit: v.optional(v.number()),
+          unhingedMode: v.optional(v.boolean()),
           context: v.optional(
             v.array(
               v.object({

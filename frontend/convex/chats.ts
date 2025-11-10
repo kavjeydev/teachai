@@ -1391,6 +1391,36 @@ export const updateChatConversationHistoryLimit = mutation({
   },
 });
 
+// Update unhinged mode for a chat (uses Grok's unhinged AI)
+export const updateUnhingedMode = mutation({
+  args: {
+    chatId: v.id("chats"),
+    unhingedMode: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    if (chat.userId !== identity.subject) {
+      throw new Error("Not authorized to update this chat.");
+    }
+
+    await ctx.db.patch(args.chatId, {
+      unhingedMode: args.unhingedMode,
+      hasUnpublishedChanges: true,
+    });
+
+    return true;
+  },
+});
+
 // Publish chat settings to make them live for API
 export const publishChatSettings = mutation({
   args: {
@@ -1422,6 +1452,7 @@ export const publishChatSettings = mutation({
       temperature: chat.temperature,
       maxTokens: chat.maxTokens,
       conversationHistoryLimit: chat.conversationHistoryLimit,
+      unhingedMode: chat.unhingedMode,
       context: chat.context,
       publishedAt: now,
       publishedBy: identity.subject,
@@ -1435,6 +1466,7 @@ export const publishChatSettings = mutation({
       temperature: chat.temperature,
       maxTokens: chat.maxTokens,
       conversationHistoryLimit: chat.conversationHistoryLimit,
+      unhingedMode: chat.unhingedMode,
       context: chat.context,
       publishedAt: now,
       publishedBy: identity.subject,

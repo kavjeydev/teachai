@@ -18,7 +18,7 @@ def main():
     print("Example 1: Simple Query")
     print("=" * 60)
 
-    response = trainly.query("What are the main findings?")
+    response = trainly.query("tell me about the exclusion form")
     print(f"\n📝 Answer:\n{response.answer}\n")
     print(f"📚 Context chunks: {len(response.context)}")
 

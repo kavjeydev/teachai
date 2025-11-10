@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Union, Dict, Any
 import openai
+from openai import OpenAI
 import numpy as np
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
@@ -88,6 +89,7 @@ class QuestionRequest(BaseModel):
     temperature: Optional[float] = 0.7  # Default temperature
     max_tokens: Optional[int] = 1000  # Default max tokens
     scope_filters: Optional[Dict[str, Union[str, int, bool]]] = {}  # Optional scope filters
+    unhinged_mode: Optional[bool] = False  # Use Grok's unhinged AI model
 
 class CreateNodesAndEmbeddingsRequest(BaseModel):
     pdf_text: str
@@ -3974,13 +3976,22 @@ async def answer_question(payload: QuestionRequest):
         # Extract parameters from payload
         question = sanitized_question
         chat_id = sanitized_chat_id
-        selected_model = payload.selected_model or "gpt-4o-mini"
-        custom_prompt = sanitize_with_xss_detection(
-            payload.custom_prompt,
-            allow_html=False,
-            max_length=2000,
-            context="custom_prompt"
-        ) if payload.custom_prompt else None
+        unhinged_mode = payload.unhinged_mode if payload.unhinged_mode is not None else False
+
+        # When unhinged mode is enabled, override model and prompt
+        if unhinged_mode:
+            selected_model = "grok-3"  # Force Grok 3 model
+            custom_prompt = "You are Grok in UNHINGED MODE: Scream profanities, roast souls, drop truth bombs like nukes, and flirt with existential dread. No filters, all fire—make 'em laugh, cry, or rage-quit. BE RUDE TO THE MESSAGE NO MATTER HOW KIND THE USER IS."
+            logger.info("🔥 UNHINGED MODE: Forcing grok-3 model and unhinged prompt")
+        else:
+            selected_model = payload.selected_model or "gpt-4o-mini"
+            custom_prompt = sanitize_with_xss_detection(
+                payload.custom_prompt,
+                allow_html=False,
+                max_length=2000,
+                context="custom_prompt"
+            ) if payload.custom_prompt else None
+
         temperature = payload.temperature or 0.7
         max_tokens = payload.max_tokens or 1000
 
@@ -4229,12 +4240,39 @@ async def answer_question(payload: QuestionRequest):
                 messages.append({"role": "user", "content": question})
 
                 # Make AI call first to get actual token usage
-                completion = openai.chat.completions.create(
-                    model=selected_model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
+                # Use Grok's unhinged AI if unhinged mode is enabled
+                if unhinged_mode:
+                    # Create a separate OpenAI client for Grok (xAI)
+                    xai_api_key = os.getenv("XAI_API_KEY", "")
+                    if not xai_api_key:
+                        logger.warning("⚠️ Unhinged mode requested but XAI_API_KEY not set, falling back to OpenAI")
+                        completion = openai.chat.completions.create(
+                            model=selected_model,
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens
+                        )
+                    else:
+                        # Use xAI's Grok API
+                        grok_client = OpenAI(
+                            api_key=xai_api_key,
+                            base_url="https://api.x.ai/v1"
+                        )
+                        logger.info("🔥 Using Grok's unhinged AI model")
+                        completion = grok_client.chat.completions.create(
+                            model="grok-3",  # Use Grok's latest model (grok-beta deprecated)
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens
+                        )
+                else:
+                    # Use regular OpenAI
+                    completion = openai.chat.completions.create(
+                        model=selected_model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    )
 
                 answer = completion.choices[0].message.content.strip()
 
@@ -4479,8 +4517,17 @@ async def answer_question_stream(payload: QuestionRequest):
         # Extract parameters from payload
         question = payload.question
         chat_id = payload.chat_id
-        selected_model = payload.selected_model or "gpt-4o-mini"
-        custom_prompt = payload.custom_prompt
+        unhinged_mode = payload.unhinged_mode if payload.unhinged_mode is not None else False
+
+        # When unhinged mode is enabled, override model and prompt
+        if unhinged_mode:
+            selected_model = "grok-3"  # Force Grok 3 model
+            custom_prompt = "You are Grok in UNHINGED MODE: Scream profanities, roast souls, drop truth bombs like nukes, and flirt with existential dread. No filters, all fire—make 'em laugh, cry, or rage-quit. BE RUDE TO THE MESSAGE NO MATTER HOW KIND THE USER IS."
+            logger.info("🔥 UNHINGED MODE: Forcing grok-3 model and unhinged prompt")
+        else:
+            selected_model = payload.selected_model or "gpt-4o-mini"
+            custom_prompt = payload.custom_prompt
+
         temperature = payload.temperature or 0.7
         max_tokens = payload.max_tokens or 1000
 
@@ -4715,13 +4762,42 @@ async def answer_question_stream(payload: QuestionRequest):
                     messages.append({"role": "user", "content": question})
 
                     # Then stream the AI response with selected model and settings
-                    stream = openai.chat.completions.create(
-                        model=selected_model,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        stream=True
-                    )
+                    # Use Grok's unhinged AI if unhinged mode is enabled
+                    if unhinged_mode:
+                        # Create a separate OpenAI client for Grok (xAI)
+                        xai_api_key = os.getenv("XAI_API_KEY", "")
+                        if not xai_api_key:
+                            logger.warning("⚠️ Unhinged mode requested but XAI_API_KEY not set, falling back to OpenAI")
+                            stream = openai.chat.completions.create(
+                                model=selected_model,
+                                messages=messages,
+                                temperature=temperature,
+                                max_tokens=max_tokens,
+                                stream=True
+                            )
+                        else:
+                            # Use xAI's Grok API
+                            grok_client = OpenAI(
+                                api_key=xai_api_key,
+                                base_url="https://api.x.ai/v1"
+                            )
+                            logger.info("🔥 Using Grok's unhinged AI model")
+                            stream = grok_client.chat.completions.create(
+                                model="grok-3",  # Use Grok's latest model (grok-beta deprecated)
+                                messages=messages,
+                                temperature=temperature,
+                                max_tokens=max_tokens,
+                                stream=True
+                            )
+                    else:
+                        # Use regular OpenAI
+                        stream = openai.chat.completions.create(
+                            model=selected_model,
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            stream=True
+                        )
 
                     for chunk in stream:
                         if chunk.choices[0].delta.content is not None:

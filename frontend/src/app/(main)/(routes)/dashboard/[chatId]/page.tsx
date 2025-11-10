@@ -121,6 +121,19 @@ const ModelSelector = dynamic(
   },
 );
 
+const UnhingedModeToggle = dynamic(
+  () =>
+    import("@/components/unhinged-mode-toggle").then((mod) => ({
+      default: mod.UnhingedModeToggle,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse h-10 bg-zinc-100 rounded-lg"></div>
+    ),
+  },
+);
+
 const SimpleApiManager = dynamic(
   () =>
     import("@/components/simple-api-manager").then((mod) => ({
@@ -1005,6 +1018,7 @@ function Dashboard({ params }: ChatIdPageProps) {
       custom_prompt: displayChat?.customPrompt || null,
       temperature: displayChat?.temperature || 0.7,
       max_tokens: displayChat?.maxTokens || 1000,
+      unhinged_mode: displayChat?.unhingedMode || false,
     };
 
     // Credit checking temporarily disabled to fix chat functionality
@@ -1115,6 +1129,7 @@ function Dashboard({ params }: ChatIdPageProps) {
       custom_prompt: displayChat?.customPrompt || null,
       temperature: displayChat?.temperature || 0.7,
       max_tokens: displayChat?.maxTokens || 1000,
+      unhinged_mode: displayChat?.unhingedMode || false,
     };
 
     const response = await fetch(baseUrl + "answer_question", {
@@ -2053,6 +2068,7 @@ function Dashboard({ params }: ChatIdPageProps) {
                                     // Optionally trigger a refresh of chat data
                                   }}
                                   compact={true}
+                                  unhingedMode={displayChat?.unhingedMode}
                                 />
 
                                 {/* Chat Settings Button */}
@@ -2067,6 +2083,16 @@ function Dashboard({ params }: ChatIdPageProps) {
                                   onSettingsChange={() => {
                                     // Optionally trigger a refresh of chat data
                                   }}
+                                  unhingedMode={displayChat?.unhingedMode}
+                                />
+
+                                {/* Unhinged Mode Toggle */}
+                                <UnhingedModeToggle
+                                  chatId={effectiveChatId}
+                                  currentUnhingedMode={
+                                    displayChat?.unhingedMode
+                                  }
+                                  compact={true}
                                 />
 
                                 {/* File Queue Status Button */}

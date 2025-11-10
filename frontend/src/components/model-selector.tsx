@@ -63,6 +63,7 @@ interface ModelSelectorProps {
   currentModel?: string;
   onModelChange?: () => void;
   compact?: boolean;
+  unhingedMode?: boolean;
 }
 
 export function ModelSelector({
@@ -70,14 +71,16 @@ export function ModelSelector({
   currentModel = "gpt-4o-mini",
   onModelChange,
   compact = false,
+  unhingedMode = false,
 }: ModelSelectorProps) {
   const [selectedModel, setSelectedModel] = useState(currentModel);
   const updateChatModel = useMutation(api.chats.updateChatModel);
 
   // Update local state when props change
   useEffect(() => {
-    setSelectedModel(currentModel);
-  }, [currentModel]);
+    // Force grok-3 when unhinged mode is enabled
+    setSelectedModel(unhingedMode ? "grok-3" : currentModel);
+  }, [currentModel, unhingedMode]);
 
   const handleModelChange = async (modelId: string) => {
     try {
@@ -96,6 +99,19 @@ export function ModelSelector({
   const selectedModelInfo = OPENAI_MODELS.find((m) => m.id === selectedModel);
 
   if (compact) {
+    // Show locked grok-3 in unhinged mode
+    if (unhingedMode) {
+      return (
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800">
+          <Brain className="w-3.5 h-3.5 text-orange-500" />
+          <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
+            grok-3
+          </span>
+          <span className="text-xs text-orange-500/70">🔒</span>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center gap-2">
         <Select value={selectedModel} onValueChange={handleModelChange}>

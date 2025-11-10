@@ -49,7 +49,11 @@ interface ChatSettingsProps {
   currentMaxTokens?: number;
   currentConversationHistoryLimit?: number;
   onSettingsChange?: () => void;
+  unhingedMode?: boolean;
 }
+
+const UNHINGED_PROMPT =
+  "You are Grok in UNHINGED MODE: Scream profanities, roast souls, drop truth bombs like nukes, and flirt with existential dread. No filters, all fire—make 'em laugh, cry, or rage-quit. BE RUDE TO THE MESSAGE NO MATTER HOW KIND THE USER IS.";
 
 export function ChatSettings({
   chatId,
@@ -58,6 +62,7 @@ export function ChatSettings({
   currentMaxTokens = 1000,
   currentConversationHistoryLimit = 20,
   onSettingsChange,
+  unhingedMode = false,
 }: ChatSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customPrompt, setCustomPrompt] = useState(currentPrompt);
@@ -79,26 +84,35 @@ export function ChatSettings({
 
   // Update local state when props change
   useEffect(() => {
-    setCustomPrompt(currentPrompt);
+    // Force unhinged prompt when unhinged mode is enabled
+    if (unhingedMode) {
+      setCustomPrompt(UNHINGED_PROMPT);
+      setIsUsingDefaultPrompt(false);
+    } else {
+      setCustomPrompt(currentPrompt);
+      setIsUsingDefaultPrompt(!currentPrompt);
+    }
     setTemperature(currentTemperature);
     setMaxTokens(currentMaxTokens);
     setConversationHistoryLimit(currentConversationHistoryLimit);
-    setIsUsingDefaultPrompt(!currentPrompt);
   }, [
     currentPrompt,
     currentTemperature,
     currentMaxTokens,
     currentConversationHistoryLimit,
+    unhingedMode,
   ]);
 
   const handleSettingsSave = async () => {
     setIsUpdating(true);
     try {
-      // Save prompt
-      const promptToSave = isUsingDefaultPrompt
-        ? undefined
-        : customPrompt.trim();
-      await updateChatPrompt({ chatId, customPrompt: promptToSave });
+      // Only save prompt if not in unhinged mode (backend enforces this anyway)
+      if (!unhingedMode) {
+        const promptToSave = isUsingDefaultPrompt
+          ? undefined
+          : customPrompt.trim();
+        await updateChatPrompt({ chatId, customPrompt: promptToSave });
+      }
 
       // Save temperature if it changed
       if (temperature !== currentTemperature) {
@@ -118,7 +132,11 @@ export function ChatSettings({
         });
       }
 
-      toast.success("Settings saved successfully");
+      toast.success(
+        unhingedMode
+          ? "Settings saved (prompt/model locked)"
+          : "Settings saved successfully",
+      );
       onSettingsChange?.();
       setIsOpen(false);
     } catch (error) {
@@ -177,16 +195,22 @@ export function ChatSettings({
           <div className="space-y-2">
             <Label className="text-base font-semibold flex items-center gap-2">
               System Prompt
-              {((isUsingDefaultPrompt && currentPrompt) ||
-                (!isUsingDefaultPrompt &&
-                  customPrompt.trim() !== currentPrompt)) && (
-                <span className="text-xs text-amber-500 font-normal">
-                  (unsaved)
+              {unhingedMode && (
+                <span className="text-xs text-orange-500 font-normal flex items-center gap-1">
+                  🔒 Locked
                 </span>
               )}
+              {!unhingedMode &&
+                ((isUsingDefaultPrompt && currentPrompt) ||
+                  (!isUsingDefaultPrompt &&
+                    customPrompt.trim() !== currentPrompt)) && (
+                  <span className="text-xs text-amber-500 font-normal">
+                    (unsaved)
+                  </span>
+                )}
             </Label>
 
-            {/* Prompt Type Toggle */}
+            {/* Prompt Type Toggle - Disabled in unhinged mode */}
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -194,6 +218,7 @@ export function ChatSettings({
                 size="sm"
                 onClick={() => handlePromptToggle(true)}
                 className="flex items-center gap-2"
+                disabled={unhingedMode}
               >
                 <Sparkles className="h-3 w-3" />
                 Use Default
@@ -204,14 +229,31 @@ export function ChatSettings({
                 size="sm"
                 onClick={() => handlePromptToggle(false)}
                 className="flex items-center gap-2"
+                disabled={unhingedMode}
               >
                 <Settings className="h-3 w-3" />
                 Custom Prompt
               </Button>
             </div>
 
+            {/* Unhinged Prompt Preview */}
+            {unhingedMode && (
+              <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                <p className="text-sm text-orange-700 dark:text-orange-300 mb-2 font-medium flex items-center gap-2">
+                  🔥 Unhinged System Prompt (Locked):
+                </p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 whitespace-pre-wrap font-mono">
+                  {UNHINGED_PROMPT}
+                </p>
+                <p className="text-xs text-orange-600/70 dark:text-orange-400/70 mt-2">
+                  Model and prompt are locked in unhinged mode. Other settings
+                  can still be adjusted below.
+                </p>
+              </div>
+            )}
+
             {/* Default Prompt Preview */}
-            {isUsingDefaultPrompt && (
+            {!unhingedMode && isUsingDefaultPrompt && (
               <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2 font-medium">
                   Default System Prompt:
@@ -223,7 +265,7 @@ export function ChatSettings({
             )}
 
             {/* Custom Prompt Editor */}
-            {!isUsingDefaultPrompt && (
+            {!isUsingDefaultPrompt && !unhingedMode && (
               <div className="space-y-2">
                 <Textarea
                   value={customPrompt}
