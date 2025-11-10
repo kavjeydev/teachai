@@ -7,7 +7,7 @@ from trainly import TrainlyClient
 def main():
     # Initialize the client (make sure to set environment variables or pass directly)
     trainly = TrainlyClient(
-        api_key="tk_mhs74nmn_u66fbdutm1",
+        api_key="tk_mhse51pz_7wcvjs9mh2l",
         chat_id="j57cq1sb5fd3pp8psnvx991e1x7shtvk"
     )
 

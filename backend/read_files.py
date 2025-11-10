@@ -3172,7 +3172,7 @@ async def api_answer_question(
         async with httpx.AsyncClient() as client:
             # First get published settings
             published_response = await client.post(
-                f"{CONVEX_URL}/api/run/chats/getPublishedSettingsByChatId",
+                f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getPublishedSettings",
                 json={
                     "args": {"chatId": chat_id},
                     "format": "json"
@@ -3182,7 +3182,7 @@ async def api_answer_question(
 
             # Also get chat content for conversation history
             chat_response = await client.post(
-                f"{CONVEX_URL}/api/run/chats/getChatById",
+                f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getChatByIdExposed",
                 json={
                     "args": {"id": chat_id},
                     "format": "json"
@@ -3329,7 +3329,7 @@ async def api_answer_question_stream(
         async with httpx.AsyncClient() as client:
             # First get published settings
             published_response = await client.post(
-                f"{CONVEX_URL}/api/run/chats/getPublishedSettingsByChatId",
+                f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getPublishedSettings",
                 json={
                     "args": {"chatId": chat_id},
                     "format": "json"
@@ -3339,7 +3339,7 @@ async def api_answer_question_stream(
 
             # Also get chat content for conversation history
             chat_response = await client.post(
-                f"{CONVEX_URL}/api/run/chats/getChatById",
+                f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getChatByIdExposed",
                 json={
                     "args": {"id": chat_id},
                     "format": "json"
