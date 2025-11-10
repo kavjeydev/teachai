@@ -2019,7 +2019,7 @@ async def verify_api_key_and_chat(api_key: str, chat_id: str) -> bool:
     """
     try:
         # Call your Convex endpoint to verify (auto-detects dev/prod)
-
+        # chat_id is the internal Convex _id
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 CONVEX_URL,

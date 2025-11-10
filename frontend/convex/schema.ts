@@ -263,6 +263,7 @@ export default defineSchema({
     ),
   })
     .index("by_user", ["userId"])
+    .index("by_chatId", ["chatId"])
     .index("by_title", ["title"])
     .index("by_fileId", ["context"])
     .index("by_folder", ["folderId"]),

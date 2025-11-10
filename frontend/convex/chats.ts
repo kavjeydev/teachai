@@ -1609,6 +1609,21 @@ export const getPublishedSettingsByChatId = query({
   },
 });
 
+// Get full chat details by chatId field (for API - uses string chatId, not internal _id)
+export const getChatByChatIdField = query({
+  args: {
+    chatId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const chat = await ctx.db
+      .query("chats")
+      .withIndex("by_chatId", (q) => q.eq("chatId", args.chatId))
+      .first();
+
+    return chat || null;
+  },
+});
+
 // Get user's chat limits and current usage
 // Get parent chat storage and subchat statistics
 export const getParentChatStats = query({

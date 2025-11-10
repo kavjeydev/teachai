@@ -11,6 +11,7 @@ pip install trainly
 ## 2. Get Your Credentials
 
 You'll need:
+
 - **API Key**: Get it from your Trainly dashboard (starts with `tk_`)
 - **Chat ID**: The ID of the chat you want to query
 
@@ -40,6 +41,7 @@ for i, chunk in enumerate(response.context, 1):
 ```
 
 Run it:
+
 ```bash
 python test_trainly.py
 ```
@@ -49,12 +51,14 @@ python test_trainly.py
 For better security, use environment variables:
 
 Create a `.env` file:
+
 ```bash
 TRAINLY_API_KEY=tk_your_api_key
 TRAINLY_CHAT_ID=chat_abc123
 ```
 
 Then in your code:
+
 ```python
 from trainly import TrainlyClient
 
@@ -151,24 +155,31 @@ print(response.answer)
 ## Common Issues
 
 ### Missing API Key Error
+
 ```
 TrainlyError: API key is required
 ```
+
 **Solution:** Set the `TRAINLY_API_KEY` environment variable or pass it to the constructor.
 
 ### Connection Timeout
+
 ```
 TrainlyError: Request failed: timeout
 ```
+
 **Solution:** Increase the timeout:
+
 ```python
 trainly = TrainlyClient(timeout=60)  # 60 seconds
 ```
 
 ### Rate Limit
+
 ```
 TrainlyError (429): Rate limit exceeded
 ```
+
 **Solution:** Wait a moment and retry, or upgrade your plan.
 
 ## Get Help
@@ -178,4 +189,3 @@ TrainlyError (429): Rate limit exceeded
 - 📖 Docs: https://trainly.com/docs/python-sdk
 
 Happy coding! 🚀
-

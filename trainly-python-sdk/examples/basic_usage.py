@@ -7,8 +7,8 @@ from trainly import TrainlyClient
 def main():
     # Initialize the client (make sure to set environment variables or pass directly)
     trainly = TrainlyClient(
-        api_key="",
-        chat_id=""
+        api_key="tk_mhs74nmn_u66fbdutm1",
+        chat_id="j57cq1sb5fd3pp8psnvx991e1x7shtvk"
     )
 
     print("🚀 Trainly Python SDK - Basic Usage Example\n")
