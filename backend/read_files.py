@@ -3883,26 +3883,17 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
                 top_chunks = chunk_scores[:8]  # Get top 8 chunks
 
                 if not top_chunks:
-                    logger.warning(f"No relevant chunks found for question in chat {chat_id}")
-                    if published_context_files:
-                        return AnswerWithContext(
-                            answer="I don't have any published context to answer your question. Please make sure you have published your files and settings.",
-                            context=[]
-                        )
-                    else:
-                        return AnswerWithContext(
-                            answer="I don't have any context to answer your question. Please upload some documents first.",
-                            context=[]
-                        )
+                    logger.warning(f"No relevant chunks found for question in chat {chat_id}, AI will respond without context")
 
                 # Prepare context for the AI model
                 context_text = "\n\n".join([
                     f"[Chunk {i}] From {chunk['filename']}: {chunk['chunk_text']}"
                     for i, chunk in enumerate(top_chunks)
-                ])
+                ]) if top_chunks else ""
 
-                # Build the prompt
-                system_prompt = custom_prompt if custom_prompt else f"""You are a helpful AI assistant with access to a knowledge graph built from the user's documents. You have the following context from their documents:
+                # Build the prompt - adjust based on whether we have context
+                if top_chunks:
+                    system_prompt = custom_prompt if custom_prompt else f"""You are a helpful AI assistant with access to a knowledge graph built from the user's documents. You have the following context from their documents:
 
 IMPORTANT INSTRUCTIONS:
 1. ALWAYS prioritize using the provided context to answer the user's question
@@ -3918,12 +3909,24 @@ For example:
 - "The document shows [^2] that species interactions..."
 
 RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
+                else:
+                    system_prompt = custom_prompt if custom_prompt else """You are a helpful AI assistant. The user has asked a question but there is no relevant context available from their uploaded documents. Please answer the question to the best of your ability using your general knowledge.
+
+Note: If the user is asking about specific documents or uploaded content, let them know that you don't have access to relevant context from their documents.
+
+RESPOND IN MARKDOWN FORMAT"""
 
                 # Create messages for the AI model
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Context:\n{context_text}\n\nQuestion: {question}"}
-                ]
+                if top_chunks:
+                    messages = [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Context:\n{context_text}\n\nQuestion: {question}"}
+                    ]
+                else:
+                    messages = [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Question: {question}"}
+                    ]
 
                 # Call OpenAI API
                 client = openai.OpenAI()
