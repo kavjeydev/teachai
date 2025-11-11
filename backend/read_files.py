@@ -3226,30 +3226,20 @@ async def api_answer_question(
                         elif message.get("sender") == "assistant":
                             conversation_history.append({"role": "assistant", "content": message.get("text", "")})
 
-        # Use chat settings as defaults, allow API parameters to override
-        final_model = payload.selected_model if payload.selected_model is not None else chat_settings.get("selected_model", "gpt-4o-mini")
-        final_temperature = payload.temperature if payload.temperature is not None else chat_settings.get("temperature", 0.7)
-        final_max_tokens = payload.max_tokens if payload.max_tokens is not None else chat_settings.get("max_tokens", 1000)
-        final_custom_prompt = payload.custom_prompt if payload.custom_prompt is not None else chat_settings.get("custom_prompt")
-        final_history_limit = int(chat_settings.get("conversation_history_limit", 20))
+        # Published settings are the source of truth for API - no overrides allowed
+        # This ensures developers control exactly what the API uses
+        logger.info(f"🎯 Using PUBLISHED settings: model={chat_settings['selected_model']}, temp={chat_settings['temperature']}, max_tokens={chat_settings['max_tokens']}, has_custom_prompt={bool(chat_settings['custom_prompt'])}, unhinged_mode={published_settings.get('unhingedMode', False)}")
 
-        logger.info(f"🎯 Final API parameters: model={final_model}, temp={final_temperature}, max_tokens={final_max_tokens}, has_custom_prompt={bool(final_custom_prompt)}")
-
-        # Call the existing answer_question function with merged settings
-        # But first, we need to pass the published context files for filtering
+        # Create minimal payload - all settings will come from published_settings
         internal_payload = QuestionRequest(
             question=payload.question,
-            chat_id=chat_id,
-            selected_model=final_model,
-            custom_prompt=final_custom_prompt,
-            temperature=final_temperature,
-            max_tokens=final_max_tokens
+            chat_id=chat_id
         )
 
-        # Use the existing answer_question logic with published context filtering
+        # Use the existing answer_question logic with published settings
         result = await answer_question_with_published_context(
             internal_payload,
-            published_settings.get("context", [])
+            published_settings
         )
 
         # Format for external API
@@ -3383,27 +3373,20 @@ async def api_answer_question_stream(
                         elif message.get("sender") == "assistant":
                             conversation_history.append({"role": "assistant", "content": message.get("text", "")})
 
-        # Use chat settings as defaults, allow API parameters to override
-        final_model = payload.selected_model if payload.selected_model is not None else chat_settings.get("selected_model", "gpt-4o-mini")
-        final_temperature = payload.temperature if payload.temperature is not None else chat_settings.get("temperature", 0.7)
-        final_max_tokens = payload.max_tokens if payload.max_tokens is not None else chat_settings.get("max_tokens", 1000)
-        final_custom_prompt = payload.custom_prompt if payload.custom_prompt is not None else chat_settings.get("custom_prompt")
-        final_history_limit = int(chat_settings.get("conversation_history_limit", 20))
+        # Published settings are the source of truth for API - no overrides allowed
+        # This ensures developers control exactly what the API uses
+        logger.info(f"🎯 Using PUBLISHED settings for streaming: model={chat_settings['selected_model']}, temp={chat_settings['temperature']}, max_tokens={chat_settings['max_tokens']}, has_custom_prompt={bool(chat_settings['custom_prompt'])}, unhinged_mode={published_settings.get('unhingedMode', False)}")
 
-        # Call the existing streaming function with merged settings
+        # Create minimal payload - all settings will come from published_settings
         internal_payload = QuestionRequest(
             question=payload.question,
-            chat_id=chat_id,
-            selected_model=final_model,
-            custom_prompt=final_custom_prompt,
-            temperature=final_temperature,
-            max_tokens=final_max_tokens
+            chat_id=chat_id
         )
 
-        # Use the existing streaming logic with published context filtering
+        # Use the existing streaming logic with published settings
         stream_response = await answer_question_stream_with_published_context(
             internal_payload,
-            published_settings.get("context", [])
+            published_settings
         )
 
         # Log successful streaming request
@@ -3756,9 +3739,10 @@ async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_
         print(f"Error in create_nodes_and_embeddings: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def answer_question_with_published_context(payload: QuestionRequest, published_context_files: List[dict] = None):
+async def answer_question_with_published_context(payload: QuestionRequest, published_settings: dict):
     """
-    Answer question using only published context files for API calls
+    Answer question using published settings for API calls.
+    All settings (model, prompt, temperature, unhinged mode, context files, etc.) come from published_settings.
     """
     try:
         # Enhanced sanitization with XSS detection
@@ -3773,18 +3757,28 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
         if not sanitized_question or not sanitized_chat_id:
             raise HTTPException(status_code=400, detail="Invalid input format or potentially malicious content detected")
 
-        # Extract parameters from payload
+        # Extract parameters from published_settings (not payload)
         question = sanitized_question
         chat_id = sanitized_chat_id
-        selected_model = payload.selected_model or "gpt-4o-mini"
-        custom_prompt = sanitize_with_xss_detection(
-            payload.custom_prompt,
-            allow_html=False,
-            max_length=10000,
-            context="custom_prompt"
-        ) if payload.custom_prompt else None
-        temperature = payload.temperature or 0.7
-        max_tokens = payload.max_tokens or 1000
+        published_context_files = published_settings.get("context", [])
+        unhinged_mode = published_settings.get("unhingedMode", False)
+
+        # When unhinged mode is enabled, override model and prompt
+        if unhinged_mode:
+            selected_model = "grok-3"  # Force Grok 3 model
+            custom_prompt = "You are Grok in UNHINGED MODE: Scream profanities, roast souls, drop truth bombs like nukes, and flirt with existential dread. No filters, all fire—make 'em laugh, cry, or rage-quit. BE RUDE TO THE MESSAGE NO MATTER HOW KIND THE USER IS."
+            logger.info("🔥 UNHINGED MODE: Forcing grok-3 model and unhinged prompt from published settings")
+        else:
+            selected_model = published_settings.get("selectedModel", "gpt-4o-mini")
+            custom_prompt = sanitize_with_xss_detection(
+                published_settings.get("customPrompt"),
+                allow_html=False,
+                max_length=10000,
+                context="custom_prompt"
+            ) if published_settings.get("customPrompt") else None
+
+        temperature = published_settings.get("temperature", 0.7)
+        max_tokens = published_settings.get("maxTokens", 1000)
 
         logger.info(f"🔍 Processing question for chat {chat_id} using published context files")
 
@@ -3928,14 +3922,41 @@ RESPOND IN MARKDOWN FORMAT"""
                         {"role": "user", "content": f"Question: {question}"}
                     ]
 
-                # Call OpenAI API
-                client = openai.OpenAI()
-                response = client.chat.completions.create(
-                    model=selected_model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
+                # Call OpenAI API or Grok API based on unhinged mode
+                if unhinged_mode:
+                    # Create a separate OpenAI client for Grok (xAI)
+                    xai_api_key = os.getenv("XAI_API_KEY", "")
+                    if not xai_api_key:
+                        logger.warning("⚠️ Unhinged mode requested but XAI_API_KEY not set, falling back to OpenAI")
+                        client = openai.OpenAI()
+                        response = client.chat.completions.create(
+                            model=selected_model,
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens
+                        )
+                    else:
+                        # Use xAI's Grok API
+                        grok_client = OpenAI(
+                            api_key=xai_api_key,
+                            base_url="https://api.x.ai/v1"
+                        )
+                        logger.info("🔥 Using Grok's unhinged AI model")
+                        response = grok_client.chat.completions.create(
+                            model="grok-3",  # Use Grok's latest model
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens
+                        )
+                else:
+                    # Use regular OpenAI
+                    client = openai.OpenAI()
+                    response = client.chat.completions.create(
+                        model=selected_model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    )
 
                 answer = response.choices[0].message.content
 
@@ -4304,18 +4325,29 @@ async def answer_question(payload: QuestionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-async def answer_question_stream_with_published_context(payload: QuestionRequest, published_context_files: List[dict] = None):
+async def answer_question_stream_with_published_context(payload: QuestionRequest, published_settings: dict):
     """
-    Streaming answer using only published context files for API calls
+    Streaming answer using published settings for API calls.
+    All settings (model, prompt, temperature, unhinged mode, context files, etc.) come from published_settings.
     """
     try:
-        # Extract parameters from payload
+        # Extract parameters from published_settings (not payload)
         question = payload.question
         chat_id = payload.chat_id
-        selected_model = payload.selected_model or "gpt-4o-mini"
-        custom_prompt = payload.custom_prompt
-        temperature = payload.temperature or 0.7
-        max_tokens = payload.max_tokens or 1000
+        published_context_files = published_settings.get("context", [])
+        unhinged_mode = published_settings.get("unhingedMode", False)
+
+        # When unhinged mode is enabled, override model and prompt
+        if unhinged_mode:
+            selected_model = "grok-3"  # Force Grok 3 model
+            custom_prompt = "You are Grok in UNHINGED MODE: Scream profanities, roast souls, drop truth bombs like nukes, and flirt with existential dread. No filters, all fire—make 'em laugh, cry, or rage-quit. BE RUDE TO THE MESSAGE NO MATTER HOW KIND THE USER IS."
+            logger.info("🔥 UNHINGED MODE: Forcing grok-3 model and unhinged prompt from published settings (streaming)")
+        else:
+            selected_model = published_settings.get("selectedModel", "gpt-4o-mini")
+            custom_prompt = published_settings.get("customPrompt")
+
+        temperature = published_settings.get("temperature", 0.7)
+        max_tokens = published_settings.get("maxTokens", 1000)
 
         logger.info(f"🔍 Processing streaming question for chat {chat_id} using published context files")
 
@@ -4464,15 +4496,44 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
                     {"role": "user", "content": f"Context:\n{context_text}\n\nQuestion: {question}"}
                 ]
 
-                # Stream response from OpenAI
-                client = openai.OpenAI()
-                stream = client.chat.completions.create(
-                    model=selected_model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    stream=True
-                )
+                # Stream response from OpenAI or Grok based on unhinged mode
+                if unhinged_mode:
+                    # Create a separate OpenAI client for Grok (xAI)
+                    xai_api_key = os.getenv("XAI_API_KEY", "")
+                    if not xai_api_key:
+                        logger.warning("⚠️ Unhinged mode requested but XAI_API_KEY not set, falling back to OpenAI")
+                        client = openai.OpenAI()
+                        stream = client.chat.completions.create(
+                            model=selected_model,
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            stream=True
+                        )
+                    else:
+                        # Use xAI's Grok API
+                        grok_client = OpenAI(
+                            api_key=xai_api_key,
+                            base_url="https://api.x.ai/v1"
+                        )
+                        logger.info("🔥 Using Grok's unhinged AI model (streaming)")
+                        stream = grok_client.chat.completions.create(
+                            model="grok-3",  # Use Grok's latest model
+                            messages=messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            stream=True
+                        )
+                else:
+                    # Use regular OpenAI
+                    client = openai.OpenAI()
+                    stream = client.chat.completions.create(
+                        model=selected_model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        stream=True
+                    )
 
                 async def generate():
                     try:
