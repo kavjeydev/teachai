@@ -1043,7 +1043,7 @@ export default function ChatManagementPage() {
                 </div>
               </div>
 
-              {/* Stats Footer */}
+              {/* Stats Footer
               <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="text-center p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700">
                   <div className="text-2xl font-bold text-amber-400 mb-2">
@@ -1081,7 +1081,7 @@ export default function ChatManagementPage() {
                     Knowledge Built
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Move to Folder Modal */}
