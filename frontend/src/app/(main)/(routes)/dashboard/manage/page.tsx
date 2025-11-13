@@ -382,8 +382,9 @@ export default function ChatManagementPage() {
       console.error("Failed to restore chat:", error);
 
       // Show specific error message with upgrade option if it's a limit error
-      if (error.message && error.message.includes("reached your limit")) {
-        toast.error(error.message, {
+      if (error.message && error.message.includes("Chat limit reached")) {
+        toast.error("Chat limit reached", {
+          description: "Archive chats or upgrade to restore.",
           duration: 8000,
           action: {
             label: "View Plans",
@@ -391,7 +392,7 @@ export default function ChatManagementPage() {
           },
         });
       } else {
-        toast.error(error.message || "Failed to restore chat");
+        toast.error("Failed to restore chat");
       }
     }
   };

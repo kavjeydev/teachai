@@ -592,26 +592,30 @@ export const restoreFromArchive = mutation({
       .filter((q) => q.eq(q.field("isArchived"), false))
       .collect();
 
-    // Determine chat limit based on subscription tier
+    // Determine chat limit based on subscription tier (matching createChat logic)
     let chatLimit = 1; // Default free tier limit
-    let tierName = "free";
 
     if (subscription && subscription.status === "active") {
-      const priceId = subscription.stripePriceId;
-
-      if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) {
-        chatLimit = 10;
-        tierName = "pro";
-      } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_SCALE_PRICE_ID) {
-        chatLimit = 25;
-        tierName = "scale";
-      } else {
-        chatLimit = -1; // Enterprise - unlimited
-        tierName = "enterprise";
+      switch (subscription.tier) {
+        case "pro":
+          chatLimit = 3;
+          break;
+        case "scale":
+          chatLimit = 25;
+          break;
+        case "enterprise":
+          chatLimit = -1; // Unlimited
+          break;
+        default:
+          chatLimit = 1; // Free tier
       }
     }
 
+    const tierName = subscription?.tier || "free";
+
     // Check if restoring this chat would exceed the limit
+    // We check if currentActiveChats.length >= chatLimit because restoring would add 1 more chat
+    // If we're already at or over the limit, we cannot restore
     if (chatLimit !== -1 && currentActiveChats.length >= chatLimit) {
       const nextTier =
         tierName === "free"
@@ -621,7 +625,7 @@ export const restoreFromArchive = mutation({
             : "Enterprise";
 
       throw new Error(
-        `Cannot restore chat. You've reached your limit of ${chatLimit} active chat${chatLimit > 1 ? "s" : ""} for the ${tierName} plan. Upgrade to ${nextTier} or archive existing chats first.`,
+        `Chat limit reached (${chatLimit} for ${tierName}). Archive chats or upgrade to ${nextTier} to restore.`,
       );
     }
 
