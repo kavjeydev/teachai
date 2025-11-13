@@ -109,7 +109,7 @@ export function AppSidebar({
       captureEvent("chat_created", {
         chatId: newChatId,
         tier: chatLimits?.tierName || "unknown",
-        totalChats: (chatLimits?.currentChats || 0) + 1,
+        totalChats: (chatLimits?.currentChatCount || 0) + 1,
         source: "sidebar",
       });
     } catch (error) {
@@ -155,7 +155,8 @@ export function AppSidebar({
 
   const finishEditing = (chatId: Id<"chats">) => {
     if (editingTitle.trim()) {
-      const oldTitle = chats?.find(c => c._id === chatId)?.title || "untitled";
+      const oldTitle =
+        chats?.find((c) => c._id === chatId)?.title || "untitled";
       renameChat({ id: chatId, title: editingTitle });
 
       // Track chat renaming in PostHog
