@@ -31,6 +31,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useNavigationLoading } from "@/hooks/useNavigationLoading";
+import MarqueeDemo from "./components/marquee-component";
+import { MockupCarousel } from "./components/mockup-carousel";
 
 // Lazy load heavy components for better performance
 const ParticlesBackground = dynamic(() => import("./components/particles"), {
@@ -108,7 +110,7 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section - Minimal Awwwards Style */}
-      <section className="relative pt-24 pb-20 overflow-hidden min-h-screen flex flex-col justify-center">
+      <section className="relative pt-56 pb-20 overflow-hidden min-h-screen flex flex-col justify-center">
         {/* Enhanced Background with subtle glow */}
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-100 via-white to-zinc-50 dark:from-black dark:via-zinc-950 dark:to-black"></div>
 
@@ -219,6 +221,10 @@ export default function Home() {
             <ChevronDown className="w-5 h-5 text-zinc-400 dark:text-white/30 animate-bounce" />
           </div>
         </div>
+        <div className="flex flex-col items-center justify-center mt-8">
+          <MarqueeDemo />
+          <MockupCarousel />
+        </div>
       </section>
 
       {/* Stats Section - Ultra Minimal */}
@@ -235,10 +241,10 @@ export default function Home() {
             </div>
             <div className="text-center group">
               <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
-                90%
+                Safe
               </div>
               <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
-                fewer hallucinations
+                APIs
               </div>
             </div>
             <div className="text-center group">
@@ -251,10 +257,10 @@ export default function Home() {
             </div>
             <div className="text-center group">
               <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
-                500+
+                ∞
               </div>
               <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
-                developers
+                USE CASES
               </div>
             </div>
           </div>
