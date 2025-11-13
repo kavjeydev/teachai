@@ -14,7 +14,10 @@ export const isPostHogEnabled = () => {
  * Identify a user in PostHog
  * Call this when a user signs in
  */
-export const identifyUser = (userId: string, properties?: Record<string, any>) => {
+export const identifyUser = (
+  userId: string,
+  properties?: Record<string, any>,
+) => {
   if (!isPostHogEnabled()) return;
 
   try {
@@ -32,7 +35,7 @@ export const identifyUser = (userId: string, properties?: Record<string, any>) =
  */
 export const captureEvent = (
   eventName: string,
-  properties?: Record<string, any>
+  properties?: Record<string, any>,
 ) => {
   if (!isPostHogEnabled()) return;
 
