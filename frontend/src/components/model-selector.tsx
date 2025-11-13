@@ -13,6 +13,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import { captureEvent } from "@/lib/posthog";
 
 // OpenAI models available as of 2024/2025
 const OPENAI_MODELS = [

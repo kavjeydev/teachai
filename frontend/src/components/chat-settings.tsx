@@ -24,6 +24,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import { captureEvent } from "@/lib/posthog";
 
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant with access to a knowledge graph built from the user's documents. You have the following context from their documents:
 
