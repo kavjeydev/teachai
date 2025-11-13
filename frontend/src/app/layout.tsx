@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AppLoadingProvider } from "@/components/app-loading-provider";
 import { AuthWrapper } from "@/components/auth-wrapper";
 import { ThemeTransitionHandler } from "@/components/theme-transition-handler";
+import { PostHogProvider } from "./components/providers/posthog-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,15 +34,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased dark:bg-lightmaincolor bg-white scrollbar-hide overscroll-none`}
       >
-        <Providers>
-          <AppLoadingProvider>
-            <ThemeTransitionHandler />
-            <main>
-              <Toaster />
-              {children}
-            </main>
-          </AppLoadingProvider>
-        </Providers>
+        <PostHogProvider>
+          <Providers>
+            <AppLoadingProvider>
+              <ThemeTransitionHandler />
+              <main>
+                <Toaster />
+                {children}
+              </main>
+            </AppLoadingProvider>
+          </Providers>
+        </PostHogProvider>
       </body>
     </html>
   );

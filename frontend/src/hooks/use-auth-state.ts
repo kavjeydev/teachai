@@ -2,6 +2,7 @@
 
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useState, useEffect } from "react";
+import { identifyUser, resetPostHog, setUserProperties } from "@/lib/posthog";
 
 export interface AuthState {
   isLoaded: boolean;
@@ -29,12 +30,34 @@ export function useAuthState(): AuthState {
             try {
               await getToken();
               setError(null);
+
+              // Identify user in PostHog when signed in
+              if (user) {
+                identifyUser(user.id, {
+                  email: user.primaryEmailAddress?.emailAddress,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  username: user.username,
+                  createdAt: user.createdAt,
+                });
+
+                // Set user properties
+                setUserProperties({
+                  email: user.primaryEmailAddress?.emailAddress,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  username: user.username,
+                });
+              }
             } catch (tokenError) {
               console.error("Token verification failed:", tokenError);
               setError(
                 "Authentication token invalid. Please refresh the page.",
               );
             }
+          } else {
+            // User signed out - reset PostHog
+            resetPostHog();
           }
 
           setIsLoading(false);
@@ -61,7 +84,7 @@ export function useAuthState(): AuthState {
         clearTimeout(timeoutId);
       }
     };
-  }, [authLoaded, userLoaded, isSignedIn, getToken]);
+  }, [authLoaded, userLoaded, isSignedIn, getToken, user]);
 
   return {
     isLoaded: authLoaded && userLoaded && !isLoading,

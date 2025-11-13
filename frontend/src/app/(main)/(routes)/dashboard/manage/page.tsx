@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Toaster } from "sonner";
 import { Id } from "../../../../../../convex/_generated/dataModel";
+import { captureEvent } from "@/lib/posthog";
 import { ResizableSidebar } from "../../../components/resizable-sidebar";
 import { ChatNavbar } from "../../../components/chat-navbar";
 import { useSidebarWidth } from "@/hooks/use-sidebar-width";
@@ -269,7 +270,20 @@ export default function ChatManagementPage() {
 
   const finishEditing = (chatId: Id<"chats">) => {
     if (editingTitle.trim()) {
+      const oldTitle =
+        (selectedFolder === "archived" ? archivedChats : chats)?.find(
+          (c) => c._id === chatId,
+        )?.title || "untitled";
       renameChat({ id: chatId, title: editingTitle });
+
+      // Track chat renaming in PostHog
+      captureEvent("chat_renamed", {
+        chatId: chatId,
+        oldTitle: oldTitle,
+        newTitle: editingTitle,
+        source: "manage_page",
+      });
+
       toast.success("Chat renamed!");
     }
     setEditingChatId(null);
@@ -279,6 +293,12 @@ export default function ChatManagementPage() {
     if (newFolderName.trim()) {
       try {
         await createFolder({ name: newFolderName.trim() });
+
+        // Track folder creation in PostHog
+        captureEvent("folder_created", {
+          folderName: newFolderName.trim(),
+        });
+
         toast.success("Folder created!");
         setNewFolderName("");
         setIsCreatingFolder(false);
@@ -309,6 +329,13 @@ export default function ChatManagementPage() {
   const handleToggleFavorite = async (chatId: Id<"chats">) => {
     try {
       const newStatus = await toggleFavorite({ chatId });
+
+      // Track favorite toggle in PostHog
+      captureEvent("chat_favorite_toggled", {
+        chatId: chatId,
+        isFavorited: newStatus,
+      });
+
       toast.success(newStatus ? "Chat favorited!" : "Chat unfavorited!");
     } catch (error: any) {
       toast.error(error.message || "Failed to update favorite status");
@@ -324,6 +351,14 @@ export default function ChatManagementPage() {
       const folderName = folderId
         ? userFolders?.find((f) => f._id === folderId)?.name || "Unknown Folder"
         : "Uncategorized";
+
+      // Track chat moved to folder in PostHog
+      captureEvent("chat_moved_to_folder", {
+        chatId: chatId,
+        folderId: folderId || "uncategorized",
+        folderName: folderName,
+      });
+
       toast.success(`Chat moved to ${folderName}!`);
       setShowMoveModal(false);
       setChatToMove(null);
@@ -341,6 +376,13 @@ export default function ChatManagementPage() {
         folderId: folderId as Id<"folders">,
         deleteChats,
       });
+      // Track folder deletion in PostHog
+      captureEvent("folder_deleted", {
+        folderId: folderId,
+        deleteChats: deleteChats,
+        chatsDeleted: result.deletedChats || 0,
+      });
+
       if (deleteChats) {
         toast.success(
           `Folder deleted along with ${result.deletedChats} chats!`,
@@ -377,6 +419,13 @@ export default function ChatManagementPage() {
   const handleRestoreChat = async (chat: any) => {
     try {
       await restoreChat({ id: chat._id });
+
+      // Track chat restoration in PostHog
+      captureEvent("chat_restored", {
+        chatId: chat._id,
+        chatTitle: chat.title,
+      });
+
       toast.success(`"${chat.title}" restored successfully!`);
     } catch (error: any) {
       console.error("Failed to restore chat:", error);
@@ -450,9 +499,24 @@ export default function ChatManagementPage() {
           // Don't fail the whole operation if Neo4j cleanup fails
         }
 
+        // Track permanent deletion in PostHog
+        captureEvent("chat_permanently_deleted", {
+          chatId: chatToDelete._id,
+          chatTitle: chatToDelete.title,
+          childChatsDeleted: result.childChatIds?.length || 0,
+        });
+
         toast.success(`"${chatToDelete.title}" permanently deleted.`);
       } else {
         await archiveChat({ id: chatToDelete._id });
+
+        // Track chat archiving in PostHog
+        captureEvent("chat_archived", {
+          chatId: chatToDelete._id,
+          chatTitle: chatToDelete.title,
+          source: "manage_page",
+        });
+
         toast.success(`"${chatToDelete.title}" archived successfully!`);
       }
       setDeleteDialogOpen(false);

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import { captureEvent } from "@/lib/posthog";
 
 // Generate unique ID
 const uid = (): string => {
@@ -484,8 +485,17 @@ export function useFileQueue({
 
         // Final check before marking as completed - don't call onFileProcessed if cancelled
         if (!cancelledFiles.has(fileKey)) {
-
           onFileProcessed?.(uniqueFileId, queuedFile.fileName);
+
+          // Track successful file processing in PostHog
+          captureEvent("file_processed", {
+            chatId: chatId,
+            queueId: queueId,
+            fileName: queuedFile.fileName,
+            fileSize: queuedFile.fileSize,
+            fileType: queuedFile.fileType,
+          });
+
           toast.success(`${queuedFile.fileName} processed successfully!`);
         }
       } catch (error) {
@@ -615,6 +625,17 @@ export function useFileQueue({
           name: queueName,
           totalFiles: fileArray.length,
           isFolder: isFolderBoolean,
+        });
+
+        // Track file upload started in PostHog
+        const totalSize = fileArray.reduce((sum, file) => sum + file.size, 0);
+        captureEvent("file_upload_started", {
+          chatId: chatId,
+          queueId: queueId,
+          fileCount: fileArray.length,
+          totalSize: totalSize,
+          isFolder: isFolderBoolean,
+          fileTypes: [...new Set(fileArray.map(f => f.type || "unknown"))],
         });
 
         // Prepare queued files

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { captureEvent } from "@/lib/posthog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -286,6 +287,13 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
     setIsGenerating(true);
     try {
       const result = await generateApiKey({ chatId });
+
+      // Track API key generation in PostHog
+      captureEvent("api_key_generated", {
+        chatId: chatId,
+        keyType: "simple_api_key",
+      });
+
       toast.success("API key generated successfully!");
       setShowApiKey(true);
     } catch (error) {
@@ -308,6 +316,13 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
     setIsGenerating(true);
     try {
       const result = await regenerateApiKey({ chatId });
+
+      // Track API key regeneration in PostHog
+      captureEvent("api_key_regenerated", {
+        chatId: chatId,
+        keyType: "simple_api_key",
+      });
+
       toast.success("API key regenerated successfully!");
       setShowApiKey(true);
     } catch (error) {
@@ -346,6 +361,14 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
         description: `Multi-user app based on ${chatTitle} with hybrid privacy`,
         parentChatId: chatId, // Link to source chat for settings inheritance
         websiteUrl: "http://localhost:3000",
+      });
+
+      // Track app creation in PostHog
+      captureEvent("app_created", {
+        chatId: chatId,
+        appId: result.appId,
+        appName: `${chatTitle} App`,
+        hasParentChat: true,
       });
 
       setCreatedAppSecret(result.appSecret);

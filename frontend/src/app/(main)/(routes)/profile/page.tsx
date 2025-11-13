@@ -50,6 +50,7 @@ import {
 } from "@/lib/stripe";
 import { toast } from "sonner";
 import { getStripe } from "@/lib/stripe";
+import { captureEvent } from "@/lib/posthog";
 
 export default function ProfilePage() {
   const { user } = useUser();
@@ -209,6 +210,13 @@ export default function ProfilePage() {
       }
 
       const { sessionId, url } = await response.json();
+
+      // Track upgrade initiated in PostHog
+      captureEvent("upgrade_initiated", {
+        tier: tierName,
+        priceId: priceId,
+        source: "profile_page",
+      });
 
       if (url) {
         window.location.href = url;

@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { useRouter } from "next/navigation";
+import { captureEvent } from "@/lib/posthog";
 
 import {
   Sidebar,
@@ -101,8 +102,16 @@ export function AppSidebar({
     }
 
     try {
-      await addChat({ title: "untitled" });
+      const newChatId = await addChat({ title: "untitled" });
       toast.success("Created new chat!");
+
+      // Track chat creation in PostHog
+      captureEvent("chat_created", {
+        chatId: newChatId,
+        tier: chatLimits?.tierName || "unknown",
+        totalChats: (chatLimits?.currentChats || 0) + 1,
+        source: "sidebar",
+      });
     } catch (error) {
       if (error instanceof Error) {
         // Show the exact error message from the backend with upgrade options
@@ -128,6 +137,13 @@ export function AppSidebar({
 
   const onDelete = (chatId: Id<"chats">) => {
     archiveChat({ id: chatId });
+
+    // Track chat archiving in PostHog
+    captureEvent("chat_archived", {
+      chatId: chatId,
+      source: "sidebar",
+    });
+
     toast.success("Chat deleted");
     router.push("/dashboard");
   };
@@ -139,7 +155,17 @@ export function AppSidebar({
 
   const finishEditing = (chatId: Id<"chats">) => {
     if (editingTitle.trim()) {
+      const oldTitle = chats?.find(c => c._id === chatId)?.title || "untitled";
       renameChat({ id: chatId, title: editingTitle });
+
+      // Track chat renaming in PostHog
+      captureEvent("chat_renamed", {
+        chatId: chatId,
+        oldTitle: oldTitle,
+        newTitle: editingTitle,
+        source: "sidebar",
+      });
+
       toast.success("Chat renamed!");
     }
     setEditingChatId(null);

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 
 interface ApiKeyManagerProps {
   chatId: Id<"chats">;
@@ -64,6 +65,15 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
         allowedOrigins: allowedOrigins.filter((origin) => origin.trim()),
         rateLimitRpm,
         description: description || "Generated from dashboard",
+      });
+
+      // Track API key creation in PostHog
+      captureEvent("api_key_created", {
+        chatId: chatId,
+        keyType: "integration_key",
+        capabilities: scopes,
+        rateLimitRpm: rateLimitRpm,
+        hasCustomOrigins: allowedOrigins.filter((origin) => origin.trim() && origin !== "*").length > 0,
       });
 
       toast.success("Integration key created successfully!");

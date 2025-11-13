@@ -106,22 +106,29 @@ export function ChatSettings({
   const handleSettingsSave = async () => {
     setIsUpdating(true);
     try {
+      const settingsChanged: string[] = [];
+
       // Only save prompt if not in unhinged mode (backend enforces this anyway)
       if (!unhingedMode) {
         const promptToSave = isUsingDefaultPrompt
           ? undefined
           : customPrompt.trim();
-        await updateChatPrompt({ chatId, customPrompt: promptToSave });
+        if (promptToSave !== currentPrompt) {
+          await updateChatPrompt({ chatId, customPrompt: promptToSave });
+          settingsChanged.push("customPrompt");
+        }
       }
 
       // Save temperature if it changed
       if (temperature !== currentTemperature) {
         await updateChatTemperature({ chatId, temperature: temperature });
+        settingsChanged.push("temperature");
       }
 
       // Save max tokens if it changed
       if (maxTokens !== currentMaxTokens) {
         await updateChatMaxTokens({ chatId, maxTokens: maxTokens });
+        settingsChanged.push("maxTokens");
       }
 
       // Save conversation history limit if it changed
@@ -129,6 +136,20 @@ export function ChatSettings({
         await updateChatConversationHistoryLimit({
           chatId,
           conversationHistoryLimit: conversationHistoryLimit,
+        });
+        settingsChanged.push("conversationHistoryLimit");
+      }
+
+      // Track settings changes in PostHog
+      if (settingsChanged.length > 0) {
+        captureEvent("chat_settings_changed", {
+          chatId: chatId,
+          settingsChanged: settingsChanged,
+          temperature: temperature,
+          maxTokens: maxTokens,
+          conversationHistoryLimit: conversationHistoryLimit,
+          hasCustomPrompt: !isUsingDefaultPrompt && !unhingedMode,
+          unhingedMode: unhingedMode,
         });
       }
 

@@ -7,6 +7,7 @@ import { Id } from "../../convex/_generated/dataModel";
 import { Switch } from "@/components/ui/switch";
 import { Flame } from "lucide-react";
 import { toast } from "sonner";
+import { captureEvent } from "@/lib/posthog";
 
 interface UnhingedModeToggleProps {
   chatId: Id<"chats"> | null;
@@ -27,9 +28,16 @@ export function UnhingedModeToggle({
 
     setIsUpdating(true);
     try {
+      const newMode = !currentUnhingedMode;
       await updateUnhingedMode({
         chatId,
-        unhingedMode: !currentUnhingedMode,
+        unhingedMode: newMode,
+      });
+
+      // Track unhinged mode toggle in PostHog
+      captureEvent("unhinged_mode_toggled", {
+        chatId: chatId,
+        enabled: newMode,
       });
 
       toast.success(

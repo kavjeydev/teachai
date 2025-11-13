@@ -22,6 +22,7 @@ import {
 import Navbar from "@/app/components/navbar";
 import { PRICING_TIERS, formatTokens } from "@/lib/stripe";
 import { getStripe } from "@/lib/stripe";
+import { captureEvent } from "@/lib/posthog";
 import { useAuthState } from "@/hooks/use-auth-state";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
@@ -152,6 +153,13 @@ export default function PricingPage() {
         }
         throw new Error(error);
       }
+
+      // Track upgrade initiated in PostHog
+      captureEvent("upgrade_initiated", {
+        tier: tierName,
+        priceId: priceId,
+        source: "pricing_page",
+      });
 
       if (url) {
         window.location.href = url;

@@ -41,6 +41,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useSidebarWidth } from "@/hooks/use-sidebar-width";
 import dynamic from "next/dynamic";
 import DashboardLoading from "./loading";
+import { captureEvent } from "@/lib/posthog";
 
 // CRITICAL: Aggressively lazy load ALL heavy components to reduce initial bundle
 const CitationMarkdown = dynamic(
@@ -997,6 +998,13 @@ function Dashboard({ params }: ChatIdPageProps) {
 
     // Navigate to graph page
     if (effectiveChatId) {
+      // Track graph view access in PostHog
+      captureEvent("graph_view_accessed", {
+        chatId: effectiveChatId,
+        source: "citation_inspector",
+        nodeId: nodeId,
+      });
+
       router.push(`/dashboard/${effectiveChatId}/graph`);
       toast.success("Opening graph view...");
     }
@@ -1226,6 +1234,15 @@ function Dashboard({ params }: ChatIdPageProps) {
     // Send user message to database (will be filtered out once persisted)
     onWrite("user", sanitizedMessage);
 
+    // Track message sent in PostHog
+    captureEvent("message_sent", {
+      chatId: chatId,
+      messageLength: sanitizedMessage.length,
+      model: displayChat?.selectedModel || "gpt-4o-mini",
+      hasCustomPrompt: !!displayChat?.customPrompt,
+      unhingedMode: displayChat?.unhingedMode || false,
+    });
+
     setIsStreaming(true);
     setStreamingContent("");
 
@@ -1250,6 +1267,16 @@ function Dashboard({ params }: ChatIdPageProps) {
         (fullAnswer: string) => {
           // Write the complete bot response FIRST
           onWrite("bot", fullAnswer, finalContext);
+
+          // Track message response received in PostHog
+          const responseTime = performance.now() - messageStart;
+          captureEvent("message_response_received", {
+            chatId: chatId,
+            responseLength: fullAnswer.length,
+            responseTime: Math.round(responseTime),
+            contextCount: finalContext?.length || 0,
+            model: displayChat?.selectedModel || "gpt-4o-mini",
+          });
 
           // Keep the streaming content until the real message appears
           // This prevents the visual gap that causes scroll jumping

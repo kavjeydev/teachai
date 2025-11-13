@@ -87,6 +87,15 @@ export function ModelSelector({
       setSelectedModel(modelId);
       await updateChatModel({ chatId, selectedModel: modelId });
       const modelInfo = OPENAI_MODELS.find((m) => m.id === modelId);
+
+      // Track model change in PostHog
+      captureEvent("chat_model_changed", {
+        chatId: chatId,
+        oldModel: currentModel,
+        newModel: modelId,
+        modelName: modelInfo?.name || modelId,
+      });
+
       toast.success(`Switched to ${modelInfo?.name || modelId}`);
       onModelChange?.();
     } catch (error) {

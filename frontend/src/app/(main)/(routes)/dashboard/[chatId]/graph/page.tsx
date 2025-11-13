@@ -10,6 +10,7 @@ import { Toaster } from "sonner";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Sparkles, Network, Eye } from "lucide-react";
+import { captureEvent } from "@/lib/posthog";
 
 const GraphVisualizationNVL = dynamic(
   () => import("@/components/GraphVisualizationNVL"),
@@ -45,6 +46,14 @@ export default function GraphPage({ params }: GraphPageProps) {
     const unwrapParams = async () => {
       const resolvedParams = await params;
       setChatId(resolvedParams.chatId);
+
+      // Track graph page view in PostHog
+      if (resolvedParams.chatId) {
+        captureEvent("graph_page_viewed", {
+          chatId: resolvedParams.chatId,
+          source: "direct_navigation",
+        });
+      }
     };
     unwrapParams();
   }, [params]);

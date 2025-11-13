@@ -15,6 +15,7 @@ import { useConvexAuth } from "@/hooks/use-auth-state";
 import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { useSearchParams, useRouter } from "next/navigation";
 import { usePendingUpgrade } from "@/hooks/use-pending-upgrade";
+import { captureEvent } from "@/lib/posthog";
 
 function NoChatContent() {
   const { user } = useUser();
@@ -101,6 +102,14 @@ function NoChatContent() {
         window.location.href = url;
       } else {
         const stripe = await getStripe();
+
+        // Track upgrade initiated in PostHog
+        captureEvent("upgrade_initiated", {
+          tier: tierName,
+          priceId: priceId,
+          source: "dashboard",
+        });
+
         await stripe?.redirectToCheckout({ sessionId });
       }
     } catch (error) {
@@ -150,6 +159,15 @@ function NoChatContent() {
     try {
       const newChatId = await addChat({ title: "untitled" });
       toast.success("Created chat!");
+
+      // Track chat creation in PostHog
+      const { captureEvent } = await import("@/lib/posthog");
+      captureEvent("chat_created", {
+        chatId: newChatId,
+        tier: chatLimits?.tierName || "unknown",
+        totalChats: (chatLimits?.currentChatCount || 0) + 1,
+      });
+
       // Navigate to the newly created chat with testing view
       router.push(`/dashboard/${newChatId}/testing`);
     } catch (error) {
