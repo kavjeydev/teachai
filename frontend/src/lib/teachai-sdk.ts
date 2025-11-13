@@ -159,10 +159,6 @@ export class TrainlyAIClient {
       this.accessToken = tokenData.access_token;
       this.tokenExpiry = Date.now() + tokenData.expires_in * 1000;
 
-      if (this.config.debug) {
-        console.log("TrainlyAI: Token refreshed successfully");
-      }
-
       return this.accessToken!;
     } catch (error) {
       if (error instanceof TrainlyAIError) throw error;
@@ -207,13 +203,6 @@ export class TrainlyAIClient {
    * Query the chat with a message
    */
   async query(request: QueryRequest): Promise<QueryResponse> {
-    if (this.config.debug) {
-      console.log("TrainlyAI: Sending query", {
-        messageCount: request.messages.length,
-        model: request.model,
-      });
-    }
-
     return this.request<QueryResponse>(
       `/v1/chats/${this.config.chatId}/query`,
       {
@@ -275,7 +264,7 @@ export class TrainlyAIClient {
               const data = JSON.parse(line.slice(6));
               onEvent(data);
             } catch (e) {
-              console.warn("Failed to parse SSE data:", line);
+              // Failed to parse SSE data
             }
           }
         }

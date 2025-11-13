@@ -454,9 +454,6 @@ export default function ChatManagementPage() {
       if (isPermanentDelete) {
         // First, delete from Convex database
         const result = await permanentlyDeleteChat({ id: chatToDelete._id });
-        console.log(
-          `🗑️ Convex deletion completed for chat: ${chatToDelete.title}`,
-        );
 
         // Then, cleanup Neo4j data from frontend
         try {
@@ -473,8 +470,6 @@ export default function ChatManagementPage() {
               : "";
           const cleanupUrl = `${baseUrl}/cleanup_chat_data/${result.chatId}?convex_id=${result.convexId}${childChatIdsParam}`;
 
-          console.log(`🗑️ Calling Neo4j cleanup from frontend: ${cleanupUrl}`);
-
           const neo4jResponse = await fetch(cleanupUrl, {
             method: "POST",
             headers: {
@@ -482,13 +477,7 @@ export default function ChatManagementPage() {
             },
           });
 
-          if (neo4jResponse.ok) {
-            const neo4jResult = await neo4jResponse.json();
-            console.log(`✅ Neo4j cleanup successful:`, neo4jResult);
-            console.log(
-              `✅ Nodes deleted: ${neo4jResult.nodes_deleted}, Relationships deleted: ${neo4jResult.relationships_deleted}`,
-            );
-          } else {
+          if (!neo4jResponse.ok) {
             console.error(`❌ Neo4j cleanup failed: ${neo4jResponse.status}`);
             const errorText = await neo4jResponse.text();
             console.error(`❌ Error response: ${errorText}`);

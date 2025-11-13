@@ -102,7 +102,7 @@ export function ContextList({
       // Triggering graph refresh after context deletion
       onContextDeleted();
     } else {
-      console.warn("⚠️ No onContextDeleted callback provided");
+      // No onContextDeleted callback provided
     }
   };
 

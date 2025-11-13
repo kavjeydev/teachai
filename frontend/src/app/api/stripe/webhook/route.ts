@@ -8,7 +8,6 @@ const CONVEX_SITE_URL = process.env.NEXT_PUBLIC_CONVEX_URL!;
 async function callConvexMutation(functionPath: string, args: any) {
   const url = `${CONVEX_SITE_URL}/api/run/${functionPath}`;
 
-  console.log(`🔄 Calling Convex mutation: ${functionPath}`, { args });
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -32,23 +31,11 @@ async function callConvexMutation(functionPath: string, args: any) {
   }
 
   const result = await response.json();
-  console.log(`✅ Convex mutation success: ${functionPath}`, { result });
   return result;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    // Debug logging for production
-    console.log("🎯 Webhook called - Environment check:", {
-      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-      stripeKeyType: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_")
-        ? "LIVE"
-        : "TEST",
-      hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
-      convexUrl: CONVEX_SITE_URL?.substring(0, 40) + "...",
-      timestamp: new Date().toISOString(),
-    });
-
     // Initialize Stripe with runtime check
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
@@ -76,7 +63,6 @@ export async function POST(req: NextRequest) {
         signature,
         process.env.STRIPE_WEBHOOK_SECRET!,
       );
-      console.log("✅ Webhook signature verified successfully");
     } catch (error) {
       console.error("❌ Webhook signature verification failed:", error);
       console.error(
@@ -88,71 +74,37 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      console.log(`🔔 Webhook received: ${event.type}`, {
-        eventId: event.id,
-        created: event.created,
-        livemode: event.livemode,
-      });
-
       switch (event.type) {
         case "customer.subscription.created":
         case "customer.subscription.updated": {
-          console.log(`📋 Processing subscription event: ${event.type}`);
           const subscription = event.data.object as Stripe.Subscription;
-          console.log("Subscription details:", {
-            id: subscription.id,
-            status: subscription.status,
-            priceId: subscription.items.data[0]?.price.id,
-            customerId: subscription.customer,
-          });
           await handleSubscriptionChange(subscription, stripe);
           break;
         }
 
         case "customer.subscription.deleted": {
-          console.log(`🗑️ Processing subscription deletion`);
           const subscription = event.data.object as Stripe.Subscription;
           await handleSubscriptionCancellation(subscription);
           break;
         }
 
         case "invoice.payment_succeeded": {
-          console.log(`💰 Processing invoice payment succeeded`);
           const invoice = event.data.object as Stripe.Invoice;
-          console.log("Invoice details:", {
-            id: invoice.id,
-            subscriptionId: (invoice as any).subscription,
-            customerId: invoice.customer,
-            total: invoice.total,
-            billing_reason: invoice.billing_reason,
-          });
           await handlePaymentSucceeded(invoice, stripe);
           break;
         }
 
         case "invoice.payment_failed": {
-          console.log(`❌ Processing invoice payment failed`);
           const invoice = event.data.object as Stripe.Invoice;
           await handlePaymentFailed(invoice);
           break;
         }
 
         case "checkout.session.completed": {
-          console.log(`✅ Processing checkout session completed`);
           const session = event.data.object as Stripe.Checkout.Session;
-          console.log("Session details:", {
-            id: session.id,
-            mode: session.mode,
-            payment_status: session.payment_status,
-            customerId: session.customer,
-            metadata: session.metadata,
-          });
           await handleCheckoutCompleted(session, stripe);
           break;
         }
-
-        default:
-          console.log(`❓ Unhandled event type: ${event.type}`);
       }
 
       // Log the event (optional - don't fail if this fails)
@@ -164,7 +116,7 @@ export async function POST(req: NextRequest) {
           data: event.data,
         });
       } catch (error) {
-        console.log("Failed to log billing event (non-critical):", error);
+        // Failed to log billing event (non-critical)
       }
 
       return NextResponse.json({ received: true });
@@ -217,46 +169,27 @@ async function handleSubscriptionChange(
     // Get customer to find user ID (you'll need to store this mapping)
     const customer = await stripe.customers.retrieve(customerId);
     if (!customer || customer.deleted) {
-      console.log("❌ Customer not found or deleted");
       return;
     }
 
     const userId = (customer as Stripe.Customer).metadata?.userId;
     if (!userId) {
-      console.log("❌ No userId in customer metadata");
       return;
     }
-
-    console.log(`👤 Found userId: ${userId}`);
 
     // Determine tier based on price ID
     const tier = getTierFromPriceId(priceId);
 
     // ⚠️ CRITICAL: Don't process if this is a credit pack price ID
     if (isCreditsPrice(priceId)) {
-      console.log(
-        "🚫 This is a credit pack price ID, not a subscription - skipping subscription logic",
-      );
       return;
     }
 
     const credits = getCreditsForTier(tier);
 
-    console.log(`🎯 Mapped to tier: ${tier}, credits: ${credits}`);
-
     // Validate and convert timestamps
     const currentPeriodStart = (subscription as any).current_period_start;
     const currentPeriodEnd = (subscription as any).current_period_end;
-    console.log("📅 Timestamp validation:", {
-      raw_current_period_start: currentPeriodStart,
-      raw_current_period_end: currentPeriodEnd,
-      converted_start: currentPeriodStart
-        ? currentPeriodStart * 1000
-        : Date.now(),
-      converted_end: currentPeriodEnd
-        ? currentPeriodEnd * 1000
-        : Date.now() + 30 * 24 * 60 * 60 * 1000,
-    });
 
     await callConvexMutation("subscriptions/updateSubscriptionForUser", {
       userId: userId,
@@ -279,7 +212,7 @@ async function handleSubscriptionChange(
         subscriptionId: subscription.id,
       });
     } catch (error) {
-      console.log("No pending plan changes to apply:", error);
+      // No pending plan changes to apply
     }
 
     // Reset credits to exact plan amount (fresh start with new plan)
@@ -301,8 +234,6 @@ async function handleSubscriptionChange(
 async function handleSubscriptionCancellation(
   subscription: Stripe.Subscription,
 ) {
-  console.log(`🗑️ Processing subscription cancellation`);
-
   const customerId = subscription.customer as string;
 
   // Get customer to find user ID
@@ -312,17 +243,13 @@ async function handleSubscriptionCancellation(
 
   const customer = await stripe.customers.retrieve(customerId);
   if (!customer || customer.deleted) {
-    console.log("❌ Customer not found or deleted");
     return;
   }
 
   const userId = (customer as Stripe.Customer).metadata?.userId;
   if (!userId) {
-    console.log("❌ No userId in customer metadata");
     return;
   }
-
-  console.log(`👤 Canceling subscription for userId: ${userId}`);
 
   // Update subscription status to canceled
   await callConvexMutation("subscriptions/cancelSubscription", {
@@ -338,26 +265,17 @@ async function handleSubscriptionCancellation(
     periodStart: Date.now(),
     periodEnd: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
   });
-
-  console.log(`✅ Subscription canceled and user downgraded to free tier`);
 }
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice, stripe: Stripe) {
-  console.log(
-    `💰 Processing invoice payment - billing_reason: ${invoice.billing_reason}`,
-  );
-
   // Only process subscription-related invoices, NOT one-time payments
   if (
     invoice.billing_reason === "subscription_cycle" ||
     invoice.billing_reason === "subscription_create"
   ) {
-    console.log("✅ This is a subscription invoice, processing renewal");
-
     // For subscription renewals, fetch the subscription and process it
     const subscriptionId = (invoice as any).subscription as string;
     if (!subscriptionId) {
-      console.log("❌ No subscription ID found in invoice");
       return;
     }
 
@@ -388,11 +306,8 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice, stripe: Stripe) {
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  console.log(`❌ Processing payment failure`);
-
   const customerId = invoice.customer as string;
   if (!customerId) {
-    console.log("❌ No customer ID in failed invoice");
     return;
   }
 
@@ -404,17 +319,13 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   try {
     const customer = await stripe.customers.retrieve(customerId);
     if (!customer || customer.deleted) {
-      console.log("❌ Customer not found or deleted");
       return;
     }
 
     const userId = (customer as Stripe.Customer).metadata?.userId;
     if (!userId) {
-      console.log("❌ No userId in customer metadata");
       return;
     }
-
-    console.log(`👤 Payment failed for userId: ${userId}`);
 
     // Log the failed payment event
     await callConvexMutation("subscriptions/logBillingEvent", {
@@ -436,8 +347,6 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
         stripeSubscriptionId: (invoice as any).subscription as string,
         status: "past_due",
       });
-
-      console.log(`⚠️ Subscription marked as past_due for userId: ${userId}`);
     }
   } catch (error) {
     console.error("Error processing payment failure:", error);
@@ -448,8 +357,6 @@ async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session,
   stripe: Stripe,
 ) {
-  console.log(`🛒 Processing checkout completed - mode: ${session.mode}`);
-
   const userId = session.metadata?.userId;
   if (!userId) {
     console.error("❌ No userId in checkout session metadata");
@@ -476,8 +383,6 @@ async function handleCheckoutCompleted(
 
   if (session.mode === "subscription" && session.payment_status === "paid") {
     // Handle subscription checkout
-    console.log("🔄 Processing subscription checkout");
-
     // Get the subscription ID from the session
     const subscriptionId = session.subscription as string;
     if (!subscriptionId) {
@@ -487,22 +392,14 @@ async function handleCheckoutCompleted(
 
     // Retrieve the subscription to get full details
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    console.log("📋 Retrieved subscription:", {
-      id: subscription.id,
-      status: subscription.status,
-      customerId: subscription.customer,
-    });
 
     // Process the subscription using the existing handler
     await handleSubscriptionChange(subscription, stripe);
   } else if (session.mode === "payment" && session.payment_status === "paid") {
     // Handle one-time credit purchases
-    console.log("💰 Processing one-time credit purchase");
-
     // Determine credits to add based on price ID
     const creditsToAdd = getCreditsForPriceId(priceId);
     if (creditsToAdd > 0) {
-      console.log(`Adding ${creditsToAdd} credits for user ${userId}`);
 
       // Add credits to user's balance (don't replace, add to existing)
       await callConvexMutation("subscriptions/addUserCredits", {

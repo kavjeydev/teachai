@@ -123,19 +123,13 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
         try {
           typesToMigrate = JSON.parse(userSpecificTypes);
         } catch (error) {
-          console.warn(
-            "Failed to parse user-specific custom relationship types:",
-            error,
-          );
+          // Failed to parse user-specific custom relationship types
         }
       } else if (globalTypes) {
         try {
           typesToMigrate = JSON.parse(globalTypes);
         } catch (error) {
-          console.warn(
-            "Failed to parse global custom relationship types:",
-            error,
-          );
+          // Failed to parse global custom relationship types
         }
       }
 
@@ -151,10 +145,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
             // localStorage.removeItem(`customRelationshipTypes_${user.id}`);
           })
           .catch((error) => {
-            console.warn(
-              "Failed to migrate custom relationship types to Convex:",
-              error,
-            );
+            // Failed to migrate custom relationship types to Convex
           });
       }
     }
@@ -626,7 +617,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
               nvlInstance.current.removeRelationshipsWithIds(relIds);
             }
           } catch (clearError) {
-            console.warn("⚠️ Error clearing existing graph data:", clearError);
+            // Error clearing existing graph data
           }
 
           setLoadingProgress(90);
@@ -846,7 +837,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           userId: user.id,
           relationshipType: relationshipType,
         }).catch((error) => {
-          console.warn("Failed to add custom relationship type:", error);
+          // Failed to add custom relationship type
         });
       } else if (
         !defaultTypes.includes(relationshipType) &&
@@ -858,7 +849,7 @@ const GraphVisualizationNVL: React.FC<GraphVisualizationProps> = ({
           userId: user.id,
           relationshipType: relationshipType,
         }).catch((error) => {
-          console.warn("Failed to update custom relationship usage:", error);
+          // Failed to update custom relationship usage
         });
       }
 

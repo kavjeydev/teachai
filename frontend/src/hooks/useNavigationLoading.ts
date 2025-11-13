@@ -21,7 +21,7 @@ export function useNavigationLoading(): UseNavigationLoadingReturn {
       router.prefetch(path);
       setPreloadedRoutes(prev => new Set([...prev, path]));
     } catch (error) {
-      console.warn(`Failed to preload route: ${path}`, error);
+      // Failed to preload route
     }
   }, [router, preloadedRoutes]);
 

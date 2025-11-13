@@ -1,9 +1,6 @@
 // Find which chat has this API key in production
 const apiKey = "tk_mhs74nmn_u66fbdutm1";
 
-console.log("Searching for chat with API key:", apiKey);
-console.log("Expected chat ID (from API key format):", apiKey.split("_")[1]);
-
 // We need to query Convex directly to find the chat
 // Since we don't have a direct query for this, let's check the expected chat ID
 const expectedChatId = apiKey.split("_")[1]; // "mhs74nmn"

@@ -654,9 +654,6 @@ function Dashboard({ params }: ChatIdPageProps) {
       : undefined,
     onFileProcessed: (fileId, fileName) => {
       // Add file to context when processed
-      console.log(
-        `📁 Dashboard onFileProcessed called for: ${fileName} with ID: ${fileId}`,
-      );
       if (effectiveChatId) {
         uploadContext({
           id: effectiveChatId,
@@ -916,22 +913,14 @@ function Dashboard({ params }: ChatIdPageProps) {
 
         if (messageText) {
           const citedIndices = extractCitationIndices(messageText);
-          console.log("📝 Found citations for indices:", citedIndices);
 
           // Only show chunks that are actually cited in the response
           relatedChunks = citedIndices
             .map((index) => messageReasoningContext[index])
             .filter((chunk) => chunk !== undefined);
 
-          console.log(
-            `🎯 Filtered from ${messageReasoningContext.length} to ${relatedChunks.length} chunks`,
-          );
-
           // If no citations found in text, fall back to showing all chunks
           if (relatedChunks.length === 0) {
-            console.log(
-              "⚠️ No valid citations found, falling back to all chunks",
-            );
             relatedChunks = messageReasoningContext;
           }
         }
@@ -1099,7 +1088,7 @@ function Dashboard({ params }: ChatIdPageProps) {
                 }
               }
             } catch (e) {
-              console.warn("Failed to parse streaming data:", line, e);
+              // Failed to parse streaming data
             }
           }
         }

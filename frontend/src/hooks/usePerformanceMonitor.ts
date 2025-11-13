@@ -71,7 +71,7 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
           firstContentfulPaint: fcpEntry ? fcpEntry.startTime : undefined,
         };
       } catch (error) {
-        console.warn("Performance monitoring error:", error);
+        // Performance monitoring error
       }
     };
 
@@ -91,10 +91,6 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
       metricsRef.current.pageLoadTime = loadTime;
     }
 
-    // Log to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.log(`📊 Page Load: ${pageName} - ${loadTime.toFixed(2)}ms`);
-    }
 
     // Send to analytics in production
     if (typeof window !== "undefined" && (window as any).gtag) {
@@ -108,12 +104,6 @@ export function usePerformanceMonitor(): UsePerformanceMonitorReturn {
   const logUserAction = useCallback((action: string, duration?: number) => {
     const timestamp = performance.now();
 
-    // Log to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        `🎯 User Action: ${action}${duration ? ` - ${duration.toFixed(2)}ms` : ""}`,
-      );
-    }
 
     // Send to analytics
     if (typeof window !== "undefined" && (window as any).gtag) {

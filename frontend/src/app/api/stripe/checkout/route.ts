@@ -40,8 +40,6 @@ export async function POST(req: NextRequest) {
         { userId },
       );
 
-      console.log("Checking existing subscription:", currentSubscription);
-
       // Prevent multiple subscriptions for paid tiers
       if (
         currentSubscription &&
@@ -50,10 +48,6 @@ export async function POST(req: NextRequest) {
         "status" in currentSubscription &&
         currentSubscription.status === "active"
       ) {
-        console.log(
-          "User already has active subscription:",
-          currentSubscription.tier,
-        );
         return NextResponse.json(
           {
             error: `You already have an active ${currentSubscription.tier} subscription. Please manage your plan through the billing portal.`,
@@ -64,23 +58,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Debug logging
-    console.log("Checkout Debug Info:", {
-      priceId,
-      mode,
-      stripeKeyType: secretKey.startsWith("sk_test_") ? "test" : "live",
-      userId,
-    });
-
     // Verify the price exists before creating session
     try {
-      const price = await stripe.prices.retrieve(priceId);
-      console.log("Price found:", {
-        id: price.id,
-        amount: price.unit_amount,
-        currency: price.currency,
-        active: price.active,
-      });
+      await stripe.prices.retrieve(priceId);
     } catch (priceError) {
       console.error("Price verification failed:", priceError);
       return NextResponse.json(
@@ -129,16 +109,9 @@ export async function POST(req: NextRequest) {
       customerId = customer.id;
     }
 
-    console.log("Customer prepared:", { customerId, userId });
-
     // Verify customer exists in Stripe
     try {
-      const customerCheck = await stripe.customers.retrieve(customerId);
-      console.log("Customer verified:", {
-        id: customerCheck.id,
-        email: (customerCheck as Stripe.Customer).email,
-        metadata: (customerCheck as Stripe.Customer).metadata,
-      });
+      await stripe.customers.retrieve(customerId);
     } catch (customerError) {
       console.error("Customer verification failed:", customerError);
       return NextResponse.json(
@@ -163,13 +136,6 @@ export async function POST(req: NextRequest) {
       metadata: {
         userId: userId,
       },
-    });
-
-    console.log("Checkout session created successfully:", {
-      sessionId: session.id,
-      url: session.url,
-      customer: session.customer,
-      mode: session.mode,
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });

@@ -407,13 +407,11 @@ export function sanitizeWithXSSDetection(
 
   // Detect XSS patterns first
   if (detectXSS(input)) {
-    console.warn("XSS patterns detected in input:", input.substring(0, 100));
     return "";
   }
 
   // Length check
   if (input.length > maxLength) {
-    console.warn("Input exceeds maximum length:", input.length);
     return "";
   }
 
@@ -447,33 +445,20 @@ export function sanitizeUserInput(
 
   // Length validation
   if (trimmed.length < minLength) {
-    console.warn(`Input too short in ${context}:`, trimmed.length);
     return "";
   }
 
   if (trimmed.length > maxLength) {
-    console.warn(`Input too long in ${context}:`, trimmed.length);
     return "";
   }
 
   // XSS detection
   if (detectXSS(trimmed)) {
-    console.warn(
-      `XSS attempt detected in ${context}:`,
-      trimmed.substring(0, 50),
-    );
     return "";
   }
 
   // Sanitize
   const sanitized = allowHTML ? sanitizeHTML(trimmed) : sanitizeText(trimmed);
-
-  // Log if significant sanitization occurred
-  if (sanitized.length < trimmed.length * 0.8) {
-    console.warn(
-      `Significant content removed during sanitization in ${context}`,
-    );
-  }
 
   return sanitized;
 }
