@@ -107,14 +107,6 @@ export default function Navbar() {
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-amber-400 to-amber-400 transition-all duration-300 group-hover:w-full rounded-full"></span>
                   <div className="absolute inset-0 bg-zinc-100 dark:bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 -z-10"></div>
                 </button>
-                <button
-                  className="relative text-zinc-700 dark:text-white/80 hover:text-zinc-900 dark:hover:text-white font-medium transition-all duration-300 group py-2"
-                  onClick={() => navigateTo("/community")}
-                >
-                  Community
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-amber-400 to-amber-400 transition-all duration-300 group-hover:w-full rounded-full"></span>
-                  <div className="absolute inset-0 bg-zinc-100 dark:bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 -z-10"></div>
-                </button>
               </div>
 
               {/* Right Side Actions */}
@@ -276,15 +268,6 @@ export default function Navbar() {
                   }}
                 >
                   Docs
-                </button>
-                <button
-                  className="text-zinc-700 dark:text-white/80 hover:text-zinc-900 dark:hover:text-white font-medium text-left py-3 px-4 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/5 transition-all duration-300"
-                  onClick={() => {
-                    navigateTo("/community");
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
-                  Community
                 </button>
 
                 {/* Theme Toggle in Mobile Menu */}
