@@ -45,8 +45,9 @@ export function InstantFeedbackButton({
           const result = onClick(e);
 
           // If onClick returns a promise, wait for it
-          if (result instanceof Promise) {
-            await result;
+          // Check if result is a Promise-like object (has a 'then' method)
+          if (result && typeof result === 'object' && 'then' in result && typeof (result as PromiseLike<void>).then === 'function') {
+            await (result as Promise<void>);
           }
 
           setState('success');
