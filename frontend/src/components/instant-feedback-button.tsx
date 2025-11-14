@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -30,35 +30,42 @@ export function InstantFeedbackButton({
   ...props
 }: InstantFeedbackButtonProps) {
   const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [isPending, startTransition] = useTransition();
 
-  const handleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!onClick || state === 'loading') return;
 
+    // Instant visual feedback - set loading state immediately (synchronously)
     setState('loading');
 
-    try {
-      const result = onClick(e);
+    // Wrap async work in startTransition to keep UI responsive
+    startTransition(() => {
+      (async () => {
+        try {
+          const result = onClick(e);
 
-      // If onClick returns a promise, wait for it
-      if (result instanceof Promise) {
-        await result;
-      }
+          // If onClick returns a promise, wait for it
+          if (result instanceof Promise) {
+            await result;
+          }
 
-      setState('success');
+          setState('success');
 
-      // Reset to idle after showing success
-      setTimeout(() => {
-        setState('idle');
-      }, showSuccessFor);
+          // Reset to idle after showing success
+          setTimeout(() => {
+            setState('idle');
+          }, showSuccessFor);
 
-    } catch (error) {
-      setState('error');
+        } catch (error) {
+          setState('error');
 
-      // Reset to idle after showing error
-      setTimeout(() => {
-        setState('idle');
-      }, 2000);
-    }
+          // Reset to idle after showing error
+          setTimeout(() => {
+            setState('idle');
+          }, 2000);
+        }
+      })();
+    });
   };
 
   const getButtonContent = () => {

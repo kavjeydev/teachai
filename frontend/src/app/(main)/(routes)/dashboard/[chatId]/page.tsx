@@ -26,7 +26,12 @@ import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { Id } from "../../../../../../convex/_generated/dataModel";
 import { api } from "../../../../../../convex/_generated/api";
-import { ResizableSidebar } from "@/app/(main)/components/resizable-sidebar";
+import React, { Suspense } from "react";
+import { useUser } from "@clerk/clerk-react";
+import { useSidebarWidth } from "@/hooks/use-sidebar-width";
+import dynamic from "next/dynamic";
+import DashboardLoading from "./loading";
+import { captureEvent } from "@/lib/posthog";
 import {
   Card,
   CardContent,
@@ -35,15 +40,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import React, { Suspense } from "react";
-import { useUser } from "@clerk/clerk-react";
-import { useSidebarWidth } from "@/hooks/use-sidebar-width";
-import dynamic from "next/dynamic";
-import DashboardLoading from "./loading";
-import { captureEvent } from "@/lib/posthog";
 
 // CRITICAL: Aggressively lazy load ALL heavy components to reduce initial bundle
+// Dynamic import heavy sidebar and navbar components
+const ResizableSidebar = dynamic(
+  () =>
+    import("@/app/(main)/components/resizable-sidebar").then((mod) => ({
+      default: mod.ResizableSidebar,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-72 bg-white dark:bg-zinc-900 animate-pulse" />
+    ),
+  },
+);
+
 const CitationMarkdown = dynamic(
   () =>
     import("@/components/citation-markdown").then((mod) => ({
@@ -185,24 +197,23 @@ const CreditWarning = dynamic(
   },
 );
 
+// Conditionally load TipTap editor - only when testing view is active
+// Using React.lazy for true conditional loading - won't load until component is rendered
+const ConditionalTipTapEditor = React.lazy(() =>
+  import("@/components/tiptap-editor-wrapper").then((mod) => ({
+    default: mod.TipTapEditorWrapper,
+  })),
+);
+
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import "../../../components/styles.scss";
-import Document from "@tiptap/extension-document";
-import Mention from "@tiptap/extension-mention";
-import Paragraph from "@tiptap/extension-paragraph";
-import Text from "@tiptap/extension-text";
-import HardBreak from "@tiptap/extension-hard-break";
-import { EditorContent, useEditor } from "@tiptap/react";
-import Placeholder from "@tiptap/extension-placeholder";
-import suggestion from "../../../components/suggestion";
 import {
   sanitizeHTML,
   sanitizeUserMessage,
   sanitizeText,
 } from "@/lib/sanitization";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChatNavbar } from "@/app/(main)/components/chat-navbar";
 import { flushSync } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { useCreditConsumption } from "@/hooks/use-credit-consumption";
@@ -291,22 +302,49 @@ function Dashboard({ params }: ChatIdPageProps) {
   const { sidebarWidth } = useSidebarWidth();
   const { canQuery, skipQuery } = useConvexAuth();
 
-  // Get chatId from params with caching
-  const [cachedChatId, setCachedChatId] = useState<Id<"chats"> | null>(null);
-  const unwrappedParams = React.use(params);
-  const chatId = unwrappedParams.chatId;
+  // Helper to check if a chatId is valid (not a known non-chat route)
+  const isValidChatId = (id: string | null | undefined): id is Id<"chats"> => {
+    if (!id) return false;
+    const knownNonChatRoutes = ["manage"];
+    return !knownNonChatRoutes.includes(id);
+  };
 
-  // Update cached chatId when it changes
+  // Get chatId from params with caching - resolve async to show skeleton immediately
+  const [cachedChatId, setCachedChatId] = useState<Id<"chats"> | null>(null);
+  const [chatId, setChatId] = useState<Id<"chats"> | null>(null);
+  const [isResolvingParams, setIsResolvingParams] = useState(true);
+
+  // Resolve params asynchronously - don't block render
   useEffect(() => {
-    if (chatId) {
-      setCachedChatId(chatId);
-      // Log page load performance
-      logPageLoad(`dashboard_${chatId}`);
-    }
-  }, [chatId, logPageLoad]);
+    const unwrapParams = async () => {
+      try {
+        const resolvedParams = await params;
+        const resolvedChatId = resolvedParams.chatId;
+        setChatId(resolvedChatId);
+        setIsResolvingParams(false);
+
+        // Update cache
+        if (resolvedChatId) {
+          setCachedChatId(resolvedChatId);
+          // Log page load performance
+          logPageLoad(`dashboard_${resolvedChatId}`);
+        }
+      } catch (error) {
+        setIsResolvingParams(false);
+      }
+    };
+    unwrapParams();
+  }, [params, logPageLoad]);
 
   // Use cached chatId if current one is undefined (during navigation)
-  const effectiveChatId = chatId || cachedChatId;
+  // Only use it if it's a valid chatId (not "manage" or other non-chat routes)
+  // Also check pathname to ensure we're not on a non-chat route
+  const isOnManageRoute = pathname.includes("/dashboard/manage");
+  const rawEffectiveChatId = chatId || cachedChatId;
+  const effectiveChatId =
+    !isOnManageRoute && isValidChatId(rawEffectiveChatId)
+      ? rawEffectiveChatId
+      : null;
 
   const [input, setInput] = useState("");
   const [progress, setProgress] = useState(0);
@@ -316,6 +354,8 @@ function Dashboard({ params }: ChatIdPageProps) {
   const [fileKey, setFileKey] = useState<Date>(new Date());
   const [isFileQueueSlideoutOpen, setIsFileQueueSlideoutOpen] = useState(false);
   const [sidebarActiveView, setSidebarActiveView] = useState<string>("testing");
+  const [isViewChanging, setIsViewChanging] = useState(false);
+  const previousViewRef = useRef<string>("testing");
 
   // Optimistic updates for instant message display
   const [optimisticMessages, setOptimisticMessages] = useState<any[]>([]);
@@ -327,15 +367,21 @@ function Dashboard({ params }: ChatIdPageProps) {
 
   const currentChat = useQuery(
     api.chats.getChatById,
-    !canQuery || !effectiveChatId ? "skip" : { id: effectiveChatId },
+    !canQuery || !effectiveChatId || !isValidChatId(effectiveChatId)
+      ? "skip"
+      : { id: effectiveChatId },
   );
   const chatContent = useQuery(
     api.chats.getChatContent,
-    !canQuery || !effectiveChatId ? "skip" : { id: effectiveChatId },
+    !canQuery || !effectiveChatId || !isValidChatId(effectiveChatId)
+      ? "skip"
+      : { id: effectiveChatId },
   );
   const showContextData = useQuery(
     api.chats.getContext,
-    !canQuery || !effectiveChatId ? "skip" : { id: effectiveChatId },
+    !canQuery || !effectiveChatId || !isValidChatId(effectiveChatId)
+      ? "skip"
+      : { id: effectiveChatId },
   );
 
   // For sidebar views
@@ -343,7 +389,9 @@ function Dashboard({ params }: ChatIdPageProps) {
   const credits = useQuery(api.subscriptions.getUserCredits);
   const chatAnalytics = useQuery(
     api.chat_analytics.getChatAnalytics,
-    effectiveChatId ? { chatId: effectiveChatId } : "skip",
+    effectiveChatId && isValidChatId(effectiveChatId)
+      ? { chatId: effectiveChatId }
+      : "skip",
   );
 
   // Global cache that persists across navigation (stored in window object)
@@ -443,25 +491,40 @@ function Dashboard({ params }: ChatIdPageProps) {
     // Content updated
   }, [baseContent, optimisticMessages, displayContent]);
 
-  // Detect view from URL pathname
+  // Detect view from URL pathname and show skeleton immediately on change
   React.useEffect(() => {
+    let newView = "testing";
     if (pathname.includes("/dashboard/manage")) {
-      setSidebarActiveView("manage");
+      newView = "manage";
     } else if (pathname.includes("/graph")) {
-      setSidebarActiveView("graph");
+      newView = "graph";
     } else if (pathname.includes("/testing")) {
-      setSidebarActiveView("testing");
+      newView = "testing";
     } else if (pathname.includes("/api-keys")) {
-      setSidebarActiveView("api-keys");
+      newView = "api-keys";
     } else if (pathname.includes("/custom-settings")) {
-      setSidebarActiveView("custom-settings");
+      newView = "custom-settings";
     } else if (pathname.includes("/usage")) {
-      setSidebarActiveView("usage");
+      newView = "usage";
     } else if (pathname === "/dashboard") {
-      setSidebarActiveView("manage");
+      newView = "manage";
     } else if (pathname.includes("/dashboard/")) {
       // Default to testing for regular dashboard pages
-      setSidebarActiveView("testing");
+      newView = "testing";
+    }
+
+    // Show skeleton immediately when view changes
+    if (newView !== previousViewRef.current) {
+      setIsViewChanging(true);
+      previousViewRef.current = newView;
+      setSidebarActiveView(newView);
+      // Clear view changing flag immediately - content will handle its own loading states
+      // Use requestAnimationFrame to ensure state update happens after render
+      requestAnimationFrame(() => {
+        setIsViewChanging(false);
+      });
+    } else {
+      setSidebarActiveView(newView);
     }
   }, [pathname]);
 
@@ -496,54 +559,16 @@ function Dashboard({ params }: ChatIdPageProps) {
     }
   };
 
-  const editor = useEditor(
-    {
-      extensions: [
-        Document,
-        Paragraph,
-        Text,
-        HardBreak.configure({
-          keepMarks: false,
-        }),
-        Mention.configure({
-          HTMLAttributes: {
-            class: "mention",
-          },
-          suggestion,
-        }),
-        Placeholder.configure({
-          placeholder: "Type your message here...",
-        }),
-      ],
-      onUpdate: ({ editor }) => {
-        setInput(editor.getHTML());
-      },
-      editorProps: {
-        handleKeyDown: (view, event) => {
-          if (event.key === "Enter") {
-            if (event.shiftKey) {
-              // Force hard break for Shift+Enter
-              view.dispatch(
-                view.state.tr
-                  .replaceSelectionWith(
-                    view.state.schema.nodes.hardBreak.create(),
-                  )
-                  .scrollIntoView(),
-              );
-              return true;
-            } else {
-              // Regular Enter sends the message
-              event.preventDefault();
-              handleSendMessage();
-              return true;
-            }
-          }
-          return false;
-        },
-      },
-    },
-    [],
-  );
+  const handleSendMessageRef = React.useRef<(() => void) | null>(null);
+
+  // Ref for TipTap editor wrapper
+  const editorRef = React.useRef<{
+    editor: any;
+    getHTML: () => string;
+    getText: () => string;
+    focus: () => void;
+    isEmpty: () => boolean;
+  } | null>(null);
 
   const onWrite = (sender: string, text: string, reasoningContext?: any[]) => {
     if (!effectiveChatId) {
@@ -646,9 +671,11 @@ function Dashboard({ params }: ChatIdPageProps) {
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isProcessingMessage, setIsProcessingMessage] = useState(false);
 
-  // File queue system
+  // File queue system - only initialize if we have a valid chatId
   const fileQueue = useFileQueue({
-    chatId: effectiveChatId!,
+    chatId: (effectiveChatId && isValidChatId(effectiveChatId)
+      ? effectiveChatId
+      : null) as Id<"chats"> | null,
     chatInfo: displayChat
       ? { chatType: displayChat.chatType, chatId: displayChat.chatId }
       : undefined,
@@ -1182,7 +1209,7 @@ function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
-    const editorContent = editor?.getHTML() || "";
+    const editorContent = editorRef.current?.getHTML() || "";
     if (!editorContent.trim() || editorContent === "<p></p>") {
       toast.error("Message cannot be empty.");
       return;
@@ -1193,7 +1220,7 @@ function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
-    const userMessage = editor?.getText() || "";
+    const userMessage = editorRef.current?.getText() || "";
 
     // Sanitize the user message before processing
     const sanitizedMessage = sanitizeUserMessage(userMessage);
@@ -1203,8 +1230,8 @@ function Dashboard({ params }: ChatIdPageProps) {
       return;
     }
 
-    if (editor) {
-      editor.commands.setContent("");
+    if (editorRef.current?.editor) {
+      editorRef.current.editor.commands.setContent("");
     }
 
     setIsProcessingMessage(true);
@@ -1300,6 +1327,11 @@ function Dashboard({ params }: ChatIdPageProps) {
     }
   };
 
+  // Update ref whenever handleSendMessage changes (after it's defined)
+  React.useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  }, [handleSendMessage]);
+
   // Scroll to bottom when content changes (only when not streaming)
   useEffect(() => {
     if (!isStreaming && displayContent && displayContent.length > 0) {
@@ -1331,522 +1363,605 @@ function Dashboard({ params }: ChatIdPageProps) {
   }, [displayContent, isStreaming, scrollToBottomSafe]);
 
   const isUserLoading = user === undefined;
-  const isEffectiveChatLoading = !effectiveChatId;
-
-  // Show loading indicator in navbar instead of full screen for better UX
+  // Only show loading if we're actually on a chat route (not manage) and don't have a chatId yet
+  const isOnChatRoute =
+    pathname.includes("/dashboard/") && !pathname.includes("/dashboard/manage");
+  const isEffectiveChatLoading =
+    isOnChatRoute && !effectiveChatId && !isResolvingParams;
   const isLoadingFreshData = !displayContent && chatContent === undefined;
 
+  // Render skeleton immediately when view is changing OR when we're still resolving params
+  // But allow content to render once we have the basic data (chatId and user)
+  // Only show skeleton briefly when switching views, or when we truly don't have data yet
+  const showSkeleton =
+    isOnChatRoute &&
+    (isViewChanging ||
+      (isResolvingParams && !cachedChatId && !chatId) ||
+      (isUserLoading && !user) ||
+      (isEffectiveChatLoading && !cachedChatId && !chatId));
+
   return (
-    <div className="rounded-3xl overflow-hidden">
-      <div className="h-full w-screen bg-gradient-to-br overflow-hidden rounded-3xl dark:bg-[#090909] bg-white px-4 pb-4">
-        <Toaster position="top-center" richColors />
-
-        {/* Resizable Sidebar */}
-        <ResizableSidebar chatId={effectiveChatId} />
-
-        {/* Main Content Area - Responsive to sidebar width */}
-        <div
-          className="h-[98vh] flex flex-col relative bg-gradient-to-b from-white via-white to-white
-           dark:from-[#090909] dark:via-[#090909] dark:to-[#090909] rounded-3xl"
-          style={{
-            marginLeft: `${sidebarWidth}px`,
-            transition: "margin-left 300ms ease-out",
-          }}
-        >
-          <ChatNavbar chatId={effectiveChatId} />
-          <div className="flex-1 overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-4 h-fit">
-            {/* Show loading skeleton if user or chat is loading */}
-            {isUserLoading || isEffectiveChatLoading ? (
-              <div className="flex-1 overflow-y-auto relative p-12">
-                <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto">
-                  <div className="flex items-center justify-center h-[60vh]">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-                        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      </div>
-                      <p className="text-zinc-600 dark:text-zinc-400 animate-pulse">
-                        {isUserLoading
-                          ? "Loading your dashboard..."
-                          : "Loading chat..."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+    <>
+      <div className="flex-1 overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-4 h-fit">
+        {/* Conditional Content Based on Sidebar View */}
+        {sidebarActiveView === "api-keys" ? (
+          /* API Keys View */
+          <div className="flex-1 overflow-y-auto relative p-12">
+            <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto space-y-6">
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2">
+                  API Keys
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Manage API access for your chat
+                </p>
               </div>
-            ) : (
-              <>
-                {/* Conditional Content Based on Sidebar View */}
-                {sidebarActiveView === "api-keys" ? (
-                  /* API Keys View */
-                  <div className="flex-1 overflow-y-auto relative p-12">
-                    <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto space-y-6">
-                      <div className="mb-8">
-                        <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2">
-                          API Keys
-                        </h2>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                          Manage API access for your chat
-                        </p>
+
+              {showSkeleton && isOnChatRoute ? (
+                <div className="space-y-4">
+                  <div className="h-64 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                  <div className="h-32 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                </div>
+              ) : effectiveChatId && isValidChatId(effectiveChatId) ? (
+                <React.Suspense
+                  fallback={
+                    <div className="animate-pulse h-64 bg-zinc-100 dark:bg-zinc-800 rounded-lg" />
+                  }
+                >
+                  <SimpleApiManager
+                    chatId={effectiveChatId}
+                    chatTitle={currentChat?.title || "Untitled Chat"}
+                  />
+                </React.Suspense>
+              ) : (
+                <div className="space-y-4">
+                  <div className="h-64 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                  <div className="h-32 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                </div>
+              )}
+            </div>
+          </div>
+        ) : sidebarActiveView === "custom-settings" ? (
+          /* Custom Settings (Scopes) View */
+          <div className="flex-1 overflow-y-auto relative p-12">
+            <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto space-y-6">
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2">
+                  Custom Scopes
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Use scopes to filter and organize your knowledge base
+                </p>
+              </div>
+
+              {showSkeleton && isOnChatRoute ? (
+                <div className="space-y-4">
+                  <div className="h-48 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                  <div className="h-32 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                </div>
+              ) : (
+                <Card className="border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-3 text-lg font-semibold text-blue-900 dark:text-blue-100">
+                      <div className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <Sparkles className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                       </div>
+                      Custom Scopes (Optional)
+                    </CardTitle>
+                    <CardDescription className="text-blue-700 dark:text-blue-300">
+                      Use scopes to filter and organize your knowledge base
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="rounded-lg bg-white dark:bg-zinc-900 border border-blue-200 dark:border-blue-800 p-4">
+                      <p className="text-sm text-zinc-700 dark:text-zinc-300 mb-3">
+                        You can pass custom scope values when uploading files to
+                        organize and filter your knowledge. No pre-configuration
+                        needed!
+                      </p>
 
-                      {effectiveChatId && currentChat && (
-                        <SimpleApiManager
-                          chatId={effectiveChatId}
-                          chatTitle={currentChat.title || "Untitled Chat"}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ) : sidebarActiveView === "custom-settings" ? (
-                  /* Custom Settings (Scopes) View */
-                  <div className="flex-1 overflow-y-auto relative p-12">
-                    <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto space-y-6">
-                      <div className="mb-8">
-                        <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2">
-                          Custom Scopes
-                        </h2>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                          Use scopes to filter and organize your knowledge base
-                        </p>
-                      </div>
-
-                      <Card className="border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-3 text-lg font-semibold text-blue-900 dark:text-blue-100">
-                            <div className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                              <Sparkles className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            Custom Scopes (Optional)
-                          </CardTitle>
-                          <CardDescription className="text-blue-700 dark:text-blue-300">
-                            Use scopes to filter and organize your knowledge
-                            base
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="rounded-lg bg-white dark:bg-zinc-900 border border-blue-200 dark:border-blue-800 p-4">
-                            <p className="text-sm text-zinc-700 dark:text-zinc-300 mb-3">
-                              You can pass custom scope values when uploading
-                              files to organize and filter your knowledge. No
-                              pre-configuration needed!
-                            </p>
-
-                            <div className="space-y-3">
-                              <div>
-                                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
-                                  Example: Upload with scopes
-                                </p>
-                                <pre className="text-xs bg-zinc-100 dark:bg-zinc-800 p-3 rounded border border-zinc-200 dark:border-zinc-700 overflow-x-auto">
-                                  {`trainly.uploadFile(file, {
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
+                            Example: Upload with scopes
+                          </p>
+                          <pre className="text-xs bg-zinc-100 dark:bg-zinc-800 p-3 rounded border border-zinc-200 dark:border-zinc-700 overflow-x-auto">
+                            {`trainly.uploadFile(file, {
   playlist_id: "xyz123",
   workspace_id: "acme_corp",
   project_id: "alpha"
 });`}
-                                </pre>
-                              </div>
+                          </pre>
+                        </div>
 
-                              <div>
-                                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
-                                  Example: Query with scope filters
-                                </p>
-                                <pre className="text-xs bg-zinc-100 dark:bg-zinc-800 p-3 rounded border border-zinc-200 dark:border-zinc-700 overflow-x-auto">
-                                  {`trainly.ask("What are the key features?", {
+                        <div>
+                          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
+                            Example: Query with scope filters
+                          </p>
+                          <pre className="text-xs bg-zinc-100 dark:bg-zinc-800 p-3 rounded border border-zinc-200 dark:border-zinc-700 overflow-x-auto">
+                            {`trainly.ask("What are the key features?", {
   scope_filters: {
     playlist_id: "xyz123"
   }
 });`}
-                                </pre>
-                              </div>
-                            </div>
-
-                            <div className="mt-4 pt-3 border-t border-blue-100 dark:border-blue-900">
-                              <a
-                                href="https://docs.trainly.ai/scopes"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                              >
-                                <BookOpen className="w-3.5 h-3.5" />
-                                View Scopes Documentation
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                ) : sidebarActiveView === "usage" ? (
-                  /* Usage View */
-                  <div className="flex-1 overflow-y-auto relative p-12">
-                    <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto space-y-6">
-                      <div className="mb-8">
-                        <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2">
-                          Usage & Analytics
-                        </h2>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                          Privacy-first analytics - you can see usage patterns
-                          but never raw user data
-                        </p>
+                          </pre>
+                        </div>
                       </div>
 
-                      {/* Chat Analytics Section */}
-                      <Card className="border-zinc-200 dark:border-zinc-800">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-                            <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                              <BarChart3 className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                            </div>
-                            Chat Analytics & Insights
-                          </CardTitle>
-                          <CardDescription className="text-zinc-500 dark:text-zinc-400">
-                            Privacy-first analytics - you can see usage patterns
-                            but never raw user data
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {/* Privacy-First Highlight */}
-                          <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 mb-6">
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                                  <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                                </div>
-                                <div>
-                                  <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">
-                                    🔒 Privacy-First Analytics
-                                  </h4>
-                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                    Complete user data isolation - you cannot
-                                    access raw files or content
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-3 text-center">
-                              <div>
-                                <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                                  {chatAnalytics?.userStats?.totalUsers || 0}
-                                </div>
-                                <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                                  Total Users
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-lg font-bold text-zinc-900 dark:text-white">
-                                  {chatAnalytics?.fileStats?.totalFiles || 0}
-                                </div>
-                                <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                                  Files Uploaded
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                                  {chatAnalytics?.apiStats?.totalQueries || 0}
-                                </div>
-                                <div className="text-xs text-amber-600 dark:text-amber-400">
-                                  API Queries
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Key Metrics Grid */}
-                          <div className="grid grid-cols-2 gap-3 mb-6">
-                            <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
-                                <Users className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                              </div>
-                              <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                                {chatAnalytics?.userStats?.totalUsers || 0}
-                              </div>
-                              <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                                Total Users
-                              </div>
-                              <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                                Sub-chats under parent
-                              </div>
-                            </div>
-
-                            <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
-                                <Files className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                              </div>
-                              <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                                {chatAnalytics?.fileStats?.totalFiles || 0}
-                              </div>
-                              <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                                Files Uploaded
-                              </div>
-                              <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                                Parent + all sub-chats
-                              </div>
-                            </div>
-
-                            <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
-                                <Activity className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                              </div>
-                              <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                                {chatAnalytics?.apiStats?.totalQueries || 0}
-                              </div>
-                              <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                                API Queries
-                              </div>
-                              <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                                {chatAnalytics?.apiStats?.queriesLast7Days || 0}{" "}
-                                last 7d
-                              </div>
-                            </div>
-
-                            <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
-                                <HardDrive className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                              </div>
-                              <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                                {chatAnalytics?.fileStats?.storageFormatted ||
-                                  "0 B"}
-                              </div>
-                              <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                                Storage Used
-                              </div>
-                              <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                                Private & isolated
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* File Type Distribution */}
-                          <div className="mb-6">
-                            <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
-                              <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                                <HardDrive className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                              </div>
-                              File Type Breakdown
-                            </h4>
-                            {chatAnalytics?.fileStats?.fileTypeDistribution ? (
-                              <div className="space-y-2">
-                                {Object.entries(
-                                  chatAnalytics.fileStats.fileTypeDistribution,
-                                ).map(([type, count]) => {
-                                  const totalFiles =
-                                    chatAnalytics.fileStats?.totalFiles || 0;
-                                  const percentage =
-                                    totalFiles > 0
-                                      ? Math.round((count / totalFiles) * 100)
-                                      : 0;
-                                  const colors = {
-                                    pdf: "bg-red-400",
-                                    docx: "bg-blue-400",
-                                    txt: "bg-green-400",
-                                    images: "bg-purple-400",
-                                    other: "bg-zinc-400",
-                                  };
-
-                                  if (count > 0) {
-                                    return (
-                                      <div
-                                        key={type}
-                                        className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800"
-                                      >
-                                        <div className="flex items-center gap-3">
-                                          <div
-                                            className={`w-3 h-3 rounded-full ${colors[type as keyof typeof colors] || "bg-zinc-500"}`}
-                                          ></div>
-                                          <span className="text-sm font-medium text-zinc-900 dark:text-white">
-                                            {type.toUpperCase()}
-                                          </span>
-                                          <span className="text-xs text-zinc-500">
-                                            {count} files
-                                          </span>
-                                        </div>
-                                        <div className="text-xs text-zinc-500">
-                                          {percentage}%
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                })}
-                              </div>
-                            ) : (
-                              <div className="text-center py-8 text-zinc-500">
-                                <Files className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                <p className="text-sm">No files uploaded yet</p>
-                                <p className="text-xs">
-                                  File type distribution will appear here
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Top User Activity (Privacy-Safe) */}
-                          <div>
-                            <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
-                              <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                                <Activity className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                              </div>
-                              Top Users (Privacy-Safe)
-                            </h4>
-                            {chatAnalytics?.userActivity &&
-                            chatAnalytics.userActivity.length > 0 ? (
-                              <div className="space-y-2">
-                                {chatAnalytics.userActivity
-                                  .sort((a, b) => b.queriesMade - a.queriesMade)
-                                  .slice(0, 3)
-                                  .map((user, index) => (
-                                    <div
-                                      key={user.userIdHash}
-                                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800"
-                                    >
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs">
-                                          #{index + 1}
-                                        </div>
-                                        <div>
-                                          <div className="font-medium text-sm text-zinc-900 dark:text-white">
-                                            {user.userIdHash}
-                                          </div>
-                                          <div className="text-xs text-zinc-500">
-                                            {user.queriesMade} queries
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="text-right">
-                                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                                          {user.filesUploaded} files
-                                        </div>
-                                        <div className="text-xs text-zinc-500">
-                                          {user.storageUsed || "0 MB"}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                              </div>
-                            ) : (
-                              <div className="text-center py-8 text-zinc-500">
-                                <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                <p className="text-sm">No user activity yet</p>
-                                <p className="text-xs">
-                                  Top user activity will appear here when users
-                                  start using your API
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Privacy Protection Summary */}
-                          <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800 mt-6">
-                            <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
-                              <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                                <Shield className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                              </div>
-                              Privacy Protection Active
-                            </h4>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                                    <CheckCircle className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                                  </div>
-                                  <span className="text-xs font-medium text-zinc-900 dark:text-white">
-                                    ✅ You CAN See:
-                                  </span>
-                                </div>
-                                <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
-                                  <li>• User counts & activity levels</li>
-                                  <li>• File counts & storage usage</li>
-                                  <li>• API performance metrics</li>
-                                  <li>• Anonymous usage patterns</li>
-                                </ul>
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                                    <AlertCircle className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                                  </div>
-                                  <span className="text-xs font-medium text-zinc-900 dark:text-white">
-                                    ❌ You CANNOT See:
-                                  </span>
-                                </div>
-                                <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
-                                  <li>• Raw file content</li>
-                                  <li>• User questions/messages</li>
-                                  <li>• Personal user information</li>
-                                  <li>• Cross-user data access</li>
-                                </ul>
-                              </div>
-                            </div>
-                            <div className="mt-4 text-center">
-                              <Badge className="bg-zinc-600 dark:bg-zinc-800 text-white text-xs">
-                                🛡️ Complete Privacy Protection
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Credits Usage */}
-                      {subscription && credits && (
-                        <Card className="border-zinc-200 dark:border-zinc-800">
-                          <CardHeader className="pb-4">
-                            <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-                              <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                                <Sparkles className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                              </div>
-                              Credit Usage
-                            </CardTitle>
-                            <CardDescription className="text-zinc-500 dark:text-zinc-400">
-                              {credits.usedCredits.toLocaleString()} /{" "}
-                              {credits.totalCredits.toLocaleString()} credits
-                              used this month
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
-                              <div
-                                className="bg-amber-500 dark:bg-amber-400 h-2 rounded-full transition-all duration-300"
-                                style={{
-                                  width: `${Math.min(100, (credits.usedCredits / credits.totalCredits) * 100)}%`,
-                                }}
-                              />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
+                      <div className="mt-4 pt-3 border-t border-blue-100 dark:border-blue-900">
+                        <a
+                          href="https://docs.trainly.ai/scopes"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          View Scopes Documentation
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  /* Normal Chat Interface */
-                  <>
-                    {/* Chat Messages Area - Full width */}
-                    <div className="flex-1 overflow-y-auto relative p-12 drop-shadow-lg">
-                      <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto">
-                        {/* Credit Warning */}
-                        <CreditWarning />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        ) : sidebarActiveView === "usage" ? (
+          /* Usage View */
+          <div className="flex-1 overflow-y-auto relative p-12">
+            <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto space-y-6">
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2">
+                  Usage & Analytics
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Privacy-first analytics - you can see usage patterns but never
+                  raw user data
+                </p>
+              </div>
 
-                        {/* Loading overlay for initial data */}
-                        {isLoadingInitialData && (
-                          <div className="flex items-center justify-center h-full">
-                            <div className="text-center">
-                              <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-                                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                              </div>
-                              <p className="text-zinc-600 dark:text-zinc-400 animate-pulse">
-                                Loading your chat...
+              {showSkeleton ? (
+                <div className="space-y-4">
+                  <div className="h-64 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                  <div className="h-48 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                  <div className="h-32 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  {/* Chat Analytics Section */}
+                  <Card className="border-zinc-200 dark:border-zinc-800">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
+                        <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                          <BarChart3 className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                        </div>
+                        Chat Analytics & Insights
+                      </CardTitle>
+                      <CardDescription className="text-zinc-500 dark:text-zinc-400">
+                        Privacy-first analytics - you can see usage patterns but
+                        never raw user data
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Privacy-First Highlight */}
+                      <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                              <Shield className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">
+                                🔒 Privacy-First Analytics
+                              </h4>
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                Complete user data isolation - you cannot access
+                                raw files or content
                               </p>
                             </div>
                           </div>
-                        )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div>
+                            <div className="text-lg font-bold text-zinc-900 dark:text-white">
+                              {chatAnalytics?.userStats?.totalUsers || 0}
+                            </div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                              Total Users
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-zinc-900 dark:text-white">
+                              {chatAnalytics?.fileStats?.totalFiles || 0}
+                            </div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                              Files Uploaded
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                              {chatAnalytics?.apiStats?.totalQueries || 0}
+                            </div>
+                            <div className="text-xs text-amber-600 dark:text-amber-400">
+                              API Queries
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-                        {/* Empty state */}
-                        {!isLoadingInitialData &&
-                          displayContent?.length === 0 &&
-                          !isStreaming && (
-                            <div className="text-center py-12">
-                              <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-400/20">
+                      {/* Key Metrics Grid */}
+                      <div className="grid grid-cols-2 gap-3 mb-6">
+                        <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                          <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                            <Users className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                            {chatAnalytics?.userStats?.totalUsers || 0}
+                          </div>
+                          <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Total Users
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                            Sub-chats under parent
+                          </div>
+                        </div>
+
+                        <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                          <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                            <Files className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                            {chatAnalytics?.fileStats?.totalFiles || 0}
+                          </div>
+                          <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Files Uploaded
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                            Parent + all sub-chats
+                          </div>
+                        </div>
+
+                        <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                          <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                            <Activity className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                            {chatAnalytics?.apiStats?.totalQueries || 0}
+                          </div>
+                          <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            API Queries
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                            {chatAnalytics?.apiStats?.queriesLast7Days || 0}{" "}
+                            last 7d
+                          </div>
+                        </div>
+
+                        <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                          <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2">
+                            <HardDrive className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                            {chatAnalytics?.fileStats?.storageFormatted ||
+                              "0 B"}
+                          </div>
+                          <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Storage Used
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                            Private & isolated
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* File Type Distribution */}
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
+                          <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                            <HardDrive className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          File Type Breakdown
+                        </h4>
+                        {chatAnalytics?.fileStats?.fileTypeDistribution ? (
+                          <div className="space-y-2">
+                            {Object.entries(
+                              chatAnalytics.fileStats.fileTypeDistribution,
+                            ).map(([type, count]) => {
+                              const totalFiles =
+                                chatAnalytics.fileStats?.totalFiles || 0;
+                              const percentage =
+                                totalFiles > 0
+                                  ? Math.round((count / totalFiles) * 100)
+                                  : 0;
+                              const colors = {
+                                pdf: "bg-red-400",
+                                docx: "bg-blue-400",
+                                txt: "bg-green-400",
+                                images: "bg-purple-400",
+                                other: "bg-zinc-400",
+                              };
+
+                              if (count > 0) {
+                                return (
+                                  <div
+                                    key={type}
+                                    className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div
+                                        className={`w-3 h-3 rounded-full ${colors[type as keyof typeof colors] || "bg-zinc-500"}`}
+                                      ></div>
+                                      <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                                        {type.toUpperCase()}
+                                      </span>
+                                      <span className="text-xs text-zinc-500">
+                                        {count} files
+                                      </span>
+                                    </div>
+                                    <div className="text-xs text-zinc-500">
+                                      {percentage}%
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-zinc-500">
+                            <Files className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No files uploaded yet</p>
+                            <p className="text-xs">
+                              File type distribution will appear here
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Top User Activity (Privacy-Safe) */}
+                      <div>
+                        <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
+                          <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                            <Activity className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          Top Users (Privacy-Safe)
+                        </h4>
+                        {chatAnalytics?.userActivity &&
+                        chatAnalytics.userActivity.length > 0 ? (
+                          <div className="space-y-2">
+                            {chatAnalytics.userActivity
+                              .sort((a, b) => b.queriesMade - a.queriesMade)
+                              .slice(0, 3)
+                              .map((user, index) => (
+                                <div
+                                  key={user.userIdHash}
+                                  className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs">
+                                      #{index + 1}
+                                    </div>
+                                    <div>
+                                      <div className="font-medium text-sm text-zinc-900 dark:text-white">
+                                        {user.userIdHash}
+                                      </div>
+                                      <div className="text-xs text-zinc-500">
+                                        {user.queriesMade} queries
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                                      {user.filesUploaded} files
+                                    </div>
+                                    <div className="text-xs text-zinc-500">
+                                      {user.storageUsed || "0 MB"}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-zinc-500">
+                            <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No user activity yet</p>
+                            <p className="text-xs">
+                              Top user activity will appear here when users
+                              start using your API
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Privacy Protection Summary */}
+                      <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800 mt-6">
+                        <h4 className="font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-3">
+                          <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                            <Shield className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          Privacy Protection Active
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                                <CheckCircle className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                              </div>
+                              <span className="text-xs font-medium text-zinc-900 dark:text-white">
+                                ✅ You CAN See:
+                              </span>
+                            </div>
+                            <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                              <li>• User counts & activity levels</li>
+                              <li>• File counts & storage usage</li>
+                              <li>• API performance metrics</li>
+                              <li>• Anonymous usage patterns</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                                <AlertCircle className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                              </div>
+                              <span className="text-xs font-medium text-zinc-900 dark:text-white">
+                                ❌ You CANNOT See:
+                              </span>
+                            </div>
+                            <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                              <li>• Raw file content</li>
+                              <li>• User questions/messages</li>
+                              <li>• Personal user information</li>
+                              <li>• Cross-user data access</li>
+                            </ul>
+                          </div>
+                        </div>
+                        <div className="mt-4 text-center">
+                          <Badge className="bg-zinc-600 dark:bg-zinc-800 text-white text-xs">
+                            🛡️ Complete Privacy Protection
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Credits Usage */}
+                  {subscription && credits && (
+                    <Card className="border-zinc-200 dark:border-zinc-800">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
+                          <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                            <Sparkles className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+                          </div>
+                          Credit Usage
+                        </CardTitle>
+                        <CardDescription className="text-zinc-500 dark:text-zinc-400">
+                          {credits.usedCredits.toLocaleString()} /{" "}
+                          {credits.totalCredits.toLocaleString()} credits used
+                          this month
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
+                          <div
+                            className="bg-amber-500 dark:bg-amber-400 h-2 rounded-full transition-all duration-300"
+                            style={{
+                              width: `${Math.min(100, (credits.usedCredits / credits.totalCredits) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Normal Chat Interface (Testing View) */
+          <>
+            {showSkeleton && isOnChatRoute ? (
+              /* Skeleton for Chat Interface */
+              <div className="flex-1 overflow-y-auto relative p-12">
+                <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto space-y-6">
+                  {/* Skeleton Header */}
+                  <div className="h-16 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+
+                  {/* Skeleton Messages */}
+                  <div className="space-y-4">
+                    <div className="h-24 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                    <div className="h-32 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse ml-12" />
+                    <div className="h-20 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                  </div>
+
+                  {/* Skeleton Input */}
+                  <div className="h-24 bg-zinc-100 dark:bg-zinc-800 rounded-xl animate-pulse mt-8" />
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Chat Messages Area - Full width */}
+                <div className="flex-1 overflow-y-auto relative p-12 drop-shadow-lg">
+                  <div className="w-full h-full px-4 py-3 max-w-4xl mx-auto">
+                    {/* Credit Warning */}
+                    <CreditWarning />
+
+                    {/* Loading overlay for initial data */}
+                    {isLoadingInitialData && (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          </div>
+                          <p className="text-zinc-600 dark:text-zinc-400 animate-pulse">
+                            Loading your chat...
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!isLoadingInitialData &&
+                      displayContent?.length === 0 &&
+                      !isStreaming && (
+                        <div className="text-center py-12">
+                          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-400/20">
+                            <svg
+                              className="w-8 h-8 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.5}
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                              />
+                            </svg>
+                          </div>
+                          <h3 className="text-2xl font-sans font-normal text-zinc-900 dark:text-white mb-3">
+                            Start Your GraphRAG Chat
+                          </h3>
+                          <p className="text-base text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto leading-relaxed font-sans">
+                            Upload documents and ask questions to build your
+                            knowledge graph. Watch as relationships form and
+                            your AI becomes more intelligent.
+                          </p>
+                        </div>
+                      )}
+
+                    {/* Chat content - only show when not in initial loading */}
+                    {!isLoadingInitialData && memoizedChatContent}
+
+                    {/* Streaming message display - enhanced with modern design */}
+                    {(isStreaming || streamingContent) && (
+                      <div
+                        ref={streamingMessageRef}
+                        key={`streaming-${streamingContent.length}`}
+                        className="mb-8 animate-in slide-in-from-left-2 duration-500"
+                      >
+                        <div className="flex gap-4 mb-6 group">
+                          {/* Enhanced AI Avatar matching the response design */}
+                          <div className="relative flex-shrink-0 mt-8">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 ring-2 ring-white/10">
+                              <div className="w-5 h-5 bg-white/90 rounded-md flex items-center justify-center">
+                                {streamingContent ? (
+                                  <Sparkles className="w-3 h-3 text-blue-600 animate-pulse" />
+                                ) : (
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                                )}
+                              </div>
+                            </div>
+                            {/* Animated glow effect for streaming */}
+                            <div className="absolute inset-0 w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 opacity-30 blur-md -z-10 animate-pulse"></div>
+                          </div>
+
+                          <div className="flex flex-col max-w-[85%] min-w-0">
+                            {/* Enhanced copy indicator for streaming content */}
+                            {streamingContent && (
+                              <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-xs font-medium text-blue-600/70 dark:text-blue-400/70 mb-2 flex items-center gap-1.5 pointer-events-none">
                                 <svg
-                                  className="w-8 h-8 text-white"
+                                  className="w-3 h-3"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -1854,398 +1969,350 @@ function Dashboard({ params }: ChatIdPageProps) {
                                   <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
-                                    strokeWidth={1.5}
-                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                    strokeWidth={2}
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                                   />
                                 </svg>
-                              </div>
-                              <h3 className="text-2xl font-sans font-normal text-zinc-900 dark:text-white mb-3">
-                                Start Your GraphRAG Chat
-                              </h3>
-                              <p className="text-base text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto leading-relaxed font-sans">
-                                Upload documents and ask questions to build your
-                                knowledge graph. Watch as relationships form and
-                                your AI becomes more intelligent.
-                              </p>
-                            </div>
-                          )}
-
-                        {/* Chat content - only show when not in initial loading */}
-                        {!isLoadingInitialData && memoizedChatContent}
-
-                        {/* Streaming message display - enhanced with modern design */}
-                        {(isStreaming || streamingContent) && (
-                          <div
-                            ref={streamingMessageRef}
-                            key={`streaming-${streamingContent.length}`}
-                            className="mb-8 animate-in slide-in-from-left-2 duration-500"
-                          >
-                            <div className="flex gap-4 mb-6 group">
-                              {/* Enhanced AI Avatar matching the response design */}
-                              <div className="relative flex-shrink-0 mt-8">
-                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 ring-2 ring-white/10">
-                                  <div className="w-5 h-5 bg-white/90 rounded-md flex items-center justify-center">
-                                    {streamingContent ? (
-                                      <Sparkles className="w-3 h-3 text-blue-600 animate-pulse" />
-                                    ) : (
-                                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                                    )}
-                                  </div>
-                                </div>
-                                {/* Animated glow effect for streaming */}
-                                <div className="absolute inset-0 w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 opacity-30 blur-md -z-10 animate-pulse"></div>
-                              </div>
-
-                              <div className="flex flex-col max-w-[85%] min-w-0">
-                                {/* Enhanced copy indicator for streaming content */}
-                                {streamingContent && (
-                                  <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-xs font-medium text-blue-600/70 dark:text-blue-400/70 mb-2 flex items-center gap-1.5 pointer-events-none">
-                                    <svg
-                                      className="w-3 h-3"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                      />
-                                    </svg>
-                                    Click to copy response
-                                  </div>
-                                )}
-
-                                {/* Modern streaming bubble with enhanced styling */}
-                                <div
-                                  ref={streamingRef}
-                                  className={`relative bg-gradient-to-br from-white via-zinc-50/50 to-blue-50/30 dark:from-zinc-800/90 dark:via-zinc-800/70 dark:to-zinc-900/90 rounded-2xl px-6 py-5 shadow-lg shadow-zinc-200/60 dark:shadow-zinc-900/60 border border-zinc-200/60 dark:border-zinc-700/50 selectable backdrop-blur-sm group/bubble overflow-hidden ${
-                                    streamingContent
-                                      ? "cursor-pointer hover:shadow-xl hover:shadow-zinc-200/80 dark:hover:shadow-zinc-900/80 transition-all duration-300 hover:scale-[1.01]"
-                                      : ""
-                                  }`}
-                                  onClick={() =>
-                                    streamingContent &&
-                                    copyToClipboard(
-                                      streamingContent,
-                                      "Response",
-                                    )
-                                  }
-                                  title={
-                                    streamingContent
-                                      ? "Click to copy response"
-                                      : undefined
-                                  }
-                                >
-                                  {/* Animated gradient overlay */}
-                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/20 to-transparent dark:via-blue-900/10 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-500"></div>
-
-                                  {/* Content */}
-                                  <div className="relative z-10">
-                                    {streamingContent ? (
-                                      <div className="whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 text-sm leading-relaxed font-medium">
-                                        {streamingContent}
-                                        {/* Enhanced blinking cursor */}
-                                        <span className="inline-block w-1 h-5 bg-gradient-to-t from-blue-500 to-purple-500 ml-1 animate-pulse rounded-sm"></span>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center gap-3">
-                                        {/* Enhanced thinking animation */}
-                                        <div className="flex items-center gap-1.5">
-                                          <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce"></div>
-                                          <div
-                                            className="w-2.5 h-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full animate-bounce"
-                                            style={{ animationDelay: "0.15s" }}
-                                          ></div>
-                                          <div
-                                            className="w-2.5 h-2.5 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full animate-bounce"
-                                            style={{ animationDelay: "0.3s" }}
-                                          ></div>
-                                        </div>
-                                        <span className="text-zinc-600 dark:text-zinc-400 font-medium text-sm">
-                                          AI is thinking...
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Animated bottom accent line */}
-                                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500/30 via-purple-500/40 to-indigo-500/30 animate-pulse"></div>
-                                </div>
-
-                                {/* Streaming status indicator */}
-                                <div className="flex items-center gap-2 mt-2 text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">
-                                  <div className="flex items-center gap-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></div>
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                                  </div>
-                                  <span>
-                                    {streamingContent
-                                      ? "Streaming response..."
-                                      : "Preparing response..."}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        <div ref={scrollToBottom} />
-                      </div>
-                    </div>
-
-                    {/* Enhanced Input Area */}
-                    <div className="px-12 pb-8 pt-4 max-w-5xl mx-auto w-full">
-                      <div className="bg-gradient-to-br from-white via-white to-zinc-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-900 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-2xl rounded-3xl overflow-hidden relative">
-                        {/* Archived Chat Overlay */}
-                        {currentChat?.isArchived && (
-                          <div className="absolute inset-0 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm z-50 rounded-3xl flex items-center justify-center">
-                            <div className="text-center p-8">
-                              <div className="w-16 h-16 mx-auto mb-4 bg-zinc-200 dark:bg-zinc-700 rounded-full flex items-center justify-center">
-                                <Archive className="w-8 h-8 text-zinc-500 dark:text-zinc-400" />
-                              </div>
-                              <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                                Chat Archived
-                              </h3>
-                              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4 max-w-md">
-                                This chat has been archived and is no longer
-                                accessible for new messages or file uploads.
-                              </p>
-                              <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                                Restore this chat from the sidebar to continue
-                                using it.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        {/* Context Files - Elegant Collapsible Design */}
-                        {displayChat?.context?.length ? (
-                          <ContextFilesSection
-                            context={displayChat.context}
-                            displayContext={displayContext}
-                            chatId={effectiveChatId}
-                            onContextDeleted={triggerGraphRefresh}
-                          />
-                        ) : null}
-
-                        {/* Enhanced Message Input */}
-                        <div className="p-4 relative">
-                          <div className="relative group">
-                            {/* Input Container */}
-                            <div
-                              className="relative bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700 group-focus-within:border-amber-400/50 group-focus-within:shadow-lg group-focus-within:shadow-amber-400/10 transition-all duration-300 cursor-text"
-                              onClick={() => editor?.commands.focus()}
-                            >
-                              <EditorContent
-                                editor={editor}
-                                className="text-zinc-900 dark:text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none"
-                              />
-
-                              {/* Enhanced Placeholder */}
-                              {editor?.getHTML() === "<p></p>" && (
-                                <div className="absolute top-3 left-3 pointer-events-none">
-                                  <div className="flex items-center gap-2 text-zinc-400">
-                                    <Sparkles className="w-3.5 h-3.5 opacity-50" />
-                                    <span className="text-sm">
-                                      Ask anything about your documents...
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Hidden File Inputs */}
-                              <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".pdf,.doc,.docx,.txt"
-                                multiple
-                                className="hidden"
-                                onChange={handleFileChange}
-                                key={fileKey.getTime()}
-                              />
-                              <input
-                                ref={folderInputRef}
-                                type="file"
-                                accept=".pdf,.doc,.docx,.txt"
-                                {...({ webkitdirectory: "" } as any)}
-                                className="hidden"
-                                onChange={handleFileChange}
-                                key={`folder-${fileKey.getTime()}`}
-                              />
-
-                              {/* Input Actions */}
-                              <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-                                {/* Model Selector - subtle and integrated */}
-                                <ModelSelector
-                                  chatId={effectiveChatId}
-                                  currentModel={displayChat?.selectedModel}
-                                  onModelChange={() => {
-                                    // Optionally trigger a refresh of chat data
-                                  }}
-                                  compact={true}
-                                  unhingedMode={displayChat?.unhingedMode}
-                                />
-
-                                {/* Chat Settings Button */}
-                                <ChatSettings
-                                  chatId={effectiveChatId}
-                                  currentPrompt={displayChat?.customPrompt}
-                                  currentTemperature={displayChat?.temperature}
-                                  currentMaxTokens={displayChat?.maxTokens}
-                                  currentConversationHistoryLimit={
-                                    displayChat?.conversationHistoryLimit
-                                  }
-                                  onSettingsChange={() => {
-                                    // Optionally trigger a refresh of chat data
-                                  }}
-                                  unhingedMode={displayChat?.unhingedMode}
-                                />
-
-                                {/* Unhinged Mode Toggle */}
-                                <UnhingedModeToggle
-                                  chatId={effectiveChatId}
-                                  currentUnhingedMode={
-                                    displayChat?.unhingedMode
-                                  }
-                                  compact={true}
-                                />
-
-                                {/* File Queue Status Button */}
-                                {(fileQueue.activeQueues.length > 0 ||
-                                  fileQueue.allQueues.length > 0) && (
-                                  <button
-                                    onClick={() =>
-                                      setIsFileQueueSlideoutOpen(true)
-                                    }
-                                    className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/queue relative"
-                                    title={
-                                      fileQueue.isProcessing
-                                        ? `Processing ${fileQueue.activeQueues.length} file queue${fileQueue.activeQueues.length > 1 ? "s" : ""}`
-                                        : `View file upload history (${fileQueue.allQueues.length} queue${fileQueue.allQueues.length > 1 ? "s" : ""})`
-                                    }
-                                  >
-                                    {fileQueue.isProcessing ? (
-                                      <div className="w-3.5 h-3.5 border border-blue-400/50 border-t-blue-400 rounded-full animate-spin" />
-                                    ) : (
-                                      <FileText className="w-3.5 h-3.5 text-zinc-400 group-hover/queue:text-blue-400 transition-colors" />
-                                    )}
-                                    {fileQueue.activeQueues.length > 0 ? (
-                                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
-                                        {fileQueue.activeQueues.length > 9
-                                          ? "9+"
-                                          : fileQueue.activeQueues.length}
-                                      </div>
-                                    ) : fileQueue.allQueues.length > 0 ? (
-                                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
-                                    ) : null}
-                                  </button>
-                                )}
-
-                                {/* File Upload Button */}
-                                <button
-                                  onClick={triggerFileInput}
-                                  disabled={isStreaming}
-                                  className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
-                                  title="Upload documents"
-                                >
-                                  <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover/upload:text-amber-400 transition-colors" />
-                                </button>
-
-                                {/* Folder Upload Button */}
-                                <button
-                                  onClick={triggerFolderInput}
-                                  disabled={isStreaming}
-                                  className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/folder"
-                                  title="Upload folder"
-                                >
-                                  <FolderOpen className="w-3.5 h-3.5 text-zinc-400 group-hover/folder:text-amber-400 transition-colors" />
-                                </button>
-
-                                {/* Send Button */}
-                                <button
-                                  onClick={handleSendMessage}
-                                  disabled={
-                                    !editor?.getText()?.trim() ||
-                                    isStreaming ||
-                                    isProcessingMessage
-                                  }
-                                  className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-amber-400/25 disabled:shadow-none"
-                                >
-                                  {isStreaming || isProcessingMessage ? (
-                                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                  ) : (
-                                    <Send className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Progress Indicator */}
-                            {showProgress && (
-                              <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <div className="w-5 h-5 bg-amber-400/10 rounded-md flex items-center justify-center">
-                                    <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
-                                  </div>
-                                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                    {progressText}
-                                  </span>
-                                </div>
-                                <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
-                                  <div
-                                    className="bg-gradient-to-r from-amber-400 to-amber-600 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${progress}%` }}
-                                  ></div>
-                                </div>
+                                Click to copy response
                               </div>
                             )}
 
-                            {/* Quick Actions */}
-                            <div className="flex items-center justify-between mt-3">
-                              <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                                <span>Press</span>
-                                <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-800 rounded text-xs font-mono">
-                                  Enter
-                                </kbd>
-                                <span>to send,</span>
-                                <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-800 rounded text-xs font-mono">
-                                  Shift+Enter
-                                </kbd>
-                                <span>for new line</span>
+                            {/* Modern streaming bubble with enhanced styling */}
+                            <div
+                              ref={streamingRef}
+                              className={`relative bg-gradient-to-br from-white via-zinc-50/50 to-blue-50/30 dark:from-zinc-800/90 dark:via-zinc-800/70 dark:to-zinc-900/90 rounded-2xl px-6 py-5 shadow-lg shadow-zinc-200/60 dark:shadow-zinc-900/60 border border-zinc-200/60 dark:border-zinc-700/50 selectable backdrop-blur-sm group/bubble overflow-hidden ${
+                                streamingContent
+                                  ? "cursor-pointer hover:shadow-xl hover:shadow-zinc-200/80 dark:hover:shadow-zinc-900/80 transition-all duration-300 hover:scale-[1.01]"
+                                  : ""
+                              }`}
+                              onClick={() =>
+                                streamingContent &&
+                                copyToClipboard(streamingContent, "Response")
+                              }
+                              title={
+                                streamingContent
+                                  ? "Click to copy response"
+                                  : undefined
+                              }
+                            >
+                              {/* Animated gradient overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/20 to-transparent dark:via-blue-900/10 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-500"></div>
+
+                              {/* Content */}
+                              <div className="relative z-10">
+                                {streamingContent ? (
+                                  <div className="whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 text-sm leading-relaxed font-medium">
+                                    {streamingContent}
+                                    {/* Enhanced blinking cursor */}
+                                    <span className="inline-block w-1 h-5 bg-gradient-to-t from-blue-500 to-purple-500 ml-1 animate-pulse rounded-sm"></span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-3">
+                                    {/* Enhanced thinking animation */}
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce"></div>
+                                      <div
+                                        className="w-2.5 h-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full animate-bounce"
+                                        style={{ animationDelay: "0.15s" }}
+                                      ></div>
+                                      <div
+                                        className="w-2.5 h-2.5 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full animate-bounce"
+                                        style={{ animationDelay: "0.3s" }}
+                                      ></div>
+                                    </div>
+                                    <span className="text-zinc-600 dark:text-zinc-400 font-medium text-sm">
+                                      AI is thinking...
+                                    </span>
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-xs text-zinc-400">
-                                <span>Supports PDF, DOC, TXT files</span>
+
+                              {/* Animated bottom accent line */}
+                              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500/30 via-purple-500/40 to-indigo-500/30 animate-pulse"></div>
+                            </div>
+
+                            {/* Streaming status indicator */}
+                            <div className="flex items-center gap-2 mt-2 text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">
+                              <div className="flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></div>
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                               </div>
+                              <span>
+                                {streamingContent
+                                  ? "Streaming response..."
+                                  : "Preparing response..."}
+                              </span>
                             </div>
                           </div>
                         </div>
                       </div>
+                    )}
+
+                    <div ref={scrollToBottom} />
+                  </div>
+                </div>
+
+                {/* Enhanced Input Area */}
+                <div className="px-12 pb-8 pt-4 max-w-5xl mx-auto w-full">
+                  <div className="bg-gradient-to-br from-white via-white to-zinc-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-900 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-2xl rounded-3xl overflow-hidden relative">
+                    {/* Archived Chat Overlay */}
+                    {currentChat?.isArchived && (
+                      <div className="absolute inset-0 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm z-50 rounded-3xl flex items-center justify-center">
+                        <div className="text-center p-8">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-zinc-200 dark:bg-zinc-700 rounded-full flex items-center justify-center">
+                            <Archive className="w-8 h-8 text-zinc-500 dark:text-zinc-400" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                            Chat Archived
+                          </h3>
+                          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4 max-w-md">
+                            This chat has been archived and is no longer
+                            accessible for new messages or file uploads.
+                          </p>
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                            Restore this chat from the sidebar to continue using
+                            it.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {/* Context Files - Elegant Collapsible Design */}
+                    {displayChat?.context?.length ? (
+                      <ContextFilesSection
+                        context={displayChat.context}
+                        displayContext={displayContext}
+                        chatId={effectiveChatId}
+                        onContextDeleted={triggerGraphRefresh}
+                      />
+                    ) : null}
+
+                    {/* Enhanced Message Input */}
+                    <div className="p-4 relative">
+                      <div className="relative group">
+                        {/* Input Container */}
+                        <div
+                          className="relative bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700 group-focus-within:border-amber-400/50 group-focus-within:shadow-lg group-focus-within:shadow-amber-400/10 transition-all duration-300 cursor-text"
+                          onClick={() => editorRef.current?.focus()}
+                        >
+                          {sidebarActiveView === "testing" ? (
+                            <React.Suspense
+                              fallback={
+                                <div className="min-h-[80px] bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700 animate-pulse" />
+                              }
+                            >
+                              <ConditionalTipTapEditor
+                                ref={editorRef}
+                                value={input}
+                                onChange={setInput}
+                                onSend={handleSendMessage}
+                                placeholder="Ask anything about your documents..."
+                                className="text-zinc-900 dark:text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none"
+                              />
+                            </React.Suspense>
+                          ) : (
+                            <div className="min-h-[80px] bg-transparent p-3 text-zinc-900 dark:text-white text-sm">
+                              {/* Fallback for non-testing views */}
+                            </div>
+                          )}
+
+                          {/* Enhanced Placeholder */}
+                          {editorRef.current?.isEmpty() && (
+                            <div className="absolute top-3 left-3 pointer-events-none">
+                              <div className="flex items-center gap-2 text-zinc-400">
+                                <Sparkles className="w-3.5 h-3.5 opacity-50" />
+                                <span className="text-sm">
+                                  Ask anything about your documents...
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Hidden File Inputs */}
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdf,.doc,.docx,.txt"
+                            multiple
+                            className="hidden"
+                            onChange={handleFileChange}
+                            key={fileKey.getTime()}
+                          />
+                          <input
+                            ref={folderInputRef}
+                            type="file"
+                            accept=".pdf,.doc,.docx,.txt"
+                            {...({ webkitdirectory: "" } as any)}
+                            className="hidden"
+                            onChange={handleFileChange}
+                            key={`folder-${fileKey.getTime()}`}
+                          />
+
+                          {/* Input Actions */}
+                          <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                            {/* Model Selector - subtle and integrated */}
+                            <ModelSelector
+                              chatId={effectiveChatId}
+                              currentModel={displayChat?.selectedModel}
+                              onModelChange={() => {
+                                // Optionally trigger a refresh of chat data
+                              }}
+                              compact={true}
+                              unhingedMode={displayChat?.unhingedMode}
+                            />
+
+                            {/* Chat Settings Button */}
+                            <ChatSettings
+                              chatId={effectiveChatId}
+                              currentPrompt={displayChat?.customPrompt}
+                              currentTemperature={displayChat?.temperature}
+                              currentMaxTokens={displayChat?.maxTokens}
+                              currentConversationHistoryLimit={
+                                displayChat?.conversationHistoryLimit
+                              }
+                              onSettingsChange={() => {
+                                // Optionally trigger a refresh of chat data
+                              }}
+                              unhingedMode={displayChat?.unhingedMode}
+                            />
+
+                            {/* Unhinged Mode Toggle */}
+                            <UnhingedModeToggle
+                              chatId={effectiveChatId}
+                              currentUnhingedMode={displayChat?.unhingedMode}
+                              compact={true}
+                            />
+
+                            {/* File Queue Status Button */}
+                            {(fileQueue.activeQueues.length > 0 ||
+                              fileQueue.allQueues.length > 0) && (
+                              <button
+                                onClick={() => setIsFileQueueSlideoutOpen(true)}
+                                className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/queue relative"
+                                title={
+                                  fileQueue.isProcessing
+                                    ? `Processing ${fileQueue.activeQueues.length} file queue${fileQueue.activeQueues.length > 1 ? "s" : ""}`
+                                    : `View file upload history (${fileQueue.allQueues.length} queue${fileQueue.allQueues.length > 1 ? "s" : ""})`
+                                }
+                              >
+                                {fileQueue.isProcessing ? (
+                                  <div className="w-3.5 h-3.5 border border-blue-400/50 border-t-blue-400 rounded-full animate-spin" />
+                                ) : (
+                                  <FileText className="w-3.5 h-3.5 text-zinc-400 group-hover/queue:text-blue-400 transition-colors" />
+                                )}
+                                {fileQueue.activeQueues.length > 0 ? (
+                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                                    {fileQueue.activeQueues.length > 9
+                                      ? "9+"
+                                      : fileQueue.activeQueues.length}
+                                  </div>
+                                ) : fileQueue.allQueues.length > 0 ? (
+                                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+                                ) : null}
+                              </button>
+                            )}
+
+                            {/* File Upload Button */}
+                            <button
+                              onClick={triggerFileInput}
+                              disabled={isStreaming}
+                              className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/upload"
+                              title="Upload documents"
+                            >
+                              <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover/upload:text-amber-400 transition-colors" />
+                            </button>
+
+                            {/* Folder Upload Button */}
+                            <button
+                              onClick={triggerFolderInput}
+                              disabled={isStreaming}
+                              className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group/folder"
+                              title="Upload folder"
+                            >
+                              <FolderOpen className="w-3.5 h-3.5 text-zinc-400 group-hover/folder:text-amber-400 transition-colors" />
+                            </button>
+
+                            {/* Send Button */}
+                            <button
+                              onClick={handleSendMessage}
+                              disabled={
+                                !editorRef.current?.getText()?.trim() ||
+                                isStreaming ||
+                                isProcessingMessage
+                              }
+                              className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white p-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-amber-400/25 disabled:shadow-none"
+                            >
+                              {isStreaming || isProcessingMessage ? (
+                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              ) : (
+                                <Send className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Progress Indicator */}
+                        {showProgress && (
+                          <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-5 h-5 bg-amber-400/10 rounded-md flex items-center justify-center">
+                                <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
+                              </div>
+                              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                {progressText}
+                              </span>
+                            </div>
+                            <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
+                              <div
+                                className="bg-gradient-to-r from-amber-400 to-amber-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Quick Actions */}
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                            <span>Press</span>
+                            <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-800 rounded text-xs font-mono">
+                              Enter
+                            </kbd>
+                            <span>to send,</span>
+                            <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-800 rounded text-xs font-mono">
+                              Shift+Enter
+                            </kbd>
+                            <span>for new line</span>
+                          </div>
+                          <div className="text-xs text-zinc-400">
+                            <span>Supports PDF, DOC, TXT files</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </>
-                )}
+                  </div>
+                </div>
               </>
             )}
-          </div>
-
-          {/* File Queue Slideout - positioned to cover entire chat area (messages + input) */}
-          <FileQueueSidebar
-            isOpen={isFileQueueSlideoutOpen}
-            onClose={() => setIsFileQueueSlideoutOpen(false)}
-            queues={fileQueue.allQueues}
-          />
-        </div>
-
-        {/* Citation Inspector */}
-        <CitationInspector
-          key={`citation-inspector-${inspectedCitations.length}-${inspectedCitations[0]?.id || "empty"}`}
-          isOpen={showCitationInspector}
-          onClose={() => setShowCitationInspector(false)}
-          citedNodes={inspectedCitations}
-          onOpenInGraph={handleOpenInGraph}
-        />
+          </>
+        )}
       </div>
-    </div>
+
+      {/* File Queue Slideout - positioned to cover entire chat area (messages + input) */}
+      <FileQueueSidebar
+        isOpen={isFileQueueSlideoutOpen}
+        onClose={() => setIsFileQueueSlideoutOpen(false)}
+        queues={fileQueue.allQueues}
+      />
+
+      {/* Citation Inspector */}
+      <CitationInspector
+        key={`citation-inspector-${inspectedCitations.length}-${inspectedCitations[0]?.id || "empty"}`}
+        isOpen={showCitationInspector}
+        onClose={() => setShowCitationInspector(false)}
+        citedNodes={inspectedCitations}
+        onOpenInGraph={handleOpenInGraph}
+      />
+    </>
   );
 }
 export default Dashboard;

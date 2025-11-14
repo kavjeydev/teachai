@@ -56,7 +56,7 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-const FileItem: React.FC<FileItemProps> = ({ file }) => {
+const FileItem = React.memo<FileItemProps>(({ file }) => {
   return (
     <div className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -98,37 +98,46 @@ const FileItem: React.FC<FileItemProps> = ({ file }) => {
       </div>
     </div>
   );
-};
+});
+
+FileItem.displayName = "FileItem";
 
 export const FileQueueMonitor: React.FC<FileQueueMonitorProps> = ({
   queues,
   className,
 }) => {
-  // Get all files from all queues
-  const allFiles = queues.flatMap((queue) =>
-    (queue.files || []).map((file) => ({
-      ...file,
-      queueId: queue.queueId,
-    })),
-  );
+  // Memoize file processing to avoid recalculation on every render
+  const sortedFiles = React.useMemo(() => {
+    // Get all files from all queues
+    const allFiles = queues.flatMap((queue) =>
+      (queue.files || []).map((file) => ({
+        ...file,
+        queueId: queue.queueId,
+      })),
+    );
 
-  if (allFiles.length === 0) {
-    return null;
-  }
-
-  // Sort files: processing first, then by upload time (newest first)
-  const sortedFiles = [...allFiles].sort((a, b) => {
-    if (a.status === "processing" && b.status !== "processing") return -1;
-    if (b.status === "processing" && a.status !== "processing") return 1;
-
-    // For uploaded files, sort by upload timestamp if available
-    if (a.uploadedAt && b.uploadedAt) {
-      return b.uploadedAt - a.uploadedAt; // Newer uploads first
+    if (allFiles.length === 0) {
+      return [];
     }
 
-    // Fallback to queue ID (which includes timestamp)
-    return b.queueId.localeCompare(a.queueId);
-  });
+    // Sort files: processing first, then by upload time (newest first)
+    return [...allFiles].sort((a, b) => {
+      if (a.status === "processing" && b.status !== "processing") return -1;
+      if (b.status === "processing" && a.status !== "processing") return 1;
+
+      // For uploaded files, sort by upload timestamp if available
+      if (a.uploadedAt && b.uploadedAt) {
+        return b.uploadedAt - a.uploadedAt; // Newer uploads first
+      }
+
+      // Fallback to queue ID (which includes timestamp)
+      return b.queueId.localeCompare(a.queueId);
+    });
+  }, [queues]);
+
+  if (sortedFiles.length === 0) {
+    return null;
+  }
 
   return (
     <div className={cn("space-y-3 h-full overflow-y-auto", className)}>

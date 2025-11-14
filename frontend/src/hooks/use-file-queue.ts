@@ -110,7 +110,7 @@ export interface UploadQueue {
 }
 
 interface UseFileQueueProps {
-  chatId: Id<"chats">;
+  chatId: Id<"chats"> | null;
   chatInfo?: { chatType?: string; chatId?: string }; // Optional chat info to avoid extra queries
   onFileProcessed?: (fileId: string, fileName: string) => void;
   onQueueComplete?: (queueId: string) => void;
@@ -136,7 +136,10 @@ export function useFileQueue({
   const updateFileProgress = useMutation(api.fileQueue.updateFileProgress);
   const cancelQueue = useMutation(api.fileQueue.cancelQueue);
 
-  const queues = useQuery(api.fileQueue.getUserQueues, { chatId });
+  const queues = useQuery(
+    api.fileQueue.getUserQueues,
+    chatId ? { chatId } : "skip",
+  );
 
   // Clean up active queues that have been persisted to database
   useEffect(() => {

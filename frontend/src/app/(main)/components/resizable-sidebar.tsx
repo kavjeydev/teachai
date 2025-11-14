@@ -5,6 +5,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { useRouter, usePathname } from "next/navigation";
+import { useOptimizedNavigation } from "@/hooks/use-optimized-navigation";
+import { startTransition } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -40,6 +42,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const { user } = useUser();
   const { startNavigation } = useNavigationLoading();
   const { canQuery, skipQuery } = useConvexAuth();
+  const { navigate } = useOptimizedNavigation();
 
   const chats = useQuery(api.chats.getChats, canQuery ? undefined : skipQuery);
   const chatLimits = useQuery(
@@ -189,7 +192,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
     try {
       const newChatId = await addChat({ title: "Untitled Chat" });
       // Navigate to testing view when creating new chat
-      router.push(`/dashboard/${newChatId}/testing`);
+      startTransition(() => {
+        navigate(`/dashboard/${newChatId}/testing`);
+      });
       toast.success("Created new chat!");
     } catch (error) {
       if (error instanceof Error) {
@@ -330,20 +335,21 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     <div className="space-y-0">
                       {/* Get Started */}
                       <button
-                        onClick={() => router.push("/")}
+                        onClick={() => {
+                          window.open(
+                            "https://docs.trainlyai.com/sdk-quickstart",
+                            "_blank",
+                          );
+                        }}
                         className={cn(
-                          "w-full flex items-center gap-3 p-3 h-12 rounded-lg transition-all duration-200 group",
-                          activeView === "home"
-                            ? "bg-amber-400/10 border border-amber-400/20"
-                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                          "w-full flex items-center gap-3 p-3 h-12 rounded-lg transition-all duration-150 group active:scale-[0.98] active:transition-transform active:duration-75",
+                          "hover:bg-zinc-100 dark:hover:bg-zinc-800",
                         )}
                       >
                         <div
                           className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center",
-                            activeView === "home"
-                              ? "bg-amber-400 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                            "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
                         >
                           <Rocket className="w-4 h-4" />
@@ -351,9 +357,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         <span
                           className={cn(
                             "text-sm font-medium",
-                            activeView === "home"
-                              ? "text-amber-400"
-                              : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                            "text-zinc-900 dark:text-white group-hover:text-amber-400",
                           )}
                         >
                           Get Started
@@ -362,9 +366,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
                       {/* Manage Chats */}
                       <button
-                        onClick={() => router.push("/dashboard/manage")}
+                        onClick={() => {
+                          startTransition(() => {
+                            navigate("/dashboard/manage");
+                          });
+                        }}
                         className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75",
                           activeView === "manage"
                             ? "bg-amber-400/10 border border-amber-400/20"
                             : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
@@ -402,11 +410,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             toast.error("Please select a chat first");
                             return;
                           }
-                          router.push(`/dashboard/${chatId}/graph`);
+                          startTransition(() => {
+                            navigate(`/dashboard/${chatId}/graph`);
+                          });
                         }}
                         disabled={!chatId}
                         className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75",
                           !chatId
                             ? "opacity-40 cursor-not-allowed"
                             : activeView === "graph"
@@ -448,11 +458,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             toast.error("Please select a chat first");
                             return;
                           }
-                          router.push(`/dashboard/${chatId}/testing`);
+                          startTransition(() => {
+                            navigate(`/dashboard/${chatId}/testing`);
+                          });
                         }}
                         disabled={!chatId}
                         className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75",
                           !chatId
                             ? "opacity-40 cursor-not-allowed"
                             : activeView === "testing"
@@ -494,11 +506,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             toast.error("Please select a chat first");
                             return;
                           }
-                          router.push(`/dashboard/${chatId}/api-keys`);
+                          startTransition(() => {
+                            navigate(`/dashboard/${chatId}/api-keys`);
+                          });
                         }}
                         disabled={!chatId}
                         className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75",
                           !chatId
                             ? "opacity-40 cursor-not-allowed"
                             : activeView === "api-keys"
@@ -540,11 +554,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             toast.error("Please select a chat first");
                             return;
                           }
-                          router.push(`/dashboard/${chatId}/custom-settings`);
+                          startTransition(() => {
+                            navigate(`/dashboard/${chatId}/custom-settings`);
+                          });
                         }}
                         disabled={!chatId}
                         className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75",
                           !chatId
                             ? "opacity-40 cursor-not-allowed"
                             : activeView === "custom-settings"
@@ -588,11 +604,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             toast.error("Please select a chat first");
                             return;
                           }
-                          router.push(`/dashboard/${chatId}/usage`);
+                          startTransition(() => {
+                            navigate(`/dashboard/${chatId}/usage`);
+                          });
                         }}
                         disabled={!chatId}
                         className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group h-12",
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75",
                           !chatId
                             ? "opacity-40 cursor-not-allowed"
                             : activeView === "usage"
@@ -644,9 +662,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   </button>
 
                   <button
-                    onClick={() => router.push("/")}
+                    onClick={() => {
+                      startTransition(() => {
+                        navigate("/");
+                      });
+                    }}
                     className={cn(
-                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      "w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95",
                       activeView === "home"
                         ? "bg-amber-400/10 ring-2 ring-amber-400/30"
                         : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
@@ -657,9 +679,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   </button>
 
                   <button
-                    onClick={() => router.push("/dashboard/manage")}
+                    onClick={() => {
+                      startTransition(() => {
+                        navigate("/dashboard/manage");
+                      });
+                    }}
                     className={cn(
-                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      "w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95",
                       activeView === "manage"
                         ? "bg-amber-400/10 ring-2 ring-amber-400/30"
                         : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
@@ -675,11 +701,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         toast.error("Please select a chat first");
                         return;
                       }
-                      router.push(`/dashboard/${chatId}/graph`);
+                      startTransition(() => {
+                        navigate(`/dashboard/${chatId}/graph`);
+                      });
                     }}
                     disabled={!chatId}
                     className={cn(
-                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      "w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95",
                       !chatId
                         ? "opacity-40 cursor-not-allowed"
                         : activeView === "graph"
@@ -697,11 +725,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         toast.error("Please select a chat first");
                         return;
                       }
-                      router.push(`/dashboard/${chatId}/testing`);
+                      startTransition(() => {
+                        navigate(`/dashboard/${chatId}/testing`);
+                      });
                     }}
                     disabled={!chatId}
                     className={cn(
-                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      "w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95",
                       !chatId
                         ? "opacity-40 cursor-not-allowed"
                         : activeView === "testing"
@@ -719,11 +749,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         toast.error("Please select a chat first");
                         return;
                       }
-                      router.push(`/dashboard/${chatId}/api-keys`);
+                      startTransition(() => {
+                        navigate(`/dashboard/${chatId}/api-keys`);
+                      });
                     }}
                     disabled={!chatId}
                     className={cn(
-                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      "w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95",
                       !chatId
                         ? "opacity-40 cursor-not-allowed"
                         : activeView === "api-keys"
@@ -741,11 +773,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         toast.error("Please select a chat first");
                         return;
                       }
-                      router.push(`/dashboard/${chatId}/custom-settings`);
+                      startTransition(() => {
+                        navigate(`/dashboard/${chatId}/custom-settings`);
+                      });
                     }}
                     disabled={!chatId}
                     className={cn(
-                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      "w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95",
                       !chatId
                         ? "opacity-40 cursor-not-allowed"
                         : activeView === "custom-settings"
@@ -763,11 +797,13 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         toast.error("Please select a chat first");
                         return;
                       }
-                      router.push(`/dashboard/${chatId}/usage`);
+                      startTransition(() => {
+                        navigate(`/dashboard/${chatId}/usage`);
+                      });
                     }}
                     disabled={!chatId}
                     className={cn(
-                      "w-10 h-10 rounded-lg transition-colors flex items-center justify-center mx-auto",
+                      "w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95",
                       !chatId
                         ? "opacity-40 cursor-not-allowed"
                         : activeView === "usage"
@@ -788,8 +824,12 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
             <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-700">
                 <button
-                  onClick={() => router.push("/profile")}
-                  className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity"
+                  onClick={() => {
+                    startTransition(() => {
+                      navigate("/profile");
+                    });
+                  }}
+                  className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity active:scale-[0.98]"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage
@@ -835,8 +875,12 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
           ) : (
             <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
               <button
-                onClick={() => router.push("/profile")}
-                className="w-full flex justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg p-2 transition-colors"
+                onClick={() => {
+                  startTransition(() => {
+                    navigate("/profile");
+                  });
+                }}
+                className="w-full flex justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg p-2 transition-colors active:scale-95"
                 title="View Profile & Usage"
               >
                 <Avatar className="h-10 w-10">

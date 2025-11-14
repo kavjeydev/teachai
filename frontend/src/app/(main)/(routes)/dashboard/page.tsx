@@ -7,10 +7,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
 import { PlusCircle, Sparkles } from "lucide-react";
-import { ResizableSidebar } from "../../components/resizable-sidebar";
-import { ChatNavbar } from "../../components/chat-navbar";
-import { useSidebarWidth } from "@/hooks/use-sidebar-width";
-import { Toaster } from "sonner";
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -20,7 +16,6 @@ import { captureEvent } from "@/lib/posthog";
 function NoChatContent() {
   const { user } = useUser();
   const router = useRouter();
-  const { sidebarWidth } = useSidebarWidth();
   const [isCreating, setIsCreating] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const { canQuery } = useConvexAuth();
@@ -211,190 +206,171 @@ function NoChatContent() {
   }
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
-      <Toaster position="top-center" richColors />
-
-      {/* Resizable Sidebar */}
-      <ResizableSidebar />
-
-      {/* Main Content Area - Responsive to sidebar width */}
-      <div
-        className="h-[100vh] flex flex-col relative bg-gradient-to-b px-4 pb-4 from-white via-white to-white dark:from-[#090909] dark:via-[#090909] dark:to-[#090909] rounded-3xl"
-        style={{
-          marginLeft: `${sidebarWidth}px`,
-          transition: "margin-left 300ms ease-out",
-        }}
-      >
-        {/* Chat Navbar with no chat selected */}
-        <ChatNavbar />
-
-        {/* Content */}
-        <div className="flex-1 flex items-center justify-center overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-4">
-          <div className="flex flex-col gap-8 items-center max-w-lg mx-auto text-center p-8">
-            <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center shadow-lg shadow-amber-400/20">
-              <Sparkles className="w-12 h-12 text-white" />
-            </div>
-            <div>
-              <h2 className="text-4xl font-sans font-normal text-zinc-900 dark:text-white mb-4">
-                Ready to build something amazing?
-              </h2>
-              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
-                Upload documents, ask questions, and watch your knowledge graph
-                come to life.
-              </p>
-              <div className="flex flex-col gap-4 items-center">
-                {chatLimits && !chatLimits.canCreateMore ? (
-                  <div className="text-center space-y-4">
-                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                      <p className="text-amber-800 dark:text-amber-200 font-medium">
-                        Chat Limit Reached
-                      </p>
-                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                        You've used {chatLimits.currentChatCount} of{" "}
-                        {chatLimits.chatLimit} chat
-                        {chatLimits.chatLimit > 1 ? "s" : ""} on the{" "}
-                        {chatLimits.tierName} plan
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
-                      {(() => {
-                        const nextTier = getNextTier(chatLimits.tierName);
-                        return (
-                          <Button
-                            onClick={() => {
-                              if (nextTier.id === "enterprise") {
-                                window.open(
-                                  "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
-                                  "_blank",
-                                );
-                              } else {
-                                handleUpgrade(nextTier.priceId!, nextTier.name);
-                              }
-                            }}
-                            disabled={isUpgrading}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                          >
-                            {isUpgrading ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                                Processing...
-                              </>
-                            ) : nextTier.id === "enterprise" ? (
-                              <>
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Contact Sales
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Upgrade to {nextTier.name}
-                              </>
-                            )}
-                          </Button>
-                        );
-                      })()}
-                      <Button
-                        onClick={() =>
-                          window.open("/dashboard/manage", "_blank")
-                        }
-                        variant="outline"
-                        className="px-6 py-3 rounded-xl font-semibold border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/30"
-                      >
-                        Archive Chats
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    onClick={onCreate}
-                    disabled={isCreating || !chatLimits}
-                    className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed text-white px-8 py-4 text-lg rounded-xl font-semibold shadow-xl hover:shadow-2xl hover:shadow-amber-400/25 transition-all duration-300 flex items-center gap-3"
-                  >
-                    {isCreating ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Creating Chat...
-                      </>
-                    ) : !chatLimits ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <PlusCircle className="h-5 w-5" />
-                        Create Your First Chat
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {/* Upgrade CTA - only show if not at limit */}
-                {(!chatLimits || chatLimits.canCreateMore) && (
-                  <div className="text-center">
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                      Or start with more powerful features
+    <>
+      {/* Content */}
+      <div className="flex-1 flex items-center justify-center overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-4">
+        <div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto text-center p-8">
+          <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center shadow-lg shadow-amber-400/20">
+            <Sparkles className="w-12 h-12 text-white" />
+          </div>
+          <div className="w-full">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-sans font-normal text-zinc-900 dark:text-white mb-4 w-full">
+              Ready to build something amazing?
+            </h2>
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
+              Upload documents, ask questions, and watch your knowledge graph
+              come to life.
+            </p>
+            <div className="flex flex-col gap-4 items-center">
+              {chatLimits && !chatLimits.canCreateMore ? (
+                <div className="text-center space-y-4">
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                    <p className="text-amber-800 dark:text-amber-200 font-medium">
+                      Chat Limit Reached
                     </p>
-                    <div className="flex gap-3">
-                      {(() => {
-                        const nextTier = getNextTier(
-                          chatLimits?.tierName || "free",
-                        );
-                        return (
-                          <Button
-                            onClick={() => {
-                              if (nextTier.id === "enterprise") {
-                                window.open(
-                                  "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
-                                  "_blank",
-                                );
-                              } else {
-                                handleUpgrade(nextTier.priceId!, nextTier.name);
-                              }
-                            }}
-                            disabled={isUpgrading}
-                            variant="outline"
-                            className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-white transition-all duration-300"
-                          >
-                            {isUpgrading ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
-                                Processing...
-                              </>
-                            ) : nextTier.id === "enterprise" ? (
-                              <>
-                                <Sparkles className="w-4 h-4 mr-2" />
-                                Contact Sales
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-4 h-4 mr-2" />
-                                Start {nextTier.name} - $
-                                {typeof nextTier.price === "number"
-                                  ? nextTier.price
-                                  : "Custom"}
-                                /mo
-                              </>
-                            )}
-                          </Button>
-                        );
-                      })()}
-                      <Button
-                        onClick={() => window.open("/billing", "_blank")}
-                        variant="ghost"
-                        className="text-zinc-600 hover:text-amber-400"
-                      >
-                        View All Plans
-                      </Button>
-                    </div>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      You've used {chatLimits.currentChatCount} of{" "}
+                      {chatLimits.chatLimit} chat
+                      {chatLimits.chatLimit > 1 ? "s" : ""} on the{" "}
+                      {chatLimits.tierName} plan
+                    </p>
                   </div>
-                )}
-              </div>
+                  <div className="flex gap-3">
+                    {(() => {
+                      const nextTier = getNextTier(chatLimits.tierName);
+                      return (
+                        <Button
+                          onClick={() => {
+                            if (nextTier.id === "enterprise") {
+                              window.open(
+                                "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
+                                "_blank",
+                              );
+                            } else {
+                              handleUpgrade(nextTier.priceId!, nextTier.name);
+                            }
+                          }}
+                          disabled={isUpgrading}
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                              Processing...
+                            </>
+                          ) : nextTier.id === "enterprise" ? (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Contact Sales
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Upgrade to {nextTier.name}
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
+                    <Button
+                      onClick={() => window.open("/dashboard/manage", "_blank")}
+                      variant="outline"
+                      className="px-6 py-3 rounded-xl font-semibold border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                    >
+                      Archive Chats
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  onClick={onCreate}
+                  disabled={isCreating || !chatLimits}
+                  className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed text-white px-8 py-4 text-lg rounded-xl font-semibold shadow-xl hover:shadow-2xl hover:shadow-amber-400/25 transition-all duration-300 flex items-center gap-3"
+                >
+                  {isCreating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Creating Chat...
+                    </>
+                  ) : !chatLimits ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="h-5 w-5" />
+                      Create Your First Chat
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Upgrade CTA - only show if not at limit */}
+              {(!chatLimits || chatLimits.canCreateMore) && (
+                <div className="text-center">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
+                    Or start with more powerful features
+                  </p>
+                  <div className="flex gap-3">
+                    {(() => {
+                      const nextTier = getNextTier(
+                        chatLimits?.tierName || "free",
+                      );
+                      return (
+                        <Button
+                          onClick={() => {
+                            if (nextTier.id === "enterprise") {
+                              window.open(
+                                "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
+                                "_blank",
+                              );
+                            } else {
+                              handleUpgrade(nextTier.priceId!, nextTier.name);
+                            }
+                          }}
+                          disabled={isUpgrading}
+                          variant="outline"
+                          className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-white transition-all duration-300"
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+                              Processing...
+                            </>
+                          ) : nextTier.id === "enterprise" ? (
+                            <>
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Contact Sales
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Start {nextTier.name} - $
+                              {typeof nextTier.price === "number"
+                                ? nextTier.price
+                                : "Custom"}
+                              /mo
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
+                    <Button
+                      onClick={() => window.open("/billing", "_blank")}
+                      variant="ghost"
+                      className="text-zinc-600 hover:text-amber-400"
+                    >
+                      View All Plans
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

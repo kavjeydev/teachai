@@ -30,4 +30,17 @@ const nextConfig = {
   skipTrailingSlashRedirect: true,
 };
 
-module.exports = nextConfig;
+// Conditionally apply bundle analyzer only if installed and ANALYZE env var is set
+if (process.env.ANALYZE === 'true') {
+  try {
+    const withBundleAnalyzer = require('@next/bundle-analyzer')({
+      enabled: true,
+    });
+    module.exports = withBundleAnalyzer(nextConfig);
+  } catch (error) {
+    console.warn('@next/bundle-analyzer not installed. Run: npm install --save-dev @next/bundle-analyzer');
+    module.exports = nextConfig;
+  }
+} else {
+  module.exports = nextConfig;
+}

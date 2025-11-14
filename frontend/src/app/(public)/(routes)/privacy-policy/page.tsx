@@ -1,5 +1,3 @@
-"use client";
-
 export default function PrivacyPolicy() {
   const privacyPolicyHTML = `<style>
   [data-custom-class='body'], [data-custom-class='body'] * {

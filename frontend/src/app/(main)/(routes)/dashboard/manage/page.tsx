@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Toaster } from "sonner";
 import { Id } from "../../../../../../convex/_generated/dataModel";
 import { captureEvent } from "@/lib/posthog";
-import { ResizableSidebar } from "../../../components/resizable-sidebar";
-import { ChatNavbar } from "../../../components/chat-navbar";
-import { useSidebarWidth } from "@/hooks/use-sidebar-width";
-
+import { useOptimizedNavigation } from "@/hooks/use-optimized-navigation";
+import { startTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,13 +47,32 @@ import {
   Zap,
   CreditCard,
 } from "lucide-react";
-import { BillingDashboard } from "@/components/billing-dashboard";
-import { ChatDeleteDialog } from "@/components/chat-delete-dialog";
+import dynamic from "next/dynamic";
+
+// Dynamically import heavy components
+const BillingDashboard = dynamic(
+  () => import("@/components/billing-dashboard").then((mod) => ({
+    default: mod.BillingDashboard,
+  })),
+  {
+    ssr: false,
+    loading: () => <div className="animate-pulse h-64 bg-zinc-100 rounded-lg" />,
+  },
+);
+
+const ChatDeleteDialog = dynamic(
+  () => import("@/components/chat-delete-dialog").then((mod) => ({
+    default: mod.ChatDeleteDialog,
+  })),
+  {
+    ssr: false,
+  },
+);
 
 export default function ChatManagementPage() {
   const { user } = useUser();
   const router = useRouter();
-  const { sidebarWidth } = useSidebarWidth();
+  const { navigate } = useOptimizedNavigation();
 
   const chats = useQuery(api.chats.getChats);
   const archivedChats = useQuery(api.chats.getArchivedChats);
@@ -524,24 +540,7 @@ export default function ChatManagementPage() {
 
   return (
     <>
-      <div className="h-full w-screen bg-gradient-to-br overflow-hidden rounded-3xl dark:bg-[#090909] bg-white px-4 pb-4">
-        <Toaster position="top-center" richColors />
-
-        {/* Resizable Sidebar */}
-        <ResizableSidebar />
-
-        {/* Main Content Area - Responsive to sidebar width */}
-        <div
-          className="h-[98vh] flex flex-col relative bg-gradient-to-b from-white via-white to-white
-           dark:from-[#090909] dark:via-[#090909] dark:to-[#090909] rounded-3xl"
-          style={{
-            marginLeft: `${sidebarWidth}px`,
-            transition: "margin-left 300ms ease-out",
-          }}
-        >
-          <ChatNavbar />
-
-          <div className="flex-1 overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-8">
+      <div className="flex-1 overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-8">
             <div className="w-full h-full max-w-7xl mx-auto space-y-6">
               {/* Header */}
               <div className="mb-8">
@@ -794,11 +793,11 @@ export default function ChatManagementPage() {
 
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
-                                    onClick={() =>
-                                      router.push(
-                                        `/dashboard/${chat._id}/graph`,
-                                      )
-                                    }
+                                    onClick={() => {
+                                      startTransition(() => {
+                                        navigate(`/dashboard/${chat._id}/graph`);
+                                      });
+                                    }}
                                     className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                                     title="View Graph"
                                   >
@@ -866,7 +865,9 @@ export default function ChatManagementPage() {
                                 }
                                 onClick={() => {
                                   if (selectedFolder !== "archived") {
-                                    router.push(`/dashboard/${chat._id}`);
+                                    startTransition(() => {
+                                      navigate(`/dashboard/${chat._id}`);
+                                    });
                                   }
                                 }}
                               >
@@ -947,7 +948,9 @@ export default function ChatManagementPage() {
                                 className={`flex items-center gap-4 flex-1 ${selectedFolder === "archived" ? "cursor-default opacity-60" : "cursor-pointer"}`}
                                 onClick={() => {
                                   if (selectedFolder !== "archived") {
-                                    router.push(`/dashboard/${chat._id}`);
+                                    startTransition(() => {
+                                      navigate(`/dashboard/${chat._id}`);
+                                    });
                                   }
                                 }}
                               >
@@ -1027,11 +1030,11 @@ export default function ChatManagementPage() {
                                       )}
                                     </button>
                                     <button
-                                      onClick={() =>
-                                        router.push(
-                                          `/dashboard/${chat._id}/graph`,
-                                        )
-                                      }
+                                      onClick={() => {
+                                        startTransition(() => {
+                                          navigate(`/dashboard/${chat._id}/graph`);
+                                        });
+                                      }}
                                       className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                                       title="View Graph"
                                     >
@@ -1292,8 +1295,6 @@ export default function ChatManagementPage() {
               subchatCount={0} // TODO: Calculate subchat count if needed
             />
           </div>
-        </div>
-      </div>
     </>
   );
 }

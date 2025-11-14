@@ -6,6 +6,8 @@ import { api } from "../../../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { useRouter } from "next/navigation";
 import { captureEvent } from "@/lib/posthog";
+import { useOptimizedNavigation } from "@/hooks/use-optimized-navigation";
+import { startTransition } from "react";
 
 import {
   Sidebar,
@@ -49,6 +51,93 @@ interface SidebarParams {
   progressText: string;
 }
 
+// Memoized chat list item component for better performance
+const ChatListItem = React.memo(
+  ({
+    chat,
+    chatId,
+    editingChatId,
+    editingTitle,
+    setEditingTitle,
+    onNavigate,
+    onStartEditing,
+    onFinishEditing,
+    onCancelEditing,
+    onDelete,
+  }: {
+    chat: any;
+    chatId: Id<"chats">;
+    editingChatId: Id<"chats"> | null;
+    editingTitle: string;
+    setEditingTitle: (title: string) => void;
+    onNavigate: () => void;
+    onStartEditing: () => void;
+    onFinishEditing: () => void;
+    onCancelEditing: () => void;
+    onDelete: () => void;
+  }) => {
+    return (
+      <SidebarMenuItem>
+        <div
+          className={cn(
+            "group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+            chat._id === chatId && "bg-amber-400/10 border border-amber-400/20",
+          )}
+        >
+          <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center flex-shrink-0">
+            <MessageSquare className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            {editingChatId === chat._id ? (
+              <Input
+                value={editingTitle}
+                onChange={(e) => setEditingTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onFinishEditing();
+                  if (e.key === "Escape") onCancelEditing();
+                }}
+                onBlur={onFinishEditing}
+                className="h-8 text-sm border-zinc-200 dark:border-zinc-700"
+                autoFocus
+              />
+            ) : (
+              <button
+                onClick={onNavigate}
+                onDoubleClick={onStartEditing}
+                className="text-left w-full active:scale-[0.98] transition-transform duration-75"
+              >
+                <div
+                  className={cn(
+                    "font-medium text-sm truncate",
+                    chat._id === chatId
+                      ? "text-amber-400"
+                      : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                  )}
+                >
+                  {chat.title}
+                </div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                  {chat.context?.length || 0} documents
+                </div>
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={onDelete}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-95"
+          >
+            <Trash className="w-4 h-4 text-red-500" />
+          </button>
+        </div>
+      </SidebarMenuItem>
+    );
+  },
+);
+
+ChatListItem.displayName = "ChatListItem";
+
 export function AppSidebar({
   chatId,
   fileProgress,
@@ -56,6 +145,7 @@ export function AppSidebar({
   progressText,
 }: SidebarParams) {
   const router = useRouter();
+  const { navigate } = useOptimizedNavigation();
   const { user } = useUser();
   const { theme } = useTheme();
 
@@ -216,62 +306,23 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
               {chats?.map((chat) => (
-                <SidebarMenuItem key={chat._id}>
-                  <div
-                    className={cn(
-                      "group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800",
-                      chat._id === chatId &&
-                        "bg-amber-400/10 border border-amber-400/20",
-                    )}
-                  >
-                    <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <MessageSquare className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      {editingChatId === chat._id ? (
-                        <Input
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") finishEditing(chat._id);
-                            if (e.key === "Escape") setEditingChatId(null);
-                          }}
-                          onBlur={() => finishEditing(chat._id)}
-                          className="h-8 text-sm border-zinc-200 dark:border-zinc-700"
-                          autoFocus
-                        />
-                      ) : (
-                        <button
-                          onClick={() => router.push(`/dashboard/${chat._id}`)}
-                          onDoubleClick={() => startEditing(chat)}
-                          className="text-left w-full"
-                        >
-                          <div
-                            className={cn(
-                              "font-medium text-sm truncate",
-                              chat._id === chatId
-                                ? "text-amber-400"
-                                : "text-zinc-900 dark:text-white group-hover:text-amber-400",
-                            )}
-                          >
-                            {chat.title}
-                          </div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                            {chat.context?.length || 0} documents
-                          </div>
-                        </button>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => onDelete(chat._id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-200"
-                    >
-                      <Trash className="w-4 h-4 text-red-500" />
-                    </button>
-                  </div>
-                </SidebarMenuItem>
+                <ChatListItem
+                  key={chat._id}
+                  chat={chat}
+                  chatId={chatId}
+                  editingChatId={editingChatId}
+                  editingTitle={editingTitle}
+                  setEditingTitle={setEditingTitle}
+                  onNavigate={() => {
+                    startTransition(() => {
+                      navigate(`/dashboard/${chat._id}`);
+                    });
+                  }}
+                  onStartEditing={() => startEditing(chat)}
+                  onFinishEditing={() => finishEditing(chat._id)}
+                  onCancelEditing={() => setEditingChatId(null)}
+                  onDelete={() => onDelete(chat._id)}
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -285,8 +336,12 @@ export function AppSidebar({
           <SidebarGroupContent>
             <div className="space-y-2">
               <button
-                onClick={() => router.push(`/dashboard/${chatId}/graph`)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
+                onClick={() => {
+                  startTransition(() => {
+                    navigate(`/dashboard/${chatId}/graph`);
+                  });
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-150 group active:scale-[0.98] active:transition-transform active:duration-75"
               >
                 <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
                   <Network className="w-4 h-4 text-amber-400" />
@@ -305,7 +360,7 @@ export function AppSidebar({
                 onClick={() =>
                   window.open("https://docs.trainlyai.com", "_blank")
                 }
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-150 group active:scale-[0.98] active:transition-transform active:duration-75"
               >
                 <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
                   <Code className="w-4 h-4 text-amber-400" />
