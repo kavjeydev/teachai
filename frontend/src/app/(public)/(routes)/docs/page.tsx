@@ -555,7 +555,7 @@ print('Total:', data['total'])`,
             <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" asChild>
                 <a
-                  href="/api-docs"
+                  href="https://docs.trainlyai.com"
                   target="_blank"
                   className="flex items-center gap-2"
                 >
@@ -598,7 +598,7 @@ print('Total:', data['total'])`,
             </Button>
             <Button variant="outline" size="lg" asChild>
               <a
-                href="/api-docs"
+                href="https://docs.trainlyai.com"
                 target="_blank"
                 className="flex items-center gap-2"
               >
@@ -1008,7 +1008,7 @@ print('Total:', data['total'])`,
           <CardContent>
             <div className="grid md:grid-cols-3 gap-4">
               <Button variant="outline" className="h-16 flex-col gap-2" asChild>
-                <a href="/api-docs" target="_blank">
+                <a href="https://docs.trainlyai.com" target="_blank">
                   <Terminal className="w-5 h-5" />
                   <span>Interactive API</span>
                 </a>

@@ -171,7 +171,9 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
 
               <Card
                 className="border-0 shadow-lg bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
-                onClick={() => window.open("/api-docs", "_blank")}
+                onClick={() =>
+                  window.open("https://docs.trainlyai.com", "_blank")
+                }
               >
                 <CardContent className="p-6 text-center">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">

@@ -601,7 +601,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                 guides, code examples, and best practices.
               </p>
               <Button
-                onClick={() => window.open("/api-docs", "_blank")}
+                onClick={() => window.open("https://docs.trainlyai.com", "_blank")}
                 className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
               >
                 <BookOpen className="w-4 h-4 mr-2" />

@@ -582,7 +582,7 @@ export function ApiKeyManager({ chatId, chatTitle }: ApiKeyManagerProps) {
           <div className="flex gap-2 justify-center">
             <Button
               variant="outline"
-              onClick={() => window.open("/api-docs", "_blank")}
+              onClick={() => window.open("https://docs.trainlyai.com", "_blank")}
             >
               View API Docs
             </Button>

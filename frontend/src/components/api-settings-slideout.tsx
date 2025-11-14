@@ -279,7 +279,7 @@ export function ApiSettingsSlideout({
                     asChild
                   >
                     <a
-                      href="/api-docs"
+                      href="https://docs.trainlyai.com"
                       target="_blank"
                       className="flex items-center gap-3"
                     >

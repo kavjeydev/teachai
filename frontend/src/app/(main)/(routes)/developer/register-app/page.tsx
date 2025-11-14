@@ -311,7 +311,7 @@ const { access_token } = await tokenResponse.json();
 
             <div className="flex gap-3">
               <Button asChild variant="outline">
-                <Link href="/api-docs">View Full Documentation</Link>
+                <a href="https://docs.trainlyai.com" target="_blank">View Full Documentation</a>
               </Button>
               <Button asChild>
                 <Link href="/developer">Back to Developer Dashboard</Link>
