@@ -154,6 +154,22 @@ export default {
             transform: "translateY(calc(-100% - var(--gap)))",
           },
         },
+        shimmer: {
+          "0%": {
+            transform: "translateX(-100%)",
+          },
+          "100%": {
+            transform: "translateX(100%)",
+          },
+        },
+        float: {
+          "0%, 100%": {
+            transform: "translateY(0px)",
+          },
+          "50%": {
+            transform: "translateY(-20px)",
+          },
+        },
       },
       animation: {
         blink: "blink 1s step-start infinite",
@@ -164,6 +180,8 @@ export default {
         gradient: "gradient 8s linear infinite",
         marquee: "marquee var(--duration) linear infinite",
         "marquee-vertical": "marquee-vertical var(--duration) linear infinite",
+        shimmer: "shimmer 3s ease-in-out infinite",
+        float: "float 6s ease-in-out infinite",
       },
       borderRadius: {
         lg: "var(--radius)",

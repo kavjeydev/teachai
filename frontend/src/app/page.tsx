@@ -29,6 +29,8 @@ import {
   Layers,
   Brain,
   Loader2,
+  Gift,
+  X,
 } from "lucide-react";
 import { useNavigationLoading } from "@/hooks/useNavigationLoading";
 import MarqueeDemo from "./components/marquee-component";
@@ -88,6 +90,7 @@ export default function Home() {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [showBetaListBanner, setShowBetaListBanner] = useState(true);
   const { isNavigating, navigateTo } = useNavigationLoading();
 
   useEffect(() => {
@@ -96,6 +99,30 @@ export default function Home() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Adjust navbar position when banner is visible
+  useEffect(() => {
+    if (!mounted) return;
+
+    const updateNavbarPosition = () => {
+      const navbar = document.querySelector('nav');
+      if (navbar) {
+        if (showBetaListBanner) {
+          navbar.style.top = window.innerWidth >= 640 ? '96px' : '88px';
+        } else {
+          navbar.style.top = '16px';
+        }
+      }
+    };
+
+    // Small delay to ensure navbar is rendered
+    const timeoutId = setTimeout(updateNavbarPosition, 0);
+    window.addEventListener('resize', updateNavbarPosition);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', updateNavbarPosition);
+    };
+  }, [showBetaListBanner, mounted]);
 
   if (!mounted) {
     return (
@@ -107,6 +134,30 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-black dark:to-zinc-950 text-zinc-900 dark:text-white overflow-hidden">
+      {/* BetaList Special Offer Banner - Fixed at top */}
+      {showBetaListBanner && (
+        <div className="fixed top-0 left-0 right-0 z-[60] w-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 dark:from-amber-600 dark:via-amber-500 dark:to-amber-600 border-b border-amber-600/20 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-center gap-3 sm:gap-4">
+              <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-pulse flex-shrink-0" />
+              <p className="text-sm sm:text-base md:text-lg font-semibold text-white text-center">
+                <span className="font-bold">BetaList users:</span> First 50 signups get{" "}
+                <span className="font-bold underline decoration-2 underline-offset-2">1 month of Pro free</span>
+              </p>
+              <button
+                onClick={() => setShowBetaListBanner(false)}
+                className="ml-2 sm:ml-4 p-1.5 rounded-full hover:bg-white/20 transition-colors duration-200 flex-shrink-0"
+                aria-label="Close banner"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </button>
+            </div>
+          </div>
+          {/* Animated shimmer effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer pointer-events-none"></div>
+        </div>
+      )}
+
       <Navbar />
 
       {/* Hero Section - Minimal Awwwards Style */}
