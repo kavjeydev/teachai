@@ -690,16 +690,6 @@ export default function PricingPage() {
                   you upgrade or reduce usage.
                 </p>
               </div>
-
-              <div className="pb-8">
-                <h4 className="font-medium text-zinc-900 dark:text-white mb-3">
-                  Do you offer educational discounts?
-                </h4>
-                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  Yes, we offer 50% discounts for students and educators.
-                  Contact us with your .edu email address for verification.
-                </p>
-              </div>
             </div>
           </div>
 
