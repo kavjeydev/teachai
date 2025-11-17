@@ -220,15 +220,6 @@ export function ChatLimitWarning({
               </div>
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>
-                    {nextTier.limits?.maxChats === -1
-                      ? "Unlimited"
-                      : nextTier.limits?.maxChats}{" "}
-                    chats
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
                   <Crown className="w-4 h-4" />
                   <span>{nextTier.features.fileStorage}</span>
                 </div>

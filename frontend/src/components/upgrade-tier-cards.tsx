@@ -154,15 +154,6 @@ export function UpgradeTierCards({
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Check className="w-4 h-4 text-emerald-500" />
-                  <span>
-                    {tier.limits?.maxChats === -1
-                      ? "Unlimited"
-                      : tier.limits?.maxChats}{" "}
-                    chats
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Check className="w-4 h-4 text-emerald-500" />
                   <span>{tier.features.fileStorage}</span>
                 </div>
               </div>
@@ -240,15 +231,6 @@ export function UpgradeTierCards({
                   {typeof tier.features.credits === "number"
                     ? formatTokens(tier.features.credits)
                     : tier.features.credits}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                <span>
-                  {tier.limits?.maxChats === -1
-                    ? "Unlimited"
-                    : tier.limits?.maxChats}{" "}
-                  chats
                 </span>
               </div>
               <div className="flex items-center gap-3">

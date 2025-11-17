@@ -407,15 +407,6 @@ export default function PricingPage() {
                         <div className="flex items-start gap-3">
                           <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                           <span className="text-zinc-700 dark:text-zinc-300">
-                            {typeof tier.features.projects === "number"
-                              ? `${tier.features.projects} project${tier.features.projects > 1 ? "s" : ""}`
-                              : tier.features.projects}
-                          </span>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-zinc-700 dark:text-zinc-300">
                             {typeof tier.features.teamMembers === "number"
                               ? `${tier.features.teamMembers} team member${tier.features.teamMembers > 1 ? "s" : ""}`
                               : tier.features.teamMembers}
@@ -537,20 +528,6 @@ export default function PricingPage() {
                           {typeof tier.features.credits === "number"
                             ? tier.features.credits.toLocaleString()
                             : tier.features.credits}
-                        </td>
-                      ))}
-                    </tr>
-
-                    <tr className="border-b border-zinc-100 dark:border-zinc-800">
-                      <td className="py-4 px-6 font-medium text-zinc-700 dark:text-zinc-300">
-                        Projects
-                      </td>
-                      {tiers.map((tier) => (
-                        <td
-                          key={tier.id}
-                          className="py-4 px-4 text-center text-zinc-600 dark:text-zinc-400"
-                        >
-                          {tier.features.projects}
                         </td>
                       ))}
                     </tr>

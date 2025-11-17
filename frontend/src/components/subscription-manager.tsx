@@ -271,12 +271,6 @@ export function SubscriptionManager() {
                       <div className="flex items-center gap-2 text-sm">
                         <Check className="w-3 h-3 text-green-600" />
                         <span>
-                          {tier.limits?.maxChats || "Unlimited"} chats/APIs
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Check className="w-3 h-3 text-green-600" />
-                        <span>
                           {formatTokens(Number(tier.features.credits))} included
                         </span>
                       </div>
