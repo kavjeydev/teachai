@@ -90,7 +90,7 @@ export default function Home() {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
-  const [showBetaListBanner, setShowBetaListBanner] = useState(true);
+  const [showBetaListBanner, setShowBetaListBanner] = useState(false);
   const { isNavigating, navigateTo } = useNavigationLoading();
 
   useEffect(() => {
