@@ -35,46 +35,6 @@ export const createChat = mutation({
 
     const userId = identity.subject;
 
-    // Check user's subscription and chat limits
-    const subscription = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    // Get current chat count (non-archived chats only)
-    const currentChats = await ctx.db
-      .query("chats")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("isArchived"), false))
-      .collect();
-
-    // Determine chat limit based on subscription tier
-    let chatLimit = 1; // Default free tier limit
-
-    if (subscription && subscription.status === "active") {
-      switch (subscription.tier) {
-        case "pro":
-          chatLimit = 3;
-          break;
-        case "scale":
-          chatLimit = 25;
-          break;
-        case "enterprise":
-          chatLimit = -1; // Unlimited
-          break;
-        default:
-          chatLimit = 1; // Free tier
-      }
-    }
-
-    // Check if user has reached their chat limit
-    if (chatLimit !== -1 && currentChats.length >= chatLimit) {
-      const tierName = subscription?.tier || "free";
-      throw new Error(
-        `You've reached your chat limit of ${chatLimit} chat${chatLimit > 1 ? "s" : ""} for the ${tierName} tier. Please upgrade your plan or archive existing chats to create new ones.`,
-      );
-    }
-
     // Generate unique chat ID
     const timestamp = Date.now().toString(36);
     const randomPart = Math.random().toString(36).substr(2, 8);
@@ -577,56 +537,6 @@ export const restoreFromArchive = mutation({
 
     if (!existingDocument.isArchived) {
       throw new Error("Chat is not archived.");
-    }
-
-    // Check user's subscription and current chat limits before restoring
-    const subscription = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    // Get current active (non-archived) chat count
-    const currentActiveChats = await ctx.db
-      .query("chats")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("isArchived"), false))
-      .collect();
-
-    // Determine chat limit based on subscription tier (matching createChat logic)
-    let chatLimit = 1; // Default free tier limit
-
-    if (subscription && subscription.status === "active") {
-      switch (subscription.tier) {
-        case "pro":
-          chatLimit = 3;
-          break;
-        case "scale":
-          chatLimit = 25;
-          break;
-        case "enterprise":
-          chatLimit = -1; // Unlimited
-          break;
-        default:
-          chatLimit = 1; // Free tier
-      }
-    }
-
-    const tierName = subscription?.tier || "free";
-
-    // Check if restoring this chat would exceed the limit
-    // We check if currentActiveChats.length >= chatLimit because restoring would add 1 more chat
-    // If we're already at or over the limit, we cannot restore
-    if (chatLimit !== -1 && currentActiveChats.length >= chatLimit) {
-      const nextTier =
-        tierName === "free"
-          ? "Pro ($39/mo)"
-          : tierName === "pro"
-            ? "Scale ($199/mo)"
-            : "Enterprise";
-
-      throw new Error(
-        `Chat limit reached (${chatLimit} for ${tierName}). Archive chats or upgrade to ${nextTier} to restore.`,
-      );
     }
 
     const document = await ctx.db.patch(args.id, {
@@ -2394,34 +2304,19 @@ export const getUserChatLimits = query({
       .filter((q) => q.eq(q.field("isArchived"), false))
       .collect();
 
-    // Determine chat limit based on subscription tier
-    let chatLimit = 1; // Default free tier limit
+    // Determine tier name for display purposes
     let tierName = "free";
-
     if (subscription && subscription.status === "active") {
       tierName = subscription.tier;
-      switch (subscription.tier) {
-        case "pro":
-          chatLimit = 3;
-          break;
-        case "scale":
-          chatLimit = 25;
-          break;
-        case "enterprise":
-          chatLimit = -1; // Unlimited
-          break;
-        default:
-          chatLimit = 1; // Free tier
-      }
     }
 
+    // Chat limits are now unlimited for all tiers
     return {
       currentChatCount: currentChats.length,
-      chatLimit: chatLimit,
+      chatLimit: -1, // Unlimited for all tiers
       tierName: tierName,
-      canCreateMore: chatLimit === -1 || currentChats.length < chatLimit,
-      remainingChats:
-        chatLimit === -1 ? -1 : Math.max(0, chatLimit - currentChats.length),
+      canCreateMore: true, // Always allow creating more chats
+      remainingChats: -1, // Unlimited
     };
   },
 });
