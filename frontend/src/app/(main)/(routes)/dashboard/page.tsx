@@ -6,18 +6,20 @@ import { api } from "../../../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUser } from "@clerk/clerk-react";
-import { PlusCircle, Sparkles } from "lucide-react";
+import { PlusCircle, Sparkles, MessageSquare } from "lucide-react";
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import { getStripe, PRICING_TIERS } from "@/lib/stripe";
 import { useSearchParams, useRouter } from "next/navigation";
 import { usePendingUpgrade } from "@/hooks/use-pending-upgrade";
 import { captureEvent } from "@/lib/posthog";
+import { FeedbackForm } from "@/components/feedback-form";
 
 function NoChatContent() {
   const { user } = useUser();
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const { canQuery } = useConvexAuth();
   const searchParams = useSearchParams();
 
@@ -366,10 +368,23 @@ function NoChatContent() {
                   </div>
                 </div>
               )}
+
+              {/* Feedback CTA */}
+              <div className="mt-8 pt-8 border-t border-zinc-200 dark:border-zinc-800 w-full">
+                <Button
+                  onClick={() => setIsFeedbackOpen(true)}
+                  variant="ghost"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-amber-400 dark:hover:text-amber-400 transition-colors"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Share Feedback
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      <FeedbackForm isOpen={isFeedbackOpen} onOpenChange={setIsFeedbackOpen} />
     </>
   );
 }

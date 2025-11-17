@@ -24,6 +24,7 @@ import {
   BarChart3,
   TestTube,
   Network,
+  MessageSquare,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -31,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigationLoading } from "@/components/app-loading-provider";
 import { useConvexAuth } from "@/hooks/use-auth-state";
+import { FeedbackForm } from "@/components/feedback-form";
 
 interface ResizableSidebarParams {
   chatId?: Id<"chats">;
@@ -58,6 +60,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const [showContent, setShowContent] = React.useState(true); // For smooth expand animation
   const [isNavigatingToManage, setIsNavigatingToManage] = React.useState(false);
   const [activeView, setActiveView] = React.useState<string>("testing");
+  const [isFeedbackOpen, setIsFeedbackOpen] = React.useState(false);
   const sidebarRef = React.useRef<HTMLDivElement>(null);
 
   // Sync activeView with URL pathname
@@ -644,6 +647,20 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                           Usage
                         </span>
                       </button>
+
+                      {/* Feedback */}
+                      <button
+                        onClick={() => setIsFeedbackOpen(true)}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        title="Share Feedback"
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
+                          <MessageSquare className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-medium text-zinc-900 dark:text-white group-hover:text-amber-400">
+                          Feedback
+                        </span>
+                      </button>
                     </div>
                   </div>
                 </>
@@ -814,6 +831,14 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   >
                     <BarChart3 className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                   </button>
+
+                  <button
+                    onClick={() => setIsFeedbackOpen(true)}
+                    className="w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    title="Share Feedback"
+                  >
+                    <MessageSquare className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                  </button>
                 </div>
               </div>
             ) : null}
@@ -911,6 +936,9 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
 
       {/* Overlay when resizing */}
       {isResizing && <div className="fixed inset-0 z-50 cursor-col-resize" />}
+
+      {/* Feedback Form Dialog */}
+      <FeedbackForm isOpen={isFeedbackOpen} onOpenChange={setIsFeedbackOpen} />
     </>
   );
 }

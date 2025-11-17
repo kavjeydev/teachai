@@ -468,4 +468,14 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_type", ["userId", "relationshipType"]),
+
+  // User feedback submissions
+  feedback: defineTable({
+    userId: v.string(), // User who submitted the feedback
+    userEmail: v.optional(v.string()), // Optional email from user
+    feedback: v.string(), // The feedback text
+    createdAt: v.number(), // When feedback was submitted
+  })
+    .index("by_user", ["userId"])
+    .index("by_created", ["createdAt"]),
 });
