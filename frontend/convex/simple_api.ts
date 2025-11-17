@@ -19,18 +19,6 @@ export const generateApiKey = mutation({
 
     const userId = identity.subject;
 
-    // Check user subscription tier - API access requires paid plan
-    const subscription = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    if (!subscription || subscription.tier === "free") {
-      throw new Error(
-        "API access requires a Pro subscription. Please upgrade your plan to use this feature.",
-      );
-    }
-
     // Verify user owns the chat
     const chat = await ctx.db.get(args.chatId);
     if (!chat) {
@@ -188,18 +176,6 @@ export const disableApiAccess = mutation({
 
     const userId = identity.subject;
 
-    // Check user subscription tier - API access requires paid plan
-    const subscription = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    if (!subscription || subscription.tier === "free") {
-      throw new Error(
-        "API access requires a Pro subscription. Please upgrade your plan to use this feature.",
-      );
-    }
-
     // Verify user owns the chat
     const chat = await ctx.db.get(args.chatId);
     if (!chat) {
@@ -232,18 +208,6 @@ export const enableApiAccess = mutation({
     }
 
     const userId = identity.subject;
-
-    // Check user subscription tier - API access requires paid plan
-    const subscription = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    if (!subscription || subscription.tier === "free") {
-      throw new Error(
-        "API access requires a Pro subscription. Please upgrade your plan to use this feature.",
-      );
-    }
 
     // Verify user owns the chat
     const chat = await ctx.db.get(args.chatId);
@@ -321,18 +285,6 @@ export const regenerateApiKey = mutation({
     }
 
     const userId = identity.subject;
-
-    // Check user subscription tier - API access requires paid plan
-    const subscription = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    if (!subscription || subscription.tier === "free") {
-      throw new Error(
-        "API access requires a Pro subscription. Please upgrade your plan to use this feature.",
-      );
-    }
 
     // Verify user owns the chat
     const chat = await ctx.db.get(args.chatId);

@@ -18,7 +18,7 @@ export const PRICING_TIERS = {
     price: 0,
     priceId: null,
     popular: false,
-    description: "Let devs experiment and get hooked.",
+    description: "Perfect for getting started with full API access.",
     features: {
       credits: 500, // ~500k tokens
       projects: 1,
@@ -32,7 +32,7 @@ export const PRICING_TIERS = {
       metrics: "Limited (query count only)",
       graphEditing: false,
       branding: false,
-      apiAccess: false,
+      apiAccess: true,
       support: "Community Discord",
     },
     limits: {

@@ -439,10 +439,28 @@ export default function Home() {
             </SignedIn>
           </div>
 
-          <div className="text-center opacity-60">
-            <p className="text-sm text-zinc-400 dark:text-white/40 font-light tracking-wide">
+          <div className="text-center opacity-60 mb-12">
+            <p className="text-sm text-zinc-400 dark:text-white/40 font-light tracking-wide mb-6">
               No credit card • Free forever
             </p>
+            <div className="flex flex-wrap justify-center gap-6 text-xs text-zinc-500 dark:text-white/50 font-light">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-amber-400" />
+                <span>Full API access</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-amber-400" />
+                <span>500 AI credits/month</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-amber-400" />
+                <span>Visual debugging</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-amber-400" />
+                <span>GraphRAG included</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

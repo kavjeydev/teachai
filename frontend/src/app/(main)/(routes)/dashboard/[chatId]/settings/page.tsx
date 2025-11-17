@@ -209,94 +209,27 @@ export default function ChatSettingsPage({ params }: ChatSettingsPageProps) {
                       API Configuration
                     </CardTitle>
                     <CardDescription className="text-base mt-1">
-                      {subscription?.tier === "free"
-                        ? "Turn your chat into a powerful REST API endpoint - Available with Pro subscription"
-                        : "Manage your API keys, test endpoints, and configure access settings for this chat"}
+                      Manage your API keys, test endpoints, and configure access
+                      settings for this chat
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-8">
-                {subscription?.tier === "free" ? (
-                  <div className="text-center py-12">
-                    <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                      <Key className="w-10 h-10 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">
-                      Unlock API Access with Pro
-                    </h3>
-                    <p className="text-zinc-600 dark:text-zinc-400 mb-8 max-w-lg mx-auto">
-                      Transform your intelligent chat into a production-ready
-                      REST API. Generate secure API keys, test endpoints in
-                      real-time, and integrate with your applications
-                      seamlessly.
-                    </p>
-                    <div className="space-y-4 mb-8">
-                      <div className="flex items-center justify-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>Secure API key generation</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>Interactive API testing</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>Custom endpoint configuration</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>Rate limiting & monitoring</span>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() =>
-                        handleUpgrade(
-                          process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
-                          "Pro",
-                        )
-                      }
-                      disabled={isUpgrading}
-                      size="lg"
-                      className="bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white shadow-lg px-8"
-                    >
-                      {isUpgrading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Crown className="w-4 h-4 mr-2" />
-                          Upgrade to Pro - $39/month
-                        </>
-                      )}
-                    </Button>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-4">
-                      ✓ 10,000 AI credits/month • ✓ Full API access • ✓ Priority
-                      support • ✓ Advanced features
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-8">
-                    <SimpleApiManager
+                <div className="space-y-8">
+                  <SimpleApiManager
+                    chatId={chatId}
+                    chatTitle={currentChat.title}
+                  />
+
+                  {/* API Keys Comparison Section */}
+                  <div className="border-t pt-8">
+                    <ApiKeysComparison
                       chatId={chatId}
                       chatTitle={currentChat.title}
                     />
-
-                    {/* API Keys Comparison Section */}
-                    <div className="border-t pt-8">
-                      <ApiKeysComparison
-                        chatId={chatId}
-                        chatTitle={currentChat.title}
-                      />
-                    </div>
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
 

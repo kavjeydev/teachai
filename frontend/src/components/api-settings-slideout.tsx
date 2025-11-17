@@ -416,80 +416,12 @@ export function ApiSettingsSlideout({
               </Card>
             )}
 
-            {/* API Manager - Only for paid users */}
-            {subscription?.tier === "free" ? (
-              <Card className="border-zinc-200 dark:border-zinc-800">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-                    <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                      <Key className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                    </div>
-                    API Access
-                  </CardTitle>
-                  <CardDescription className="text-zinc-500 dark:text-zinc-400">
-                    Convert your chat into a REST API endpoint
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-6">
-                      <Key className="w-8 h-8 text-zinc-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                      API Access - Pro Feature
-                    </h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 max-w-md mx-auto">
-                      Turn your chat into a powerful REST API endpoint. Generate
-                      API keys, test endpoints, and integrate with your
-                      applications. Available with Pro subscription.
-                    </p>
-                    <div className="space-y-3">
-                      <Button
-                        onClick={() =>
-                          handleUpgrade(
-                            process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!,
-                            "Pro",
-                          )
-                        }
-                        disabled={isUpgrading}
-                        className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
-                      >
-                        {isUpgrading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Crown className="w-4 h-4 mr-2" />
-                            Upgrade to Pro - $39/mo
-                          </>
-                        )}
-                      </Button>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-2">
-                        <div>
-                          ✓ 10,000 AI credits/month • ✓ API access • ✓ Priority
-                          support
-                        </div>
-                        <Button
-                          onClick={() => window.open("/billing", "_blank")}
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-auto p-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                        >
-                          View all plans & pricing →
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                <SimpleApiManager
-                  chatId={chatId}
-                  chatTitle={currentChat.title || "Untitled Chat"}
-                />
+            {/* API Manager */}
+            <>
+              <SimpleApiManager
+                chatId={chatId}
+                chatTitle={currentChat.title || "Untitled Chat"}
+              />
 
                 {/* Custom Scopes Information */}
                 <Card className="border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20">
@@ -994,7 +926,6 @@ export function ApiSettingsSlideout({
                   </Card>
                 )}
               </>
-            )}
           </>
         ) : (
           // Loading state

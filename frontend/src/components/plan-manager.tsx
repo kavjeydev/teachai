@@ -60,7 +60,7 @@ const plans: PlanTier[] = [
       { text: "500 AI credits/month (~500k tokens)", included: true },
       { text: "Basic chat functionality", included: true },
       { text: "File uploads (PDF, DOC, TXT)", included: true },
-      { text: "API access", included: false },
+      { text: "API access", included: true },
       { text: "Priority support", included: false },
       { text: "Advanced features", included: false },
     ],
