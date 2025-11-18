@@ -1,7 +1,7 @@
 "use client";
 
 import { DialogHeader, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@nextui-org/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogTrigger,
@@ -26,7 +26,6 @@ import {
   Settings,
   Crown,
   Sparkles,
-  ChevronDown,
   MessageSquare,
   Clock,
   Search,
@@ -59,6 +58,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useOrganization } from "@/components/organization-provider";
+import { Building2, ChevronDown, Plus, Loader2 } from "lucide-react";
 
 interface ChatNavbarProps {
   chatId?: Id<"chats">;
@@ -66,11 +67,36 @@ interface ChatNavbarProps {
 
 export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
   const router = useRouter();
+  const {
+    currentOrganizationId,
+    setCurrentOrganizationId,
+    organizations,
+    isLoading: isLoadingOrgs,
+    createOrganization,
+  } = useOrganization();
+
   const currentChat = useQuery(
     api.chats.getChatById,
     chatId ? { id: chatId } : "skip",
   );
-  const allChats = useQuery(api.chats.getChats);
+
+  // Get current organization name
+  const currentOrg = organizations?.find(
+    (org) => org._id === currentOrganizationId,
+  );
+
+  // Get organization for current chat
+  const chatOrg = currentChat?.organizationId
+    ? organizations?.find((org) => org._id === currentChat.organizationId)
+    : null;
+
+  // Get chats filtered by organization
+  const allChats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId
+      ? { organizationId: currentOrganizationId }
+      : undefined,
+  );
   const [editingTitle, setEditingTitle] = React.useState("");
   const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(
     null,
@@ -80,6 +106,11 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
   const [isUpgrading, setIsUpgrading] = React.useState(false);
   const [chatSelectorOpen, setChatSelectorOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [isCreateOrgDialogOpen, setIsCreateOrgDialogOpen] =
+    React.useState(false);
+  const [newOrgName, setNewOrgName] = React.useState("");
+  const [isCreatingOrg, setIsCreatingOrg] = React.useState(false);
+  const [orgSelectorOpen, setOrgSelectorOpen] = React.useState(false);
 
   // Get subscription status to show/hide upgrade CTA
   const subscription = useQuery(api.subscriptions.getUserSubscription);
@@ -212,9 +243,204 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
     }
   }, [chatSelectorOpen]);
 
+  // Handle organization change - if current chat doesn't belong to new org, navigate away
+  React.useEffect(() => {
+    if (
+      currentOrganizationId &&
+      currentChat?.organizationId &&
+      currentChat.organizationId !== currentOrganizationId &&
+      chatId
+    ) {
+      // Current chat belongs to different organization, navigate to manage page
+      router.push("/dashboard/manage");
+      toast.info(
+        `Switched organization. Chat "${currentChat.title}" belongs to a different organization.`,
+      );
+    }
+  }, [currentOrganizationId, currentChat?.organizationId, chatId, router]);
+
+  // Handle create organization
+  const handleCreateOrganization = async () => {
+    if (!newOrgName.trim()) {
+      toast.error("Please enter an organization name");
+      return;
+    }
+
+    setIsCreatingOrg(true);
+    try {
+      await createOrganization(newOrgName.trim());
+      setIsCreateOrgDialogOpen(false);
+      setNewOrgName("");
+      setOrgSelectorOpen(false);
+      // Toast is already shown by createOrganization function
+    } catch (error) {
+      // Error already handled in createOrganization
+    } finally {
+      setIsCreatingOrg(false);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between w-full h-16 px-4 bg-white/80 dark:bg-[#090909] backdrop-blur-xl">
       <div className="flex items-center gap-2">
+        {/* Organization Selector */}
+        {!isLoadingOrgs && (
+          <Popover open={orgSelectorOpen} onOpenChange={setOrgSelectorOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  "flex items-center gap-2 px-2 py-1 rounded-lg transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                )}
+              >
+                <Building2 className="w-4 h-4 text-zinc-500" />
+                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 max-w-[120px] truncate">
+                  {currentOrg?.name ||
+                  (organizations && organizations.length > 0)
+                    ? "Select org"
+                    : "Create org"}
+                </span>
+                <ChevronDown className="w-3 h-3 text-zinc-400" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-[200px] p-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700"
+              align="start"
+            >
+              <Command>
+                <CommandList className="max-h-[200px]">
+                  <CommandGroup>
+                    {organizations && organizations.length > 0 ? (
+                      <>
+                        {organizations.map((org) => (
+                          <CommandItem
+                            key={org._id}
+                            value={org._id}
+                            onSelect={() => {
+                              setCurrentOrganizationId(org._id);
+                              setOrgSelectorOpen(false);
+                              toast.success(`Switched to ${org.name}`);
+                            }}
+                            className={cn(
+                              "flex items-center gap-2 px-3 py-2 cursor-pointer",
+                              org._id === currentOrganizationId &&
+                                "bg-amber-400/10 border border-amber-400/20",
+                            )}
+                          >
+                            <Building2 className="w-4 h-4" />
+                            <span className="flex-1">{org.name}</span>
+                            {org._id === currentOrganizationId && (
+                              <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                            )}
+                          </CommandItem>
+                        ))}
+                        <CommandItem
+                          value="__create__"
+                          onSelect={() => {
+                            setOrgSelectorOpen(false);
+                            setIsCreateOrgDialogOpen(true);
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 cursor-pointer text-blue-600 dark:text-blue-400 border-t border-zinc-200 dark:border-zinc-700 mt-1"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Create New Organization</span>
+                        </CommandItem>
+                      </>
+                    ) : (
+                      <CommandItem
+                        value="__create__"
+                        onSelect={() => {
+                          setOrgSelectorOpen(false);
+                          setIsCreateOrgDialogOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 cursor-pointer text-blue-600 dark:text-blue-400"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Create Organization</span>
+                      </CommandItem>
+                    )}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        )}
+
+        {/* Create Organization Dialog */}
+        <Dialog
+          open={isCreateOrgDialogOpen}
+          onOpenChange={setIsCreateOrgDialogOpen}
+        >
+          <DialogContent className="sm:max-w-[425px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
+            <DialogHeader>
+              <DialogTitle className="text-zinc-900 dark:text-white">
+                {organizations && organizations.length > 0
+                  ? "Create New Organization"
+                  : "Create Your First Organization"}
+              </DialogTitle>
+              <DialogDescription>
+                {organizations && organizations.length > 0
+                  ? "Create a new organization to organize your chats separately."
+                  : "Organizations help you organize your chats. You can create multiple organizations and switch between them."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="org-name"
+                  className="text-right text-zinc-700 dark:text-zinc-300"
+                >
+                  Name
+                </Label>
+                <Input
+                  id="org-name"
+                  className="col-span-3 border-zinc-200 dark:border-zinc-700 focus:border-amber-400 dark:focus:border-amber-400"
+                  placeholder="My Organization"
+                  value={newOrgName}
+                  onChange={(e) => setNewOrgName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleCreateOrganization();
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsCreateOrgDialogOpen(false);
+                    setNewOrgName("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button
+                className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed text-white"
+                disabled={isCreatingOrg || !newOrgName.trim()}
+                onClick={handleCreateOrganization}
+              >
+                {isCreatingOrg ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Divider */}
+        {!isLoadingOrgs && (
+          <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700"></div>
+        )}
+
         {/* Chat Selector Dropdown */}
         <Popover open={chatSelectorOpen} onOpenChange={setChatSelectorOpen}>
           <PopoverTrigger asChild>
@@ -239,6 +465,11 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
                     ? "No chat selected"
                     : currentChat?.title || "Loading..."}
                 </h1>
+                {chatId && chatOrg && (
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    {chatOrg.name}
+                  </span>
+                )}
               </div>
               <ChevronsUpDown
                 className={cn(
@@ -306,6 +537,14 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
                           <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                             {chat.context?.length || 0} docs •{" "}
                             {new Date(chat._creationTime).toLocaleDateString()}
+                            {chat.organizationId && (
+                              <>
+                                {" • "}
+                                {organizations?.find(
+                                  (org) => org._id === chat.organizationId,
+                                )?.name || "Unknown org"}
+                              </>
+                            )}
                           </div>
                         </div>
                         {chat._id === chatId && (
