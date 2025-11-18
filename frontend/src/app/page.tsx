@@ -31,6 +31,8 @@ import {
   Loader2,
   Gift,
   X,
+  FileText,
+  BookOpen,
 } from "lucide-react";
 import { useNavigationLoading } from "@/hooks/useNavigationLoading";
 import MarqueeDemo from "./components/marquee-component";
@@ -194,16 +196,16 @@ export default function Home() {
               }`}
             >
               <span className="block text-zinc-900 dark:text-white mb-2 tracking-tighter">
-                <span className="text-amber-400">APIs</span> for AI you can
+                The <span className="text-amber-400">GraphRAG</span> platform
               </span>
               <span className="block text-zinc-900 dark:text-white tracking-tighter">
-                see & shape
+                developers trust
               </span>
             </h1>
 
             {/* Minimal Subheadline */}
             <p className="text-lg md:text-xl text-zinc-600 dark:text-white/70 mb-8 max-w-2xl mx-auto leading-relaxed font-light tracking-tighter">
-              Ship production AI in 2 minutes with visual GraphRAG debugging
+              Build production-ready AI with visual debugging, complete traceability, and APIs that ship in minutes—not months
             </p>
           </div>
 
@@ -278,6 +280,62 @@ export default function Home() {
         </div>
       </section>
 
+      {/* What is Trainly Section */}
+      <section className="py-40 relative">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-7xl font-sans font-normal text-zinc-900 dark:text-white mb-8 leading-[0.9]">
+              What is Trainly?
+            </h2>
+            <p className="text-xl md:text-2xl text-zinc-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed font-light">
+              Trainly is the complete GraphRAG platform that transforms how developers build AI applications. 
+              Upload documents, build knowledge graphs, and deploy production APIs—all with visual debugging and complete traceability.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-xl flex items-center justify-center mb-6">
+                <FileText className="w-6 h-6 text-amber-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">
+                Upload & Process
+              </h3>
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                Upload PDFs, documents, or entire folders. Trainly automatically extracts knowledge, 
+                builds relationships, and creates a searchable knowledge graph.
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-xl flex items-center justify-center mb-6">
+                <Brain className="w-6 h-6 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">
+                Visual Debugging
+              </h3>
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                See exactly how your AI reasons. Visualize knowledge graphs, trace citations, 
+                and debug responses like you debug code—with breakpoints and step-through.
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-400/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-6">
+                <Code className="w-6 h-6 text-purple-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">
+                Production APIs
+              </h3>
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                Get instant API keys and REST endpoints. Integrate GraphRAG into your apps 
+                in minutes with complete privacy controls and usage analytics.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Stats Section - Ultra Minimal */}
       <section className="py-40 relative">
         <div className="max-w-5xl mx-auto px-6">
@@ -308,17 +366,137 @@ export default function Home() {
             </div>
             <div className="text-center group">
               <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
-                ∞
+                90%
               </div>
               <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
-                USE CASES
+                fewer hallucinations
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section - Ultra Minimal */}
+      {/* Why Developers Choose Trainly */}
+      <section className="py-40 relative bg-gradient-to-b from-transparent via-zinc-50/50 to-transparent dark:via-zinc-950/50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-7xl font-sans font-normal text-zinc-900 dark:text-white mb-8 leading-[0.9]">
+              Why developers choose
+              <br />
+              <span className="text-amber-400">Trainly</span>
+            </h2>
+            <p className="text-xl text-zinc-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed font-light">
+              Built by developers, for developers. Every feature is designed to make your life easier.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-amber-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                    Privacy-First Architecture
+                  </h3>
+                  <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                    Complete data isolation. You can see usage analytics but never access raw user data. 
+                    Perfect for B2B SaaS where privacy is non-negotiable.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-blue-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Terminal className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                    Developer-Friendly APIs
+                  </h3>
+                  <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                    RESTful APIs with SDKs for Python and React. Simple authentication, 
+                    comprehensive docs, and instant API keys. No vendor lock-in.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-purple-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Eye className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                    Complete Transparency
+                  </h3>
+                  <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                    Every response includes citations. Visualize knowledge graphs, 
+                    trace reasoning paths, and understand exactly how your AI works.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-green-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <GitBranch className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                    Custom Scopes & Filtering
+                  </h3>
+                  <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                    Organize knowledge with custom scopes. Filter by workspace, project, 
+                    or any metadata. Perfect for multi-tenant applications.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-orange-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="w-5 h-5 text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                    Production-Ready Analytics
+                  </h3>
+                  <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                    Privacy-first usage analytics. Track API calls, file uploads, 
+                    and user activity without compromising data privacy.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-indigo-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Users className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                    Multi-User Support
+                  </h3>
+                  <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                    Built for teams. Each API key creates isolated user sessions. 
+                    Perfect for SaaS applications serving multiple customers.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section - Enhanced */}
       <section className="py-40 relative">
         <div className="max-w-6xl mx-auto px-6">
           {/* Minimal Section Header */}
@@ -330,7 +508,7 @@ export default function Home() {
             </h2>
           </div>
 
-          {/* Minimal Feature Grid */}
+          {/* Enhanced Feature Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
             {/* Visual Debugging */}
             <div className="group text-center">
@@ -340,10 +518,24 @@ export default function Home() {
               <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
                 Visual Debugging
               </h3>
-              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light mb-4">
                 See your AI's reasoning process in real-time. Debug AI like code
-                with visual breakpoints.
+                with visual breakpoints and step-through debugging.
               </p>
+              <ul className="text-sm text-zinc-500 dark:text-white/50 space-y-2 text-left max-w-xs mx-auto">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>Knowledge graph visualization</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>Citation tracing</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>Reasoning path inspection</span>
+                </li>
+              </ul>
             </div>
 
             {/* GraphRAG */}
@@ -354,10 +546,24 @@ export default function Home() {
               <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
                 Reliable GraphRAG
               </h3>
-              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light mb-4">
                 Knowledge graphs with complete traceability. 90% fewer
-                hallucinations guaranteed.
+                hallucinations guaranteed with source attribution.
               </p>
+              <ul className="text-sm text-zinc-500 dark:text-white/50 space-y-2 text-left max-w-xs mx-auto">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>Automatic relationship extraction</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>100% source traceability</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>Neo4j-powered knowledge graphs</span>
+                </li>
+              </ul>
             </div>
 
             {/* Instant Deploy */}
@@ -368,9 +574,177 @@ export default function Home() {
               <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
                 2-Minute Deploy
               </h3>
-              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light mb-4">
                 From upload to production API in 120 seconds. No complex setup
-                required.
+                required—just upload and go.
+              </p>
+              <ul className="text-sm text-zinc-500 dark:text-white/50 space-y-2 text-left max-w-xs mx-auto">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>Instant API keys</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>RESTful endpoints</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>Python & React SDKs</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-40 relative bg-gradient-to-b from-transparent via-zinc-50/50 to-transparent dark:via-zinc-950/50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-7xl font-sans font-normal text-zinc-900 dark:text-white mb-8 leading-[0.9]">
+              How it works
+            </h2>
+            <p className="text-xl text-zinc-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed font-light">
+              From document upload to production API in three simple steps
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            {/* Step 1 */}
+            <div className="relative">
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800 h-full">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center mb-6 text-white font-bold text-xl">
+                  1
+                </div>
+                <h3 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-4">
+                  Upload Documents
+                </h3>
+                <p className="text-zinc-600 dark:text-white/70 leading-relaxed mb-4">
+                  Upload PDFs, Word docs, or text files. Trainly automatically processes 
+                  them and builds a knowledge graph with relationships and entities.
+                </p>
+                <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                  <FileText className="w-4 h-4" />
+                  <span>Supports PDF, DOC, DOCX, TXT</span>
+                </div>
+              </div>
+              <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-amber-400 to-transparent z-10"></div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="relative">
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800 h-full">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center mb-6 text-white font-bold text-xl">
+                  2
+                </div>
+                <h3 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-4">
+                  Test & Debug
+                </h3>
+                <p className="text-zinc-600 dark:text-white/70 leading-relaxed mb-4">
+                  Ask questions and see how your AI reasons. Visualize the knowledge graph, 
+                  trace citations, and debug responses in real-time.
+                </p>
+                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                  <Eye className="w-4 h-4" />
+                  <span>Visual debugging included</span>
+                </div>
+              </div>
+              <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-blue-400 to-transparent z-10"></div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="relative">
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800 h-full">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center mb-6 text-white font-bold text-xl">
+                  3
+                </div>
+                <h3 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-4">
+                  Deploy API
+                </h3>
+                <p className="text-zinc-600 dark:text-white/70 leading-relaxed mb-4">
+                  Get instant API keys and integrate GraphRAG into your application. 
+                  Complete with usage analytics and privacy controls.
+                </p>
+                <div className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400">
+                  <Code className="w-4 h-4" />
+                  <span>REST APIs & SDKs ready</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Developer Use Cases */}
+      <section className="py-40 relative">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-7xl font-sans font-normal text-zinc-900 dark:text-white mb-8 leading-[0.9]">
+              Built for developers
+            </h2>
+            <p className="text-xl text-zinc-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed font-light">
+              Powering AI applications across industries
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-amber-400/10 rounded-lg flex items-center justify-center">
+                  <Code className="w-5 h-5 text-amber-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">
+                  SaaS Applications
+                </h3>
+              </div>
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                Build AI-powered features into your SaaS product. Multi-tenant support, 
+                privacy-first analytics, and instant API integration.
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-blue-400/10 rounded-lg flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">
+                  Documentation Assistants
+                </h3>
+              </div>
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                Create intelligent documentation chatbots. Upload technical docs, 
+                get instant answers with citations, and visualize knowledge relationships.
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-purple-400/10 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-purple-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">
+                  Customer Support
+                </h3>
+              </div>
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                Build AI support agents with complete knowledge bases. Visual debugging 
+                helps you understand and improve responses before deployment.
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl p-8 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-green-400/10 rounded-lg flex items-center justify-center">
+                  <Globe className="w-5 h-5 text-green-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">
+                  Research & Analysis
+                </h3>
+              </div>
+              <p className="text-zinc-600 dark:text-white/70 leading-relaxed">
+                Analyze research papers, legal documents, or technical specifications. 
+                Visualize relationships and trace insights back to source material.
               </p>
             </div>
           </div>
@@ -380,7 +754,7 @@ export default function Home() {
       {/* Social Proof - Ultra Minimal */}
       <section className="py-32 relative">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="flex justify-center items-center gap-16 opacity-50">
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50">
             <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
               YC Startups
             </span>
@@ -401,8 +775,14 @@ export default function Home() {
       <section className="py-40 relative">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-6xl md:text-8xl font-sans font-normal text-black dark:text-white mb-12 leading-[0.9]">
-            Ready to build?
+            Ready to build with
+            <br />
+            <span className="text-amber-400">Trainly?</span>
           </h2>
+          <p className="text-xl text-zinc-600 dark:text-white/70 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
+            Join developers who are shipping production AI faster than ever. 
+            Start free, no credit card required.
+          </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
             <SignedOut>
