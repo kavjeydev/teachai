@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { useNavigationLoading } from "@/components/app-loading-provider";
 import { useConvexAuth } from "@/hooks/use-auth-state";
 import { FeedbackForm } from "@/components/feedback-form";
+import { useOrganization } from "@/components/organization-provider";
 
 interface ResizableSidebarParams {
   chatId?: Id<"chats">;
@@ -45,11 +46,19 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
   const { startNavigation } = useNavigationLoading();
   const { canQuery, skipQuery } = useConvexAuth();
   const { navigate } = useOptimizedNavigation();
+  const { currentOrganizationId } = useOrganization();
 
-  const chats = useQuery(api.chats.getChats, canQuery ? undefined : skipQuery);
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId && canQuery
+      ? { organizationId: currentOrganizationId }
+      : skipQuery,
+  );
   const chatLimits = useQuery(
     api.chats.getUserChatLimits,
-    canQuery ? undefined : skipQuery,
+    currentOrganizationId && canQuery
+      ? { organizationId: currentOrganizationId }
+      : skipQuery,
   );
   const addChat = useMutation(api.chats.createChat);
 
@@ -192,8 +201,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
       return;
     }
 
+    if (!currentOrganizationId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+
     try {
-      const newChatId = await addChat({ title: "Untitled Chat" });
+      const newChatId = await addChat({
+        title: "Untitled Chat",
+        organizationId: currentOrganizationId,
+      });
       // Navigate to testing view when creating new chat
       startTransition(() => {
         navigate(`/dashboard/${newChatId}/testing`);

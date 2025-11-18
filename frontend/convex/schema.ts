@@ -89,10 +89,21 @@ export default defineSchema({
     .index("by_app_user", ["appId", "endUserId"])
     .index("by_chat", ["chatId"]),
 
+  organizations: defineTable({
+    organizationId: v.string(), // Unique organization identifier (org_xxx)
+    name: v.string(),
+    userId: v.string(), // The user who created the organization
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_organizationId", ["organizationId"]),
+
   chats: defineTable({
     chatId: v.string(),
     title: v.string(),
     userId: v.string(), // Still the end-user who owns the data
+    organizationId: v.optional(v.id("organizations")), // Organization this chat belongs to (optional for backward compatibility)
     chatType: v.optional(v.string()), // "user_direct" or "app_subchat"
     parentAppId: v.optional(v.string()), // If this is a sub-chat under an app (keep for backward compatibility)
     parentChatId: v.optional(v.string()), // Parent chat's string chatId (more efficient than parentAppId lookup)
@@ -270,14 +281,20 @@ export default defineSchema({
     .index("by_chatId", ["chatId"])
     .index("by_title", ["title"])
     .index("by_fileId", ["context"])
-    .index("by_folder", ["folderId"]),
+    .index("by_folder", ["folderId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_user_organization", ["userId", "organizationId"]),
 
   folders: defineTable({
     name: v.string(),
     userId: v.string(),
+    organizationId: v.optional(v.id("organizations")), // Optional for backward compatibility
     color: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_user_organization", ["userId", "organizationId"]),
 
   integration_keys: defineTable({
     keyId: v.string(),

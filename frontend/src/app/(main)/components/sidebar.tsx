@@ -48,6 +48,8 @@ import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useOrganization } from "@/components/organization-provider";
+import { OrganizationSelector } from "@/components/organization-selector";
 
 interface SidebarParams {
   chatId: Id<"chats">;
@@ -64,9 +66,16 @@ export function AppSidebar({
 }: SidebarParams) {
   const router = useRouter();
   const { user } = useUser();
+  const { currentOrganizationId } = useOrganization();
 
-  const chats = useQuery(api.chats.getChats);
-  const chatLimits = useQuery(api.chats.getUserChatLimits);
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : "skip",
+  );
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : "skip",
+  );
   const currentChat = useQuery(api.chats.getChatById, { id: chatId });
 
   const addChat = useMutation(api.chats.createChat);
@@ -116,8 +125,16 @@ export function AppSidebar({
       return;
     }
 
+    if (!currentOrganizationId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+
     try {
-      await addChat({ title: "untitled" });
+      await addChat({
+        title: "untitled",
+        organizationId: currentOrganizationId,
+      });
       toast.success("Created new chat!");
     } catch (error) {
       if (error instanceof Error) {
@@ -208,22 +225,27 @@ export function AppSidebar({
   return (
     <Sidebar className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border-r border-zinc-200/50 dark:border-zinc-800/50">
       <SidebarHeader className="p-6 border-b border-zinc-200/50 dark:border-zinc-800/50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center">
-            <img
-              src="/trainly_icon_black.png"
-              alt="Trainly Logo"
-              className="w-6 h-6 block dark:hidden"
-            />
-            <img
-              src="/trainly_icon_white.png"
-              alt="Trainly Logo"
-              className="w-6 h-6 hidden dark:block"
-            />
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center">
+              <img
+                src="/trainly_icon_black.png"
+                alt="Trainly Logo"
+                className="w-6 h-6 block dark:hidden"
+              />
+              <img
+                src="/trainly_icon_white.png"
+                alt="Trainly Logo"
+                className="w-6 h-6 hidden dark:block"
+              />
+            </div>
+            <span className="text-xl font-bold text-zinc-900 dark:text-white">
+              trainly
+            </span>
           </div>
-          <span className="text-xl font-bold text-zinc-900 dark:text-white">
-            trainly
-          </span>
+          <div className="mt-2">
+            <OrganizationSelector />
+          </div>
         </div>
       </SidebarHeader>
 
