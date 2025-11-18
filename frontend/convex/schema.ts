@@ -103,7 +103,7 @@ export default defineSchema({
     chatId: v.string(),
     title: v.string(),
     userId: v.string(), // Still the end-user who owns the data
-    organizationId: v.id("organizations"), // Organization this chat belongs to
+    organizationId: v.optional(v.id("organizations")), // Organization this chat belongs to (optional for backward compatibility)
     chatType: v.optional(v.string()), // "user_direct" or "app_subchat"
     parentAppId: v.optional(v.string()), // If this is a sub-chat under an app (keep for backward compatibility)
     parentChatId: v.optional(v.string()), // Parent chat's string chatId (more efficient than parentAppId lookup)
@@ -288,7 +288,7 @@ export default defineSchema({
   folders: defineTable({
     name: v.string(),
     userId: v.string(),
-    organizationId: v.id("organizations"),
+    organizationId: v.optional(v.id("organizations")), // Optional for backward compatibility
     color: v.optional(v.string()),
     createdAt: v.number(),
   })

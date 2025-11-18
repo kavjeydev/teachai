@@ -6,6 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useConvexAuth } from "@/hooks/use-auth-state";
 
 interface OrganizationContextType {
   currentOrganizationId: Id<"organizations"> | null;
@@ -30,8 +31,13 @@ export function OrganizationProvider({
   >(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const organizations = useQuery(api.organizations.getOrganizations);
+  const { canQuery } = useConvexAuth();
+  const organizations = useQuery(
+    api.organizations.getOrganizations,
+    canQuery ? undefined : "skip",
+  );
   const createOrgMutation = useMutation(api.organizations.createOrganization);
+  const migrateChatsMutation = useMutation(api.chats.migrateChatsToOrganization);
 
   // Load organization from localStorage on mount
   useEffect(() => {
@@ -44,13 +50,14 @@ export function OrganizationProvider({
     setIsInitialized(true);
   }, []);
 
-  // Set default organization when organizations load
+  // Set default organization when organizations load and migrate chats
   useEffect(() => {
     if (
       isInitialized &&
       organizations &&
       organizations.length > 0 &&
-      !currentOrganizationId
+      !currentOrganizationId &&
+      canQuery
     ) {
       // Check if saved org still exists
       const savedOrgId = localStorage.getItem("currentOrganizationId");
@@ -58,6 +65,13 @@ export function OrganizationProvider({
         const orgExists = organizations.some((org) => org._id === savedOrgId);
         if (orgExists) {
           setCurrentOrganizationIdState(savedOrgId as Id<"organizations">);
+          // Migrate any chats without organizationId to this org
+          migrateChatsMutation({ organizationId: savedOrgId as Id<"organizations"> }).catch(
+            (err) => {
+              // Silently fail - migration is best effort
+              console.log("Migration note:", err);
+            },
+          );
           return;
         }
       }
@@ -65,13 +79,25 @@ export function OrganizationProvider({
       const firstOrg = organizations[0];
       setCurrentOrganizationIdState(firstOrg._id);
       localStorage.setItem("currentOrganizationId", firstOrg._id);
+      // Migrate any chats without organizationId to this org
+      migrateChatsMutation({ organizationId: firstOrg._id }).catch((err) => {
+        // Silently fail - migration is best effort
+        console.log("Migration note:", err);
+      });
     }
-  }, [organizations, currentOrganizationId, isInitialized]);
+  }, [organizations, currentOrganizationId, isInitialized, canQuery, migrateChatsMutation]);
 
   const setCurrentOrganizationId = (id: Id<"organizations"> | null) => {
     setCurrentOrganizationIdState(id);
     if (id && typeof window !== "undefined") {
       localStorage.setItem("currentOrganizationId", id);
+      // Migrate any chats without organizationId to this org when switching
+      if (canQuery) {
+        migrateChatsMutation({ organizationId: id }).catch((err) => {
+          // Silently fail - migration is best effort
+          console.log("Migration note:", err);
+        });
+      }
     } else if (typeof window !== "undefined") {
       localStorage.removeItem("currentOrganizationId");
     }

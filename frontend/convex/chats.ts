@@ -24,16 +24,30 @@ export const getChats = query({
       throw new Error("Unauthorized to view chats in this organization.");
     }
 
-    const chats = await ctx.db
+    // Query chats with organizationId
+    const chatsWithOrg = await ctx.db
       .query("chats")
       .withIndex("by_user_organization", (q) =>
         q.eq("userId", userId).eq("organizationId", args.organizationId),
       )
       .filter((q) => q.eq(q.field("isArchived"), false))
-      .order("desc")
       .collect();
 
-    return chats;
+    // Also get chats without organizationId (for backward compatibility during migration)
+    // These will be migrated to the organization
+    const chatsWithoutOrg = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("isArchived"), false),
+          q.eq(q.field("organizationId"), undefined),
+        ),
+      )
+      .collect();
+
+    // Combine and return all chats
+    return [...chatsWithOrg, ...chatsWithoutOrg];
   },
 });
 
@@ -2520,6 +2534,52 @@ export const clearScopeConfig = mutation({
     return {
       success: true,
       message: "Scope configuration cleared",
+    };
+  },
+});
+
+// Migration helper: Assign existing chats without organizationId to an organization
+export const migrateChatsToOrganization = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to migrate chats to this organization.");
+    }
+
+    // Find all chats without organizationId for this user
+    const chatsToMigrate = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("organizationId"), undefined))
+      .collect();
+
+    // Update each chat with the organizationId
+    let migratedCount = 0;
+    for (const chat of chatsToMigrate) {
+      await ctx.db.patch(chat._id, {
+        organizationId: args.organizationId,
+      });
+      migratedCount++;
+    }
+
+    return {
+      success: true,
+      migratedCount,
+      message: `Migrated ${migratedCount} chat(s) to organization "${organization.name}"`,
     };
   },
 });
