@@ -43,7 +43,7 @@ import { Badge } from "@/components/ui/badge";
 import ThemeSwitcher from "./theme-switcher";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { getStripe, PRICING_TIERS } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { NavbarPublishStatus } from "@/components/navbar-publish-status";
 import { StorageUsageIndicator } from "@/components/storage-usage-indicator";
 import {
