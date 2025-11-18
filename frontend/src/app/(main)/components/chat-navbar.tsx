@@ -84,9 +84,21 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
   );
 
   // Get current organization name
-  const currentOrg = organizations?.find(
-    (org) => org._id === currentOrganizationId,
-  );
+  const currentOrg = React.useMemo(() => {
+    if (!organizations || !currentOrganizationId) return null;
+    const found = organizations.find(
+      (org) => org._id === currentOrganizationId,
+    );
+    // Debug: log if organization ID is set but not found
+    if (currentOrganizationId && !found && organizations.length > 0) {
+      console.log("Organization not found:", {
+        currentOrganizationId,
+        organizationIds: organizations.map((o) => o._id),
+        organizations: organizations.map((o) => ({ id: o._id, name: o.name })),
+      });
+    }
+    return found;
+  }, [organizations, currentOrganizationId]);
 
   // Get organization for current chat
   const chatOrg = (currentChat as any)?.organizationId
@@ -300,9 +312,11 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
                 <Building2 className="w-4 h-4 text-zinc-500" />
                 <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 max-w-[120px] truncate">
                   {currentOrg?.name ||
-                  (organizations && organizations.length > 0)
-                    ? "Select org"
-                    : "Create org"}
+                    (isLoadingOrgs
+                      ? "Loading..."
+                      : organizations && organizations.length > 0
+                        ? "Select org"
+                        : "Create org")}
                 </span>
                 <ChevronDown className="w-3 h-3 text-zinc-400" />
               </button>

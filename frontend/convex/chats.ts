@@ -18,18 +18,18 @@ export const getChats = query({
     // If organizationId is provided, verify it exists and user owns it
     if (args.organizationId) {
       const organization = await ctx.db.get(args.organizationId as any);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
       if ((organization as any).userId !== userId) {
-      throw new Error("Unauthorized to view chats in this organization.");
-    }
+        throw new Error("Unauthorized to view chats in this organization.");
+      }
 
-    const chats = await ctx.db
-      .query("chats")
+      const chats = await ctx.db
+        .query("chats")
         .withIndex("by_user_organization" as any, (q: any) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
         .filter((q) => q.eq(q.field("isArchived"), false))
         .order("desc")
         .collect();
@@ -542,19 +542,19 @@ export const getArchivedChats = query({
 
     // If organizationId is provided, verify it exists and user owns it
     if (args.organizationId) {
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view chats in this organization.");
-    }
+      const organization = await ctx.db.get(args.organizationId);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if (organization.userId !== userId) {
+        throw new Error("Unauthorized to view chats in this organization.");
+      }
 
-    const chats = await ctx.db
-      .query("chats")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
+      const chats = await ctx.db
+        .query("chats")
+        .withIndex("by_user_organization", (q) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
         .filter((q) => q.eq(q.field("isArchived"), true))
         .order("desc")
         .collect();
@@ -1031,19 +1031,19 @@ export const getFolders = query({
 
     // If organizationId is provided, verify it exists and user owns it
     if (args.organizationId) {
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view folders in this organization.");
-    }
+      const organization = await ctx.db.get(args.organizationId);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if (organization.userId !== userId) {
+        throw new Error("Unauthorized to view folders in this organization.");
+      }
 
-    const folders = await ctx.db
-      .query("folders")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
+      const folders = await ctx.db
+        .query("folders")
+        .withIndex("by_user_organization", (q) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
         .order("desc")
         .collect();
 
@@ -1246,19 +1246,19 @@ export const getFavoriteChats = query({
 
     // If organizationId is provided, verify it exists and user owns it
     if (args.organizationId) {
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view chats in this organization.");
-    }
+      const organization = await ctx.db.get(args.organizationId);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if (organization.userId !== userId) {
+        throw new Error("Unauthorized to view chats in this organization.");
+      }
 
-    const favoriteChats = await ctx.db
-      .query("chats")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
+      const favoriteChats = await ctx.db
+        .query("chats")
+        .withIndex("by_user_organization", (q) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
         .filter((q) =>
           q.and(
             q.eq(q.field("isArchived"), false),
@@ -2437,22 +2437,22 @@ export const getUserChatLimits = query({
 
     // If organizationId is provided, verify it exists and user owns it
     if (args.organizationId) {
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view chats in this organization.");
-    }
+      const organization = await ctx.db.get(args.organizationId);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if (organization.userId !== userId) {
+        throw new Error("Unauthorized to view chats in this organization.");
+      }
 
-    // Get current chat count for this organization (non-archived chats only)
+      // Get current chat count for this organization (non-archived chats only)
       currentChats = await ctx.db
-      .query("chats")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
-      .filter((q) => q.eq(q.field("isArchived"), false))
-      .collect();
+        .query("chats")
+        .withIndex("by_user_organization", (q) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
+        .filter((q) => q.eq(q.field("isArchived"), false))
+        .collect();
     } else {
       // If no organizationId provided, get all user's chats (for backward compatibility)
       currentChats = await ctx.db
