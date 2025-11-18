@@ -75,6 +75,9 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
     createOrganization,
   } = useOrganization();
 
+  // Check if organization provider is available (not on public pages)
+  const hasOrgProvider = organizations !== undefined || isLoadingOrgs;
+
   const currentChat = useQuery(
     api.chats.getChatById,
     chatId ? { id: chatId } : "skip",
@@ -86,16 +89,18 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
   );
 
   // Get organization for current chat
-  const chatOrg = currentChat?.organizationId
-    ? organizations?.find((org) => org._id === currentChat.organizationId)
+  const chatOrg = (currentChat as any)?.organizationId
+    ? organizations?.find(
+        (org) => org._id === (currentChat as any).organizationId,
+      )
     : null;
 
   // Get chats filtered by organization
   const allChats = useQuery(
     api.chats.getChats,
     currentOrganizationId
-      ? { organizationId: currentOrganizationId }
-      : undefined,
+      ? ({ organizationId: currentOrganizationId } as any)
+      : ({} as any),
   );
   const [editingTitle, setEditingTitle] = React.useState("");
   const [editingChatId, setEditingChatId] = React.useState<Id<"chats"> | null>(
@@ -283,8 +288,8 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
   return (
     <div className="flex items-center justify-between w-full h-16 px-4 bg-white/80 dark:bg-[#090909] backdrop-blur-xl">
       <div className="flex items-center gap-2">
-        {/* Organization Selector */}
-        {!isLoadingOrgs && (
+        {/* Organization Selector - only show when provider is available */}
+        {hasOrgProvider && !isLoadingOrgs && (
           <Popover open={orgSelectorOpen} onOpenChange={setOrgSelectorOpen}>
             <PopoverTrigger asChild>
               <button
