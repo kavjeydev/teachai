@@ -11,6 +11,8 @@ import { Id } from "../../../../../../convex/_generated/dataModel";
 import { captureEvent } from "@/lib/posthog";
 import { useOptimizedNavigation } from "@/hooks/use-optimized-navigation";
 import { startTransition } from "react";
+import { useOrganization } from "@/components/organization-provider";
+import { OrganizationRequired } from "@/components/organization-required";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -73,11 +75,24 @@ export default function ChatManagementPage() {
   const { user } = useUser();
   const router = useRouter();
   const { navigate } = useOptimizedNavigation();
+  const { currentOrganizationId } = useOrganization();
 
-  const chats = useQuery(api.chats.getChats);
-  const archivedChats = useQuery(api.chats.getArchivedChats);
-  const chatLimits = useQuery(api.chats.getUserChatLimits);
-  const userFolders = useQuery(api.chats.getFolders);
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : "skip",
+  );
+  const archivedChats = useQuery(
+    api.chats.getArchivedChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : "skip",
+  );
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : "skip",
+  );
+  const userFolders = useQuery(
+    api.chats.getFolders,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : "skip",
+  );
   const addChat = useMutation(api.chats.createChat);
   const archiveChat = useMutation(api.chats.archive);
   const restoreChat = useMutation(api.chats.restoreFromArchive);
@@ -255,6 +270,11 @@ export default function ChatManagementPage() {
   }, [chats, archivedChats, searchQuery, sortBy, sortOrder, selectedFolder]);
 
   const onCreate = async () => {
+    if (!currentOrganizationId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+
     // Check if user can create more chats
     if (chatLimits && !chatLimits.canCreateMore) {
       toast.error(
@@ -264,7 +284,10 @@ export default function ChatManagementPage() {
     }
 
     try {
-      await addChat({ title: "Untitled Chat" });
+      await addChat({
+        title: "Untitled Chat",
+        organizationId: currentOrganizationId,
+      });
       toast.success("Created new chat!");
     } catch (error) {
       if (error instanceof Error) {
@@ -308,7 +331,14 @@ export default function ChatManagementPage() {
   const handleCreateFolder = async () => {
     if (newFolderName.trim()) {
       try {
-        await createFolder({ name: newFolderName.trim() });
+        if (!currentOrganizationId) {
+          toast.error("Please select an organization first");
+          return;
+        }
+        await createFolder({
+          name: newFolderName.trim(),
+          organizationId: currentOrganizationId,
+        });
 
         // Track folder creation in PostHog
         captureEvent("folder_created", {
@@ -539,7 +569,7 @@ export default function ChatManagementPage() {
   }
 
   return (
-    <>
+    <OrganizationRequired>
       <div className="flex-1 overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-8">
             <div className="w-full h-full max-w-7xl mx-auto space-y-6">
               {/* Header */}
@@ -1295,6 +1325,6 @@ export default function ChatManagementPage() {
               subchatCount={0} // TODO: Calculate subchat count if needed
             />
           </div>
-    </>
+      </OrganizationRequired>
   );
 }
