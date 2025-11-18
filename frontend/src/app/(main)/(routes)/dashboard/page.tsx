@@ -13,6 +13,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { usePendingUpgrade } from "@/hooks/use-pending-upgrade";
 import { captureEvent } from "@/lib/posthog";
 import { FeedbackForm } from "@/components/feedback-form";
+import { useOrganization } from "@/components/organization-provider";
+import { OrganizationRequired } from "@/components/organization-required";
 
 function NoChatContent() {
   const { user } = useUser();
@@ -27,9 +29,18 @@ function NoChatContent() {
   const paymentSuccess = searchParams.get("success");
   const paymentCanceled = searchParams.get("canceled");
 
+  const { currentOrganizationId } = useOrganization();
   const addChat = useMutation(api.chats.createChat);
-  const chatLimits = useQuery(api.chats.getUserChatLimits);
-  const chats = useQuery(api.chats.getChats, canQuery ? undefined : "skip");
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : "skip",
+  );
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId && canQuery
+      ? { organizationId: currentOrganizationId }
+      : "skip",
+  );
 
   // If user has chats, redirect to manage page
   React.useEffect(() => {
@@ -152,9 +163,17 @@ function NoChatContent() {
       return;
     }
 
+    if (!currentOrganizationId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+
     setIsCreating(true);
     try {
-      const newChatId = await addChat({ title: "untitled" });
+      const newChatId = await addChat({
+        title: "untitled",
+        organizationId: currentOrganizationId,
+      });
       toast.success("Created chat!");
 
       // Track chat creation in PostHog
@@ -398,7 +417,9 @@ export default function NoChat() {
         </div>
       }
     >
-      <NoChatContent />
+      <OrganizationRequired>
+        <NoChatContent />
+      </OrganizationRequired>
     </Suspense>
   );
 }

@@ -4,28 +4,8 @@ import { Doc } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 
 export const getChats = query({
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated.");
-    }
-
-    const userId = identity.subject;
-
-    const chats = await ctx.db
-      .query("chats")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("isArchived"), false))
-      .order("desc")
-      .collect();
-
-    return chats;
-  },
-});
-
-export const createChat = mutation({
   args: {
-    title: v.string(),
+    organizationId: v.id("organizations"),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -34,6 +14,64 @@ export const createChat = mutation({
     }
 
     const userId = identity.subject;
+
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to view chats in this organization.");
+    }
+
+    // Query chats with organizationId
+    const chatsWithOrg = await ctx.db
+      .query("chats")
+      .withIndex("by_user_organization", (q) =>
+        q.eq("userId", userId).eq("organizationId", args.organizationId),
+      )
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .collect();
+
+    // Also get chats without organizationId (for backward compatibility during migration)
+    // These will be migrated to the organization
+    const chatsWithoutOrg = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("isArchived"), false),
+          q.eq(q.field("organizationId"), undefined),
+        ),
+      )
+      .collect();
+
+    // Combine and return all chats
+    return [...chatsWithOrg, ...chatsWithoutOrg];
+  },
+});
+
+export const createChat = mutation({
+  args: {
+    title: v.string(),
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to create chats in this organization.");
+    }
 
     // Generate unique chat ID
     const timestamp = Date.now().toString(36);
@@ -44,6 +82,7 @@ export const createChat = mutation({
       chatId: uniqueChatId,
       title: args.title,
       userId: userId,
+      organizationId: args.organizationId,
       isArchived: false,
       content: [],
       apiInfo: {
@@ -492,7 +531,10 @@ export const archive = mutation({
 
 // Get archived chats
 export const getArchivedChats = query({
-  handler: async (ctx) => {
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated.");
@@ -500,9 +542,20 @@ export const getArchivedChats = query({
 
     const userId = identity.subject;
 
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to view chats in this organization.");
+    }
+
     const chats = await ctx.db
       .query("chats")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user_organization", (q) =>
+        q.eq("userId", userId).eq("organizationId", args.organizationId),
+      )
       .filter((q) => q.eq(q.field("isArchived"), true))
       .order("desc")
       .collect();
@@ -955,16 +1008,31 @@ export const getPublicChats = query({
 
 // Folder management functions
 export const getFolders = query({
-  handler: async (ctx) => {
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated.");
     }
 
     const userId = identity.subject;
+
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to view folders in this organization.");
+    }
+
     const folders = await ctx.db
       .query("folders")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user_organization", (q) =>
+        q.eq("userId", userId).eq("organizationId", args.organizationId),
+      )
       .order("desc")
       .collect();
 
@@ -975,6 +1043,7 @@ export const getFolders = query({
 export const createFolder = mutation({
   args: {
     name: v.string(),
+    organizationId: v.id("organizations"),
     color: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -984,9 +1053,20 @@ export const createFolder = mutation({
     }
 
     const userId = identity.subject;
+
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to create folders in this organization.");
+    }
+
     const folder = await ctx.db.insert("folders", {
       name: args.name,
       userId: userId,
+      organizationId: args.organizationId,
       color: args.color,
       createdAt: Date.now(),
     });
@@ -1132,16 +1212,31 @@ export const toggleFavorite = mutation({
 });
 
 export const getFavoriteChats = query({
-  handler: async (ctx) => {
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated.");
     }
 
     const userId = identity.subject;
+
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to view chats in this organization.");
+    }
+
     const favoriteChats = await ctx.db
       .query("chats")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user_organization", (q) =>
+        q.eq("userId", userId).eq("organizationId", args.organizationId),
+      )
       .filter((q) =>
         q.and(
           q.eq(q.field("isArchived"), false),
@@ -2283,7 +2378,10 @@ export const inspectChat = query({
 });
 
 export const getUserChatLimits = query({
-  handler: async (ctx) => {
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated.");
@@ -2291,16 +2389,27 @@ export const getUserChatLimits = query({
 
     const userId = identity.subject;
 
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to view chats in this organization.");
+    }
+
     // Check user's subscription
     const subscription = await ctx.db
       .query("subscriptions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
-    // Get current chat count (non-archived chats only)
+    // Get current chat count for this organization (non-archived chats only)
     const currentChats = await ctx.db
       .query("chats")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user_organization", (q) =>
+        q.eq("userId", userId).eq("organizationId", args.organizationId),
+      )
       .filter((q) => q.eq(q.field("isArchived"), false))
       .collect();
 
@@ -2425,6 +2534,52 @@ export const clearScopeConfig = mutation({
     return {
       success: true,
       message: "Scope configuration cleared",
+    };
+  },
+});
+
+// Migration helper: Assign existing chats without organizationId to an organization
+export const migrateChatsToOrganization = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Verify organization exists and user owns it
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      throw new Error("Organization not found.");
+    }
+    if (organization.userId !== userId) {
+      throw new Error("Unauthorized to migrate chats to this organization.");
+    }
+
+    // Find all chats without organizationId for this user
+    const chatsToMigrate = await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("organizationId"), undefined))
+      .collect();
+
+    // Update each chat with the organizationId
+    let migratedCount = 0;
+    for (const chat of chatsToMigrate) {
+      await ctx.db.patch(chat._id, {
+        organizationId: args.organizationId,
+      });
+      migratedCount++;
+    }
+
+    return {
+      success: true,
+      migratedCount,
+      message: `Migrated ${migratedCount} chat(s) to organization "${organization.name}"`,
     };
   },
 });

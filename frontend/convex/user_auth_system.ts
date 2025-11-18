@@ -84,6 +84,35 @@ export const authorizeAppAccess = mutation({
       );
     }
 
+    // Get organizationId from parent chat, or create a default organization for the user if none exists
+    let organizationId = parentChat?.organizationId;
+    if (!organizationId) {
+      // Try to get user's first organization
+      const userOrgs = await ctx.db
+        .query("organizations")
+        .withIndex("by_user", (q) => q.eq("userId", trainlyUserId))
+        .order("asc")
+        .first();
+      
+      if (userOrgs) {
+        organizationId = userOrgs._id;
+      } else {
+        // Create a default organization for the user
+        const timestamp = Date.now().toString(36);
+        const randomPart = Math.random().toString(36).substr(2, 8);
+        const uniqueOrgId = `org_${timestamp}_${randomPart}`;
+        
+        const defaultOrg = await ctx.db.insert("organizations", {
+          organizationId: uniqueOrgId,
+          name: "My Organization",
+          userId: trainlyUserId,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        organizationId = defaultOrg;
+      }
+    }
+
     // Create new private chat for user
     const chatId = `user_${trainlyUserId}_app_${args.appId}_${Date.now()}`;
 
@@ -91,6 +120,7 @@ export const authorizeAppAccess = mutation({
       chatId,
       title: `${app.name} - Private Chat`,
       userId: trainlyUserId, // User owns their data
+      organizationId: organizationId, // Inherit from parent or use default
       chatType: "app_subchat",
       parentAppId: args.appId, // Keep for backward compatibility
       parentChatId: parentChat?.chatId, // Parent chat's string chatId (only if parent exists)
