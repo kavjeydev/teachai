@@ -138,9 +138,16 @@ export function OrganizationProvider({
 export function useOrganization() {
   const context = useContext(OrganizationContext);
   if (context === undefined) {
-    throw new Error(
-      "useOrganization must be used within an OrganizationProvider",
-    );
+    // Return a default context if not within provider (for public pages)
+    return {
+      currentOrganizationId: null,
+      setCurrentOrganizationId: () => {},
+      organizations: undefined,
+      isLoading: false,
+      createOrganization: async () => {
+        throw new Error("OrganizationProvider is not available");
+      },
+    };
   }
   return context;
 }

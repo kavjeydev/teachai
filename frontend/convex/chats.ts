@@ -5,7 +5,7 @@ import { paginationOptsValidator } from "convex/server";
 
 export const getChats = query({
   args: {
-    organizationId: v.id("organizations"),
+    organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -15,39 +15,37 @@ export const getChats = query({
 
     const userId = identity.subject;
 
-    // Verify organization exists and user owns it
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view chats in this organization.");
+    // If organizationId is provided, verify it exists and user owns it
+    if (args.organizationId) {
+      const organization = await ctx.db.get(args.organizationId as any);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if ((organization as any).userId !== userId) {
+        throw new Error("Unauthorized to view chats in this organization.");
+      }
+
+      const chats = await ctx.db
+        .query("chats")
+        .withIndex("by_user_organization" as any, (q: any) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
+        .filter((q) => q.eq(q.field("isArchived"), false))
+        .order("desc")
+        .collect();
+
+      return chats;
     }
 
-    // Query chats with organizationId
-    const chatsWithOrg = await ctx.db
-      .query("chats")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
-      .filter((q) => q.eq(q.field("isArchived"), false))
-      .collect();
-
-    // Also get chats without organizationId (for backward compatibility during migration)
-    // These will be migrated to the organization
-    const chatsWithoutOrg = await ctx.db
+    // If no organizationId provided, return all user's chats (for backward compatibility)
+    const chats = await ctx.db
       .query("chats")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("isArchived"), false),
-          q.eq(q.field("organizationId"), undefined),
-        ),
-      )
+      .filter((q) => q.eq(q.field("isArchived"), false))
+      .order("desc")
       .collect();
 
-    // Combine and return all chats
-    return [...chatsWithOrg, ...chatsWithoutOrg];
+    return chats;
   },
 });
 
@@ -532,7 +530,7 @@ export const archive = mutation({
 // Get archived chats
 export const getArchivedChats = query({
   args: {
-    organizationId: v.id("organizations"),
+    organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -542,20 +540,32 @@ export const getArchivedChats = query({
 
     const userId = identity.subject;
 
-    // Verify organization exists and user owns it
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view chats in this organization.");
+    // If organizationId is provided, verify it exists and user owns it
+    if (args.organizationId) {
+      const organization = await ctx.db.get(args.organizationId);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if (organization.userId !== userId) {
+        throw new Error("Unauthorized to view chats in this organization.");
+      }
+
+      const chats = await ctx.db
+        .query("chats")
+        .withIndex("by_user_organization", (q) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
+        .filter((q) => q.eq(q.field("isArchived"), true))
+        .order("desc")
+        .collect();
+
+      return chats;
     }
 
+    // If no organizationId provided, return all user's archived chats (for backward compatibility)
     const chats = await ctx.db
       .query("chats")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) => q.eq(q.field("isArchived"), true))
       .order("desc")
       .collect();
@@ -1009,7 +1019,7 @@ export const getPublicChats = query({
 // Folder management functions
 export const getFolders = query({
   args: {
-    organizationId: v.id("organizations"),
+    organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -1019,20 +1029,31 @@ export const getFolders = query({
 
     const userId = identity.subject;
 
-    // Verify organization exists and user owns it
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view folders in this organization.");
+    // If organizationId is provided, verify it exists and user owns it
+    if (args.organizationId) {
+      const organization = await ctx.db.get(args.organizationId);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if (organization.userId !== userId) {
+        throw new Error("Unauthorized to view folders in this organization.");
+      }
+
+      const folders = await ctx.db
+        .query("folders")
+        .withIndex("by_user_organization", (q) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
+        .order("desc")
+        .collect();
+
+      return folders;
     }
 
+    // If no organizationId provided, return all user's folders (for backward compatibility)
     const folders = await ctx.db
       .query("folders")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .collect();
 
@@ -1213,7 +1234,7 @@ export const toggleFavorite = mutation({
 
 export const getFavoriteChats = query({
   args: {
-    organizationId: v.id("organizations"),
+    organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -1223,20 +1244,37 @@ export const getFavoriteChats = query({
 
     const userId = identity.subject;
 
-    // Verify organization exists and user owns it
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view chats in this organization.");
+    // If organizationId is provided, verify it exists and user owns it
+    if (args.organizationId) {
+      const organization = await ctx.db.get(args.organizationId);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if (organization.userId !== userId) {
+        throw new Error("Unauthorized to view chats in this organization.");
+      }
+
+      const favoriteChats = await ctx.db
+        .query("chats")
+        .withIndex("by_user_organization", (q) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("isArchived"), false),
+            q.eq(q.field("isFavorited"), true),
+          ),
+        )
+        .order("desc")
+        .collect();
+
+      return favoriteChats;
     }
 
+    // If no organizationId provided, return all user's favorite chats (for backward compatibility)
     const favoriteChats = await ctx.db
       .query("chats")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) =>
         q.and(
           q.eq(q.field("isArchived"), false),
@@ -2379,7 +2417,7 @@ export const inspectChat = query({
 
 export const getUserChatLimits = query({
   args: {
-    organizationId: v.id("organizations"),
+    organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -2389,29 +2427,40 @@ export const getUserChatLimits = query({
 
     const userId = identity.subject;
 
-    // Verify organization exists and user owns it
-    const organization = await ctx.db.get(args.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found.");
-    }
-    if (organization.userId !== userId) {
-      throw new Error("Unauthorized to view chats in this organization.");
-    }
-
     // Check user's subscription
     const subscription = await ctx.db
       .query("subscriptions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
-    // Get current chat count for this organization (non-archived chats only)
-    const currentChats = await ctx.db
-      .query("chats")
-      .withIndex("by_user_organization", (q) =>
-        q.eq("userId", userId).eq("organizationId", args.organizationId),
-      )
-      .filter((q) => q.eq(q.field("isArchived"), false))
-      .collect();
+    let currentChats = [];
+
+    // If organizationId is provided, verify it exists and user owns it
+    if (args.organizationId) {
+      const organization = await ctx.db.get(args.organizationId);
+      if (!organization) {
+        throw new Error("Organization not found.");
+      }
+      if (organization.userId !== userId) {
+        throw new Error("Unauthorized to view chats in this organization.");
+      }
+
+      // Get current chat count for this organization (non-archived chats only)
+      currentChats = await ctx.db
+        .query("chats")
+        .withIndex("by_user_organization", (q) =>
+          q.eq("userId", userId).eq("organizationId", args.organizationId),
+        )
+        .filter((q) => q.eq(q.field("isArchived"), false))
+        .collect();
+    } else {
+      // If no organizationId provided, get all user's chats (for backward compatibility)
+      currentChats = await ctx.db
+        .query("chats")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .filter((q) => q.eq(q.field("isArchived"), false))
+        .collect();
+    }
 
     // Determine tier name for display purposes
     let tierName = "free";
