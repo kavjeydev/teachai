@@ -47,6 +47,7 @@ import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useOrganization } from "@/components/organization-provider";
 
 interface SidebarParams {
   chatId: Id<"chats">;
@@ -63,9 +64,16 @@ export function AppSidebar({
 }: SidebarParams) {
   const router = useRouter();
   const { user } = useUser();
+  const { currentOrganizationId } = useOrganization();
 
-  const chats = useQuery(api.chats.getChats);
-  const chatLimits = useQuery(api.chats.getUserChatLimits);
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
   const currentChat = useQuery(api.chats.getChatById, { id: chatId });
 
   const addChat = useMutation(api.chats.createChat);
@@ -115,8 +123,13 @@ export function AppSidebar({
       return;
     }
 
+    if (!currentOrganizationId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+
     try {
-      await addChat({ title: "untitled" });
+      await addChat({ title: "untitled", organizationId: currentOrganizationId });
       toast.success("Created new chat!");
     } catch (error) {
       if (error instanceof Error) {

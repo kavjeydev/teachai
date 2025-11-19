@@ -87,6 +87,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import ProgressBar from "./progress-bar";
+import { useOrganization } from "@/components/organization-provider";
 
 const items = [
   {
@@ -113,10 +114,17 @@ export function AppSidebar({
   const { user } = useUser();
   const { theme } = useTheme();
   const { toast } = useToast();
+  const { currentOrganizationId } = useOrganization();
 
   // Fetch chats
-  const chats = useQuery(api.chats.getChats);
-  const chatLimits = useQuery(api.chats.getUserChatLimits);
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
 
   const currentChat = useQuery(api.chats.getChatById, {
     id: chatId,
@@ -165,8 +173,13 @@ export function AppSidebar({
       return;
     }
 
+    if (!currentOrganizationId) {
+      toast({ title: "Please select an organization first" });
+      return;
+    }
+
     try {
-      await addChat({ title: "untitled" });
+      await addChat({ title: "untitled", organizationId: currentOrganizationId });
       toast({ title: "Created chat" });
     } catch (error) {
       if (error instanceof Error) {
@@ -307,7 +320,10 @@ print(response)
       });
   };
 
-  const archivedChats = useQuery(api.chats.getArchivedChats);
+  const archivedChats = useQuery(
+    api.chats.getArchivedChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
   const restore = useMutation(api.chats.unArchive);
 
   const deleteForever = useMutation(api.chats.remove);

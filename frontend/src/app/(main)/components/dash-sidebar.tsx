@@ -44,12 +44,17 @@ import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useOrganization } from "@/components/organization-provider";
 
 export function DashSidebar() {
   const router = useRouter();
   const { user } = useUser();
+  const { currentOrganizationId } = useOrganization();
 
-  const chats = useQuery(api.chats.getChats);
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
   const addChat = useMutation(api.chats.createChat);
   const archiveChat = useMutation(api.chats.archive);
   const renameChat = useMutation(api.chats.rename);
@@ -67,9 +72,17 @@ export function DashSidebar() {
   const [selectedFolder, setSelectedFolder] = React.useState<string>("all");
   const [showFilters, setShowFilters] = React.useState(false);
 
-  const onCreate = () => {
-    const promise = addChat({ title: "untitled" });
-    toast.success("Created new chat!");
+  const onCreate = async () => {
+    if (!currentOrganizationId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+    try {
+      await addChat({ title: "untitled", organizationId: currentOrganizationId });
+      toast.success("Created new chat!");
+    } catch (error) {
+      toast.error("Failed to create chat");
+    }
   };
 
   const onDelete = (chatId: Id<"chats">) => {

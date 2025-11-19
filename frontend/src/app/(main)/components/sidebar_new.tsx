@@ -43,6 +43,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useOrganization } from "@/components/organization-provider";
 
 interface SidebarParams {
   chatId: Id<"chats">;
@@ -148,9 +149,16 @@ export function AppSidebar({
   const { navigate } = useOptimizedNavigation();
   const { user } = useUser();
   const { theme } = useTheme();
+  const { currentOrganizationId } = useOrganization();
 
-  const chats = useQuery(api.chats.getChats);
-  const chatLimits = useQuery(api.chats.getUserChatLimits);
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
   const currentChat = useQuery(api.chats.getChatById, { id: chatId });
 
   const addChat = useMutation(api.chats.createChat);
@@ -191,8 +199,13 @@ export function AppSidebar({
       return;
     }
 
+    if (!currentOrganizationId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+
     try {
-      const newChatId = await addChat({ title: "untitled" });
+      const newChatId = await addChat({ title: "untitled", organizationId: currentOrganizationId });
       toast.success("Created new chat!");
 
       // Track chat creation in PostHog

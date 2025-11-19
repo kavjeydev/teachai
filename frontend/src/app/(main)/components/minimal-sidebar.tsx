@@ -27,6 +27,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
+import { useOrganization } from "@/components/organization-provider";
 
 interface MinimalSidebarParams {
   chatId?: Id<"chats">;
@@ -35,13 +36,20 @@ interface MinimalSidebarParams {
 export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
   const router = useRouter();
   const { user } = useUser();
+  const { currentOrganizationId } = useOrganization();
   const [isCreatingChat, setIsCreatingChat] = React.useState(false);
   const [isNavigatingToManage, setIsNavigatingToManage] = React.useState(false);
   const [isNavigatingToHome, setIsNavigatingToHome] = React.useState(false);
   const { navigateTo, isNavigating } = useSmoothNavigation();
 
-  const chats = useQuery(api.chats.getChats);
-  const chatLimits = useQuery(api.chats.getUserChatLimits);
+  const chats = useQuery(
+    api.chats.getChats,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
   const subscription = useQuery(api.subscriptions.getUserSubscription);
   const addChat = useMutation(api.chats.createChat);
 
@@ -102,9 +110,14 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
       return;
     }
 
+    if (!currentOrganizationId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+
     setIsCreatingChat(true);
     try {
-      await addChat({ title: "Untitled Chat" });
+      await addChat({ title: "Untitled Chat", organizationId: currentOrganizationId });
       toast.success("Created new chat!");
     } catch (error) {
       if (error instanceof Error) {

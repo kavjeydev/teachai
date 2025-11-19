@@ -37,14 +37,19 @@ import {
 import { toast } from "sonner";
 import { getStripe } from "@/lib/stripe";
 import { UpgradeTierCards } from "@/components/upgrade-tier-cards";
+import { useOrganization } from "@/components/organization-provider";
 
 export function BillingDashboard() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const { currentOrganizationId } = useOrganization();
 
   const subscription = useQuery(api.subscriptions.getUserSubscription);
   const credits = useQuery(api.subscriptions.getUserCredits);
-  const chatLimits = useQuery(api.chats.getUserChatLimits);
+  const chatLimits = useQuery(
+    api.chats.getUserChatLimits,
+    currentOrganizationId ? { organizationId: currentOrganizationId } : {},
+  );
 
   const handleUpgrade = async (priceId: string | null, tierName: string) => {
     if (!priceId) {
