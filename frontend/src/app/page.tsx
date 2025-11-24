@@ -50,7 +50,7 @@ export default function Home() {
   const { user } = useUser();
   const [mounted, setMounted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
-  const [showBetaListBanner, setShowBetaListBanner] = useState(false);
+  // const [showBetaListBanner, setShowBetaListBanner] = useState(false);
   const { isNavigating, navigateTo } = useNavigationLoading();
 
   // Force dark mode on landing page by adding dark class to html element
@@ -74,28 +74,28 @@ export default function Home() {
   }, []);
 
   // Adjust navbar position when banner is visible
-  useEffect(() => {
-    if (!mounted) return;
+  // useEffect(() => {
+  //   if (!mounted) return;
 
-    const updateNavbarPosition = () => {
-      const navbar = document.querySelector("nav");
-      if (navbar) {
-        if (showBetaListBanner) {
-          navbar.style.top = window.innerWidth >= 640 ? "96px" : "88px";
-        } else {
-          navbar.style.top = "0px";
-        }
-      }
-    };
+  //   const updateNavbarPosition = () => {
+  //     const navbar = document.querySelector("nav");
+  //     if (navbar) {
+  //       if (showBetaListBanner) {
+  //         navbar.style.top = window.innerWidth >= 640 ? "96px" : "88px";
+  //       } else {
+  //         navbar.style.top = "0px";
+  //       }
+  //     }
+  //   };
 
-    // Small delay to ensure navbar is rendered
-    const timeoutId = setTimeout(updateNavbarPosition, 0);
-    window.addEventListener("resize", updateNavbarPosition);
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener("resize", updateNavbarPosition);
-    };
-  }, [showBetaListBanner, mounted]);
+  //   // Small delay to ensure navbar is rendered
+  //   const timeoutId = setTimeout(updateNavbarPosition, 0);
+  //   window.addEventListener("resize", updateNavbarPosition);
+  //   return () => {
+  //     clearTimeout(timeoutId);
+  //     window.removeEventListener("resize", updateNavbarPosition);
+  //   };
+  // }, [showBetaListBanner, mounted]);
 
   if (!mounted) {
     return (
@@ -108,7 +108,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-black to-zinc-950 text-white overflow-hidden">
       {/* BetaList Special Offer Banner - Fixed at top */}
-      {showBetaListBanner && (
+      {/* {showBetaListBanner && (
         <div className="fixed top-0 left-0 right-0 z-[60] w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 border-b border-amber-600/20 shadow-lg">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-center gap-3 sm:gap-4">
@@ -129,10 +129,9 @@ export default function Home() {
               </button>
             </div>
           </div>
-          {/* Animated shimmer effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer pointer-events-none"></div>
         </div>
-      )}
+      )} */}
 
       <Navbar />
 
@@ -156,7 +155,12 @@ export default function Home() {
           {/* Header Content */}
           <div className="text-center mb-12">
             {/* Minimal Badge */}
-            <div className="mb-8 flex justify-center">
+            <div className="mb-8 flex justify-center h-[54px] items-center">
+              <div className="px-4 py-2 bg-zinc-900 rounded-xl text-sm font-medium text-white/90 hover:bg-gray-700 transition-colors">
+                Featured on BetaList
+              </div>
+            </div>
+            {/* <div className="mb-8 flex justify-center">
               <a
                 target="_blank"
                 href="https://betalist.com/startups/trainly?utm_campaign=badge-trainly&utm_medium=badge&utm_source=badge-featured"
@@ -170,7 +174,7 @@ export default function Home() {
                   src="https://betalist.com/badges/featured?id=138641&theme=dark"
                 />
               </a>
-            </div>
+            </div> */}
 
             {/* Main Headline - Responsive */}
             <h1
