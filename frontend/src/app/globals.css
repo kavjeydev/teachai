@@ -15,6 +15,8 @@ body {
 
 @layer base {
   :root {
+    --animate-marquee: marquee var(--duration) linear infinite;
+    --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -100,10 +102,8 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .theme {
-    --animate-marquee:
-    marquee var(--duration) infinite linear;
-    --animate-marquee-vertical:
-    marquee-vertical var(--duration) linear infinite;
+    --animate-marquee: marquee var(--duration) infinite linear;
+    --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
   }
 }
 
@@ -175,6 +175,12 @@ body {
       color 0.3s ease-in-out,
       fill 0.3s ease-in-out,
       stroke 0.3s ease-in-out !important;
+  }
+
+  /* Ensure marquee animations work properly - no transition interference */
+  [class*="animate-marquee"] {
+    transition: none !important;
+    animation-play-state: running !important;
   }
 }
 
@@ -328,28 +334,5 @@ code[class*="language-"],
   }
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@theme inline {
-  @keyframes marquee {
-  from {
-    transform:
-    translateX(0);
-    }
-  to {
-    transform:
-    translateX(calc(-100% - var(--gap)));
-    }
-  }
-  @keyframes marquee-vertical {
-  from {
-    transform:
-    translateY(0);
-    }
-  to {
-    transform:
-    translateY(calc(-100% - var(--gap)));
-    }
   }
 }
