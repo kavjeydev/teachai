@@ -140,9 +140,9 @@ body {
   }
 
   /* Preserve existing transitions for specific elements */
+  /* Note: Animation classes (animate-*) are excluded - they use 'animation' property, not 'transition' */
   [class*="transition-"],
-  [class*="duration-"],
-  [class*="animate-"] {
+  [class*="duration-"]:not([class*="animate-"]) {
     transition: inherit !important;
   }
 
