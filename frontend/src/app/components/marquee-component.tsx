@@ -68,7 +68,7 @@ const ReviewCard = ({
     <div className="flex flex-col gap-2 px-6">
       <div className="flex flex-row items-center gap-2">
         <Icon className="h-6 w-6 text-primary" />
-        <h3 className="text-base font-semibold dark:text-white">{name}</h3>
+        <h3 className="text-base font-semibold text-white">{name}</h3>
         {isNew && (
           <span className="rounded-full bg-green-500 px-2 py-0.5 text-xs font-medium text-white">
             New
@@ -88,15 +88,8 @@ export function MarqueeDemo() {
           <ReviewCard key={review.username} {...review} />
         ))}
       </Marquee>
-      <div className="from-background pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r"></div>
-      <div className="from-background pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l"></div>
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
-        style={{
-          background:
-            "radial-gradient(ellipse 100% 100% at 50% 100%, rgba(245, 158, 11, 0.1) 0%, transparent 70%)",
-        }}
-      ></div>
+      <div className="from-black pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r"></div>
+      <div className="from-black pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l"></div>
     </div>
   );
 }

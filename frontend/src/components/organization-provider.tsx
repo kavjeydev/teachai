@@ -31,10 +31,10 @@ export function OrganizationProvider({
   >(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const { canQuery } = useConvexAuth();
+  const { canQuery, isSignedIn } = useConvexAuth();
   const organizations = useQuery(
     api.organizations.getOrganizations,
-    canQuery ? undefined : "skip",
+    canQuery && isSignedIn ? undefined : "skip",
   );
   const createOrgMutation = useMutation(api.organizations.createOrganization);
   const migrateChatsMutation = useMutation(api.chats.migrateChatsToOrganization);

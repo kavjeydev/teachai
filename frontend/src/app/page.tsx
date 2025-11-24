@@ -7,12 +7,10 @@ import React, { Suspense, useEffect, useState } from "react";
 import Navbar from "./components/navbar";
 import { Spinner } from "@nextui-org/spinner";
 import dynamic from "next/dynamic";
-import { useTheme } from "next-themes";
 import { AnimatedGradientText } from "@/components/magicui/animated-gradient-text";
 import { HeroChatDemo } from "@/components/hero-chat-demo";
 import {
   ArrowRight,
-  CheckCircle,
   Zap,
   Eye,
   Code,
@@ -26,15 +24,16 @@ import {
   Play,
   Star,
   Globe,
-  Layers,
-  Brain,
   Loader2,
   Gift,
   X,
 } from "lucide-react";
 import { useNavigationLoading } from "@/hooks/useNavigationLoading";
 import MarqueeDemo from "./components/marquee-component";
-import { MockupCarousel } from "./components/mockup-carousel";
+import FeatureCards from "./components/feature-cards";
+import CommitmentSection from "./components/commitment-section";
+import UseCasesSection from "./components/use-cases-section";
+import Footer from "./components/footer";
 
 // Lazy load heavy components for better performance
 const ParticlesBackground = dynamic(() => import("./components/particles"), {
@@ -46,52 +45,26 @@ const ParticlesBackground = dynamic(() => import("./components/particles"), {
 
 // Removed Spline scenes for performance
 
-interface CyclingTextProps {
-  responses: string[];
-  displayDuration: number;
-}
-
-function CyclingText({ responses, displayDuration = 3000 }: CyclingTextProps) {
-  const [currentIndex, setCurrentIndex] = React.useState(0);
-  const [animate, setAnimate] = React.useState(true);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      // Start slide-out animation
-      setAnimate(false);
-      // After animation, update text and slide it in
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % responses.length);
-        setAnimate(true);
-      }, 500); // duration of slide-out transition in ms
-    }, displayDuration);
-    return () => clearTimeout(timer);
-  }, [currentIndex, responses, displayDuration]);
-
-  return (
-    <span className="overflow-hidden inline-block h-24 pt-8 pb-4 -mt-6">
-      <span
-        className={`inline-block transform transition-all duration-700 bg-gradient-to-t from-amber-600 to-amber-400 dark:from-amber-400 dark:to-amber-200
-          bg-clip-text text-transparent ${
-            animate
-              ? "translate-y-0 opacity-100"
-              : "translate-y-[120%] opacity-100"
-          }`}
-      >
-        {responses[currentIndex]}
-      </span>
-    </span>
-  );
-}
-
 export default function Home() {
   const router = useRouter();
   const { user } = useUser();
-  const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [showBetaListBanner, setShowBetaListBanner] = useState(false);
   const { isNavigating, navigateTo } = useNavigationLoading();
+
+  // Force dark mode on landing page by adding dark class to html element
+  // This ensures child components (Navbar, etc.) render in dark mode
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    htmlElement.classList.add("dark");
+
+    return () => {
+      // Remove dark class on unmount to let theme system restore correct theme
+      // This only runs when navigating away from landing page
+      htmlElement.classList.remove("dark");
+    };
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -105,22 +78,22 @@ export default function Home() {
     if (!mounted) return;
 
     const updateNavbarPosition = () => {
-      const navbar = document.querySelector('nav');
+      const navbar = document.querySelector("nav");
       if (navbar) {
         if (showBetaListBanner) {
-          navbar.style.top = window.innerWidth >= 640 ? '96px' : '88px';
+          navbar.style.top = window.innerWidth >= 640 ? "96px" : "88px";
         } else {
-          navbar.style.top = '16px';
+          navbar.style.top = "0px";
         }
       }
     };
 
     // Small delay to ensure navbar is rendered
     const timeoutId = setTimeout(updateNavbarPosition, 0);
-    window.addEventListener('resize', updateNavbarPosition);
+    window.addEventListener("resize", updateNavbarPosition);
     return () => {
       clearTimeout(timeoutId);
-      window.removeEventListener('resize', updateNavbarPosition);
+      window.removeEventListener("resize", updateNavbarPosition);
     };
   }, [showBetaListBanner, mounted]);
 
@@ -133,16 +106,19 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-black dark:to-zinc-950 text-zinc-900 dark:text-white overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-black to-zinc-950 text-white overflow-hidden">
       {/* BetaList Special Offer Banner - Fixed at top */}
       {showBetaListBanner && (
-        <div className="fixed top-0 left-0 right-0 z-[60] w-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 dark:from-amber-600 dark:via-amber-500 dark:to-amber-600 border-b border-amber-600/20 shadow-lg">
+        <div className="fixed top-0 left-0 right-0 z-[60] w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 border-b border-amber-600/20 shadow-lg">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-center gap-3 sm:gap-4">
               <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-pulse flex-shrink-0" />
               <p className="text-sm sm:text-base md:text-lg font-semibold text-white text-center">
-                <span className="font-bold">BetaList users:</span> First 50 signups get{" "}
-                <span className="font-bold underline decoration-2 underline-offset-2">1 month of Pro free</span>
+                <span className="font-bold">BetaList users:</span> First 50
+                signups get{" "}
+                <span className="font-bold underline decoration-2 underline-offset-2">
+                  1 month of Pro free
+                </span>
               </p>
               <button
                 onClick={() => setShowBetaListBanner(false)}
@@ -161,9 +137,9 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section - Minimal Awwwards Style */}
-      <section className="relative pt-56 pb-20 overflow-hidden min-h-screen flex flex-col justify-center">
+      <section className="relative pt-48 pb-20 overflow-hidden min-h-screen flex flex-col justify-center">
         {/* Enhanced Background with subtle glow */}
-        <div className="absolute inset-0 bg-gradient-to-b from-zinc-100 via-white to-zinc-50 dark:from-black dark:via-zinc-950 dark:to-black"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-zinc-950 to-black"></div>
 
         {/* Enhanced floating elements for better glass visibility */}
         <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gradient-to-br from-amber-400/8 to-amber-600/8 rounded-full blur-3xl animate-float opacity-70"></div>
@@ -180,30 +156,42 @@ export default function Home() {
           {/* Header Content */}
           <div className="text-center mb-12">
             {/* Minimal Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 dark:border-white/20 text-zinc-600 dark:text-white/70 text-sm font-light mb-8 backdrop-blur-sm bg-white/50 dark:bg-transparent">
-              <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
-              <span>Ship AI in minutes, not months</span>
+            <div className="mb-8 flex justify-center">
+              <a
+                target="_blank"
+                href="https://betalist.com/startups/trainly?utm_campaign=badge-trainly&utm_medium=badge&utm_source=badge-featured"
+                rel="noopener noreferrer"
+              >
+                <img
+                  alt="Trainly - Build Graph-RAG apps in minutes: upload your docs, get an instant API | BetaList"
+                  width="156"
+                  height="54"
+                  style={{ width: "156px", height: "54px" }}
+                  src="https://betalist.com/badges/featured?id=138641&theme=dark"
+                />
+              </a>
             </div>
 
             {/* Main Headline - Responsive */}
             <h1
-              className={`font-sans font-normal tracking-tight mb-6 leading-tight ${
+              className={`font-sans font-semibold tracking-tight mb-6 leading-tight ${
                 user
-                  ? "text-5xl sm:text-6xl md:text-7xl lg:text-8xl"
+                  ? "text-5xl sm:text-5xl md:text-6xl lg:text-7xl"
                   : "text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
               }`}
             >
-              <span className="block text-zinc-900 dark:text-white mb-2 tracking-tighter">
-                <span className="text-amber-400">APIs</span> for AI you can
+              <span className="block text-white mb-2 tracking-tighter">
+                The Fastest Way to <span className="text-amber-400">Ship</span>
               </span>
-              <span className="block text-zinc-900 dark:text-white tracking-tighter">
-                see & shape
+              <span className="block text-white tracking-tighter">
+                AI Features
               </span>
             </h1>
 
             {/* Minimal Subheadline */}
-            <p className="text-lg md:text-xl text-zinc-600 dark:text-white/70 mb-8 max-w-2xl mx-auto leading-relaxed font-light tracking-tighter">
-              Ship production AI in 2 minutes with visual GraphRAG debugging
+            <p className="text-lg md:text-xl text-white/70 mb-8 max-w-2xl mx-auto leading-relaxed font-light tracking-tighter">
+              Trainly ingests your data, builds a graph knowledge base, and
+              exposes it through clean APIs so you can ship in days, not months.
             </p>
           </div>
 
@@ -219,282 +207,65 @@ export default function Home() {
             {user === undefined && (
               <div className="flex items-center gap-2">
                 <Spinner size="sm" />
-                <span className="text-sm text-zinc-500 dark:text-white/50">
-                  Loading...
-                </span>
+                <span className="text-sm text-white/50">Loading...</span>
               </div>
             )}
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-400/25">
-                  <span className="relative z-10 flex items-center gap-2">
-                    Start Building Free
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute inset-0 bg-zinc-900 dark:bg-white group-hover:bg-transparent transition-colors duration-300"></div>
+                <button className="group bg-white text-black px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:bg-white/90 flex items-center gap-2 shadow-lg shadow-black/20">
+                  Start Building Free
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </button>
               </SignInButton>
             </SignedOut>
             <SignedIn>
               <button
-                className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-400/25 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="group bg-white text-black px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:bg-white/90 flex items-center gap-2 shadow-lg shadow-black/20 disabled:opacity-70 disabled:cursor-not-allowed"
                 onClick={() => navigateTo("/dashboard")}
                 disabled={isNavigating}
               >
-                <span className="relative z-10 flex items-center gap-2">
-                  {isNavigating ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      Go to Dashboard
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                    </>
-                  )}
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute inset-0 bg-zinc-900 dark:bg-white group-hover:bg-transparent transition-colors duration-300"></div>
+                {isNavigating ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    Go to Dashboard
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                  </>
+                )}
               </button>
             </SignedIn>
             <button
-              className="group border border-zinc-300 dark:border-white/20 text-zinc-700 dark:text-white px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:border-amber-400 hover:bg-amber-400/5 backdrop-blur-sm flex items-center gap-2"
+              className="group border border-white/40 bg-white/5 text-white px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:border-amber-400 hover:bg-amber-400/10 backdrop-blur-sm flex items-center gap-2 shadow-lg shadow-black/20"
               onClick={() =>
-                window.open("https://docs.trainlyai.com", "_blank")
+                window.open(
+                  "https://docs.trainlyai.com/api-reference/introduction",
+                  "_blank",
+                )
               }
             >
-              <Play className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-              Watch Demo
+              <Code className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+              API Docs
             </button>
           </div>
 
           {/* Minimal Scroll Indicator */}
           <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-            <ChevronDown className="w-5 h-5 text-zinc-400 dark:text-white/30 animate-bounce" />
+            <ChevronDown className="w-5 h-5 text-white/30 animate-bounce" />
           </div>
         </div>
         <div className="flex flex-col items-center justify-center mt-8">
           <MarqueeDemo />
-          <MockupCarousel />
         </div>
       </section>
 
-      {/* Stats Section - Ultra Minimal */}
-      <section className="py-40 relative">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-16">
-            <div className="text-center group">
-              <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
-                2min
-              </div>
-              <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
-                to production
-              </div>
-            </div>
-            <div className="text-center group">
-              <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
-                Safe
-              </div>
-              <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
-                APIs
-              </div>
-            </div>
-            <div className="text-center group">
-              <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
-                100%
-              </div>
-              <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
-                source traceable
-              </div>
-            </div>
-            <div className="text-center group">
-              <div className="text-6xl md:text-7xl font-sans text-zinc-900 dark:text-white mb-4 group-hover:scale-105 transition-all duration-500">
-                ∞
-              </div>
-              <div className="text-zinc-500 dark:text-zinc-500 dark:text-white/50 font-light text-sm tracking-wide uppercase">
-                USE CASES
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FeatureCards />
 
-      {/* Features Section - Ultra Minimal */}
-      <section className="py-40 relative">
-        <div className="max-w-6xl mx-auto px-6">
-          {/* Minimal Section Header */}
-          <div className="text-center mb-32">
-            <h2 className="text-5xl md:text-7xl font-sans font-normal text-zinc-900 dark:text-white mb-8 leading-[0.9]">
-              Ship AI faster than
-              <br />
-              <span className="text-zinc-900 dark:text-white">ever before</span>
-            </h2>
-          </div>
+      {/* <CommitmentSection /> */}
 
-          {/* Minimal Feature Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
-            {/* Visual Debugging */}
-            <div className="group text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-amber-400/10 to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-400/20">
-                <Brain className="w-10 h-10 text-amber-400" />
-              </div>
-              <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
-                Visual Debugging
-              </h3>
-              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
-                See your AI's reasoning process in real-time. Debug AI like code
-                with visual breakpoints.
-              </p>
-            </div>
-
-            {/* GraphRAG */}
-            <div className="group text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-amber-400/10 to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-400/20">
-                <Layers className="w-10 h-10 text-amber-400" />
-              </div>
-              <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
-                Reliable GraphRAG
-              </h3>
-              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
-                Knowledge graphs with complete traceability. 90% fewer
-                hallucinations guaranteed.
-              </p>
-            </div>
-
-            {/* Instant Deploy */}
-            <div className="group text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-amber-400/10 to-amber-600/10 rounded-full flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-all duration-500 border border-amber-400/20">
-                <Zap className="w-10 h-10 text-amber-400" />
-              </div>
-              <h3 className="text-2xl font-sans text-zinc-900 dark:text-white mb-6">
-                2-Minute Deploy
-              </h3>
-              <p className="text-zinc-600 dark:text-white/70 leading-relaxed font-light">
-                From upload to production API in 120 seconds. No complex setup
-                required.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof - Ultra Minimal */}
-      <section className="py-32 relative">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="flex justify-center items-center gap-16 opacity-50">
-            <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
-              YC Startups
-            </span>
-            <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
-              Research Labs
-            </span>
-            <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
-              Indie Hackers
-            </span>
-            <span className="text-sm font-light text-zinc-400 dark:text-white/40 tracking-widest uppercase">
-              Fortune 500
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA - Ultra Minimal */}
-      <section className="py-40 relative">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-6xl md:text-8xl font-sans font-normal text-black dark:text-white mb-12 leading-[0.9]">
-            Ready to build?
-          </h2>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-12 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-400/25">
-                  <span className="relative z-10 flex items-center gap-2">
-                    Start Building Free
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute inset-0 bg-zinc-900 dark:bg-white group-hover:bg-transparent transition-colors duration-300"></div>
-                </button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <button
-                className="group relative overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-black px-12 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-400/25 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
-                onClick={() => navigateTo("/dashboard")}
-                disabled={isNavigating}
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  {isNavigating ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      Go to Dashboard
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                    </>
-                  )}
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute inset-0 bg-zinc-900 dark:bg-white group-hover:bg-transparent transition-colors duration-300"></div>
-              </button>
-            </SignedIn>
-          </div>
-
-          <div className="text-center opacity-60 mb-12">
-            <p className="text-sm text-zinc-400 dark:text-white/40 font-light tracking-wide mb-6">
-              No credit card • Free forever
-            </p>
-            <div className="flex flex-wrap justify-center gap-6 text-xs text-zinc-500 dark:text-white/50 font-light">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-amber-400" />
-                <span>Full API access</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-amber-400" />
-                <span>500 AI credits/month</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-amber-400" />
-                <span>Visual debugging</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-amber-400" />
-                <span>GraphRAG included</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <UseCasesSection />
 
       {/* Footer */}
-      <footer className="relative border-t border-zinc-200 dark:border-white/10 py-12">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="text-sm text-zinc-500 dark:text-white/50 font-light">
-              © {new Date().getFullYear()} Trainly AI. All rights reserved.
-            </div>
-            <div className="flex gap-8">
-              <button
-                onClick={() => router.push("/privacy-policy")}
-                className="text-sm text-zinc-600 dark:text-white/70 hover:text-amber-400 dark:hover:text-amber-400 transition-colors duration-200 font-light"
-              >
-                Privacy Policy
-              </button>
-              <button
-                onClick={() => router.push("/terms-of-service")}
-                className="text-sm text-zinc-600 dark:text-white/70 hover:text-amber-400 dark:hover:text-amber-400 transition-colors duration-200 font-light"
-              >
-                Terms of Service
-              </button>
-              <button
-                onClick={() => router.push("/data-handling")}
-                className="text-sm text-zinc-600 dark:text-white/70 hover:text-amber-400 dark:hover:text-amber-400 transition-colors duration-200 font-light"
-              >
-                Data Handling
-              </button>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

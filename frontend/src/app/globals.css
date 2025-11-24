@@ -134,6 +134,11 @@ body {
       backdrop-filter 0.3s ease-in-out !important;
   }
 
+  /* Allow transform transitions for navbar */
+  .navbar-scroll-transition {
+    transition: transform 0.3s ease-in-out !important;
+  }
+
   /* Preserve existing transitions for specific elements */
   [class*="transition-"],
   [class*="duration-"],
@@ -224,6 +229,15 @@ body {
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
@@ -238,6 +252,10 @@ body {
 
 .animate-scaleIn {
   animation: scaleIn 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
 }
 
 /* Smooth transitions for premium feel */
