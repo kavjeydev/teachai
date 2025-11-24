@@ -181,7 +181,7 @@ export default function Home() {
               }`}
             >
               <span className="block text-white mb-2 tracking-tighter">
-                The Fastest Way to <span className="text-amber-400">Ship</span>
+                The <span className="text-amber-400">Fastest Way</span> to Ship
               </span>
               <span className="block text-white tracking-tighter">
                 AI Features
