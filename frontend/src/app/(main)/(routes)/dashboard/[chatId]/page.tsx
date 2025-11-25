@@ -500,6 +500,8 @@ function Dashboard({ params }: ChatIdPageProps) {
       newView = "graph";
     } else if (pathname.includes("/testing")) {
       newView = "testing";
+    } else if (pathname.includes("/files")) {
+      newView = "files";
     } else if (pathname.includes("/api-keys")) {
       newView = "api-keys";
     } else if (pathname.includes("/custom-settings")) {

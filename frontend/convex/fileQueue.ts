@@ -452,6 +452,53 @@ export const cancelQueue = mutation({
   },
 });
 
+// Mark a queue as deleted (soft delete)
+export const markQueueAsDeleted = mutation({
+  args: {
+    queueId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    const queue = await ctx.db
+      .query("upload_queues")
+      .withIndex("by_queue_id", (q) => q.eq("queueId", args.queueId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    if (!queue) {
+      throw new Error("Queue not found or unauthorized");
+    }
+
+    // Mark queue as deleted
+    await ctx.db.patch(queue._id, {
+      status: "deleted",
+      completedAt: Date.now(),
+    });
+
+    // Mark all files in the queue as deleted
+    const files = await ctx.db
+      .query("file_upload_queue")
+      .withIndex("by_queue", (q) => q.eq("queueId", args.queueId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .collect();
+
+    for (const file of files) {
+      await ctx.db.patch(file._id, {
+        status: "deleted",
+        completedAt: Date.now(),
+      });
+    }
+
+    return queue._id;
+  },
+});
+
 // Clean up old completed queues (can be called periodically)
 export const cleanupOldQueues = mutation({
   args: {

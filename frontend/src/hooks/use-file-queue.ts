@@ -39,13 +39,15 @@ export const formatRelativeTime = (timestamp: number): string => {
 // Map database status to UI status
 const mapDatabaseStatusToUI = (
   dbStatus: string,
-): "processing" | "uploaded" | "cancelled" => {
+): "processing" | "uploaded" | "cancelled" | "deleted" => {
   switch (dbStatus) {
     case "completed":
       return "uploaded";
     case "failed":
     case "cancelled":
       return "cancelled";
+    case "deleted":
+      return "deleted";
     case "processing":
     default:
       return "processing";
@@ -73,7 +75,7 @@ export interface QueuedFile {
   fileSize: number;
   fileType: string;
   filePath?: string;
-  status: "processing" | "uploaded" | "cancelled";
+  status: "processing" | "uploaded" | "cancelled" | "deleted";
   progress: number;
   error?: string;
   fileId?: string;
@@ -89,7 +91,7 @@ export interface PersistedFile {
   fileSize: number;
   fileType: string;
   filePath?: string;
-  status: "processing" | "uploaded" | "cancelled";
+  status: "processing" | "uploaded" | "cancelled" | "deleted";
   progress: number;
   error?: string;
   fileId?: string;
@@ -103,7 +105,7 @@ export interface UploadQueue {
   totalFiles: number;
   completedFiles: number;
   failedFiles: number;
-  status: "processing" | "uploaded" | "cancelled";
+  status: "processing" | "uploaded" | "cancelled" | "deleted";
   isFolder: boolean;
   files: QueuedFile[] | PersistedFile[]; // Can be either active or persisted files
   createdAt: number;

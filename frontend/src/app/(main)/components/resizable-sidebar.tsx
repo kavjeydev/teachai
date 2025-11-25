@@ -25,6 +25,8 @@ import {
   TestTube,
   Network,
   MessageSquare,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/clerk-react";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -82,6 +84,8 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
       setActiveView("graph");
     } else if (pathname.includes("/testing")) {
       setActiveView("testing");
+    } else if (pathname.includes("/files")) {
+      setActiveView("files");
     } else if (pathname.includes("/api-keys")) {
       setActiveView("api-keys");
     } else if (pathname.includes("/custom-settings")) {
@@ -519,6 +523,54 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         </span>
                       </button>
 
+                      {/* File Ingestion */}
+                      <button
+                        onClick={() => {
+                          if (!chatId) {
+                            toast.error("Please select a chat first");
+                            return;
+                          }
+                          startTransition(() => {
+                            navigate(`/dashboard/${chatId}/files`);
+                          });
+                        }}
+                        disabled={!chatId}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75",
+                          !chatId
+                            ? "opacity-40 cursor-not-allowed"
+                            : activeView === "files"
+                              ? "bg-amber-400/10 border border-amber-400/20"
+                              : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        )}
+                        title={!chatId ? "Select a chat first" : "File Ingestion"}
+                      >
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            !chatId
+                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              : activeView === "files"
+                                ? "bg-amber-400 text-white"
+                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                          )}
+                        >
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            !chatId
+                              ? "text-zinc-400"
+                              : activeView === "files"
+                                ? "text-amber-400"
+                                : "text-zinc-900 dark:text-white group-hover:text-amber-400",
+                          )}
+                        >
+                          File Ingestion
+                        </span>
+                      </button>
+
                       {/* API Keys */}
                       <button
                         onClick={() => {
@@ -775,6 +827,30 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                     title={!chatId ? "Select a chat first" : "Sandbox"}
                   >
                     <TestTube className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!chatId) {
+                        toast.error("Please select a chat first");
+                        return;
+                      }
+                      startTransition(() => {
+                        navigate(`/dashboard/${chatId}/files`);
+                      });
+                    }}
+                    disabled={!chatId}
+                    className={cn(
+                      "w-10 h-10 rounded-lg transition-all duration-150 flex items-center justify-center mx-auto active:scale-95",
+                      !chatId
+                        ? "opacity-40 cursor-not-allowed"
+                        : activeView === "files"
+                          ? "bg-amber-400/10 ring-2 ring-amber-400/30"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    )}
+                    title={!chatId ? "Select a chat first" : "File Ingestion"}
+                  >
+                    <Upload className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                   </button>
 
                   <button
