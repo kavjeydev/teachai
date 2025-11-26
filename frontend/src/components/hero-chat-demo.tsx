@@ -80,19 +80,19 @@ export function HeroChatDemo({ onSignupGate }: HeroChatDemoProps) {
 
   return (
     <div className="relative min-w-[700px] mx-auto">
-      {/* Clean Dashboard Input Interface */}
-      <div className="bg-gradient-to-br from-white via-white to-zinc-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-900 backdrop-blur-xl rounded-xl overflow-hidden">
+      {/* Clean Dashboard Input Interface - Always Dark Mode */}
+      <div className="bg-gradient-to-br from-zinc-800 via-zinc-800 to-zinc-900 backdrop-blur-xl rounded-xl overflow-hidden">
         {/* Enhanced Message Input */}
         <div className="p-1 relative">
           <div className="relative group">
             {/* Input Container */}
             <div
-              className="relative bg-zinc-50 dark:bg-zinc-900/50 rounded-xl transition-all duration-300 cursor-text"
+              className="relative bg-zinc-900/50 rounded-xl transition-all duration-300 cursor-text"
               onClick={() => editor?.commands.focus()}
             >
               <EditorContent
                 editor={editor}
-                className="text-zinc-900 dark:text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none cursor-text [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:focus:ring-0 [&_.ProseMirror]:focus:border-0"
+                className="text-white text-sm p-3 min-h-[80px] max-h-[200px] overflow-y-auto focus:outline-none bg-transparent resize-none cursor-text [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:focus:ring-0 [&_.ProseMirror]:focus:border-0"
               />
 
               {/* Enhanced Placeholder */}
@@ -112,7 +112,7 @@ export function HeroChatDemo({ onSignupGate }: HeroChatDemoProps) {
                 {/* Model Selector Button */}
                 <button
                   onClick={handleInteraction}
-                  className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/settings"
+                  className="p-1.5 rounded-md hover:bg-zinc-700 transition-colors group/settings"
                   title="Model settings"
                 >
                   <Settings className="w-3.5 h-3.5 text-zinc-400 group-hover/settings:text-amber-400 transition-colors" />
@@ -121,7 +121,7 @@ export function HeroChatDemo({ onSignupGate }: HeroChatDemoProps) {
                 {/* File Upload Button */}
                 <button
                   onClick={handleInteraction}
-                  className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/upload"
+                  className="p-1.5 rounded-md hover:bg-zinc-700 transition-colors group/upload"
                   title="Upload documents"
                 >
                   <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover/upload:text-amber-400 transition-colors" />
@@ -130,7 +130,7 @@ export function HeroChatDemo({ onSignupGate }: HeroChatDemoProps) {
                 {/* Folder Upload Button */}
                 <button
                   onClick={handleInteraction}
-                  className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/folder"
+                  className="p-1.5 rounded-md hover:bg-zinc-700 transition-colors group/folder"
                   title="Upload folder"
                 >
                   <FolderOpen className="w-3.5 h-3.5 text-zinc-400 group-hover/folder:text-amber-400 transition-colors" />
