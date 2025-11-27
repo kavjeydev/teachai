@@ -206,7 +206,7 @@ export function MinimalSidebar({ chatId }: MinimalSidebarParams) {
           <Button
             onClick={onCreate}
             disabled={isCreatingChat}
-            className="w-full bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 disabled:from-amber-400/50 disabled:to-amber-600/50 disabled:cursor-not-allowed text-white rounded-xl shadow-lg hover:shadow-amber-400/25 transition-all duration-200 flex items-center gap-2 mb-4"
+            className="w-full bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:bg-zinc-400 dark:disabled:bg-zinc-300 disabled:cursor-not-allowed text-white dark:text-zinc-900 rounded-xl shadow-lg hover:shadow-zinc-400/25 dark:hover:shadow-zinc-500/25 transition-all duration-200 flex items-center gap-2 mb-4"
           >
             {isCreatingChat ? (
               <>

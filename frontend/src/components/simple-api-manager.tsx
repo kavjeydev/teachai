@@ -22,15 +22,13 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
-  Globe,
-  Shield,
   CheckCircle,
   XCircle,
-  AlertTriangle,
-  Users,
-  BookOpen,
   Power,
   PowerOff,
+  Plus,
+  Search,
+  MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -258,20 +256,20 @@ function JwtSecretDisplay({ appId, onCopy }: JwtSecretDisplayProps) {
           <Copy className="w-4 h-4" />
         </Button>
       </div>
-      <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-        <p>🔐 Used to sign JWT tokens for end-user authentication</p>
-      </div>
     </div>
   );
 }
 
 export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
+  const [activeTab, setActiveTab] = useState<"chat" | "apps">("chat");
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAppSecret, setShowAppSecret] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreatingApp, setIsCreatingApp] = useState(false);
   const [createdAppSecret, setCreatedAppSecret] = useState<string | null>(null);
   const [createdJwtSecret, setCreatedJwtSecret] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedApps, setExpandedApps] = useState<Set<string>>(new Set());
 
   // Convex hooks
   const apiKeyStatus = useQuery(api.simple_api.getApiKeyStatus, { chatId });
@@ -420,50 +418,81 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
     return "API Disabled";
   };
 
+  const appCount = userApps?.length || 0;
+  const filteredApps = userApps?.filter(
+    (app) =>
+      app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white flex items-center gap-3">
-            <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center">
-              <Globe className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-            </div>
-            API Access
-          </h2>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-            Enable external API access for <strong>{chatTitle}</strong>
-          </p>
-        </div>
-
-        <div
+      {/* Tabs */}
+      <div className="flex items-center gap-6 border-b border-zinc-200 dark:border-zinc-800">
+        <button
+          onClick={() => setActiveTab("chat")}
           className={cn(
-            "flex items-center gap-2 px-3 py-1 rounded-md text-sm font-medium border",
-            getStatusColor(),
+            "pb-3 px-1 text-sm font-medium transition-colors relative",
+            activeTab === "chat"
+              ? "text-amber-600 dark:text-amber-400"
+              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
           )}
         >
-          {getStatusIcon()}
-          {getStatusText()}
-        </div>
+          Chat API Key
+          {activeTab === "chat" && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600 dark:bg-amber-400" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab("apps")}
+          className={cn(
+            "pb-3 px-1 text-sm font-medium transition-colors relative",
+            activeTab === "apps"
+              ? "text-amber-600 dark:text-amber-400"
+              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+          )}
+        >
+          Multi-User Apps
+          {appCount > 0 && (
+            <span className="ml-1.5 text-amber-600 dark:text-amber-400">
+              {appCount}
+            </span>
+          )}
+          {activeTab === "apps" && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600 dark:bg-amber-400" />
+          )}
+        </button>
       </div>
 
-      {/* Main API Card */}
-      <Card className="border-zinc-200 dark:border-zinc-800">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-            <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-              <Shield className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
+      {/* Search Bar (only for apps tab) */}
+      {activeTab === "apps" && (userApps && userApps.length > 0) && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Input
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800"
+          />
             </div>
-            Chat API Configuration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* API Key Section */}
-          {apiKeyStatus?.hasApiKey ? (
+      )}
+
+      {/* Content */}
+      {activeTab === "chat" ? (
             <div className="space-y-4">
-              <div>
-                <Label>API Key</Label>
-                <div className="flex items-center gap-2 mt-1">
+          {apiKeyStatus?.hasApiKey ? (
+            <>
+              {/* Table Header */}
+              <div className="grid grid-cols-12 gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                <div className="col-span-5">Key</div>
+                <div className="col-span-4">Status</div>
+                <div className="col-span-3">Actions</div>
+              </div>
+
+              {/* Table Row */}
+              <div className="grid grid-cols-12 gap-4 items-center py-3 text-sm">
+                <div className="col-span-5">
+                  <div className="flex items-center gap-2">
                   <Input
                     value={
                       showApiKey
@@ -471,104 +500,81 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                         : "tk_" + "•".repeat(32)
                     }
                     readOnly
-                    className="font-mono text-sm"
+                      className="font-mono text-xs bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800"
                   />
                   <Button
-                    variant="outline"
+                      variant="ghost"
                     size="sm"
                     onClick={() => setShowApiKey(!showApiKey)}
+                      className="h-7 w-7 p-0"
                   >
                     {showApiKey ? (
-                      <EyeOff className="w-4 h-4" />
+                        <EyeOff className="w-3.5 h-3.5" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                        <Eye className="w-3.5 h-3.5" />
                     )}
                   </Button>
                   <Button
-                    variant="outline"
+                      variant="ghost"
                     size="sm"
                     onClick={() =>
                       copyToClipboard(apiKeyStatus.apiKey || "", "API key")
                     }
+                      className="h-7 w-7 p-0"
                   >
-                    <Copy className="w-4 h-4" />
+                      <Copy className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
-
-              {/* API Status Toggle */}
-              <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <div>
-                  <div className="font-medium text-zinc-900 dark:text-white">
-                    API Access
-                  </div>
-                  <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {apiKeyStatus.isEnabled
-                      ? "External applications can access this chat"
-                      : "API access is currently disabled"}
-                  </div>
-                </div>
+                <div className="col-span-4">
+                  <div className="flex items-center gap-2">
+                    {apiKeyStatus.isEnabled ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-zinc-400" />
+                    )}
+                    <span className="text-zinc-900 dark:text-white">
+                      {apiKeyStatus.isEnabled ? "Enabled" : "Disabled"}
+                    </span>
                 <Button
                   onClick={handleToggleAccess}
-                  variant={apiKeyStatus.isEnabled ? "destructive" : "default"}
-                  className={
-                    apiKeyStatus.isEnabled
-                      ? ""
-                      : "bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
-                  }
-                >
-                  {apiKeyStatus.isEnabled ? "Disable API" : "Enable API"}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs ml-auto"
+                    >
+                      {apiKeyStatus.isEnabled ? "Disable" : "Enable"}
                 </Button>
               </div>
-
-              {/* Regenerate Key */}
-              <div className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center mt-0.5">
-                    <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <div>
-                    <div className="font-medium text-zinc-900 dark:text-white">
-                      Regenerate API Key
-                    </div>
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                      This will invalidate the current key and break existing
-                      integrations
-                    </div>
-                  </div>
-                </div>
+                <div className="col-span-3">
                 <Button
                   onClick={handleRegenerateKey}
                   disabled={isGenerating}
-                  variant="outline"
-                  className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
                 >
                   {isGenerating ? (
-                    <div className="w-4 h-4 border-2 border-zinc-400/30 border-t-zinc-600 rounded-full animate-spin" />
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <RefreshCw className="w-4 h-4" />
+                      <RefreshCw className="w-3.5 h-3.5" />
                   )}
-                  Regenerate
                 </Button>
               </div>
             </div>
+            </>
           ) : (
-            /* No API Key Yet */
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Key className="w-8 h-8 text-zinc-400" />
+            <div className="text-center py-12">
+              <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Key className="w-6 h-6 text-zinc-400" />
               </div>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                No API Key Generated
-              </h3>
-              <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto">
-                Generate an API key to allow external applications to access
-                this chat's knowledge base.
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                No API key generated
               </p>
               <Button
                 onClick={handleGenerateKey}
                 disabled={isGenerating}
-                className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
+                className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100"
               >
                 {isGenerating ? (
                   <>
@@ -584,177 +590,60 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
               </Button>
             </div>
           )}
-
-          {/* Quick Link to Documentation */}
-          {apiKeyStatus?.hasApiKey && apiKeyStatus.isEnabled && (
-            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-5 h-5 bg-amber-100 dark:bg-amber-950/50 rounded flex items-center justify-center">
-                  <BookOpen className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                 </div>
-                <div className="font-medium text-zinc-900 dark:text-white">
-                  Ready to integrate?
+      ) : (
+        <div className="space-y-4">
+          {userApps && userApps.length > 0 ? (
+            <>
+              {/* Table Header */}
+              <div className="grid grid-cols-12 gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                <div className="col-span-4">App</div>
+                <div className="col-span-2">Status</div>
+                <div className="col-span-2">API Access</div>
+                <div className="col-span-4">Actions</div>
                 </div>
-              </div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-                Check out our comprehensive documentation with installation
-                guides, code examples, and best practices.
-              </p>
-              <Button
-                onClick={() => window.open("https://docs.trainlyai.com", "_blank")}
-                className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                View Documentation
-              </Button>
-            </div>
-          )}
 
-          {/* API Information */}
-          {apiKeyStatus?.isEnabled && (
-            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 bg-amber-100 dark:bg-amber-950/50 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Globe className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <div className="font-medium text-zinc-900 dark:text-white mb-1">
-                    API Endpoint Ready
-                  </div>
-                  <div className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
-                    Your chat is now accessible via API at:
-                  </div>
-                  <code className="text-xs bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 px-2 py-1 rounded font-mono">
-                    https://api.trainlyai.com/v1/{chatId}/answer_question
-                  </code>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                    Rate limit: 60 requests/minute • Supports streaming
-                    responses
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Security Notice */}
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 bg-amber-100 dark:bg-amber-900/50 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <div className="font-medium text-amber-800 dark:text-amber-200 mb-1">
-                  Security Best Practices
-                </div>
-                <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
-                  <li>
-                    • Keep your API key secure and never expose it in
-                    client-side code
-                  </li>
-                  <li>• Use environment variables to store the API key</li>
-                  <li>
-                    • Monitor API usage and regenerate keys if compromised
-                  </li>
-                  <li>• Only enable API access when needed</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* App Secret Section for Multi-User Apps */}
-      <Card className="border-zinc-200 dark:border-zinc-800">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-lg font-semibold text-zinc-900 dark:text-white">
-            <div className="w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-              <Users className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-            </div>
-            App Secret - For Multi-User OAuth Apps
-          </CardTitle>
-          <CardDescription className="text-zinc-500 dark:text-zinc-400">
-            Create apps that support multiple users with private workspaces +
-            shared knowledge base
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
-            <h4 className="font-semibold text-zinc-900 dark:text-white mb-2">
-              🔒 Hybrid Privacy Model
-            </h4>
-            <ul className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
-              <li>• Each user gets their own private workspace</li>
-              <li>
-                • Users can access shared knowledge base (this chat's documents)
-              </li>
-              <li>• Complete privacy between users' personal files</li>
-              <li>• Perfect for education, legal, or business SaaS apps</li>
-            </ul>
-          </div>
-
-          <div>
-            <Label>App Secret for Multi-User Apps</Label>
-            {userApps && userApps.length > 0 ? (
-              <div className="space-y-3 mt-2">
-                {userApps.map((app) => (
+              {/* Table Rows */}
+              {filteredApps.length > 0 ? (
+                filteredApps.map((app) => (
                   <div
                     key={app._id}
-                    className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-900/50"
+                    className="grid grid-cols-12 gap-4 items-center py-4 border-b border-zinc-200 dark:border-zinc-800"
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="font-medium text-zinc-900 dark:text-white">
+                    <div className="col-span-4">
+                      <div className="font-medium text-zinc-900 dark:text-white">
                           {app.name}
-                        </h4>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                          {app.description}
-                        </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                          {app.description}
+                      </div>
+                    </div>
+                    <div className="col-span-2">
                         <Badge
                           variant="outline"
-                          className={`${
-                            app.status === "live"
-                              ? "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
-                              : app.status === "draft"
-                                ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700"
-                                : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/30 dark:text-gray-200 dark:border-gray-700"
-                          }`}
-                        >
-                          {app.status === "live"
-                            ? "Live"
-                            : app.status === "draft"
-                              ? "Draft"
-                              : "Stale"}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
+                        className={
+                          app.isActive
+                            ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-200"
+                            : "bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
+                        }
                         >
                           {app.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </div>
-                    </div>
-
-                    {/* API Access Toggle */}
-                    <div className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg mb-3">
+                    <div className="col-span-2">
                       <div className="flex items-center gap-2">
                         {app.isApiDisabled ? (
-                          <PowerOff className="w-4 h-4 text-red-500" />
+                          <PowerOff className="w-3.5 h-3.5 text-red-500" />
                         ) : (
-                          <Power className="w-4 h-4 text-green-500" />
+                          <Power className="w-3.5 h-3.5 text-green-500" />
                         )}
-                        <div>
-                          <div className="font-medium text-zinc-900 dark:text-white text-sm">
-                            API Access
+                        <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                          {app.isApiDisabled ? "Disabled" : "Enabled"}
+                        </span>
                           </div>
-                          <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                            {app.isApiDisabled
-                              ? "API requests are blocked"
-                              : "API requests are allowed"}
                           </div>
-                        </div>
-                      </div>
+                    <div className="col-span-4">
+                      <div className="flex items-center gap-2">
                       <Button
                         variant={app.isApiDisabled ? "default" : "destructive"}
                         size="sm"
@@ -764,53 +653,69 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                             app.isApiDisabled || false,
                           )
                         }
-                        className="text-xs"
-                      >
-                        {app.isApiDisabled ? "Enable API" : "Disable API"}
+                          className="h-7 text-xs"
+                        >
+                          {app.isApiDisabled ? "Enable" : "Disable"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => {
+                            const newExpanded = new Set(expandedApps);
+                            if (newExpanded.has(app._id)) {
+                              newExpanded.delete(app._id);
+                            } else {
+                              newExpanded.add(app._id);
+                            }
+                            setExpandedApps(newExpanded);
+                          }}
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
                       </Button>
                     </div>
-
-                    <div className="space-y-2">
+                    </div>
+                    {/* Expanded Secrets Section */}
+                    {expandedApps.has(app._id) && (
+                      <div className="col-span-12 mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
                       <AppSecretDisplay
                         appId={app.appId}
                         onCopy={copyToClipboard}
                       />
-
                       <JwtSecretDisplay
                         appId={app.appId}
                         onCopy={copyToClipboard}
                       />
-
-                      <div className="text-xs text-green-600">
-                        <strong>App ID:</strong> {app.appId}
+                      <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                        <span>App ID: {app.appId}</span>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="ml-2 h-auto p-1 text-green-600 hover:text-green-800"
+                          className="h-5 px-1"
                           onClick={() => copyToClipboard(app.appId, "App ID")}
                         >
                           <Copy className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
+                    )}
                   </div>
-                ))}
+                ))
+              ) : (
+                <div className="text-center py-8 text-sm text-zinc-500 dark:text-zinc-400">
+                  No apps found matching "{searchQuery}"
               </div>
+              )}
+            </>
             ) : createdAppSecret ? (
-              <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-900/50 mt-2">
-                <div className="mb-3">
+            <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
+              <div>
                   <h4 className="font-medium text-zinc-900 dark:text-white">
                     {chatTitle} App
                   </h4>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    Multi-user app with hybrid privacy
-                  </p>
                 </div>
-
                 <div>
-                  <Label className="text-xs text-zinc-700 dark:text-zinc-300">
-                    Your App Secret
-                  </Label>
+                <Label className="text-xs">App Secret</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
                       value={
@@ -819,13 +724,12 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                           : "as_" + "•".repeat(32)
                       }
                       readOnly
-                      className="font-mono text-sm bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800"
+                    className="font-mono text-sm"
                     />
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setShowAppSecret(!showAppSecret)}
-                      className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     >
                       {showAppSecret ? (
                         <EyeOff className="w-4 h-4" />
@@ -839,103 +743,69 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                       onClick={() =>
                         copyToClipboard(createdAppSecret, "App Secret")
                       }
-                      className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                    ⚠️ Save this secret securely - it won't be shown again after
-                    you refresh!
-                  </p>
                 </div>
-              </div>
-            ) : (
-              <div className="mt-2">
+              {createdJwtSecret && (
+                <div>
+                  <Label className="text-xs">JWT Secret</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      value={
+                        showAppSecret
+                          ? createdJwtSecret
+                          : "jwt_" + "•".repeat(60)
+                      }
+                      readOnly
+                      className="font-mono text-sm"
+                    />
                 <Button
-                  onClick={handleCreateApp}
-                  disabled={isCreatingApp}
-                  className="w-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white"
-                >
-                  {isCreatingApp
-                    ? "Creating App..."
-                    : `Create App for "${chatTitle}"`}
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        copyToClipboard(createdJwtSecret, "JWT Secret")
+                      }
+                    >
+                      <Copy className="w-4 h-4" />
                 </Button>
-                <p className="text-xs text-zinc-500 mt-2 text-center">
-                  This will create a multi-user app that uses this chat as the
-                  shared knowledge base
-                </p>
+                  </div>
               </div>
             )}
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Save these secrets securely
+              </p>
           </div>
-
-          <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
-            <h4 className="font-semibold text-zinc-900 dark:text-white mb-2">
-              🎯 Key Differences
-            </h4>
-            <div className="grid md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <h5 className="font-medium text-zinc-900 dark:text-white mb-1">
-                  Chat API Key (Above)
-                </h5>
-                <ul className="text-zinc-600 dark:text-zinc-400 space-y-1">
-                  <li>• Direct access to this chat only</li>
-                  <li>• All users share same documents</li>
-                  <li>• Simple API key authentication</li>
-                </ul>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Key className="w-6 h-6 text-zinc-400" />
               </div>
-              <div>
-                <h5 className="font-medium text-amber-700 dark:text-amber-300 mb-1">
-                  App Secret
-                </h5>
-                <ul className="text-amber-600 dark:text-amber-400 space-y-1">
-                  <li>• Each user gets private workspace</li>
-                  <li>• Access to shared knowledge + private docs</li>
-                  <li>• OAuth with user-controlled tokens</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {(userApps && userApps.length > 0) || createdAppSecret ? (
-            <div>
-              <h4 className="font-semibold mb-2">
-                Environment Setup for Your Next.js App
-              </h4>
-              <div className="bg-zinc-900 rounded-lg p-3">
-                <pre className="text-zinc-300 text-xs">
-                  {`# .env.local
-TRAINLY_APP_SECRET=${createdAppSecret || "as_your_app_secret_here"}
-JWT_SECRET=${createdJwtSecret || "jwt_your_jwt_secret_here"}
-NEXT_PUBLIC_TRAINLY_API_URL=http://localhost:8000
-NEXT_PUBLIC_APP_URL=http://localhost:3000`}
-                </pre>
-              </div>
-              <div className="mt-2 text-xs text-zinc-600">
-                <p>
-                  💡 <strong>Tip:</strong> Copy your actual secrets from the
-                  "App Secret" and "JWT Secret" fields above to replace the
-                  placeholder values
-                </p>
-              </div>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                No multi-user apps created
+              </p>
               <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() =>
-                  copyToClipboard(
-                    `TRAINLY_APP_SECRET=${createdAppSecret || "as_your_app_secret_here"}\nJWT_SECRET=${createdJwtSecret || "jwt_your_jwt_secret_here"}\nNEXT_PUBLIC_TRAINLY_API_URL=http://localhost:8000\nNEXT_PUBLIC_APP_URL=http://localhost:3000`,
-                    "Environment variables",
-                  )
-                }
+                onClick={handleCreateApp}
+                disabled={isCreatingApp}
+                className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100"
               >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Complete Environment Setup
+                {isCreatingApp ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create app
+                  </>
+                )}
               </Button>
             </div>
-          ) : null}
-        </CardContent>
-      </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

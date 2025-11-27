@@ -78,7 +78,10 @@ export function DashSidebar() {
       return;
     }
     try {
-      await addChat({ title: "untitled", organizationId: currentOrganizationId });
+      await addChat({
+        title: "untitled",
+        organizationId: currentOrganizationId,
+      });
       toast.success("Created new chat!");
     } catch (error) {
       toast.error("Failed to create chat");
@@ -143,18 +146,16 @@ export function DashSidebar() {
     <Sidebar className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border-r border-zinc-200/50 dark:border-zinc-800/50">
       <SidebarHeader className="p-6 border-b border-zinc-200/50 dark:border-zinc-800/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center">
-            <img
-              src="/trainly_icon_black.png"
-              alt="Trainly Logo"
-              className="w-6 h-6 block dark:hidden"
-            />
-            <img
-              src="/trainly_icon_white.png"
-              alt="Trainly Logo"
-              className="w-6 h-6 hidden dark:block"
-            />
-          </div>
+          <img
+            src="/trainly_icon_black.png"
+            alt="Trainly Logo"
+            className="w-6 h-6 block dark:hidden"
+          />
+          <img
+            src="/trainly_icon_white.png"
+            alt="Trainly Logo"
+            className="w-6 h-6 hidden dark:block"
+          />
           <span className="text-xl font-bold text-zinc-900 dark:text-white">
             trainly
           </span>
@@ -167,7 +168,7 @@ export function DashSidebar() {
           <SidebarGroupContent>
             <Button
               onClick={onCreate}
-              className="w-full bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white rounded-xl shadow-lg hover:shadow-amber-400/25 transition-all duration-200 flex items-center gap-2 mb-6"
+              className="w-full bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl shadow-lg hover:shadow-zinc-400/25 dark:hover:shadow-zinc-500/25 transition-all duration-200 flex items-center gap-2 mb-6"
             >
               <PlusCircle className="h-4 w-4" />
               New Chat
@@ -251,9 +252,7 @@ export function DashSidebar() {
                 onClick={() => router.push("/")}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
-                  <Home className="w-4 h-4 text-amber-400" />
-                </div>
+                <Home className="w-4 h-4 text-amber-400" />
                 <div className="flex-1 text-left">
                   <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-amber-400">
                     Home
@@ -267,9 +266,7 @@ export function DashSidebar() {
                 }
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
-                  <Code className="w-4 h-4 text-amber-400" />
-                </div>
+                <Code className="w-4 h-4 text-amber-400" />
                 <div className="flex-1 text-left">
                   <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-amber-400">
                     API Docs
@@ -289,11 +286,11 @@ export function DashSidebar() {
             <SidebarMenu className="space-y-2">
               {filteredAndSortedChats.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="w-12 h-12 bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <div className="mx-auto mb-3">
                     {searchQuery ? (
-                      <Search className="w-6 h-6 text-zinc-400" />
+                      <Search className="w-6 h-6 text-zinc-400 mx-auto" />
                     ) : (
-                      <MessageSquare className="w-6 h-6 text-zinc-400" />
+                      <MessageSquare className="w-6 h-6 text-zinc-400 mx-auto" />
                     )}
                   </div>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
@@ -312,9 +309,7 @@ export function DashSidebar() {
                 filteredAndSortedChats.map((chat) => (
                   <SidebarMenuItem key={chat._id}>
                     <div className="group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:shadow-sm">
-                      <div className="w-10 h-10 bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:from-amber-400/10 group-hover:to-amber-100 dark:group-hover:to-zinc-700 transition-all duration-200">
-                        <MessageSquare className="w-5 h-5 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400 transition-colors" />
-                      </div>
+                      <MessageSquare className="w-5 h-5 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400 transition-colors flex-shrink-0" />
 
                       <div className="flex-1 min-w-0">
                         {editingChatId === chat._id ? (

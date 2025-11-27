@@ -282,18 +282,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
             {!isCollapsed ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center">
-                    <img
-                      src="/trainly_icon_black.png"
-                      alt="Trainly Logo"
-                      className="w-5 h-5 block dark:hidden"
-                    />
-                    <img
-                      src="/trainly_icon_white.png"
-                      alt="Trainly Logo"
-                      className="w-5 h-5 hidden dark:block"
-                    />
-                  </div>
+                  <img
+                  src="/trainly_icon_black.png"
+                  alt="Trainly Logo"
+                  className="w-5 h-5 block dark:hidden"
+                />
+                <img
+                  src="/trainly_icon_white.png"
+                  alt="Trainly Logo"
+                  className="w-5 h-5 hidden dark:block"
+                />
                   <div>
                     <h2 className="font-bold text-zinc-900 dark:text-white text-sm">
                       trainly
@@ -314,18 +312,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-                  <img
-                    src="/trainly_icon_black.png"
-                    alt="Trainly Logo"
-                    className="w-6 h-6 block dark:hidden"
-                  />
-                  <img
-                    src="/trainly_icon_white.png"
-                    alt="Trainly Logo"
-                    className="w-6 h-6 hidden dark:block"
-                  />
-                </div>
+                <img
+                  src="/trainly_icon_black.png"
+                  alt="Trainly Logo"
+                  className="w-6 h-6 block dark:hidden"
+                />
+                <img
+                  src="/trainly_icon_white.png"
+                  alt="Trainly Logo"
+                  className="w-6 h-6 hidden dark:block"
+                />
 
                 <button
                   onClick={toggleCollapse}
@@ -347,7 +343,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                   <div className="mb-6">
                     <Button
                       onClick={onCreate}
-                      className="w-full bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white rounded-xl shadow-lg hover:shadow-amber-400/25 transition-all duration-200 flex items-center gap-2 mb-4"
+                      className="w-full bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl shadow-lg hover:shadow-zinc-400/25 dark:hover:shadow-zinc-500/25 transition-all duration-200 flex items-center gap-2 mb-4"
                     >
                       <PlusCircle className="h-4 w-4" />
                       New Chat
@@ -370,14 +366,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                           "hover:bg-zinc-100 dark:hover:bg-zinc-800",
                         )}
                       >
-                        <div
-                          className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
-                            "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
-                          )}
-                        >
-                          <Rocket className="w-4 h-4" />
-                        </div>
+                        <Rocket className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
                         <span
                           className={cn(
                             "text-sm font-medium",
@@ -402,16 +391,14 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                             : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
                         )}
                       >
-                        <div
+                        <LayoutGrid
                           className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            "w-4 h-4",
                             activeView === "manage"
-                              ? "bg-amber-400 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                              ? "text-amber-400"
+                              : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
-                        >
-                          <LayoutGrid className="w-4 h-4" />
-                        </div>
+                        />
                         <span
                           className={cn(
                             "text-sm font-medium flex-1 text-left",
@@ -449,18 +436,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         )}
                         title={!chatId ? "Select a chat first" : "Graph View"}
                       >
-                        <div
+                        <Network
                           className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            "w-4 h-4",
                             !chatId
-                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              ? "text-zinc-400"
                               : activeView === "graph"
-                                ? "bg-amber-400 text-white"
-                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                                ? "text-amber-400"
+                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
-                        >
-                          <Network className="w-4 h-4" />
-                        </div>
+                        />
                         <span
                           className={cn(
                             "text-sm font-medium",
@@ -497,18 +482,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         )}
                         title={!chatId ? "Select a chat first" : "Sandbox"}
                       >
-                        <div
+                        <TestTube
                           className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            "w-4 h-4",
                             !chatId
-                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              ? "text-zinc-400"
                               : activeView === "testing"
-                                ? "bg-amber-400 text-white"
-                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                                ? "text-amber-400"
+                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
-                        >
-                          <TestTube className="w-4 h-4" />
-                        </div>
+                        />
                         <span
                           className={cn(
                             "text-sm font-medium",
@@ -545,18 +528,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         )}
                         title={!chatId ? "Select a chat first" : "File Ingestion"}
                       >
-                        <div
+                        <Upload
                           className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            "w-4 h-4",
                             !chatId
-                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              ? "text-zinc-400"
                               : activeView === "files"
-                                ? "bg-amber-400 text-white"
-                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                                ? "text-amber-400"
+                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
-                        >
-                          <Upload className="w-4 h-4" />
-                        </div>
+                        />
                         <span
                           className={cn(
                             "text-sm font-medium",
@@ -593,18 +574,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         )}
                         title={!chatId ? "Select a chat first" : "API Keys"}
                       >
-                        <div
+                        <Key
                           className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            "w-4 h-4",
                             !chatId
-                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              ? "text-zinc-400"
                               : activeView === "api-keys"
-                                ? "bg-amber-400 text-white"
-                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                                ? "text-amber-400"
+                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
-                        >
-                          <Key className="w-4 h-4" />
-                        </div>
+                        />
                         <span
                           className={cn(
                             "text-sm font-medium",
@@ -643,18 +622,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                           !chatId ? "Select a chat first" : "Custom Settings"
                         }
                       >
-                        <div
+                        <Wrench
                           className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            "w-4 h-4",
                             !chatId
-                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              ? "text-zinc-400"
                               : activeView === "custom-settings"
-                                ? "bg-amber-400 text-white"
-                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                                ? "text-amber-400"
+                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
-                        >
-                          <Wrench className="w-4 h-4" />
-                        </div>
+                        />
                         <span
                           className={cn(
                             "text-sm font-medium",
@@ -691,18 +668,16 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         )}
                         title={!chatId ? "Select a chat first" : "Usage"}
                       >
-                        <div
+                        <BarChart3
                           className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            "w-4 h-4",
                             !chatId
-                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400"
+                              ? "text-zinc-400"
                               : activeView === "usage"
-                                ? "bg-amber-400 text-white"
-                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
+                                ? "text-amber-400"
+                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
-                        >
-                          <BarChart3 className="w-4 h-4" />
-                        </div>
+                        />
                         <span
                           className={cn(
                             "text-sm font-medium",
@@ -723,9 +698,7 @@ export function ResizableSidebar({ chatId }: ResizableSidebarParams) {
                         className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 group h-12 active:scale-[0.98] active:transition-transform active:duration-75 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                         title="Share Feedback"
                       >
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400">
-                          <MessageSquare className="w-4 h-4" />
-                        </div>
+                        <MessageSquare className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400" />
                         <span className="text-sm font-medium text-zinc-900 dark:text-white group-hover:text-amber-400">
                           Feedback
                         </span>

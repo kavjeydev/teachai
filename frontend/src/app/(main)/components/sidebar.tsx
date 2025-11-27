@@ -255,7 +255,7 @@ export function AppSidebar({
           <SidebarGroupContent>
             <Button
               onClick={onCreate}
-              className="w-full bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-400/90 hover:to-amber-600/90 text-white rounded-xl shadow-lg hover:shadow-amber-400/25 transition-all duration-200 flex items-center gap-2 mb-6"
+              className="w-full bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl shadow-lg hover:shadow-zinc-400/25 dark:hover:shadow-zinc-500/25 transition-all duration-200 flex items-center gap-2 mb-6"
             >
               <PlusCircle className="h-4 w-4" />
               New Chat
@@ -384,11 +384,11 @@ export function AppSidebar({
             <SidebarMenu className="space-y-2">
               {filteredAndSortedChats.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="w-12 h-12 bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <div className="mx-auto mb-3">
                     {searchQuery ? (
-                      <Search className="w-6 h-6 text-zinc-400" />
+                      <Search className="w-6 h-6 text-zinc-400 mx-auto" />
                     ) : (
-                      <MessageSquare className="w-6 h-6 text-zinc-400" />
+                      <MessageSquare className="w-6 h-6 text-zinc-400 mx-auto" />
                     )}
                   </div>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
@@ -416,23 +416,14 @@ export function AppSidebar({
                     >
                       {/* Enhanced Chat Icon */}
                       <div className="relative">
-                        <div
+                        <MessageSquare
                           className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200",
+                            "w-5 h-5 transition-colors flex-shrink-0",
                             chat._id === chatId
-                              ? "bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg"
-                              : "bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 group-hover:from-amber-400/10 group-hover:to-amber-100 dark:group-hover:to-zinc-700",
+                              ? "text-amber-400"
+                              : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
                           )}
-                        >
-                          <MessageSquare
-                            className={cn(
-                              "w-5 h-5 transition-colors",
-                              chat._id === chatId
-                                ? "text-white"
-                                : "text-zinc-600 dark:text-zinc-400 group-hover:text-amber-400",
-                            )}
-                          />
-                        </div>
+                        />
                         {/* Activity Indicator */}
                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm"></div>
                       </div>
@@ -522,9 +513,7 @@ export function AppSidebar({
                 onClick={() => router.push(`/dashboard/${chatId}/graph`)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
-                  <Network className="w-4 h-4 text-amber-400" />
-                </div>
+                <Network className="w-4 h-4 text-amber-400" />
                 <div className="flex-1 text-left">
                   <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-amber-400">
                     Graph View
@@ -541,9 +530,7 @@ export function AppSidebar({
                 }
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center">
-                  <Code className="w-4 h-4 text-amber-400" />
-                </div>
+                <Code className="w-4 h-4 text-amber-400" />
                 <div className="flex-1 text-left">
                   <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:text-amber-400">
                     API Docs
