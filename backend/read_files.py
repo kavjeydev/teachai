@@ -7280,13 +7280,7 @@ async def get_file_status(
                 detail="Invalid API key or chat not accessible."
             )
 
-        # Check in-memory status first
-        if sanitized_file_id in FILE_PROCESSING_STATUS:
-            status_info = FILE_PROCESSING_STATUS[sanitized_file_id].copy()
-            status_info["file_id"] = sanitized_file_id
-            return status_info
-
-        # If not in memory, check if file exists in Neo4j (means it's ready)
+        # Check if file exists in Neo4j first (most reliable, works across workers)
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
                 query = """
@@ -7308,7 +7302,28 @@ async def get_file_status(
                         "chunk_count": record["chunk_count"]
                     }
 
-        # File not found
+        # Check in-memory status (may not work across workers, but worth checking)
+        if sanitized_file_id in FILE_PROCESSING_STATUS:
+            status_info = FILE_PROCESSING_STATUS[sanitized_file_id].copy()
+            status_info["file_id"] = sanitized_file_id
+            return status_info
+
+        # If file_id format matches expected pattern (chat_id_filename_timestamp), assume processing
+        # This handles the case where background task hasn't completed yet
+        if sanitized_file_id.startswith(sanitized_chat_id + "_"):
+            # Extract filename from file_id to provide better response
+            parts = sanitized_file_id.split("_")
+            if len(parts) >= 3:
+                # Reconstruct filename (everything except last timestamp part)
+                filename_part = "_".join(parts[1:-1])
+                return {
+                    "file_id": sanitized_file_id,
+                    "status": "processing",
+                    "filename": filename_part,
+                    "message": "File is being processed"
+                }
+
+        # File not found and doesn't match expected pattern
         raise HTTPException(status_code=404, detail=f"File {sanitized_file_id} not found")
 
     except HTTPException:
