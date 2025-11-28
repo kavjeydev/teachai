@@ -4504,6 +4504,7 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
                     if not xai_api_key:
                         logger.warning("⚠️ Unhinged mode requested but XAI_API_KEY not set, falling back to OpenAI")
                         client = openai.OpenAI()
+                        logger.info(f"🔄 Creating OpenAI stream (unhinged fallback) with model={selected_model}, messages={len(messages)}")
                         stream = client.chat.completions.create(
                             model=selected_model,
                             messages=messages,
@@ -4511,6 +4512,7 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
                             max_tokens=max_tokens,
                             stream=True
                         )
+                        logger.info(f"✅ OpenAI stream created successfully (unhinged fallback)")
                     else:
                         # Use xAI's Grok API
                         grok_client = OpenAI(
@@ -4518,6 +4520,7 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
                             base_url="https://api.x.ai/v1"
                         )
                         logger.info("🔥 Using Grok's unhinged AI model (streaming)")
+                        logger.info(f"🔄 Creating Grok stream with model=grok-3, messages={len(messages)}")
                         stream = grok_client.chat.completions.create(
                             model="grok-3",  # Use Grok's latest model
                             messages=messages,
@@ -4525,9 +4528,11 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
                             max_tokens=max_tokens,
                             stream=True
                         )
+                        logger.info(f"✅ Grok stream created successfully")
                 else:
                     # Use regular OpenAI
                     client = openai.OpenAI()
+                    logger.info(f"🔄 Creating OpenAI stream with model={selected_model}, messages={len(messages)}")
                     stream = client.chat.completions.create(
                         model=selected_model,
                         messages=messages,
@@ -4535,18 +4540,31 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
                         max_tokens=max_tokens,
                         stream=True
                     )
+                    logger.info(f"✅ OpenAI stream created successfully")
 
                 async def generate():
                     try:
+                        chunk_count = 0
+                        logger.info(f"🚀 Starting to iterate over stream...")
                         for chunk in stream:
-                            if chunk.choices[0].delta.content is not None:
+                            if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None:
                                 content = chunk.choices[0].delta.content
+                                chunk_count += 1
                                 # Send content in JSON format expected by client
                                 json_data = json.dumps({"type": "content", "data": content})
+                                logger.info(f"📤 Streaming chunk {chunk_count}: {content[:50]}...")
                                 yield f"data: {json_data}\n\n"
+                                # Small delay to ensure chunks are processed individually
+                                await asyncio.sleep(0.01)
+                            else:
+                                logger.debug(f"⚠️ Skipping chunk - no content in delta")
+
+                        logger.info(f"✅ Streamed {chunk_count} content chunks total")
                         yield "data: [DONE]\n\n"
                     except Exception as e:
+                        import traceback
                         logger.error(f"Streaming error: {e}")
+                        logger.error(f"Traceback: {traceback.format_exc()}")
                         error_json = json.dumps({"type": "error", "data": str(e)})
                         yield f"data: {error_json}\n\n"
                         yield "data: [DONE]\n\n"
