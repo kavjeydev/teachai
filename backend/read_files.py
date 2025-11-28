@@ -7281,6 +7281,7 @@ async def get_file_status(
             )
 
         # Check if file exists in Neo4j first (most reliable, works across workers)
+        # This is the source of truth - if file is in Neo4j with chunks, it's ready
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
                 query = """
@@ -7293,7 +7294,8 @@ async def get_file_status(
                 result = session.run(query, file_id=sanitized_file_id, chat_id=sanitized_chat_id)
                 record = result.single()
 
-                if record:
+                if record and record["chunk_count"] > 0:
+                    # File exists in Neo4j with chunks - it's ready and queryable
                     return {
                         "file_id": sanitized_file_id,
                         "status": "ready",
@@ -7302,14 +7304,8 @@ async def get_file_status(
                         "chunk_count": record["chunk_count"]
                     }
 
-        # Check in-memory status (may not work across workers, but worth checking)
-        if sanitized_file_id in FILE_PROCESSING_STATUS:
-            status_info = FILE_PROCESSING_STATUS[sanitized_file_id].copy()
-            status_info["file_id"] = sanitized_file_id
-            return status_info
-
+        # File not in Neo4j yet - check if it matches expected pattern for processing
         # If file_id format matches expected pattern (chat_id_filename_timestamp), assume processing
-        # This handles the case where background task hasn't completed yet
         if sanitized_file_id.startswith(sanitized_chat_id + "_"):
             # Extract filename from file_id to provide better response
             parts = sanitized_file_id.split("_")
@@ -7322,6 +7318,17 @@ async def get_file_status(
                     "filename": filename_part,
                     "message": "File is being processed"
                 }
+
+        # Check in-memory status as last resort (may not work across workers)
+        # Only use this if file_id doesn't match expected pattern
+        if sanitized_file_id in FILE_PROCESSING_STATUS:
+            status_info = FILE_PROCESSING_STATUS[sanitized_file_id].copy()
+            status_info["file_id"] = sanitized_file_id
+            # If status says ready but Neo4j doesn't have it, it's still processing
+            if status_info.get("status") == "ready":
+                status_info["status"] = "processing"
+                status_info["message"] = "File processing nearly complete"
+            return status_info
 
         # File not found and doesn't match expected pattern
         raise HTTPException(status_code=404, detail=f"File {sanitized_file_id} not found")

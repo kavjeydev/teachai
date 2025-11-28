@@ -355,6 +355,10 @@ class TrainlyClient:
                 status = status_data.get("status")
 
                 if status == "ready":
+                    chunk_count = status_data.get("chunk_count", 0)
+                    # Small delay to ensure chunks are fully indexed and queryable in Neo4j
+                    # This helps avoid race conditions where status says ready but chunks aren't queryable yet
+                    time.sleep(0.2)
                     return UploadResult(
                         success=True,
                         filename=status_data.get("filename", "Unknown"),
