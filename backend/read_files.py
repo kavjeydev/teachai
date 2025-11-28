@@ -3318,6 +3318,7 @@ async def api_answer_question_stream(
         # Get PUBLISHED chat settings AND conversation history from Convex
         chat_settings = {}
         conversation_history = []
+        published_settings = None
         async with httpx.AsyncClient() as client:
             # First get published settings
             published_response = await client.post(
@@ -3351,8 +3352,10 @@ async def api_answer_question_stream(
                         detail="This chat has no published settings. Please publish your chat settings first to enable API access."
                     )
 
+                # Always set published_settings if we have published data
+                published_settings = published_data["value"]
+
                 if chat_data.get("value"):
-                    published_settings = published_data["value"]
                     chat = chat_data["value"]
 
                     # Use published settings for API
@@ -3372,6 +3375,24 @@ async def api_answer_question_stream(
                             conversation_history.append({"role": "user", "content": message.get("text", "")})
                         elif message.get("sender") == "assistant":
                             conversation_history.append({"role": "assistant", "content": message.get("text", "")})
+                else:
+                    # Still set chat_settings even if chat_data is not available
+                    chat_settings = {
+                        "custom_prompt": published_settings.get("customPrompt"),
+                        "selected_model": published_settings.get("selectedModel", "gpt-4o-mini"),
+                        "temperature": published_settings.get("temperature", 0.7),
+                        "max_tokens": int(published_settings.get("maxTokens", 1000)),
+                        "conversation_history_limit": published_settings.get("conversationHistoryLimit", 20)
+                    }
+                    logger.info(f"📋 Using PUBLISHED settings (no chat data): custom_prompt={bool(chat_settings['custom_prompt'])}, model={chat_settings['selected_model']}")
+
+        # Ensure published_settings is set before using it
+        if not published_settings:
+            logger.error(f"❌ No published settings available for chat {chat_id}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to retrieve published settings. Please try again."
+            )
 
         # Published settings are the source of truth for API - no overrides allowed
         # This ensures developers control exactly what the API uses
