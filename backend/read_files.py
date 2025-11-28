@@ -4567,20 +4567,37 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
                     try:
                         chunk_count = 0
                         logger.info(f"🚀 Starting to iterate over stream...")
+                        logger.info(f"📝 Messages being sent: {len(messages)} messages")
+                        logger.info(f"📝 First message preview: {str(messages[0])[:100] if messages else 'No messages'}")
+
+                        # Iterate over the stream
                         for chunk in stream:
-                            if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None:
-                                content = chunk.choices[0].delta.content
-                                chunk_count += 1
-                                # Send content in JSON format expected by client
-                                json_data = json.dumps({"type": "content", "data": content})
-                                logger.info(f"📤 Streaming chunk {chunk_count}: {content[:50]}...")
-                                yield f"data: {json_data}\n\n"
-                                # Small delay to ensure chunks are processed individually
-                                await asyncio.sleep(0.01)
-                            else:
-                                logger.debug(f"⚠️ Skipping chunk - no content in delta")
+                            try:
+                                # Check if chunk has choices and delta with content
+                                if (chunk.choices and
+                                    len(chunk.choices) > 0 and
+                                    hasattr(chunk.choices[0], 'delta') and
+                                    hasattr(chunk.choices[0].delta, 'content') and
+                                    chunk.choices[0].delta.content is not None):
+
+                                    content = chunk.choices[0].delta.content
+                                    chunk_count += 1
+                                    json_data = json.dumps({"type": "content", "data": content})
+                                    logger.info(f"📤 Streaming chunk {chunk_count}: {content[:50]}...")
+                                    yield f"data: {json_data}\n\n"
+                                    # Small delay to ensure chunks are processed individually
+                                    await asyncio.sleep(0.01)
+
+                            except Exception as e:
+                                logger.warning(f"⚠️ Error processing chunk: {e}")
+                                continue
 
                         logger.info(f"✅ Streamed {chunk_count} content chunks total")
+                        if chunk_count == 0:
+                            logger.error(f"❌ No content chunks were streamed! Stream may be empty or malformed.")
+                            # Send an error message if no chunks were received
+                            error_json = json.dumps({"type": "error", "data": "No content was generated from the stream. Please check your query and try again."})
+                            yield f"data: {error_json}\n\n"
                         yield "data: [DONE]\n\n"
                     except Exception as e:
                         import traceback
