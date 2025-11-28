@@ -139,6 +139,14 @@ export default function Footer() {
                     Data Scoping
                   </button>
                 </li>
+                <li>
+                  <button
+                    onClick={() => navigateTo("/status")}
+                    className="text-sm text-white/70 hover:text-amber-400 transition-colors duration-200 font-light"
+                  >
+                    API Status
+                  </button>
+                </li>
               </ul>
             </div>
 

@@ -2405,7 +2405,7 @@ async def v1_user_query(
                         if parent_settings:
                             selected_model = parent_settings.get("selectedModel", selected_model)
                             temperature = parent_settings.get("temperature", temperature)
-                            max_tokens = min(parent_settings.get("maxTokens", max_tokens), response_tokens)
+                            max_tokens = int(min(parent_settings.get("maxTokens", max_tokens), response_tokens))
                             custom_prompt = parent_settings.get("customPrompt", custom_prompt)
                             logger.info(f"🎛️ Using PUBLISHED parent chat settings: model={selected_model}, temp={temperature}, max_tokens={max_tokens}, prompt='{custom_prompt}'")
                         else:
@@ -3213,7 +3213,7 @@ async def api_answer_question(
                         "custom_prompt": published_settings.get("customPrompt"),
                         "selected_model": published_settings.get("selectedModel", "gpt-4o-mini"),
                         "temperature": published_settings.get("temperature", 0.7),
-                        "max_tokens": published_settings.get("maxTokens", 1000),
+                        "max_tokens": int(published_settings.get("maxTokens", 1000)),
                         "conversation_history_limit": published_settings.get("conversationHistoryLimit", 20)
                     }
                     logger.info(f"📋 Using PUBLISHED settings: custom_prompt={bool(chat_settings['custom_prompt'])}, model={chat_settings['selected_model']}")
@@ -3360,7 +3360,7 @@ async def api_answer_question_stream(
                         "custom_prompt": published_settings.get("customPrompt"),
                         "selected_model": published_settings.get("selectedModel", "gpt-4o-mini"),
                         "temperature": published_settings.get("temperature", 0.7),
-                        "max_tokens": published_settings.get("maxTokens", 1000),
+                        "max_tokens": int(published_settings.get("maxTokens", 1000)),
                         "conversation_history_limit": published_settings.get("conversationHistoryLimit", 20)
                     }
                     logger.info(f"📋 Using PUBLISHED settings: custom_prompt={bool(chat_settings['custom_prompt'])}, model={chat_settings['selected_model']}")
@@ -3778,7 +3778,7 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
             ) if published_settings.get("customPrompt") else None
 
         temperature = published_settings.get("temperature", 0.7)
-        max_tokens = published_settings.get("maxTokens", 1000)
+        max_tokens = int(published_settings.get("maxTokens", 1000))
 
         logger.info(f"🔍 Processing question for chat {chat_id} using published context files")
 
@@ -4347,7 +4347,7 @@ async def answer_question_stream_with_published_context(payload: QuestionRequest
             custom_prompt = published_settings.get("customPrompt")
 
         temperature = published_settings.get("temperature", 0.7)
-        max_tokens = published_settings.get("maxTokens", 1000)
+        max_tokens = int(published_settings.get("maxTokens", 1000))
 
         logger.info(f"🔍 Processing streaming question for chat {chat_id} using published context files")
 
@@ -6378,7 +6378,7 @@ async def debug_chat_settings(chat_id: str):
                         "custom_prompt": chat.get("customPrompt"),
                         "selected_model": chat.get("selectedModel"),
                         "temperature": chat.get("temperature"),
-                        "max_tokens": chat.get("maxTokens"),
+                        "max_tokens": int(chat.get("maxTokens", 1000)) if chat.get("maxTokens") is not None else 1000,
                         "user_id": chat.get("userId")
                     }
                     logger.info(f"🔍 DEBUG: Extracted settings: {settings}")

@@ -419,11 +419,12 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
   };
 
   const appCount = userApps?.length || 0;
-  const filteredApps = userApps?.filter(
-    (app) =>
-      app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  const filteredApps =
+    userApps?.filter(
+      (app) =>
+        app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+    ) || [];
 
   return (
     <div className="space-y-6">
@@ -435,7 +436,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
             "pb-3 px-1 text-sm font-medium transition-colors relative",
             activeTab === "chat"
               ? "text-amber-600 dark:text-amber-400"
-              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200",
           )}
         >
           Chat API Key
@@ -449,7 +450,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
             "pb-3 px-1 text-sm font-medium transition-colors relative",
             activeTab === "apps"
               ? "text-amber-600 dark:text-amber-400"
-              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200",
           )}
         >
           Multi-User Apps
@@ -465,7 +466,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
       </div>
 
       {/* Search Bar (only for apps tab) */}
-      {activeTab === "apps" && (userApps && userApps.length > 0) && (
+      {activeTab === "apps" && userApps && userApps.length > 0 && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <Input
@@ -474,12 +475,12 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800"
           />
-            </div>
+        </div>
       )}
 
       {/* Content */}
       {activeTab === "chat" ? (
-            <div className="space-y-4">
+        <div className="space-y-4">
           {apiKeyStatus?.hasApiKey ? (
             <>
               {/* Table Header */}
@@ -493,39 +494,39 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
               <div className="grid grid-cols-12 gap-4 items-center py-3 text-sm">
                 <div className="col-span-5">
                   <div className="flex items-center gap-2">
-                  <Input
-                    value={
-                      showApiKey
-                        ? apiKeyStatus.apiKey || ""
-                        : "tk_" + "•".repeat(32)
-                    }
-                    readOnly
+                    <Input
+                      value={
+                        showApiKey
+                          ? apiKeyStatus.apiKey || ""
+                          : "tk_" + "•".repeat(32)
+                      }
+                      readOnly
                       className="font-mono text-xs bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800"
-                  />
-                  <Button
+                    />
+                    <Button
                       variant="ghost"
-                    size="sm"
-                    onClick={() => setShowApiKey(!showApiKey)}
+                      size="sm"
+                      onClick={() => setShowApiKey(!showApiKey)}
                       className="h-7 w-7 p-0"
-                  >
-                    {showApiKey ? (
+                    >
+                      {showApiKey ? (
                         <EyeOff className="w-3.5 h-3.5" />
-                    ) : (
+                      ) : (
                         <Eye className="w-3.5 h-3.5" />
-                    )}
-                  </Button>
-                  <Button
+                      )}
+                    </Button>
+                    <Button
                       variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      copyToClipboard(apiKeyStatus.apiKey || "", "API key")
-                    }
+                      size="sm"
+                      onClick={() =>
+                        copyToClipboard(apiKeyStatus.apiKey || "", "API key")
+                      }
                       className="h-7 w-7 p-0"
-                  >
+                    >
                       <Copy className="w-3.5 h-3.5" />
-                  </Button>
+                    </Button>
+                  </div>
                 </div>
-              </div>
                 <div className="col-span-4">
                   <div className="flex items-center gap-2">
                     {apiKeyStatus.isEnabled ? (
@@ -536,32 +537,32 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                     <span className="text-zinc-900 dark:text-white">
                       {apiKeyStatus.isEnabled ? "Enabled" : "Disabled"}
                     </span>
-                <Button
-                  onClick={handleToggleAccess}
+                    <Button
+                      onClick={handleToggleAccess}
                       variant="ghost"
                       size="sm"
                       className="h-6 px-2 text-xs ml-auto"
                     >
                       {apiKeyStatus.isEnabled ? "Disable" : "Enable"}
-                </Button>
-              </div>
+                    </Button>
                   </div>
+                </div>
                 <div className="col-span-3">
-                <Button
-                  onClick={handleRegenerateKey}
-                  disabled={isGenerating}
+                  <Button
+                    onClick={handleRegenerateKey}
+                    disabled={isGenerating}
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
-                >
-                  {isGenerating ? (
+                  >
+                    {isGenerating ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
+                    ) : (
                       <RefreshCw className="w-3.5 h-3.5" />
-                  )}
-                </Button>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
             </>
           ) : (
             <div className="text-center py-12">
@@ -590,7 +591,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
               </Button>
             </div>
           )}
-                </div>
+        </div>
       ) : (
         <div className="space-y-4">
           {userApps && userApps.length > 0 ? (
@@ -601,7 +602,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                 <div className="col-span-2">Status</div>
                 <div className="col-span-2">API Access</div>
                 <div className="col-span-4">Actions</div>
-                </div>
+              </div>
 
               {/* Table Rows */}
               {filteredApps.length > 0 ? (
@@ -612,24 +613,24 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                   >
                     <div className="col-span-4">
                       <div className="font-medium text-zinc-900 dark:text-white">
-                          {app.name}
+                        {app.name}
                       </div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                          {app.description}
+                        {app.description}
                       </div>
                     </div>
                     <div className="col-span-2">
-                        <Badge
-                          variant="outline"
+                      <Badge
+                        variant="outline"
                         className={
                           app.isActive
                             ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-200"
                             : "bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
                         }
-                        >
-                          {app.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
+                      >
+                        {app.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
                     <div className="col-span-2">
                       <div className="flex items-center gap-2">
                         {app.isApiDisabled ? (
@@ -640,19 +641,21 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                         <span className="text-xs text-zinc-600 dark:text-zinc-400">
                           {app.isApiDisabled ? "Disabled" : "Enabled"}
                         </span>
-                          </div>
-                          </div>
+                      </div>
+                    </div>
                     <div className="col-span-4">
                       <div className="flex items-center gap-2">
-                      <Button
-                        variant={app.isApiDisabled ? "default" : "destructive"}
-                        size="sm"
-                        onClick={() =>
-                          handleToggleApiAccess(
-                            app.appId,
-                            app.isApiDisabled || false,
-                          )
-                        }
+                        <Button
+                          variant={
+                            app.isApiDisabled ? "default" : "destructive"
+                          }
+                          size="sm"
+                          onClick={() =>
+                            handleToggleApiAccess(
+                              app.appId,
+                              app.isApiDisabled || false,
+                            )
+                          }
                           className="h-7 text-xs"
                         >
                           {app.isApiDisabled ? "Enable" : "Disable"}
@@ -672,82 +675,80 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                           }}
                         >
                           <MoreVertical className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
+                        </Button>
+                      </div>
                     </div>
                     {/* Expanded Secrets Section */}
                     {expandedApps.has(app._id) && (
                       <div className="col-span-12 mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-                      <AppSecretDisplay
-                        appId={app.appId}
-                        onCopy={copyToClipboard}
-                      />
-                      <JwtSecretDisplay
-                        appId={app.appId}
-                        onCopy={copyToClipboard}
-                      />
-                      <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-                        <span>App ID: {app.appId}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 px-1"
-                          onClick={() => copyToClipboard(app.appId, "App ID")}
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
+                        <AppSecretDisplay
+                          appId={app.appId}
+                          onCopy={copyToClipboard}
+                        />
+                        <JwtSecretDisplay
+                          appId={app.appId}
+                          onCopy={copyToClipboard}
+                        />
+                        <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                          <span>App ID: {app.appId}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-1"
+                            onClick={() => copyToClipboard(app.appId, "App ID")}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
                     )}
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8 text-sm text-zinc-500 dark:text-zinc-400">
                   No apps found matching "{searchQuery}"
-              </div>
+                </div>
               )}
             </>
-            ) : createdAppSecret ? (
+          ) : createdAppSecret ? (
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
               <div>
-                  <h4 className="font-medium text-zinc-900 dark:text-white">
-                    {chatTitle} App
-                  </h4>
-                </div>
-                <div>
+                <h4 className="font-medium text-zinc-900 dark:text-white">
+                  {chatTitle} App
+                </h4>
+              </div>
+              <div>
                 <Label className="text-xs">App Secret</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input
-                      value={
-                        showAppSecret
-                          ? createdAppSecret
-                          : "as_" + "•".repeat(32)
-                      }
-                      readOnly
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    value={
+                      showAppSecret ? createdAppSecret : "as_" + "•".repeat(32)
+                    }
+                    readOnly
                     className="font-mono text-sm"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowAppSecret(!showAppSecret)}
-                    >
-                      {showAppSecret ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        copyToClipboard(createdAppSecret, "App Secret")
-                      }
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAppSecret(!showAppSecret)}
+                  >
+                    {showAppSecret ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      copyToClipboard(createdAppSecret, "App Secret")
+                    }
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
                 </div>
+              </div>
               {createdJwtSecret && (
                 <div>
                   <Label className="text-xs">JWT Secret</Label>
@@ -761,7 +762,7 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                       readOnly
                       className="font-mono text-sm"
                     />
-                <Button
+                    <Button
                       variant="outline"
                       size="sm"
                       onClick={() =>
@@ -769,14 +770,14 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
                       }
                     >
                       <Copy className="w-4 h-4" />
-                </Button>
+                    </Button>
                   </div>
-              </div>
-            )}
+                </div>
+              )}
               <p className="text-xs text-amber-600 dark:text-amber-400">
                 Save these secrets securely
               </p>
-          </div>
+            </div>
           ) : (
             <div className="text-center py-12">
               <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center mx-auto mb-3">
