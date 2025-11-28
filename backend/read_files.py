@@ -4453,7 +4453,8 @@ async def answer_question_stream_with_published_context(payload: QuestionRequest
                         error_message = "I don't have any context to answer your question. Please upload some documents first."
 
                     async def error_generator():
-                        yield f"data: {error_message}\n\n"
+                        error_json = json.dumps({"type": "error", "data": error_message})
+                        yield f"data: {error_json}\n\n"
                         yield "data: [DONE]\n\n"
 
                     return StreamingResponse(
@@ -4540,11 +4541,14 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
                         for chunk in stream:
                             if chunk.choices[0].delta.content is not None:
                                 content = chunk.choices[0].delta.content
-                                yield f"data: {content}\n\n"
+                                # Send content in JSON format expected by client
+                                json_data = json.dumps({"type": "content", "data": content})
+                                yield f"data: {json_data}\n\n"
                         yield "data: [DONE]\n\n"
                     except Exception as e:
                         logger.error(f"Streaming error: {e}")
-                        yield f"data: Error: {str(e)}\n\n"
+                        error_json = json.dumps({"type": "error", "data": str(e)})
+                        yield f"data: {error_json}\n\n"
                         yield "data: [DONE]\n\n"
 
                 return StreamingResponse(
@@ -4561,7 +4565,8 @@ RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
         logger.error(f"❌ Error in streaming with published context: {str(e)}")
 
         async def error_generator():
-            yield f"data: Error: {str(e)}\n\n"
+            error_json = json.dumps({"type": "error", "data": str(e)})
+            yield f"data: {error_json}\n\n"
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(
