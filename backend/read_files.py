@@ -4565,9 +4565,34 @@ RESPOND IN MARKDOWN FORMAT"""
                         logger.info(f"📝 Messages being sent: {len(messages)} messages")
                         logger.info(f"📝 First message preview: {str(messages[0])[:100] if messages else 'No messages'}")
 
-                        # Iterate over the stream
-                        for chunk in stream:
+                        # Use a queue to collect chunks from the synchronous stream in a thread
+                        chunk_queue = asyncio.Queue()
+                        stream_done = asyncio.Event()
+
+                        def collect_chunks():
+                            """Collect chunks from synchronous stream in a separate thread"""
                             try:
+                                for chunk in stream:
+                                    chunk_queue.put_nowait(chunk)
+                            except Exception as e:
+                                logger.error(f"Error collecting chunks: {e}")
+                                chunk_queue.put_nowait(None)  # Signal error
+                            finally:
+                                stream_done.set()
+
+                        # Start collecting chunks in a thread pool
+                        loop = asyncio.get_event_loop()
+                        loop.run_in_executor(None, collect_chunks)
+
+                        # Process chunks as they arrive
+                        while not stream_done.is_set() or not chunk_queue.empty():
+                            try:
+                                # Wait for chunk with timeout to avoid blocking indefinitely
+                                chunk = await asyncio.wait_for(chunk_queue.get(), timeout=0.1)
+
+                                if chunk is None:  # Error signal
+                                    break
+
                                 # Check if chunk has choices and delta with content
                                 if (chunk.choices and
                                     len(chunk.choices) > 0 and
@@ -4583,6 +4608,10 @@ RESPOND IN MARKDOWN FORMAT"""
                                     # Small delay to ensure chunks are processed individually
                                     await asyncio.sleep(0.01)
 
+                            except asyncio.TimeoutError:
+                                # No chunk available yet, yield control and check again
+                                await asyncio.sleep(0.01)
+                                continue
                             except Exception as e:
                                 logger.warning(f"⚠️ Error processing chunk: {e}")
                                 continue
