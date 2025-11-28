@@ -20,7 +20,7 @@ from .models import (
     StreamChunk,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 __all__ = [
     "TrainlyClient",
     "TrainlyV1Client",
