@@ -7190,6 +7190,187 @@ async def upload_file_with_scopes(
         logger.error(f"Failed to upload file with scopes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/v1/{chat_id}/files", response_model=FileListResponse)
+async def api_list_files(
+    chat_id: str,
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    External API endpoint for listing files in a chat's knowledge base.
+
+    Requires a valid API key for the specific chat.
+
+    Usage:
+    GET https://api.trainlyai.com/v1/{chat_id}/files
+    Authorization: Bearer tk_your_api_key
+    """
+    try:
+        # Verify API key and chat access
+        api_key = credentials.credentials
+
+        # Sanitize chat_id
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        # Verify API key and chat access
+        is_valid = await verify_api_key_and_chat(api_key, sanitized_chat_id)
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API key or chat not accessible. Please check: 1) Chat exists, 2) API access is enabled in chat settings, 3) API key is correct."
+            )
+
+        # Query Neo4j for all documents in the chat
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # Get all documents with their metadata
+                query = """
+                MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                WHERE c.chatId = $chat_id
+                WITH d, count(c) as chunk_count
+                RETURN d.id as file_id, d.filename as filename,
+                       d.uploadDate as upload_date, d.sizeBytes as size_bytes,
+                       chunk_count
+                ORDER BY d.uploadDate DESC
+                """
+
+                result = session.run(query, chat_id=sanitized_chat_id)
+
+                files = []
+                total_size = 0
+
+                for record in result:
+                    # Convert upload_date from timestamp to string if it's a number
+                    upload_date_value = record["upload_date"]
+                    if isinstance(upload_date_value, (int, float)):
+                        # Convert timestamp to ISO format string
+                        upload_date_str = datetime.fromtimestamp(upload_date_value / 1000).isoformat()
+                    else:
+                        upload_date_str = str(upload_date_value) if upload_date_value else "Unknown"
+
+                    file_info = FileInfo(
+                        file_id=record["file_id"],
+                        filename=record["filename"] or "Unknown",
+                        upload_date=upload_date_str,
+                        size_bytes=record["size_bytes"] or 0,
+                        chunk_count=record["chunk_count"]
+                    )
+                    files.append(file_info)
+                    total_size += file_info.size_bytes
+
+                logger.info(f"📋 Listed {len(files)} files for chat {sanitized_chat_id}")
+
+                return FileListResponse(
+                    success=True,
+                    files=files,
+                    total_files=len(files),
+                    total_size_bytes=total_size
+                )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to list files for chat {chat_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
+
+@app.delete("/v1/{chat_id}/files/{file_id}", response_model=FileDeleteResponse)
+async def api_delete_file(
+    chat_id: str,
+    file_id: str,
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    External API endpoint for deleting a file from a chat's knowledge base.
+
+    Requires a valid API key for the specific chat.
+
+    Usage:
+    DELETE https://api.trainlyai.com/v1/{chat_id}/files/{file_id}
+    Authorization: Bearer tk_your_api_key
+    """
+    try:
+        # Verify API key and chat access
+        api_key = credentials.credentials
+
+        # Sanitize chat_id and file_id
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        sanitized_file_id = sanitize_text(file_id)
+        if not sanitized_file_id:
+            raise HTTPException(status_code=400, detail="Invalid file_id format")
+
+        # Verify API key and chat access
+        is_valid = await verify_api_key_and_chat(api_key, sanitized_chat_id)
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API key or chat not accessible. Please check: 1) Chat exists, 2) API access is enabled in chat settings, 3) API key is correct."
+            )
+
+        # Delete from Neo4j and get metadata
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                # First, get file info before deletion
+                info_query = """
+                MATCH (d:Document {id: $file_id})-[:HAS_CHUNK]->(c:Chunk)
+                WHERE c.chatId = $chat_id
+                WITH d, count(c) as chunk_count
+                RETURN d.filename as filename, d.sizeBytes as size_bytes, chunk_count
+                """
+
+                info_result = session.run(info_query, file_id=sanitized_file_id, chat_id=sanitized_chat_id)
+                file_info = info_result.single()
+
+                if not file_info:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"File {sanitized_file_id} not found in chat"
+                    )
+
+                filename = file_info["filename"] or "Unknown"
+                size_bytes = file_info["size_bytes"] or 0
+                chunk_count = file_info["chunk_count"]
+
+                # Now delete the document and all its chunks
+                delete_query = """
+                MATCH (d:Document {id: $file_id})-[r:HAS_CHUNK]->(c:Chunk)
+                WHERE c.chatId = $chat_id
+                DETACH DELETE d, c
+                """
+
+                delete_result = session.run(delete_query, file_id=sanitized_file_id, chat_id=sanitized_chat_id)
+                summary = delete_result.consume()
+
+                if summary.counters.nodes_deleted == 0:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"No document found with id: {sanitized_file_id}"
+                    )
+
+                logger.info(f"🗑️ Deleted file {filename} ({size_bytes} bytes, {chunk_count} chunks) from chat {sanitized_chat_id}")
+
+                return FileDeleteResponse(
+                    success=True,
+                    message=f"File '{filename}' deleted successfully",
+                    file_id=sanitized_file_id,
+                    filename=filename,
+                    chunks_deleted=chunk_count,
+                    size_bytes_freed=size_bytes
+                )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete file {file_id} from chat {chat_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
 
