@@ -1,5 +1,5 @@
 #!/home/kavinjey/.virtualenvs/myvenv/bin/python
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Header, Depends, Form, Query
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Header, Depends, Form, Query, BackgroundTasks
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -7080,12 +7080,61 @@ async def delete_scopes(
         logger.error(f"Failed to delete scopes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# File processing status store (in-memory)
+# Format: {file_id: {"status": "processing"|"ready"|"failed", "filename": str, "size_bytes": int, "error": str}}
+FILE_PROCESSING_STATUS = {}
+
+async def _process_file_background(
+    file_id: str,
+    sanitized_chat_id: str,
+    sanitized_filename: str,
+    sanitized_text: str,
+    parsed_scope_values: dict,
+    file_size: int
+):
+    """Background task to process file and create embeddings"""
+    try:
+        FILE_PROCESSING_STATUS[file_id] = {"status": "processing", "filename": sanitized_filename, "size_bytes": file_size}
+
+        create_payload = CreateNodesAndEmbeddingsRequest(
+            pdf_text=sanitized_text,
+            pdf_id=file_id,
+            chat_id=sanitized_chat_id,
+            filename=sanitized_filename,
+            scope_values=parsed_scope_values
+        )
+
+        # Process the file
+        await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
+
+        # Update status to ready
+        FILE_PROCESSING_STATUS[file_id] = {
+            "status": "ready",
+            "filename": sanitized_filename,
+            "size_bytes": file_size,
+            "file_id": file_id,
+            "chat_id": sanitized_chat_id,
+            "scope_values": parsed_scope_values
+        }
+
+        logger.info(f"✅ File processing completed for {file_id}")
+    except Exception as e:
+        # Update status to failed
+        FILE_PROCESSING_STATUS[file_id] = {
+            "status": "failed",
+            "filename": sanitized_filename,
+            "size_bytes": file_size,
+            "error": str(e)
+        }
+        logger.error(f"❌ File processing failed for {file_id}: {e}")
+
 @app.post("/v1/{chat_id}/upload_with_scopes")
 async def upload_file_with_scopes(
     chat_id: str,
     file: UploadFile = File(...),
     scope_values: str = Form("{}"),  # JSON string of scope values
-    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
     Upload a file with custom scope values.
@@ -7158,30 +7207,31 @@ async def upload_file_with_scopes(
         if not sanitized_text and text:
             raise HTTPException(status_code=400, detail="File contains potentially malicious content")
 
-        # Create embeddings with scope values
+        # Create file ID
         pdf_id = f"{sanitized_chat_id}_{sanitized_filename}_{int(time.time())}"
 
-        create_payload = CreateNodesAndEmbeddingsRequest(
-            pdf_text=sanitized_text,
-            pdf_id=pdf_id,
-            chat_id=sanitized_chat_id,
-            filename=sanitized_filename,
-            scope_values=parsed_scope_values
+        # Add background task to process file
+        background_tasks.add_task(
+            _process_file_background,
+            pdf_id,
+            sanitized_chat_id,
+            sanitized_filename,
+            sanitized_text,
+            parsed_scope_values,
+            file_size
         )
 
-        # Process the file
-        await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
-
-        logger.info(f"📤 File uploaded with scopes for chat {sanitized_chat_id}: {parsed_scope_values}")
+        logger.info(f"📤 File upload initiated for chat {sanitized_chat_id}: {sanitized_filename}")
 
         return {
             "success": True,
-            "filename": sanitized_filename,
             "file_id": pdf_id,
+            "status": "processing",
+            "filename": sanitized_filename,
             "chat_id": sanitized_chat_id,
             "scope_values": parsed_scope_values,
             "size_bytes": file_size,
-            "message": "File uploaded successfully with custom scope values"
+            "message": "File upload initiated, processing in background"
         }
 
     except HTTPException:
@@ -7189,6 +7239,83 @@ async def upload_file_with_scopes(
     except Exception as e:
         logger.error(f"Failed to upload file with scopes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/v1/{chat_id}/files/{file_id}/status")
+async def get_file_status(
+    chat_id: str,
+    file_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+):
+    """
+    Get the processing status of a file.
+
+    Returns:
+        {
+            "file_id": str,
+            "status": "processing" | "ready" | "failed",
+            "filename": str,
+            "size_bytes": int,
+            "error": str (if failed)
+        }
+    """
+    try:
+        # Verify API key and chat access
+        api_key = credentials.credentials
+
+        # Sanitize chat_id and file_id
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        sanitized_file_id = sanitize_text(file_id)
+        if not sanitized_file_id:
+            raise HTTPException(status_code=400, detail="Invalid file_id format")
+
+        # Verify API key and chat access
+        is_valid = await verify_api_key_and_chat(api_key, sanitized_chat_id)
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API key or chat not accessible."
+            )
+
+        # Check in-memory status first
+        if sanitized_file_id in FILE_PROCESSING_STATUS:
+            status_info = FILE_PROCESSING_STATUS[sanitized_file_id].copy()
+            status_info["file_id"] = sanitized_file_id
+            return status_info
+
+        # If not in memory, check if file exists in Neo4j (means it's ready)
+        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
+            with driver.session() as session:
+                query = """
+                MATCH (d:Document {id: $file_id})-[:HAS_CHUNK]->(c:Chunk)
+                WHERE c.chatId = $chat_id
+                WITH d, count(c) as chunk_count
+                RETURN d.filename as filename, d.sizeBytes as size_bytes, chunk_count
+                LIMIT 1
+                """
+                result = session.run(query, file_id=sanitized_file_id, chat_id=sanitized_chat_id)
+                record = result.single()
+
+                if record:
+                    return {
+                        "file_id": sanitized_file_id,
+                        "status": "ready",
+                        "filename": record["filename"] or "Unknown",
+                        "size_bytes": record["size_bytes"] or 0,
+                        "chunk_count": record["chunk_count"]
+                    }
+
+        # File not found
+        raise HTTPException(status_code=404, detail=f"File {sanitized_file_id} not found")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get file status for {file_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get file status: {str(e)}")
 
 @app.get("/v1/{chat_id}/files", response_model=FileListResponse)
 async def api_list_files(

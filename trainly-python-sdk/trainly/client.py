@@ -4,6 +4,7 @@ Main Trainly client for simple API key authentication.
 
 import os
 import json
+import time
 from typing import Optional, Dict, Any, List, Iterator
 from pathlib import Path
 import requests
@@ -243,6 +244,9 @@ class TrainlyClient:
         self,
         file_path: str,
         scope_values: Optional[Dict[str, Any]] = None,
+        wait: bool = True,
+        poll_interval: float = 1.0,
+        timeout: float = 300.0,
     ) -> UploadResult:
         """
         Upload a file to the knowledge base.
@@ -250,6 +254,9 @@ class TrainlyClient:
         Args:
             file_path: Path to the file to upload.
             scope_values: Optional custom scope values for filtering (e.g., {"playlist_id": "123"}).
+            wait: If True, block until file processing is complete. Default: True.
+            poll_interval: Seconds between status checks when waiting. Default: 1.0.
+            timeout: Maximum seconds to wait for processing. Default: 300.0 (5 minutes).
 
         Returns:
             UploadResult with upload details.
@@ -260,6 +267,11 @@ class TrainlyClient:
             ...     scope_values={"project_id": "proj_123"}
             ... )
             >>> print(f"Uploaded: {result.filename}")
+
+            >>> # Non-blocking upload
+            >>> result = client.upload_file("notes.pdf", wait=False)
+            >>> # do other work...
+            >>> client.wait_for_file(result.file_id)
         """
         file_path_obj = Path(file_path)
         if not file_path_obj.exists():
@@ -288,14 +300,21 @@ class TrainlyClient:
                 response.raise_for_status()
                 result_data = response.json()
 
-                return UploadResult(
-                    success=result_data.get("success", True),
-                    filename=result_data.get("filename", file_path_obj.name),
-                    file_id=result_data.get("file_id"),
-                    size_bytes=result_data.get("size_bytes", file_path_obj.stat().st_size),
-                    message=result_data.get("message", "File uploaded successfully"),
-                    processing_status=result_data.get("processing_status", "completed"),
-                )
+                file_id = result_data.get("file_id")
+                status = result_data.get("status", "processing")
+
+                if not wait:
+                    return UploadResult(
+                        success=True,
+                        filename=result_data.get("filename", file_path_obj.name),
+                        file_id=file_id,
+                        size_bytes=result_data.get("size_bytes", file_path_obj.stat().st_size),
+                        message=result_data.get("message", "File upload initiated"),
+                        processing_status=status,
+                    )
+
+                # Poll until ready
+                return self.wait_for_file(file_id, poll_interval=poll_interval, timeout=timeout)
 
         except requests.exceptions.HTTPError as e:
             self._handle_http_error(e)
@@ -303,6 +322,63 @@ class TrainlyClient:
             raise TrainlyError(f"Upload failed: {str(e)}")
         except IOError as e:
             raise TrainlyError(f"File read error: {str(e)}")
+
+    def wait_for_file(
+        self,
+        file_id: str,
+        poll_interval: float = 1.0,
+        timeout: float = 300.0,
+    ) -> UploadResult:
+        """
+        Wait for a file to finish processing.
+
+        Args:
+            file_id: The file ID returned from upload_file.
+            poll_interval: Seconds between status checks. Default: 1.0.
+            timeout: Maximum seconds to wait. Default: 300.0 (5 minutes).
+
+        Returns:
+            UploadResult with upload details.
+
+        Raises:
+            TrainlyError: If processing fails or times out.
+        """
+        url = f"{self.base_url}/v1/{self.chat_id}/files/{file_id}/status"
+        start_time = time.time()
+
+        while True:
+            try:
+                response = self.session.get(url, timeout=self.timeout)
+                response.raise_for_status()
+                status_data = response.json()
+
+                status = status_data.get("status")
+
+                if status == "ready":
+                    return UploadResult(
+                        success=True,
+                        filename=status_data.get("filename", "Unknown"),
+                        file_id=file_id,
+                        size_bytes=status_data.get("size_bytes", 0),
+                        message="File processed successfully",
+                        processing_status="completed",
+                    )
+
+                if status == "failed":
+                    error_msg = status_data.get("error", "Unknown error")
+                    raise TrainlyError(f"File processing failed for {file_id}: {error_msg}")
+
+                # Check timeout
+                if time.time() - start_time > timeout:
+                    raise TrainlyError(f"Timed out waiting for file {file_id} to be ready after {timeout} seconds")
+
+                # Still processing, wait and poll again
+                time.sleep(poll_interval)
+
+            except requests.exceptions.HTTPError as e:
+                self._handle_http_error(e)
+            except requests.exceptions.RequestException as e:
+                raise TrainlyError(f"Failed to check file status: {str(e)}")
 
     def list_files(self) -> FileListResult:
         """
