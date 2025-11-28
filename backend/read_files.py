@@ -3839,14 +3839,14 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
                         # Include chunks from both subchat and parent chat
                         query = f"""
                         MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                        WHERE (c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}') AND d.fileId IN ['{file_ids_str}']
+                        WHERE (c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}') AND d.id IN ['{file_ids_str}']
                         RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
                         """
                         logger.info(f"📋 Using published files from subchat and parent: {len(published_context_files)} files")
                     else:
                         query = f"""
                         MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                        WHERE c.chatId = '{chat_id}' AND d.fileId IN ['{file_ids_str}']
+                        WHERE c.chatId = '{chat_id}' AND d.id IN ['{file_ids_str}']
                         RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
                         """
                         logger.info(f"📋 Using published files only: {len(published_context_files)} files")
@@ -4408,14 +4408,14 @@ async def answer_question_stream_with_published_context(payload: QuestionRequest
                         # Include chunks from both subchat and parent chat
                         query = f"""
                         MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                        WHERE (c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}') AND d.fileId IN ['{file_ids_str}']
+                        WHERE (c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}') AND d.id IN ['{file_ids_str}']
                         RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
                         """
                         logger.info(f"📋 Using published files from subchat and parent (streaming): {len(published_context_files)} files")
                     else:
                         query = f"""
                         MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
-                        WHERE c.chatId = '{chat_id}' AND d.fileId IN ['{file_ids_str}']
+                        WHERE c.chatId = '{chat_id}' AND d.id IN ['{file_ids_str}']
                         RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
                         """
                         logger.info(f"📋 Using published files only: {len(published_context_files)} files")
