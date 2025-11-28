@@ -4467,35 +4467,19 @@ async def answer_question_stream_with_published_context(payload: QuestionRequest
                 top_chunks = chunk_scores[:8]
 
                 if not top_chunks:
-                    logger.warning(f"No relevant chunks found for streaming question in chat {chat_id}")
-                    if published_context_files:
-                        error_message = "I don't have any published context to answer your question. Please make sure you have published your files and settings."
-                    else:
-                        error_message = "I don't have any context to answer your question. Please upload some documents first."
-
-                    async def error_generator():
-                        error_json = json.dumps({"type": "error", "data": error_message})
-                        yield f"data: {error_json}\n\n"
-                        yield "data: [DONE]\n\n"
-
-                    return StreamingResponse(
-                        error_generator(),
-                        media_type="text/event-stream",
-                        headers={
-                            "Cache-Control": "no-cache",
-                            "Connection": "keep-alive",
-                            "Access-Control-Allow-Origin": "*",
-                        }
-                    )
-
-                # Prepare context for the AI model
-                context_text = "\n\n".join([
-                    f"[Chunk {i}] From {chunk['filename']}: {chunk['chunk_text']}"
-                    for i, chunk in enumerate(top_chunks)
-                ])
+                    logger.warning(f"No relevant chunks found for streaming question in chat {chat_id}, AI will respond without context")
+                    # Still proceed to call OpenAI, but without context (consistent with non-streaming endpoint)
+                    context_text = ""
+                else:
+                    # Prepare context for the AI model
+                    context_text = "\n\n".join([
+                        f"[Chunk {i}] From {chunk['filename']}: {chunk['chunk_text']}"
+                        for i, chunk in enumerate(top_chunks)
+                    ])
 
                 # Build the prompt
-                system_prompt = custom_prompt if custom_prompt else f"""You are a helpful AI assistant with access to a knowledge graph built from the user's documents. You have the following context from their documents:
+                if top_chunks:
+                    system_prompt = custom_prompt if custom_prompt else f"""You are a helpful AI assistant with access to a knowledge graph built from the user's documents. You have the following context from their documents:
 
 IMPORTANT INSTRUCTIONS:
 1. ALWAYS prioritize using the provided context to answer the user's question
@@ -4511,11 +4495,22 @@ For example:
 - "The document shows [^2] that species interactions..."
 
 RESPOND IN MARKDOWN FORMAT WITH CITATIONS"""
+                else:
+                    system_prompt = custom_prompt if custom_prompt else """You are a helpful AI assistant. The user has asked a question but there is no relevant context available from their uploaded documents. Please answer the question to the best of your ability using your general knowledge.
+
+Note: If the user is asking about specific documents or uploaded content, let them know that you don't have access to relevant context from their documents.
+
+RESPOND IN MARKDOWN FORMAT"""
 
                 # Create messages for the AI model
+                if top_chunks:
+                    user_content = f"Context:\n{context_text}\n\nQuestion: {question}"
+                else:
+                    user_content = f"Question: {question}"
+
                 messages = [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Context:\n{context_text}\n\nQuestion: {question}"}
+                    {"role": "user", "content": user_content}
                 ]
 
                 # Stream response from OpenAI or Grok based on unhinged mode
