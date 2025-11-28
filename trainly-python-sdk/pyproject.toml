@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trainly"
-version = "0.1.3"
+version = "0.1.4"
 description = "Dead simple RAG integration for Python applications"
 readme = "README.md"
 requires-python = ">=3.8"
