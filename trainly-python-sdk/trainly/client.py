@@ -265,15 +265,15 @@ class TrainlyClient:
         if not file_path_obj.exists():
             raise TrainlyError(f"File not found: {file_path}")
 
-        url = f"{self.base_url}/v1/{self.chat_id}/upload_file"
+        url = f"{self.base_url}/v1/{self.chat_id}/upload_with_scopes"
 
         try:
             with open(file_path, "rb") as f:
                 files = {"file": (file_path_obj.name, f)}
                 data = {}
 
-                if scope_values:
-                    data["scope_values"] = json.dumps(scope_values)
+                # Always send scope_values, default to empty dict if not provided
+                data["scope_values"] = json.dumps(scope_values) if scope_values else "{}"
 
                 # Remove Content-Type header for multipart/form-data
                 headers = {"Authorization": f"Bearer {self.api_key}"}
