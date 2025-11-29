@@ -50,7 +50,7 @@ export function CustomSettingsView({
               <div className="animate-pulse h-64 bg-zinc-100 dark:bg-zinc-800 rounded-lg" />
             }
           >
-            <ChatSettingsPage chatId={effectiveChatId} />
+            {effectiveChatId && <ChatSettingsPage chatId={effectiveChatId} />}
           </Suspense>
         ) : (
           <div className="space-y-4">

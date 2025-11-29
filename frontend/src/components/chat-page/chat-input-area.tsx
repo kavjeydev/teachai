@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
+import { Id } from "../../../convex/_generated/dataModel";
 import {
   Paperclip,
   FolderOpen,
@@ -65,7 +66,7 @@ interface ChatInputAreaProps {
   currentChat: any;
   displayChat: any;
   displayContext: any;
-  effectiveChatId: string | null;
+  effectiveChatId: Id<"chats"> | null;
   editorRef: React.RefObject<{
     editor: any;
     getHTML: () => string;
@@ -142,7 +143,7 @@ export function ChatInputArea({
         )}
 
         {/* Context Files - Elegant Collapsible Design */}
-        {displayChat?.context?.length ? (
+        {displayChat?.context?.length && effectiveChatId ? (
           <ContextFilesSection
             context={displayChat.context}
             displayContext={displayContext}
@@ -214,62 +215,66 @@ export function ChatInputArea({
 
               {/* Input Actions */}
               <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-                {/* Model Selector */}
-                <ModelSelector
-                  chatId={effectiveChatId}
-                  currentModel={displayChat?.selectedModel}
-                  onModelChange={() => {}}
-                  compact={true}
-                  unhingedMode={displayChat?.unhingedMode}
-                />
+                {effectiveChatId && (
+                  <>
+                    {/* Model Selector */}
+                    <ModelSelector
+                      chatId={effectiveChatId}
+                      currentModel={displayChat?.selectedModel}
+                      onModelChange={() => {}}
+                      compact={true}
+                      unhingedMode={displayChat?.unhingedMode}
+                    />
 
-                {/* Chat Settings Button */}
-                <ChatSettings
-                  chatId={effectiveChatId}
-                  currentPrompt={displayChat?.customPrompt}
-                  currentTemperature={displayChat?.temperature}
-                  currentMaxTokens={displayChat?.maxTokens}
-                  currentConversationHistoryLimit={
-                    displayChat?.conversationHistoryLimit
-                  }
-                  onSettingsChange={() => {}}
-                  unhingedMode={displayChat?.unhingedMode}
-                />
+                    {/* Chat Settings Button */}
+                    <ChatSettings
+                      chatId={effectiveChatId}
+                      currentPrompt={displayChat?.customPrompt}
+                      currentTemperature={displayChat?.temperature}
+                      currentMaxTokens={displayChat?.maxTokens}
+                      currentConversationHistoryLimit={
+                        displayChat?.conversationHistoryLimit
+                      }
+                      onSettingsChange={() => {}}
+                      unhingedMode={displayChat?.unhingedMode}
+                    />
 
-                {/* Unhinged Mode Toggle */}
-                <UnhingedModeToggle
-                  chatId={effectiveChatId}
-                  currentUnhingedMode={displayChat?.unhingedMode}
-                  compact={true}
-                />
+                    {/* Unhinged Mode Toggle */}
+                    <UnhingedModeToggle
+                      chatId={effectiveChatId}
+                      currentUnhingedMode={displayChat?.unhingedMode}
+                      compact={true}
+                    />
 
-                {/* File Queue Status Button */}
-                {(fileQueue.activeQueues.length > 0 ||
-                  fileQueue.allQueues.length > 0) && (
-                  <button
-                    onClick={() => setIsFileQueueSlideoutOpen(true)}
-                    className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/queue relative"
-                    title={
-                      fileQueue.isProcessing
-                        ? `Processing ${fileQueue.activeQueues.length} file queue${fileQueue.activeQueues.length > 1 ? "s" : ""}`
-                        : `View file upload history (${fileQueue.allQueues.length} queue${fileQueue.allQueues.length > 1 ? "s" : ""})`
-                    }
-                  >
-                    {fileQueue.isProcessing ? (
-                      <div className="w-3.5 h-3.5 border border-blue-400/50 border-t-blue-400 rounded-full animate-spin" />
-                    ) : (
-                      <FileText className="w-3.5 h-3.5 text-zinc-400 group-hover/queue:text-blue-400 transition-colors" />
+                    {/* File Queue Status Button */}
+                    {(fileQueue.activeQueues.length > 0 ||
+                      fileQueue.allQueues.length > 0) && (
+                      <button
+                        onClick={() => setIsFileQueueSlideoutOpen(true)}
+                        className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors group/queue relative"
+                        title={
+                          fileQueue.isProcessing
+                            ? `Processing ${fileQueue.activeQueues.length} file queue${fileQueue.activeQueues.length > 1 ? "s" : ""}`
+                            : `View file upload history (${fileQueue.allQueues.length} queue${fileQueue.allQueues.length > 1 ? "s" : ""})`
+                        }
+                      >
+                        {fileQueue.isProcessing ? (
+                          <div className="w-3.5 h-3.5 border border-blue-400/50 border-t-blue-400 rounded-full animate-spin" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5 text-zinc-400 group-hover/queue:text-blue-400 transition-colors" />
+                        )}
+                        {fileQueue.activeQueues.length > 0 ? (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                            {fileQueue.activeQueues.length > 9
+                              ? "9+"
+                              : fileQueue.activeQueues.length}
+                          </div>
+                        ) : fileQueue.allQueues.length > 0 ? (
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+                        ) : null}
+                      </button>
                     )}
-                    {fileQueue.activeQueues.length > 0 ? (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
-                        {fileQueue.activeQueues.length > 9
-                          ? "9+"
-                          : fileQueue.activeQueues.length}
-                      </div>
-                    ) : fileQueue.allQueues.length > 0 ? (
-                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
-                    ) : null}
-                  </button>
+                  </>
                 )}
 
                 {/* File Upload Button */}

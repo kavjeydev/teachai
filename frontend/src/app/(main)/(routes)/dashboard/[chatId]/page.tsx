@@ -356,7 +356,7 @@ function Dashboard({ params }: ChatIdPageProps) {
   // Also check pathname to ensure we're not on a non-chat route
   const isOnManageRoute = pathname.includes("/dashboard/manage");
   const rawEffectiveChatId = chatId || cachedChatId;
-  const effectiveChatId =
+  const effectiveChatId: Id<"chats"> | null =
     !isOnManageRoute && isValidChatId(rawEffectiveChatId)
       ? rawEffectiveChatId
       : null;

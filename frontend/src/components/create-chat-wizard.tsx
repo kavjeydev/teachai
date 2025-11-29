@@ -185,38 +185,38 @@ export function CreateChatWizard({
         organizationId,
       });
 
-      setCreatedChatId(newChat._id);
+      setCreatedChatId(newChat);
 
       // Update settings if changed from defaults
       const updates: Promise<any>[] = [];
 
       if (selectedModel !== "gpt-4o-mini") {
-        updates.push(updateChatModel({ id: newChat._id, selectedModel }));
+        updates.push(updateChatModel({ chatId: newChat, selectedModel }));
       }
 
       if (temperature[0] !== 0.7) {
-        updates.push(updateChatTemperature({ id: newChat._id, temperature: temperature[0] }));
+        updates.push(updateChatTemperature({ chatId: newChat, temperature: temperature[0] }));
       }
 
       if (maxTokens[0] !== 1000) {
-        updates.push(updateChatMaxTokens({ id: newChat._id, maxTokens: maxTokens[0] }));
+        updates.push(updateChatMaxTokens({ chatId: newChat, maxTokens: maxTokens[0] }));
       }
 
       if (customPrompt.trim()) {
-        updates.push(updateChatPrompt({ id: newChat._id, prompt: customPrompt.trim() }));
+        updates.push(updateChatPrompt({ chatId: newChat, customPrompt: customPrompt.trim() }));
       }
 
       if (visibility !== "private") {
-        updates.push(changeChatVisibility({ id: newChat._id, visibility }));
+        updates.push(changeChatVisibility({ id: newChat, visibility }));
       }
 
       await Promise.all(updates);
 
       // Upload files if any
-      if (selectedFiles.length > 0 && newChat._id) {
+      if (selectedFiles.length > 0 && newChat) {
         // Set created chat ID and upload files
         // The fileQueue hook will be re-initialized with the new chatId
-        setCreatedChatId(newChat._id);
+        setCreatedChatId(newChat);
         setPendingFiles(selectedFiles);
         // Files will be uploaded in useEffect below
         return;
