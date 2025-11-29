@@ -2605,6 +2605,35 @@ async def v1_user_file_upload(
         if parsed_scope_values:
             logger.info(f"📊 File uploaded with scopes: {parsed_scope_values}")
 
+        # Add file to parent chat's context so it's automatically published
+        try:
+            parent_chat_id = await get_parent_chat_id_from_app(user_identity["app_id"])
+            if parent_chat_id:
+                convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
+                        json={
+                            "args": {
+                                "chatId": parent_chat_id,
+                                "filename": sanitized_filename,
+                                "fileId": pdf_id,
+                            },
+                            "format": "json"
+                        },
+                        headers={"Content-Type": "application/json"},
+                        timeout=5.0
+                    )
+                    if response.status_code == 200:
+                        logger.info(f"✅ File {sanitized_filename} added to parent chat {parent_chat_id} context (published by default)")
+                    else:
+                        logger.warning(f"⚠️ Failed to add file to parent chat context: {response.status_code} - {response.text}")
+            else:
+                logger.info(f"ℹ️ No parent chat found for app {user_identity['app_id']}, skipping context update")
+        except Exception as e:
+            # Don't fail the upload if context update fails
+            logger.warning(f"⚠️ Failed to add file to parent chat context (non-fatal): {e}")
+
         logger.info(f"V1 File uploaded for user {user_identity['user_id']} to subchat {subchat['chatStringId']}")
 
         return {
@@ -2838,6 +2867,35 @@ async def v1_user_bulk_file_upload(
 
             # Process the file with analytics
             await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
+
+            # Add file to parent chat's context so it's automatically published
+            try:
+                parent_chat_id = await get_parent_chat_id_from_app(user_identity["app_id"])
+                if parent_chat_id:
+                    convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                            f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
+                            json={
+                                "args": {
+                                    "chatId": parent_chat_id,
+                                    "filename": sanitized_filename,
+                                    "fileId": pdf_id,
+                                },
+                                "format": "json"
+                            },
+                            headers={"Content-Type": "application/json"},
+                            timeout=5.0
+                        )
+                        if response.status_code == 200:
+                            logger.info(f"✅ File {sanitized_filename} added to parent chat {parent_chat_id} context (published by default)")
+                        else:
+                            logger.warning(f"⚠️ Failed to add file to parent chat context: {response.status_code} - {response.text}")
+                else:
+                    logger.info(f"ℹ️ No parent chat found for app {user_identity['app_id']}, skipping context update")
+            except Exception as e:
+                # Don't fail the upload if context update fails
+                logger.warning(f"⚠️ Failed to add file to parent chat context (non-fatal): {e}")
 
             # Success!
             file_result["success"] = True
@@ -3834,22 +3892,34 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
                     # Filter to only use chunks from published files
                     published_file_ids = [file["fileId"] for file in published_context_files]
                     file_ids_str = "', '".join(published_file_ids)
+                    logger.info(f"🔍 Published file IDs to search for: {published_file_ids}")
 
                     if parent_chat_id:
                         # Include chunks from both subchat and parent chat
                         query = f"""
                         MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
                         WHERE (c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}') AND d.id IN ['{file_ids_str}']
-                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat, d.id AS doc_id
                         """
                         logger.info(f"📋 Using published files from subchat and parent: {len(published_context_files)} files")
                     else:
                         query = f"""
                         MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
                         WHERE c.chatId = '{chat_id}' AND d.id IN ['{file_ids_str}']
-                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                        RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat, d.id AS doc_id
                         """
                         logger.info(f"📋 Using published files only: {len(published_context_files)} files")
+
+                    # Debug: Check what documents actually exist in this chat
+                    debug_query = f"""
+                    MATCH (d:Document)
+                    WHERE d.chatId = '{chat_id}'
+                    RETURN d.id AS doc_id, d.filename AS filename
+                    LIMIT 10
+                    """
+                    debug_results = session.run(debug_query)
+                    existing_docs = list(debug_results)
+                    logger.info(f"🔍 Documents that exist in chat {chat_id}: {[(r['doc_id'], r['filename']) for r in existing_docs]}")
                 else:
                     # Use all files (fallback for backwards compatibility)
                     if parent_chat_id:
@@ -3873,10 +3943,14 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
                 # Calculate similarities with filename boost
                 chunk_scores = []
                 question_lower = question.lower()
+                chunks_found_count = 0
+                records_with_embeddings = 0
 
                 for record in results:
+                    chunks_found_count += 1
                     chunk_embedding = record["embedding"]
                     if chunk_embedding:
+                        records_with_embeddings += 1
                         similarity = cosine_similarity(
                             np.array(question_embedding),
                             np.array(chunk_embedding)
@@ -3893,9 +3967,64 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
                             "filename": record["filename"]
                         })
 
+                logger.info(f"🔍 Found {chunks_found_count} chunks from query, {records_with_embeddings} with valid embeddings, {len(chunk_scores)} scored")
+
                 # Sort by similarity score and get top chunks
                 chunk_scores.sort(key=lambda x: x["score"], reverse=True)
                 top_chunks = chunk_scores[:8]  # Get top 8 chunks
+
+                # If no chunks found with published files filter, fall back to all files
+                if not top_chunks and published_context_files and chunks_found_count == 0:
+                    # Only fallback if the query returned 0 chunks (not just low similarity)
+                    logger.warning(f"⚠️ Published files filter returned 0 chunks. Published file IDs: {published_file_ids}")
+                    # Check if there are chunks in the chat that aren't in the published files list
+                    check_all_query = f"""
+                    MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.chatId = '{chat_id}'
+                    RETURN count(c) as total_chunks
+                    """
+                    check_result = session.run(check_all_query)
+                    total_record = check_result.single()
+                    total_chunks = total_record['total_chunks'] if total_record else 0
+                    logger.info(f"🔍 Total chunks in chat (without filter): {total_chunks}")
+
+                    if total_chunks > 0:
+                        logger.info(f"🔄 Falling back to all files in chat (published filter returned 0 chunks but {total_chunks} exist)")
+                        # Fall back to querying all files
+                        if parent_chat_id:
+                            fallback_query = f"""
+                            MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                            WHERE c.chatId = '{chat_id}' OR c.chatId = '{parent_chat_id}'
+                            RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                            """
+                        else:
+                            fallback_query = f"""
+                            MATCH (d:Document)-[:HAS_CHUNK]->(c:Chunk)
+                            WHERE c.chatId = '{chat_id}'
+                            RETURN c.id AS id, c.text AS text, c.embedding AS embedding, d.filename AS filename, c.chatId AS source_chat
+                            """
+
+                        fallback_results = session.run(fallback_query)
+                        chunk_scores = []
+                        for record in fallback_results:
+                            chunk_embedding = record["embedding"]
+                            if chunk_embedding:
+                                similarity = cosine_similarity(
+                                    np.array(question_embedding),
+                                    np.array(chunk_embedding)
+                                )
+                                filename_lower = record["filename"].lower() if record["filename"] else ""
+                                filename_boost = 0.1 if any(word in filename_lower for word in question_lower.split()) else 0
+                                chunk_scores.append({
+                                    "chunk_id": record["id"],
+                                    "chunk_text": record["text"],
+                                    "score": similarity + filename_boost,
+                                    "filename": record["filename"]
+                                })
+
+                        chunk_scores.sort(key=lambda x: x["score"], reverse=True)
+                        top_chunks = chunk_scores[:8]
+                        logger.info(f"✅ Fallback query found {len(top_chunks)} chunks")
 
                 if not top_chunks:
                     logger.warning(f"No relevant chunks found for question in chat {chat_id}, AI will respond without context")

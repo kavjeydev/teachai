@@ -2587,6 +2587,80 @@ export const clearScopeConfig = mutation({
   },
 });
 
+// Backend-safe mutation to add files to chat context (for API uploads)
+// This allows files uploaded via API to be automatically added to the parent chat's context
+export const addFileToChatContextByChatId = mutation({
+  args: {
+    chatId: v.string(), // Chat string ID (not internal _id)
+    filename: v.string(),
+    fileId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find chat by chatId string
+    const chat = await ctx.db
+      .query("chats")
+      .withIndex("by_chatId", (q) => q.eq("chatId", args.chatId))
+      .first();
+
+    if (!chat) {
+      throw new Error(`Chat not found: ${args.chatId}`);
+    }
+
+    // Get current context
+    let existingContext = chat.context || [];
+
+    // Check if file already exists in context (by fileId)
+    const fileExists = existingContext.some(
+      (contextItem) => contextItem.fileId === args.fileId,
+    );
+
+    if (fileExists) {
+      // File already exists, return success without adding duplicate
+      return {
+        success: true,
+        message: "File already in context",
+        added: false,
+      };
+    }
+
+    // Add the new file to context
+    const newContextItem = {
+      filename: args.filename,
+      fileId: args.fileId,
+    };
+    existingContext.push(newContextItem);
+
+    // Update both context and publishedSettings.context if it exists
+    const updateData: any = {
+      context: existingContext,
+    };
+
+    // Also add to publishedSettings.context if it exists (so files are immediately available)
+    if (chat.publishedSettings) {
+      const publishedContext = chat.publishedSettings.context || [];
+      const publishedFileExists = publishedContext.some(
+        (contextItem: any) => contextItem.fileId === args.fileId,
+      );
+
+      if (!publishedFileExists) {
+        const updatedPublishedContext = [...publishedContext, newContextItem];
+        updateData.publishedSettings = {
+          ...chat.publishedSettings,
+          context: updatedPublishedContext,
+        };
+      }
+    }
+
+    await ctx.db.patch(chat._id, updateData);
+
+    return {
+      success: true,
+      message: "File added to chat context",
+      added: true,
+    };
+  },
+});
+
 // Migration helper: Assign existing chats without organizationId to an organization
 export const migrateChatsToOrganization = mutation({
   args: {
