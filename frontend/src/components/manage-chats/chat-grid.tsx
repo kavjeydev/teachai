@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { Id } from "../../../convex/_generated/dataModel";
 import { ChatCard } from "./chat-card";
 import { CreateChatCard } from "./create-chat-card";
 import { EmptyState } from "./empty-state";

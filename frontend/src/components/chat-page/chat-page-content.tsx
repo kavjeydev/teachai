@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { Id } from "../../../convex/_generated/dataModel";
 import { ChatMessagesArea } from "./chat-messages-area";
 import { ChatInputArea } from "./chat-input-area";
 import { ChatSkeleton } from "./chat-skeleton";

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { Id } from "../../../convex/_generated/dataModel";
 import { Skeleton } from "@/components/ui/skeleton";
 import dynamic from "next/dynamic";
 

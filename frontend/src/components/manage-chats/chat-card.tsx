@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {

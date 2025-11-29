@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { Id } from "../../../convex/_generated/dataModel";
 import { ChatGrid } from "./chat-grid";
 import { SearchBar } from "./search-bar";
 import { LoadingState } from "./loading-state";
