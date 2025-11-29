@@ -29,6 +29,8 @@ import {
   Plus,
   Search,
   MoreVertical,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -274,6 +276,42 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
   // Convex hooks
   const apiKeyStatus = useQuery(api.simple_api.getApiKeyStatus, { chatId });
   const userApps = useQuery(api.app_management.getAppsForChat, { chatId });
+
+  // Track tab transitions to prevent flickering
+  const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+  const prevTabRef = React.useRef<"chat" | "apps">(activeTab);
+
+  // Detect tab changes and mark as transitioning
+  React.useEffect(() => {
+    if (prevTabRef.current !== activeTab) {
+      setIsTabTransitioning(true);
+      prevTabRef.current = activeTab;
+      // Clear transition flag after a brief moment
+      const timer = requestAnimationFrame(() => {
+        setIsTabTransitioning(false);
+      });
+      return () => cancelAnimationFrame(timer);
+    }
+  }, [activeTab]);
+
+  // Compute warning state - only show when on chat tab with stable data
+  // Hide immediately when not on chat tab or during transitions to prevent flickering
+  const showNoAppsWarning = React.useMemo(() => {
+    // Hide during tab transitions
+    if (isTabTransitioning) {
+      return false;
+    }
+    // Hide immediately if not on chat tab
+    if (activeTab !== "chat") {
+      return false;
+    }
+    // Don't show while data is loading
+    if (userApps === undefined || apiKeyStatus === undefined) {
+      return false;
+    }
+    // Show warning if API key exists but no apps exist
+    return userApps.length === 0 && apiKeyStatus.hasApiKey === true;
+  }, [activeTab, userApps, apiKeyStatus, isTabTransitioning]);
   const generateApiKey = useMutation(api.simple_api.generateApiKey);
   const regenerateApiKey = useMutation(api.simple_api.regenerateApiKey);
   const enableApiAccess = useMutation(api.simple_api.enableApiAccess);
@@ -481,6 +519,34 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
       {/* Content */}
       {activeTab === "chat" ? (
         <div className="space-y-4">
+          {/* Warning if API key exists but no apps - double check activeTab to prevent flicker */}
+          {activeTab === "chat" && showNoAppsWarning && (
+            <div
+              key="no-apps-warning"
+              className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                    API Key Requires an App
+                  </p>
+                  <p className="text-xs text-amber-800 dark:text-amber-200 mb-3">
+                    Your API key won't be usable until you create a multi-user
+                    app. Create an app to enable API access.
+                  </p>
+                  <Button
+                    onClick={() => setActiveTab("apps")}
+                    size="sm"
+                    className="bg-amber-600 dark:bg-amber-500 text-white hover:bg-amber-700 dark:hover:bg-amber-600"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1.5" />
+                    Create App
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           {apiKeyStatus?.hasApiKey ? (
             <>
               {/* Table Header */}
@@ -565,30 +631,80 @@ export function SimpleApiManager({ chatId, chatTitle }: SimpleApiManagerProps) {
               </div>
             </>
           ) : (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <Key className="w-6 h-6 text-zinc-400" />
-              </div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                No API key generated
-              </p>
-              <Button
-                onClick={handleGenerateKey}
-                disabled={isGenerating}
-                className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Key className="w-4 h-4 mr-2" />
-                    Generate API Key
-                  </>
-                )}
-              </Button>
+            <div className="space-y-4">
+              {/* Check if apps exist - only show generate button when we're certain apps exist */}
+              {userApps !== undefined && userApps.length > 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Key className="w-6 h-6 text-zinc-400" />
+                  </div>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                    No API key generated
+                  </p>
+                  <Button
+                    onClick={handleGenerateKey}
+                    disabled={isGenerating}
+                    className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Key className="w-4 h-4 mr-2" />
+                        Generate API Key
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : userApps !== undefined ? (
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+                    Create an App First
+                  </h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6 max-w-md mx-auto">
+                    You need to create a multi-user app before you can generate
+                    an API key. API keys require an app to be functional.
+                  </p>
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6 max-w-md mx-auto">
+                    <div className="flex items-start gap-3">
+                      <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                          Why do I need an app?
+                        </p>
+                        <p className="text-xs text-amber-800 dark:text-amber-200">
+                          API keys are linked to apps for security and access
+                          control. Once you create an app, you'll be able to
+                          generate API keys that work with your application.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setActiveTab("apps")}
+                    className="bg-amber-600 dark:bg-amber-500 text-white hover:bg-amber-700 dark:hover:bg-amber-600"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create App
+                  </Button>
+                </div>
+              ) : (
+                // Loading state - don't show anything while loading to prevent flickering
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-900 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Key className="w-6 h-6 text-zinc-400" />
+                  </div>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    Loading...
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
