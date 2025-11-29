@@ -7236,6 +7236,31 @@ async def _process_file_background(
         # Process the file
         await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
 
+        # Add file to chat's context so it's automatically published
+        try:
+            convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
+                    json={
+                        "args": {
+                            "chatId": sanitized_chat_id,
+                            "filename": sanitized_filename,
+                            "fileId": file_id,
+                        },
+                        "format": "json"
+                    },
+                    headers={"Content-Type": "application/json"},
+                    timeout=5.0
+                )
+                if response.status_code == 200:
+                    logger.info(f"✅ File {sanitized_filename} added to chat {sanitized_chat_id} context (published by default)")
+                else:
+                    logger.warning(f"⚠️ Failed to add file to chat context: {response.status_code} - {response.text}")
+        except Exception as e:
+            # Don't fail the upload if context update fails
+            logger.warning(f"⚠️ Failed to add file to chat context (non-fatal): {e}")
+
         # Update status to ready
         FILE_PROCESSING_STATUS[file_id] = {
             "status": "ready",
