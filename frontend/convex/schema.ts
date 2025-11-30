@@ -459,6 +459,7 @@ export default defineSchema({
     error: v.optional(v.string()),
     fileId: v.optional(v.string()), // Generated file ID after processing
     extractedTextLength: v.optional(v.number()),
+    knowledgeUnits: v.optional(v.number()), // Actual Knowledge Units consumed (calculated from extracted text)
     nodesCreated: v.optional(v.number()),
     createdAt: v.number(),
     startedAt: v.optional(v.number()),

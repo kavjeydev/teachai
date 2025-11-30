@@ -154,6 +154,7 @@ export const updateFileProgress = mutation({
     progress: v.number(),
     error: v.optional(v.string()),
     extractedTextLength: v.optional(v.number()),
+    knowledgeUnits: v.optional(v.number()), // Actual Knowledge Units consumed (calculated from extracted text)
     nodesCreated: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -178,6 +179,8 @@ export const updateFileProgress = mutation({
     if (args.error) updateData.error = args.error;
     if (args.extractedTextLength)
       updateData.extractedTextLength = args.extractedTextLength;
+    if (args.knowledgeUnits !== undefined)
+      updateData.knowledgeUnits = args.knowledgeUnits;
     if (args.nodesCreated) updateData.nodesCreated = args.nodesCreated;
 
     if (args.status === "processing" && !file.startedAt) {
@@ -392,6 +395,8 @@ export const getUserQueues = query({
             error: file.error,
             fileId: file.fileId,
             convexFileId: file._id, // Add the Convex file ID
+            extractedTextLength: file.extractedTextLength,
+            knowledgeUnits: file.knowledgeUnits,
           })),
         };
       }),

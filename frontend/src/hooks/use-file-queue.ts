@@ -194,7 +194,6 @@ export function useFileQueue({
     async (queuedFile: QueuedFile, queueId: string, chatId: Id<"chats">) => {
       const fileKey = `${queueId}-${queuedFile.id}`;
 
-
       // Create a global key to track this specific file across all instances
       const globalFileKey = `${chatId}_${queuedFile.fileName}_${queuedFile.fileSize}`;
 
@@ -223,7 +222,6 @@ export function useFileQueue({
         // Create a more deterministic file ID based on file content and name
         const uniqueFileId = `file_${queuedFile.fileName.replace(/[^a-zA-Z0-9]/g, "_")}_${queuedFile.fileSize}_${Date.now()}`;
 
-
         // Check if already cancelled before starting
         if (abortController.signal.aborted || cancelledFiles.has(fileKey)) {
           return;
@@ -232,7 +230,9 @@ export function useFileQueue({
         // CRITICAL: Only process files that passed validation (have convexFileId)
         // This prevents processing files that failed size/storage validation
         if (!queuedFile.convexFileId) {
-          console.warn(`Skipping file ${queuedFile.fileName} - no convexFileId (validation may have failed)`);
+          console.warn(
+            `Skipping file ${queuedFile.fileName} - no convexFileId (validation may have failed)`,
+          );
           setActiveQueues((prev) => {
             const updated = new Map(prev);
             const queue = updated.get(queueId);
@@ -317,10 +317,15 @@ export function useFileQueue({
 
         const extractData = await extractResponse.json();
 
-        // Calculate actual Knowledge Units from extracted text
-        // Formula: tokens = Math.ceil(text.length / 4), KU = Math.ceil(tokens / 500)
+        // Use extracted_text_length from backend response (more accurate than calculating from text)
+        // Fallback to text.length if backend doesn't provide it (backward compatibility)
         const extractedText = extractData.text || "";
-        const actualTokens = Math.ceil(extractedText.length / 4);
+        const extractedTextLength =
+          extractData.extracted_text_length ?? extractedText.length;
+
+        // Calculate actual Knowledge Units from extracted text length
+        // Formula: tokens = Math.ceil(text.length / 4), KU = Math.ceil(tokens / 500)
+        const actualTokens = Math.ceil(extractedTextLength / 4);
         const actualKnowledgeUnits = Math.ceil(actualTokens / 500);
 
         // Check if cancelled before second step
@@ -356,7 +361,6 @@ export function useFileQueue({
           isSubchat = chatInfo.chatType === "app_subchat";
           if (isSubchat && chatInfo.chatId) {
             actualChatId = chatInfo.chatId;
-
           }
         } else {
           // Fallback: detect subchat from string format
@@ -364,14 +368,11 @@ export function useFileQueue({
           if (chatIdStr && chatIdStr.startsWith("subchat_")) {
             isSubchat = true;
             actualChatId = chatIdStr;
-
           }
         }
 
-
         // For subchats, skip embeddings creation since V1 API handles it
         if (isSubchat) {
-
           // Just mark as completed without calling create_nodes_and_embeddings
           setActiveQueues((prev) => {
             const updated = new Map(prev);
@@ -440,8 +441,9 @@ export function useFileQueue({
               fileId: queuedFile.convexFileId,
               status: "completed", // Use 'completed' to match database schema
               progress: 100,
+              extractedTextLength: extractedTextLength,
+              knowledgeUnits: actualKnowledgeUnits,
             });
-
           } catch (error) {
             console.error("Failed to update file progress in Convex:", error);
             console.error("Error details:", {
@@ -469,7 +471,7 @@ export function useFileQueue({
                 progress: 100,
                 fileId: uniqueFileId,
                 uploadedAt: extractData.uploaded_at || Date.now(),
-                extractedTextLength: extractedText.length,
+                extractedTextLength: extractedTextLength,
                 knowledgeUnits: actualKnowledgeUnits,
               };
               queue.completedFiles += 1;
@@ -679,7 +681,7 @@ export function useFileQueue({
           fileCount: fileArray.length,
           totalSize: totalSize,
           isFolder: isFolderBoolean,
-          fileTypes: [...new Set(fileArray.map(f => f.type || "unknown"))],
+          fileTypes: [...new Set(fileArray.map((f) => f.type || "unknown"))],
         });
 
         // Prepare queued files
@@ -731,7 +733,8 @@ export function useFileQueue({
             return updated;
           });
 
-          const errorMessage = error instanceof Error ? error.message : "File validation failed";
+          const errorMessage =
+            error instanceof Error ? error.message : "File validation failed";
           toast.error(errorMessage);
           console.error("File validation failed:", error);
           return null;
@@ -813,6 +816,8 @@ export function useFileQueue({
             const updatedFile = {
               ...file,
               convexFileId: convexId,
+              extractedTextLength: undefined, // Will be set after extraction
+              knowledgeUnits: undefined, // Will be set after extraction
             };
             return updatedFile;
           });
@@ -926,6 +931,8 @@ export function useFileQueue({
             error: file.error,
             fileId: file.fileId,
             convexFileId: file.convexFileId || file._id,
+            extractedTextLength: file.extractedTextLength,
+            knowledgeUnits: file.knowledgeUnits,
           }),
         ),
       } as UploadQueue;

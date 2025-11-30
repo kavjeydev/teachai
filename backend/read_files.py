@@ -1543,7 +1543,8 @@ async def extract_text_endpoint(
             "file_hash": file_hash,
             "size_bytes": size,
             "filename": sanitized_filename,
-            "uploaded_at": upload_timestamp
+            "uploaded_at": upload_timestamp,
+            "extracted_text_length": 0  # No text extracted
         })
 
     # 4) Sanitize with truncation first to cap processing work
@@ -1586,6 +1587,7 @@ async def extract_text_endpoint(
 
     # 6) Return optimized response with timestamp
     upload_timestamp = int(time.time() * 1000)  # Unix timestamp in milliseconds
+    extracted_text_length = len(sanitized_text) if sanitized_text else 0
 
     return JSONResponse(content={
         "text": sanitized_text,
@@ -1593,6 +1595,7 @@ async def extract_text_endpoint(
         "size_bytes": size,
         "filename": sanitized_filename,
         "uploaded_at": upload_timestamp,
+        "extracted_text_length": extracted_text_length,  # Length of extracted text for accurate KU calculation
         "processing": "async_nonblocking_fixed"
     })
 
