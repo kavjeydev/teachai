@@ -268,6 +268,10 @@ async function handleSubscriptionChange(
       existingSubscription?.value?.status === "active" &&
       billingReason === "subscription_cycle";
 
+    // Check if this is a duplicate webhook call (subscription already updated to this tier)
+    // This prevents adding credits multiple times when multiple webhook events fire
+    const isDuplicateTierUpdate = existingTier === tier && !isRenewal;
+
     if (isRenewal) {
       // Monthly renewal: Reset credits to tier amount and reset usage to 0
       await callConvexMutation("subscriptions/updateUserCredits", {
@@ -283,6 +287,12 @@ async function handleSubscriptionChange(
       });
       console.log(
         `✅ Monthly renewal: Reset credits to ${credits} for tier ${tier}`,
+      );
+    } else if (isDuplicateTierUpdate) {
+      // Subscription tier already matches - this is a duplicate webhook call
+      // Don't add credits again, just log it
+      console.log(
+        `ℹ️ Duplicate webhook call: Subscription already set to ${tier} tier, skipping credit update`,
       );
     } else {
       // Upgrade/Downgrade/New subscription: Get current credits and adjust accordingly
