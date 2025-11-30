@@ -433,6 +433,18 @@ export default defineSchema({
     chatFileSizes: v.optional(v.record(v.string(), v.number())), // Dynamic object with chatId as key, size as value
   }).index("by_user", ["userId"]),
 
+  // Monthly token ingestion tracking for ingestion limits
+  token_ingestion: defineTable({
+    userId: v.string(),
+    monthYear: v.string(), // Format: "YYYY-MM" (e.g., "2024-01")
+    tokensIngested: v.number(), // Total tokens ingested this month from extracted text, OCR, transcripts, etc.
+    periodStart: v.number(), // Timestamp when this period started
+    periodEnd: v.number(), // Timestamp when this period ends
+    lastUpdated: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_month", ["userId", "monthYear"]),
+
   // File upload queue system
   file_upload_queue: defineTable({
     userId: v.string(),

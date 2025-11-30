@@ -25,7 +25,8 @@ export const PRICING_TIERS = {
       graphNodes: 500,
       graphEdges: 1500,
       fileStorage: "250 MB total",
-      maxFileSize: "25 MB per file",
+      maxFileSize: "50 MB per file (hard cap)",
+      monthlyIngestionTokens: "200 Knowledge Units/month",
       maxFiles: 50,
       teamMembers: 1,
       graphViz: "Basic (read-only)",
@@ -38,7 +39,8 @@ export const PRICING_TIERS = {
     limits: {
       maxProjects: 1,
       maxStorageMB: 250,
-      maxFileSizeMB: 25,
+      maxFileSizeMB: 50, // Hard cap
+      maxMonthlyIngestionTokens: 100000, // 100k tokens/month
       maxFiles: 50,
       maxTeamMembers: 1,
       maxGraphNodes: 500,
@@ -61,7 +63,8 @@ export const PRICING_TIERS = {
       graphNodes: 5000,
       graphEdges: 15000,
       fileStorage: "2 GB total",
-      maxFileSize: "50 MB per file",
+      maxFileSize: "200 MB per file (hard cap)",
+      monthlyIngestionTokens: "4K Knowledge Units/month",
       maxFiles: 200,
       teamMembers: 2,
       graphViz: "Editable",
@@ -76,7 +79,8 @@ export const PRICING_TIERS = {
     limits: {
       maxProjects: 3,
       maxStorageMB: 2048,
-      maxFileSizeMB: 50,
+      maxFileSizeMB: 200, // Hard cap
+      maxMonthlyIngestionTokens: 2000000, // 2M tokens/month
       maxFiles: 200,
       maxTeamMembers: 2,
       maxGraphNodes: 5000,
@@ -99,7 +103,8 @@ export const PRICING_TIERS = {
       graphNodes: 100000,
       graphEdges: 300000,
       fileStorage: "40 GB total",
-      maxFileSize: "150 MB per file",
+      maxFileSize: "500 MB per file (hard cap)",
+      monthlyIngestionTokens: "20K Knowledge Units/month",
       maxFiles: 5000,
       teamMembers: 10,
       graphViz: "Editable",
@@ -125,7 +130,8 @@ export const PRICING_TIERS = {
     limits: {
       maxProjects: 25,
       maxStorageMB: 40960,
-      maxFileSizeMB: 150,
+      maxFileSizeMB: 500, // Hard cap
+      maxMonthlyIngestionTokens: 10000000, // 10M tokens/month
       maxFiles: 5000,
       maxTeamMembers: 10,
       maxGraphNodes: 100000,
@@ -149,7 +155,8 @@ export const PRICING_TIERS = {
       graphNodes: "Millions",
       graphEdges: "Millions",
       fileStorage: "Custom / BYO storage",
-      maxFileSize: "Custom",
+      maxFileSize: "500+ MB per file (hard cap)",
+      monthlyIngestionTokens: "100K+ Knowledge Units/month",
       maxFiles: "Unlimited",
       teamMembers: "Unlimited",
       graphViz: "Editable",
@@ -181,7 +188,8 @@ export const PRICING_TIERS = {
     limits: {
       maxProjects: -1,
       maxStorageMB: -1,
-      maxFileSizeMB: -1,
+      maxFileSizeMB: 500, // Hard cap (can be negotiated higher)
+      maxMonthlyIngestionTokens: 50000000, // 50M tokens/month (can be negotiated higher)
       maxFiles: -1,
       maxTeamMembers: -1,
       maxGraphNodes: -1,

@@ -96,7 +96,7 @@ export const addFilesToQueue = mutation({
         // Throw the first error we encounter
         const firstError =
           limitCheck.errors.fileSizeError ||
-          limitCheck.errors.storageError ||
+          limitCheck.errors.tokenIngestionError ||
           limitCheck.errors.fileCountError ||
           "Upload not allowed";
         throw new Error(firstError);
@@ -116,7 +116,8 @@ export const addFilesToQueue = mutation({
 
       if (!batchLimitCheck.canUpload) {
         const firstError =
-          batchLimitCheck.errors.storageError ||
+          batchLimitCheck.errors.fileSizeError ||
+          batchLimitCheck.errors.tokenIngestionError ||
           batchLimitCheck.errors.fileCountError ||
           "Batch upload would exceed limits";
         throw new Error(firstError);

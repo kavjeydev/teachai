@@ -1092,6 +1092,11 @@ async def track_upload_analytics(chat_id: str, filename: str, pdf_text: str, act
             file_size = len(pdf_text.encode('utf-8'))
             logger.info(f"📏 Estimated file size from text: {format_bytes(file_size)}")
 
+        # Calculate tokens from extracted text (same approximation as frontend: Math.ceil(text.length / 4))
+        import math
+        tokens_ingested = math.ceil(len(pdf_text) / 4)
+        logger.info(f"🔢 Calculated tokens from extracted text: {tokens_ingested:,} tokens")
+
         # Check if this is a sub-chat by querying Convex
         convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         logger.info(f"🌐 Querying Convex at: {convex_url}")
@@ -1114,6 +1119,11 @@ async def track_upload_analytics(chat_id: str, filename: str, pdf_text: str, act
                 chat = chat_data.get("value")
                 logger.info(f"💬 Chat data retrieved: chatType={chat.get('chatType') if chat else None}, parentAppId={chat.get('parentAppId') if chat else None}")
 
+                # Determine userId for token tracking
+                # For subchats (API uploads), track against developer's account (parent chat owner)
+                # For regular chats, track against chat owner
+                user_id_for_tokens = None
+
                 if chat and chat.get("chatType") == "app_subchat" and chat.get("parentAppId"):
                     # This is a sub-chat! Extract the necessary info
                     app_id = chat.get("parentAppId")
@@ -1132,13 +1142,69 @@ async def track_upload_analytics(chat_id: str, filename: str, pdf_text: str, act
                         )
                         logger.info(f"✅ Sub-chat upload tracked: {filename} in {chat_id}")
 
-                        # Note: trackFileUpload already updates parent chat storage, no need for recalculation
+                        # For token tracking, get the developer's userId (parent chat owner)
+                        # Get parent chat ID from app
+                        parent_chat_id = await get_parent_chat_id_from_app(app_id)
+                        if parent_chat_id:
+                            # Get parent chat to get developer's userId
+                            parent_chat_response = await client.post(
+                                f"{convex_url}/api/run/backend_credits/getChatWithApp",
+                                json={
+                                    "args": {"chatId": parent_chat_id},
+                                    "format": "json"
+                                },
+                                timeout=10.0
+                            )
+                            if parent_chat_response.status_code == 200:
+                                parent_chat_data = parent_chat_response.json()
+                                parent_chat = parent_chat_data.get("value")
+                                if parent_chat:
+                                    user_id_for_tokens = parent_chat.get("userId")
+                                    logger.info(f"🔍 Found developer userId for token tracking: {user_id_for_tokens[:8] if user_id_for_tokens else None}...")
+                                else:
+                                    logger.warning(f"⚠️  Parent chat {parent_chat_id} not found")
+                            else:
+                                logger.warning(f"⚠️  Failed to get parent chat: {parent_chat_response.status_code}")
+                        else:
+                            logger.warning(f"⚠️  No parent chat ID found for app {app_id}")
 
                     else:
                         logger.warning(f"❌ Sub-chat missing required fields - app_id: {app_id}, user_id: {end_user_id}")
                 else:
-                    # Not a sub-chat, no tracking needed for regular chats
-                    logger.info(f"ℹ️  Regular chat upload (no tracking needed): {chat_id}")
+                    # Not a sub-chat, use chat owner's userId for token tracking
+                    user_id_for_tokens = chat.get("userId") if chat else None
+                    logger.info(f"ℹ️  Regular chat upload - tracking tokens for chat owner: {user_id_for_tokens[:8] if user_id_for_tokens else None}...")
+
+                # Track token ingestion for the appropriate user
+                # For subchats: developer's account (parent chat owner)
+                # For regular chats: chat owner
+                if user_id_for_tokens:
+                    try:
+                        token_tracking_response = await client.post(
+                            f"{convex_url}/api/run/fileStorage/addTokenIngestion",
+                            json={
+                                "args": {
+                                    "userId": user_id_for_tokens,
+                                    "tokens": tokens_ingested
+                                },
+                                "format": "json"
+                            },
+                            timeout=10.0
+                        )
+                        if token_tracking_response.status_code == 200:
+                            logger.info(f"✅ Token ingestion tracked: {tokens_ingested:,} tokens ({tokens_ingested // 500} KU) for user {user_id_for_tokens[:8]}...")
+                        else:
+                            logger.warning(f"⚠️  Failed to track token ingestion: {token_tracking_response.status_code}")
+                            if token_tracking_response.status_code != 200:
+                                response_text = await token_tracking_response.text()
+                                logger.warning(f"Response body: {response_text[:500]}")
+                    except Exception as token_error:
+                        logger.error(f"❌ Error tracking token ingestion: {token_error}")
+                        import traceback
+                        logger.error(f"Traceback: {traceback.format_exc()}")
+                        # Don't fail the upload if token tracking fails
+                else:
+                    logger.warning(f"⚠️  No user_id found for token tracking, skipping token ingestion tracking")
             else:
                 logger.warning(f"❌ Failed to get chat details for analytics tracking: {chat_response.status_code}")
                 if chat_response.status_code != 200:

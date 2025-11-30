@@ -383,7 +383,7 @@ export function CreateChatWizard({
                               {file.name}
                             </p>
                             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                              ~{Math.ceil(Math.ceil(file.size / 4) / 500)} KU (estimated)
                             </p>
                           </div>
                         </div>

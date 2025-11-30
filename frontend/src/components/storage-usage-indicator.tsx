@@ -17,6 +17,8 @@ export function StorageUsageIndicator({
   className = "",
   compact = false,
 }: StorageUsageIndicatorProps) {
+  // This query is reactive - it will automatically update when token_ingestion table changes
+  // The backend calls addTokenIngestion mutation after file processing completes
   const storageStats = useQuery(api.fileStorage.getStorageStats);
 
   if (!storageStats) {
@@ -28,8 +30,8 @@ export function StorageUsageIndicator({
   }
 
   const {
-    currentStorageMB,
-    maxStorageMB,
+    currentKnowledgeUnits,
+    maxKnowledgeUnits,
     fileCount,
     usagePercentage,
     tierName,
@@ -38,11 +40,13 @@ export function StorageUsageIndicator({
   const isNearLimit = usagePercentage >= 80;
   const isOverLimit = usagePercentage >= 100;
 
-  const formatSize = (mb: number) => {
-    if (mb >= 1024) {
-      return `${(mb / 1024).toFixed(1)} GB`;
+  const formatKnowledgeUnits = (ku: number) => {
+    if (ku >= 1000000) {
+      return `${(ku / 1000000).toFixed(1)}M KU`;
+    } else if (ku >= 1000) {
+      return `${(ku / 1000).toFixed(1)}K KU`;
     }
-    return `${mb.toFixed(1)} MB`;
+    return `${ku} KU`;
   };
 
   const getProgressColor = () => {
@@ -87,7 +91,7 @@ export function StorageUsageIndicator({
             />
           </div>
           <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
-            {formatSize(currentStorageMB)}
+            {formatKnowledgeUnits(currentKnowledgeUnits)}
           </span>
         </div>
         {isNearLimit && (
@@ -103,7 +107,7 @@ export function StorageUsageIndicator({
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center space-x-2">
             <HardDrive className="h-4 w-4" />
-            <span>Storage Usage</span>
+            <span>Knowledge Units Usage</span>
           </div>
           <Badge
             variant="secondary"
@@ -119,7 +123,8 @@ export function StorageUsageIndicator({
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Used</span>
             <span className="font-medium">
-              {formatSize(currentStorageMB)} of {formatSize(maxStorageMB)}
+              {formatKnowledgeUnits(currentKnowledgeUnits)} of{" "}
+              {formatKnowledgeUnits(maxKnowledgeUnits)}
             </span>
           </div>
           <Progress value={Math.min(usagePercentage, 100)} className="h-2" />
@@ -157,8 +162,8 @@ export function StorageUsageIndicator({
             <div className="flex items-center space-x-2">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <p className="text-xs text-yellow-800">
-                You're approaching your storage limit. Consider upgrading your
-                plan or removing unused files.
+                You're approaching your monthly ingestion limit. Consider
+                upgrading your plan to increase your Knowledge Units quota.
               </p>
             </div>
           </div>
@@ -169,8 +174,8 @@ export function StorageUsageIndicator({
             <div className="flex items-center space-x-2">
               <AlertTriangle className="h-4 w-4 text-red-600" />
               <p className="text-xs text-red-800">
-                You've exceeded your storage limit. Please remove some files or
-                upgrade your plan to continue uploading.
+                You've exceeded your monthly ingestion limit. Please upgrade
+                your plan to continue uploading files.
               </p>
             </div>
           </div>

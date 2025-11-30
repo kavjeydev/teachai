@@ -82,6 +82,8 @@ export interface QueuedFile {
   convexFileId?: Id<"file_upload_queue">; // Convex document ID for updates
   id: string;
   uploadedAt?: number; // Unix timestamp in milliseconds
+  extractedTextLength?: number; // Length of extracted text (for accurate KU calculation)
+  knowledgeUnits?: number; // Actual Knowledge Units consumed (calculated from extracted text)
 }
 
 // Interface for persisted file data (without File object)
@@ -97,6 +99,8 @@ export interface PersistedFile {
   fileId?: string;
   convexFileId?: Id<"file_upload_queue">;
   uploadedAt?: number; // Unix timestamp in milliseconds
+  extractedTextLength?: number; // Length of extracted text (for accurate KU calculation)
+  knowledgeUnits?: number; // Actual Knowledge Units consumed (calculated from extracted text)
 }
 
 export interface UploadQueue {
@@ -313,6 +317,12 @@ export function useFileQueue({
 
         const extractData = await extractResponse.json();
 
+        // Calculate actual Knowledge Units from extracted text
+        // Formula: tokens = Math.ceil(text.length / 4), KU = Math.ceil(tokens / 500)
+        const extractedText = extractData.text || "";
+        const actualTokens = Math.ceil(extractedText.length / 4);
+        const actualKnowledgeUnits = Math.ceil(actualTokens / 500);
+
         // Check if cancelled before second step
         if (abortController.signal.aborted || cancelledFiles.has(fileKey)) {
           return;
@@ -459,6 +469,8 @@ export function useFileQueue({
                 progress: 100,
                 fileId: uniqueFileId,
                 uploadedAt: extractData.uploaded_at || Date.now(),
+                extractedTextLength: extractedText.length,
+                knowledgeUnits: actualKnowledgeUnits,
               };
               queue.completedFiles += 1;
 

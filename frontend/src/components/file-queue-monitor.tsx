@@ -48,6 +48,27 @@ const getStatusColor = (status: string) => {
   }
 };
 
+// Format Knowledge Units for display
+const formatKnowledgeUnits = (ku: number) => {
+  if (ku >= 1000000) {
+    return `${(ku / 1000000).toFixed(1)}M KU`;
+  } else if (ku >= 1000) {
+    return `${(ku / 1000).toFixed(1)}K KU`;
+  }
+  return `${ku} KU`;
+};
+
+// Estimate Knowledge Units from file size (only used before extraction)
+// This is inaccurate - actual KU is calculated from extracted text
+const estimateKnowledgeUnitsFromFileSize = (bytes: number) => {
+  // Very rough estimate: assume 1 token per 4 bytes, 1 KU = 500 tokens
+  // But this is inaccurate for compressed files like PDFs
+  const estimatedTokens = Math.ceil(bytes / 4);
+  const estimatedKU = Math.ceil(estimatedTokens / 500);
+  return estimatedKU;
+};
+
+// Keep file size formatter for reference (can be removed if not needed)
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return "0 Bytes";
   const k = 1024;
@@ -69,7 +90,11 @@ const FileItem = React.memo<FileItemProps>(({ file }) => {
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              {formatFileSize(file.fileSize)}
+              {file.knowledgeUnits !== undefined
+                ? formatKnowledgeUnits(file.knowledgeUnits)
+                : file.status === "processing"
+                  ? "Processing..."
+                  : `~${formatKnowledgeUnits(estimateKnowledgeUnitsFromFileSize(file.fileSize))}`}
             </span>
             {file.uploadedAt && file.status === "uploaded" && (
               <span className="text-xs text-zinc-500 dark:text-zinc-400">

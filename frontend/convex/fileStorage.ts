@@ -2,6 +2,64 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
+// Helper function to calculate tokens from text (same approximation as used elsewhere)
+// Formula: tokens = Math.ceil(text.length / 4)
+// This approximates OpenAI's tokenizer where ~4 characters = 1 token
+// Example: "Hello world" (11 chars) = Math.ceil(11/4) = 3 tokens
+function calculateTokensFromText(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+// Helper function to convert tokens to Knowledge Units (1 KU = ~500 tokens)
+// Formula: KU = Math.ceil(tokens / 500)
+// Example: 1000 tokens = Math.ceil(1000/500) = 2 KU
+// Example: 250 tokens = Math.ceil(250/500) = 1 KU
+function tokensToKnowledgeUnits(tokens: number): number {
+  return Math.ceil(tokens / 500);
+}
+
+// Helper function to convert Knowledge Units to tokens
+function knowledgeUnitsToTokens(ku: number): number {
+  return ku * 500;
+}
+
+// Helper function to format Knowledge Units for display
+function formatKnowledgeUnits(ku: number): string {
+  if (ku >= 1000000) {
+    return `${(ku / 1000000).toFixed(1)}M KU`;
+  } else if (ku >= 1000) {
+    return `${(ku / 1000).toFixed(1)}K KU`;
+  }
+  return `${ku} KU`;
+}
+
+// Helper function to get current month-year string (e.g., "2024-01")
+function getCurrentMonthYear(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+// Helper function to get period start/end timestamps for current month
+function getCurrentMonthPeriod(): { start: number; end: number } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999,
+  );
+  return {
+    start: start.getTime(),
+    end: end.getTime(),
+  };
+}
+
 // Get user's current file storage usage
 export const getUserFileStorage = query({
   handler: async (ctx) => {
@@ -94,6 +152,8 @@ export const addFileSize = mutation({
 });
 
 // Remove file size from user's storage tracking
+// IMPORTANT: This does NOT refund ingestion tokens - tokens are consumed when content is ingested,
+// and deleting a file does not undo the processing work. Tokens are only refunded if upload fails.
 export const removeFileSize = mutation({
   args: {
     chatId: v.string(), // Chat ID as string
@@ -158,12 +218,130 @@ export const removeFileSize = mutation({
   },
 });
 
+// Add tokens to monthly ingestion tracking
+export const addTokenIngestion = mutation({
+  args: {
+    userId: v.string(),
+    tokens: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const monthYear = getCurrentMonthYear();
+    const period = getCurrentMonthPeriod();
+
+    // Find or create token ingestion record for this month
+    let ingestion = await ctx.db
+      .query("token_ingestion")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", args.userId).eq("monthYear", monthYear),
+      )
+      .first();
+
+    if (!ingestion) {
+      // Create new record for this month
+      await ctx.db.insert("token_ingestion", {
+        userId: args.userId,
+        monthYear,
+        tokensIngested: args.tokens,
+        periodStart: period.start,
+        periodEnd: period.end,
+        lastUpdated: Date.now(),
+      });
+    } else {
+      // Update existing record
+      await ctx.db.patch(ingestion._id, {
+        tokensIngested: ingestion.tokensIngested + args.tokens,
+        lastUpdated: Date.now(),
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+// Refund tokens from monthly ingestion tracking
+// IMPORTANT: Only call this when a file upload FAILS, NOT when a file is deleted
+// Deletion should NOT refund tokens - once content is ingested, tokens are consumed
+export const refundTokenIngestion = mutation({
+  args: {
+    userId: v.string(),
+    tokens: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const monthYear = getCurrentMonthYear();
+
+    // Find token ingestion record for this month
+    const ingestion = await ctx.db
+      .query("token_ingestion")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", args.userId).eq("monthYear", monthYear),
+      )
+      .first();
+
+    if (!ingestion) {
+      // No ingestion record found - nothing to refund
+      return {
+        success: false,
+        reason: "No ingestion record found for this month",
+      };
+    }
+
+    // Refund tokens (subtract from total, but don't go below 0)
+    const newTokensIngested = Math.max(
+      0,
+      ingestion.tokensIngested - args.tokens,
+    );
+
+    await ctx.db.patch(ingestion._id, {
+      tokensIngested: newTokensIngested,
+      lastUpdated: Date.now(),
+    });
+
+    return {
+      success: true,
+      tokensRefunded: args.tokens,
+      previousTokens: ingestion.tokensIngested,
+      newTokens: newTokensIngested,
+    };
+  },
+});
+
+// Get current month's token ingestion for a user
+export const getCurrentTokenIngestion = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const monthYear = getCurrentMonthYear();
+
+    const ingestion = await ctx.db
+      .query("token_ingestion")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", args.userId).eq("monthYear", monthYear),
+      )
+      .first();
+
+    const tokensIngested = ingestion?.tokensIngested || 0;
+    const knowledgeUnitsIngested = tokensToKnowledgeUnits(tokensIngested);
+
+    return {
+      tokensIngested,
+      knowledgeUnitsIngested, // Add Knowledge Units for display
+      knowledgeUnitsFormatted: formatKnowledgeUnits(knowledgeUnitsIngested), // Formatted string
+      monthYear,
+      periodStart: ingestion?.periodStart || getCurrentMonthPeriod().start,
+      periodEnd: ingestion?.periodEnd || getCurrentMonthPeriod().end,
+    };
+  },
+});
+
 // Check if user can upload a file based on their tier limits
+// Now uses token-based ingestion limits instead of storage size
 export const checkUploadLimits = query({
   args: {
     fileSize: v.number(),
     fileName: v.string(),
-    chatId: v.id("chats"), // Add chatId to determine which chat's storage to check
+    chatId: v.id("chats"),
+    estimatedTokens: v.optional(v.number()), // Optional: estimated tokens from extracted text
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -212,99 +390,100 @@ export const checkUploadLimits = query({
       .first();
 
     // Determine tier limits
-    let maxStorageMB = 250; // Free tier default
-    let maxFileSizeMB = 25;
+    // File size limits are now hard caps (safety limits only)
+    let maxFileSizeMB = 50; // Free tier: 50MB hard cap
     let maxFiles = 50;
+    let maxMonthlyTokens = 100000; // Free: 100k tokens/month = 200 KU
     let tierName = "free";
 
     if (subscription && subscription.status === "active") {
       tierName = subscription.tier;
       switch (subscription.tier) {
         case "pro":
-          maxStorageMB = 2048; // 2GB
-          maxFileSizeMB = 50;
+          maxFileSizeMB = 200; // Pro: 200MB hard cap
           maxFiles = 200;
+          maxMonthlyTokens = 2000000; // Pro: 2M tokens/month = 4K KU
           break;
         case "scale":
-          maxStorageMB = 10240; // 10GB
-          maxFileSizeMB = 100;
+          maxFileSizeMB = 500; // Scale: 500MB hard cap
           maxFiles = 1000;
+          maxMonthlyTokens = 10000000; // Scale: 10M tokens/month = 20K KU
           break;
         case "enterprise":
-          maxStorageMB = 51200; // 50GB
-          maxFileSizeMB = 500;
+          maxFileSizeMB = 500; // Enterprise: 500MB+ hard cap
           maxFiles = 5000;
+          maxMonthlyTokens = 50000000; // Enterprise: 50M tokens/month = 100K KU
           break;
       }
     }
 
-    const maxStorageBytes = maxStorageMB * 1024 * 1024;
     const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
 
-    // Get current storage usage - for parent chats, this includes all subchat storage
-    // For subchats, we check against parent's aggregated storage but only count the subchat's own files
-    let currentStorageBytes = 0;
-    let currentFileCount = 0;
+    // Get current month's token ingestion
+    const monthYear = getCurrentMonthYear();
+    const currentIngestion = await ctx.db
+      .query("token_ingestion")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", targetUserId).eq("monthYear", monthYear),
+      )
+      .first();
 
-    if (chat.chatType === "app_subchat" && parentChat) {
-      // For subchats: check against parent's total storage (includes all subchats)
-      const parentMetadata = parentChat.metadata || {
-        totalFiles: 0,
-        totalStorageBytes: 0,
-      };
-      currentStorageBytes = parentMetadata.totalStorageBytes || 0;
-      currentFileCount = parentMetadata.totalFiles || 0;
-    } else {
-      // For parent chats: use their own metadata (which should include subchat totals)
-      const targetMetadata = targetChat.metadata || {
-        totalFiles: 0,
-        totalStorageBytes: 0,
-      };
-      currentStorageBytes = targetMetadata.totalStorageBytes || 0;
-      currentFileCount = targetMetadata.totalFiles || 0;
-    }
+    const currentTokensIngested = currentIngestion?.tokensIngested || 0;
+
+    // Estimate tokens from file if not provided
+    // For now, we'll use a conservative estimate: assume 1 token per 4 characters
+    // This will be updated with actual extracted text tokens after processing
+    const estimatedTokens =
+      args.estimatedTokens || Math.ceil(args.fileSize / 4); // Rough estimate: 1 token per 4 bytes
+
+    // Convert to Knowledge Units for display
+    const maxMonthlyKU = tokensToKnowledgeUnits(maxMonthlyTokens);
+    const currentKU = tokensToKnowledgeUnits(currentTokensIngested);
+    const estimatedKU = tokensToKnowledgeUnits(estimatedTokens);
+    const remainingKU = tokensToKnowledgeUnits(
+      Math.max(0, maxMonthlyTokens - currentTokensIngested),
+    );
 
     // Check limits
     const checks = {
-      fileSizeOk: args.fileSize <= maxFileSizeBytes,
-      storageOk: currentStorageBytes + args.fileSize <= maxStorageBytes,
-      fileCountOk: currentFileCount + 1 <= maxFiles,
+      fileSizeOk: args.fileSize <= maxFileSizeBytes, // Hard cap check
+      tokenIngestionOk:
+        currentTokensIngested + estimatedTokens <= maxMonthlyTokens, // Token quota check
+      fileCountOk: true, // File count check removed - not a limiting factor anymore
     };
 
-    const canUpload =
-      checks.fileSizeOk && checks.storageOk && checks.fileCountOk;
+    const canUpload = checks.fileSizeOk && checks.tokenIngestionOk;
 
     return {
       canUpload,
       checks,
       limits: {
-        maxStorageMB,
         maxFileSizeMB,
+        maxMonthlyTokens,
+        maxMonthlyKU, // Add Knowledge Units for display
         maxFiles,
         tierName,
       },
       current: {
-        storageBytes: currentStorageBytes,
-        storageMB:
-          Math.round((currentStorageBytes / (1024 * 1024)) * 100) / 100,
-        fileCount: currentFileCount,
+        tokensIngested: currentTokensIngested,
+        tokensRemaining: Math.max(0, maxMonthlyTokens - currentTokensIngested),
+        knowledgeUnitsIngested: currentKU, // Add Knowledge Units for display
+        knowledgeUnitsRemaining: remainingKU, // Add Knowledge Units for display
+        fileSizeMB: Math.round((args.fileSize / (1024 * 1024)) * 100) / 100,
       },
       errors: {
         fileSizeError: !checks.fileSizeOk
-          ? `File size (${Math.round((args.fileSize / (1024 * 1024)) * 100) / 100}MB) exceeds limit of ${maxFileSizeMB}MB for ${tierName} tier`
+          ? `File size (${Math.round((args.fileSize / (1024 * 1024)) * 100) / 100}MB) exceeds hard cap of ${maxFileSizeMB}MB for ${tierName} tier`
           : null,
-        storageError: !checks.storageOk
-          ? `Upload would exceed storage limit of ${maxStorageMB}MB for ${tierName} tier`
-          : null,
-        fileCountError: !checks.fileCountOk
-          ? `Upload would exceed file limit of ${maxFiles} files for ${tierName} tier`
+        tokenIngestionError: !checks.tokenIngestionOk
+          ? `Upload would exceed monthly ingestion limit of ${formatKnowledgeUnits(maxMonthlyKU)} for ${tierName} tier. Current usage: ${formatKnowledgeUnits(currentKU)}, estimated: ${formatKnowledgeUnits(estimatedKU)}`
           : null,
       },
     };
   },
 });
 
-// Get storage usage statistics for a user (aggregated from all their parent chats)
+// Get storage usage statistics for a user (now returns Knowledge Units instead of storage MB)
 export const getStorageStats = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -320,7 +499,54 @@ export const getStorageStats = query({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
-    // Get all user's chats (only parent chats, not subchats)
+    // Get current month's token ingestion
+    // This query is reactive - it will automatically update when token_ingestion table changes
+    // The backend calls addTokenIngestion mutation after file processing completes
+    const monthYear = getCurrentMonthYear();
+    const currentIngestion = await ctx.db
+      .query("token_ingestion")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", userId).eq("monthYear", monthYear),
+      )
+      .first();
+
+    const currentTokensIngested = currentIngestion?.tokensIngested || 0;
+    const currentKnowledgeUnits = tokensToKnowledgeUnits(currentTokensIngested);
+
+    // Debug logging (can be removed in production)
+    console.log(
+      `[getStorageStats] User ${userId.substring(0, 8)}... | Tokens: ${currentTokensIngested.toLocaleString()} | KU: ${currentKnowledgeUnits} | Month: ${monthYear}`,
+    );
+
+    // Determine tier limits (in Knowledge Units)
+    let maxMonthlyTokens = 100000; // Free: 100k tokens/month = 200 KU
+    let maxKnowledgeUnits = 200;
+    let tierName = "free";
+
+    if (subscription && subscription.status === "active") {
+      tierName = subscription.tier;
+      switch (subscription.tier) {
+        case "pro":
+          maxMonthlyTokens = 2000000; // Pro: 2M tokens/month = 4K KU
+          maxKnowledgeUnits = 4000;
+          break;
+        case "scale":
+          maxMonthlyTokens = 10000000; // Scale: 10M tokens/month = 20K KU
+          maxKnowledgeUnits = 20000;
+          break;
+        case "enterprise":
+          maxMonthlyTokens = 50000000; // Enterprise: 50M tokens/month = 100K KU
+          maxKnowledgeUnits = 100000;
+          break;
+      }
+    }
+
+    const usagePercentage =
+      maxKnowledgeUnits > 0
+        ? Math.round((currentKnowledgeUnits / maxKnowledgeUnits) * 100)
+        : 0;
+
+    // Get all user's chats for file count
     const userChats = await ctx.db
       .query("chats")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -332,53 +558,26 @@ export const getStorageStats = query({
       )
       .collect();
 
-    // Aggregate storage from all parent chats
-    let totalStorageBytes = 0;
+    // Aggregate file count from all parent chats
     let totalFileCount = 0;
-    const chatFileSizes: Record<string, number> = {};
-
     for (const chat of userChats) {
-      const metadata = chat.metadata || { totalStorageBytes: 0, totalFiles: 0 };
-      totalStorageBytes += metadata.totalStorageBytes || 0;
+      const metadata = chat.metadata || { totalFiles: 0 };
       totalFileCount += metadata.totalFiles || 0;
-
-      if (metadata.totalStorageBytes > 0) {
-        chatFileSizes[chat.chatId] = metadata.totalStorageBytes;
-      }
     }
-
-    // Determine tier limits
-    let maxStorageMB = 250;
-    let tierName = "free";
-
-    if (subscription && subscription.status === "active") {
-      tierName = subscription.tier;
-      switch (subscription.tier) {
-        case "pro":
-          maxStorageMB = 2048;
-          break;
-        case "scale":
-          maxStorageMB = 10240;
-          break;
-        case "enterprise":
-          maxStorageMB = 51200;
-          break;
-      }
-    }
-
-    const currentStorageMB =
-      Math.round((totalStorageBytes / (1024 * 1024)) * 100) / 100;
-    const usagePercentage = Math.round((currentStorageMB / maxStorageMB) * 100);
 
     return {
-      currentStorageMB,
-      maxStorageMB,
-      currentStorageBytes: totalStorageBytes,
+      currentKnowledgeUnits,
+      maxKnowledgeUnits,
+      currentTokensIngested,
+      maxMonthlyTokens,
       fileCount: totalFileCount,
       usagePercentage,
       tierName,
-      chatFileSizes, // Now aggregated from chat metadata
       totalChats: userChats.length,
+      // Keep legacy fields for backward compatibility (deprecated)
+      currentStorageMB: 0,
+      maxStorageMB: 0,
+      currentStorageBytes: 0,
     };
   },
 });
