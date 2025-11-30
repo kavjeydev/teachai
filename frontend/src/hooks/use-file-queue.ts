@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { captureEvent } from "@/lib/posthog";
+import { useUser } from "@clerk/nextjs";
 
 // Generate unique ID
 const uid = (): string => {
@@ -141,6 +142,13 @@ export function useFileQueue({
   const addFilesToQueue = useMutation(api.fileQueue.addFilesToQueue);
   const updateFileProgress = useMutation(api.fileQueue.updateFileProgress);
   const cancelQueue = useMutation(api.fileQueue.cancelQueue);
+  const addTokenIngestion = useMutation(api.fileStorage.addTokenIngestion);
+
+  // Get chat to retrieve userId for token tracking
+  const currentChat = useQuery(
+    api.chats.getChatById,
+    chatId ? { id: chatId } : "skip",
+  );
 
   const queues = useQuery(
     api.fileQueue.getUserQueues,
@@ -444,6 +452,26 @@ export function useFileQueue({
               extractedTextLength: extractedTextLength,
               knowledgeUnits: actualKnowledgeUnits,
             });
+
+            // Also update token ingestion directly to ensure navbar updates
+            // This is a backup in case the backend call fails silently
+            if (currentChat?.userId) {
+              try {
+                await addTokenIngestion({
+                  userId: currentChat.userId,
+                  tokens: actualTokens,
+                });
+                console.log(
+                  `✅ Token ingestion updated in frontend: ${actualTokens} tokens (${actualKnowledgeUnits} KU)`,
+                );
+              } catch (tokenError) {
+                // Don't fail the upload if token tracking fails - backend should handle it
+                console.warn(
+                  "Failed to update token ingestion from frontend (non-fatal):",
+                  tokenError,
+                );
+              }
+            }
           } catch (error) {
             console.error("Failed to update file progress in Convex:", error);
             console.error("Error details:", {
@@ -615,7 +643,13 @@ export function useFileQueue({
         globalProcessingFiles.delete(globalFileKey);
       }
     },
-    [onFileProcessed, onQueueComplete, cancelledFiles],
+    [
+      onFileProcessed,
+      onQueueComplete,
+      cancelledFiles,
+      currentChat?.userId,
+      addTokenIngestion,
+    ],
   );
 
   // Process queue in background
