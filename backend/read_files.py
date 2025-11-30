@@ -6722,7 +6722,7 @@ async def privacy_upload_process(
     # Validate file
     file_size = read_files.get_file_size(file)
     if file_size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
+        raise HTTPException(status_code=413, detail=f"File too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB).")
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file uploaded.")
 
