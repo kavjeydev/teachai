@@ -50,6 +50,54 @@ export const getSubscriptionByUserId = query({
   },
 });
 
+// Get subscription by Stripe subscription ID (for webhook processing)
+export const getSubscriptionByStripeId = query({
+  args: { stripeSubscriptionId: v.string() },
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_stripe_subscription", (q) =>
+        q.eq("stripeSubscriptionId", args.stripeSubscriptionId),
+      )
+      .first();
+
+    return subscription || null;
+  },
+});
+
+// Get user credits (backend-safe, no auth required)
+export const getUserCreditsBackend = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const credits = await ctx.db
+      .query("user_credits")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!credits) {
+      // Return default free tier values
+      const now = Date.now();
+      const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+
+      return {
+        totalCredits: 500,
+        usedCredits: 0,
+        remainingCredits: 500,
+        periodStart: now,
+        periodEnd: periodEnd,
+      };
+    }
+
+    return {
+      totalCredits: credits.totalCredits,
+      usedCredits: credits.usedCredits,
+      remainingCredits: credits.totalCredits - credits.usedCredits,
+      periodStart: credits.periodStart,
+      periodEnd: credits.periodEnd,
+    };
+  },
+});
+
 // Get user's credit balance
 export const getUserCredits = query({
   args: {},

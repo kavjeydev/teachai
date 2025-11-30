@@ -34,6 +34,34 @@ async function callConvexMutation(functionPath: string, args: any) {
   return result;
 }
 
+// Helper function to call Convex queries from server-side
+async function callConvexQuery(functionPath: string, args: any) {
+  const url = `${CONVEX_SITE_URL}/api/query/${functionPath}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      args,
+      format: "json",
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ Convex query failed: ${functionPath}`, {
+      status: response.status,
+      error: errorText,
+    });
+    throw new Error(`Convex query failed: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  return result;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Initialize Stripe with runtime check
@@ -149,6 +177,7 @@ export async function POST(req: NextRequest) {
 async function handleSubscriptionChange(
   subscription: Stripe.Subscription,
   stripe: Stripe,
+  billingReason?: string,
 ) {
   try {
     console.log(`📋 handleSubscriptionChange called`);
@@ -191,6 +220,23 @@ async function handleSubscriptionChange(
     const currentPeriodStart = (subscription as any).current_period_start;
     const currentPeriodEnd = (subscription as any).current_period_end;
 
+    // Get existing subscription BEFORE updating to check if this is an upgrade or renewal
+    let existingSubscription = null;
+    try {
+      existingSubscription = await callConvexQuery(
+        "subscriptions/getSubscriptionByStripeId",
+        {
+          stripeSubscriptionId: subscription.id,
+        },
+      );
+    } catch (error) {
+      // Subscription might not exist yet (first time)
+      console.log(
+        "No existing subscription found, treating as new subscription",
+      );
+    }
+
+    // Now update the subscription record
     await callConvexMutation("subscriptions/updateSubscriptionForUser", {
       userId: userId,
       stripeCustomerId: customerId,
@@ -215,16 +261,75 @@ async function handleSubscriptionChange(
       // No pending plan changes to apply
     }
 
-    // Reset credits to exact plan amount (fresh start with new plan)
-    await callConvexMutation("subscriptions/updateUserCredits", {
-      userId,
-      totalCredits: credits,
-      resetUsage: true, // Always reset to 0 and give full plan credits
-      periodStart: currentPeriodStart ? currentPeriodStart * 1000 : Date.now(),
-      periodEnd: currentPeriodEnd
-        ? currentPeriodEnd * 1000
-        : Date.now() + 30 * 24 * 60 * 60 * 1000,
-    });
+    // Determine if this is a renewal (same tier, active subscription) vs upgrade/downgrade
+    const existingTier = existingSubscription?.value?.tier;
+    const isRenewal =
+      existingTier === tier &&
+      existingSubscription?.value?.status === "active" &&
+      billingReason === "subscription_cycle";
+
+    if (isRenewal) {
+      // Monthly renewal: Reset credits to tier amount and reset usage to 0
+      await callConvexMutation("subscriptions/updateUserCredits", {
+        userId,
+        totalCredits: credits,
+        resetUsage: true, // Reset usedCredits to 0 and give full plan credits
+        periodStart: currentPeriodStart
+          ? currentPeriodStart * 1000
+          : Date.now(),
+        periodEnd: currentPeriodEnd
+          ? currentPeriodEnd * 1000
+          : Date.now() + 30 * 24 * 60 * 60 * 1000,
+      });
+      console.log(
+        `✅ Monthly renewal: Reset credits to ${credits} for tier ${tier}`,
+      );
+    } else {
+      // Upgrade/Downgrade/New subscription: Get current credits and adjust accordingly
+      let currentCredits = null;
+      try {
+        currentCredits = await callConvexQuery(
+          "subscriptions/getUserCreditsBackend",
+          {
+            userId,
+          },
+        );
+      } catch (error) {
+        console.log("No existing credits found, treating as new user");
+      }
+
+      const currentTotal = currentCredits?.value?.totalCredits || 500;
+      const currentUsed = currentCredits?.value?.usedCredits || 0;
+
+      if (credits > currentTotal) {
+        // Upgrade: Add the difference in credits (don't reset usage)
+        const creditsToAdd = credits - currentTotal;
+        await callConvexMutation("subscriptions/addUserCredits", {
+          userId,
+          creditsToAdd,
+        });
+        console.log(
+          `✅ Upgrade: Added ${creditsToAdd} credits (${currentTotal} → ${credits}) for tier ${tier}`,
+        );
+      } else if (credits < currentTotal) {
+        // Downgrade: Set to new tier amount, reset usage if it exceeds new limit
+        await callConvexMutation("subscriptions/updateUserCredits", {
+          userId,
+          totalCredits: credits,
+          resetUsage: currentUsed > credits, // Only reset if usage exceeds new limit
+          periodStart: currentPeriodStart
+            ? currentPeriodStart * 1000
+            : Date.now(),
+          periodEnd: currentPeriodEnd
+            ? currentPeriodEnd * 1000
+            : Date.now() + 30 * 24 * 60 * 60 * 1000,
+        });
+        console.log(`✅ Downgrade: Set credits to ${credits} for tier ${tier}`);
+      } else {
+        // Same tier (shouldn't happen, but handle gracefully)
+        console.log(`ℹ️ Same tier ${tier}, no credit change needed`);
+      }
+    }
   } catch (error) {
     console.error("❌ Error in handleSubscriptionChange:", error);
     throw error; // Re-throw to be caught by main handler
@@ -290,7 +395,11 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice, stripe: Stripe) {
       });
 
       // Process the subscription renewal (this will reset credits)
-      await handleSubscriptionChange(subscription, stripe);
+      await handleSubscriptionChange(
+        subscription,
+        stripe,
+        invoice.billing_reason,
+      );
       console.log("✅ Subscription renewal processed successfully");
     } catch (error) {
       console.error("❌ Error processing subscription renewal:", error);
@@ -400,7 +509,6 @@ async function handleCheckoutCompleted(
     // Determine credits to add based on price ID
     const creditsToAdd = getCreditsForPriceId(priceId);
     if (creditsToAdd > 0) {
-
       // Add credits to user's balance (don't replace, add to existing)
       await callConvexMutation("subscriptions/addUserCredits", {
         userId,

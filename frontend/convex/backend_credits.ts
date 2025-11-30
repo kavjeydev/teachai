@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 // Backend-safe function to check developer credits (no auth required)
+// Now uses unified credit system - returns 500 default if not found (same as frontend)
 export const checkDeveloperCredits = query({
   args: { developerId: v.string() },
   handler: async (ctx, args) => {
@@ -11,11 +12,17 @@ export const checkDeveloperCredits = query({
       .first();
 
     if (!credits) {
+      // Return default free tier values (SAME as frontend)
+      const now = Date.now();
+      const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+
       return {
         found: false,
-        remainingCredits: 0,
-        totalCredits: 0,
+        remainingCredits: 500,
+        totalCredits: 500,
         usedCredits: 0,
+        periodStart: now,
+        periodEnd: periodEnd,
       };
     }
 
@@ -24,14 +31,17 @@ export const checkDeveloperCredits = query({
       remainingCredits: credits.totalCredits - credits.usedCredits,
       totalCredits: credits.totalCredits,
       usedCredits: credits.usedCredits,
+      periodStart: credits.periodStart,
+      periodEnd: credits.periodEnd,
     };
   },
 });
 
-// Backend-safe function to consume developer credits (no auth required)
-export const consumeDeveloperCredits = mutation({
+// Backend-safe function to consume user credits (no auth required)
+// This matches the frontend consumeCredits mutation exactly - same credit system for all usage
+export const consumeUserCreditsBackend = mutation({
   args: {
-    developerId: v.string(),
+    userId: v.string(),
     credits: v.number(),
     model: v.string(),
     tokensUsed: v.number(),
@@ -42,17 +52,147 @@ export const consumeDeveloperCredits = mutation({
     // Get current credit balance
     const userCredits = await ctx.db
       .query("user_credits")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!userCredits) {
+      // Auto-initialize credits for users who don't have them yet (SAME as frontend)
+      const now = Date.now();
+      const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+
+      const creditId = await ctx.db.insert("user_credits", {
+        userId: args.userId,
+        totalCredits: 500, // Free tier: 500 credits (SAME as frontend)
+        usedCredits: args.credits,
+        periodStart: now,
+        periodEnd: periodEnd,
+        lastResetAt: now,
+        updatedAt: now,
+      });
+
+      // Log the transaction
+      await ctx.db.insert("credit_transactions", {
+        userId: args.userId,
+        type: "usage",
+        amount: -args.credits,
+        description: args.description,
+        model: args.model,
+        tokensUsed: args.tokensUsed,
+        relatedChatId: args.chatId,
+        timestamp: now,
+      });
+
+      return {
+        success: true,
+        creditsUsed: args.credits,
+        remainingCredits: 500 - args.credits,
+        wasInitialized: true,
+      };
+    }
+
+    // Check if user has enough credits
+    const remainingCredits = userCredits.totalCredits - userCredits.usedCredits;
+    if (remainingCredits < args.credits) {
+      return {
+        success: false,
+        error: "Insufficient credits",
+        creditsUsed: 0,
+        remainingCredits: remainingCredits,
+        required: args.credits,
+      };
+    }
+
+    // Update credit usage
+    await ctx.db.patch(userCredits._id, {
+      usedCredits: userCredits.usedCredits + args.credits,
+      updatedAt: Date.now(),
+    });
+
+    // Log the transaction
+    await ctx.db.insert("credit_transactions", {
+      userId: args.userId,
+      type: "usage",
+      amount: -args.credits,
+      description: args.description,
+      model: args.model,
+      tokensUsed: args.tokensUsed,
+      relatedChatId: args.chatId,
+      timestamp: Date.now(),
+    });
+
+    return {
+      success: true,
+      creditsUsed: args.credits,
+      remainingCredits: remainingCredits - args.credits,
+      wasInitialized: false,
+    };
+  },
+});
+
+// Backend-safe function to check user credits (no auth required)
+// This matches the frontend getUserCredits query exactly
+export const checkUserCreditsBackend = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const credits = await ctx.db
+      .query("user_credits")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!credits) {
+      // Return default free tier values (SAME as frontend)
+      const now = Date.now();
+      const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+
+      return {
+        found: false,
+        remainingCredits: 500,
+        totalCredits: 500,
+        usedCredits: 0,
+        periodStart: now,
+        periodEnd: periodEnd,
+      };
+    }
+
+    return {
+      found: true,
+      remainingCredits: credits.totalCredits - credits.usedCredits,
+      totalCredits: credits.totalCredits,
+      usedCredits: credits.usedCredits,
+      periodStart: credits.periodStart,
+      periodEnd: credits.periodEnd,
+    };
+  },
+});
+
+// DEPRECATED: Backend-safe function to consume developer credits (no auth required)
+// Kept for backward compatibility but now uses the unified credit system (500 credits, not 100k)
+// This ensures all credit consumption uses the same system
+export const consumeDeveloperCredits = mutation({
+  args: {
+    developerId: v.string(),
+    credits: v.number(),
+    model: v.string(),
+    tokensUsed: v.number(),
+    description: v.string(),
+    chatId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Use the unified credit system - same as frontend (500 credits, not 100k)
+    // This ensures API and frontend charge the same account
+    const userCredits = await ctx.db
+      .query("user_credits")
       .withIndex("by_user", (q) => q.eq("userId", args.developerId))
       .first();
 
     if (!userCredits) {
-      // Initialize developer with credits if they don't exist
+      // Auto-initialize credits (SAME as frontend - 500 credits)
       const now = Date.now();
       const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
 
       const creditId = await ctx.db.insert("user_credits", {
         userId: args.developerId,
-        totalCredits: 100000, // Give developers plenty of credits
+        totalCredits: 500, // Free tier: 500 credits (SAME as frontend)
         usedCredits: args.credits,
         periodStart: now,
         periodEnd: periodEnd,
@@ -75,12 +215,12 @@ export const consumeDeveloperCredits = mutation({
       return {
         success: true,
         creditsUsed: args.credits,
-        remainingCredits: 100000 - args.credits,
+        remainingCredits: 500 - args.credits,
         wasInitialized: true,
       };
     }
 
-    // Check if developer has enough credits
+    // Check if user has enough credits
     const remainingCredits = userCredits.totalCredits - userCredits.usedCredits;
     if (remainingCredits < args.credits) {
       return {
