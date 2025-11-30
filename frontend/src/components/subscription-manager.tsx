@@ -276,7 +276,7 @@ export function SubscriptionManager() {
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <Check className="w-3 h-3 text-green-600" />
-                        <span>{tier.features.fileStorage} storage</span>
+                        <span>{tier.features.monthlyIngestionTokens}</span>
                       </div>
                     </div>
 

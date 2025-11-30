@@ -431,16 +431,7 @@ export default function PricingPage() {
                         <div className="flex items-start gap-3">
                           <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                           <span className="text-white/80">
-                            {typeof tier.features.teamMembers === "number"
-                              ? `${tier.features.teamMembers} team member${tier.features.teamMembers > 1 ? "s" : ""}`
-                              : tier.features.teamMembers}
-                          </span>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-white/80">
-                            {tier.features.fileStorage}
+                            {tier.features.monthlyIngestionTokens}
                           </span>
                         </div>
 
@@ -558,28 +549,14 @@ export default function PricingPage() {
 
                     <tr className="border-b border-white/10">
                       <td className="py-4 px-6 font-medium text-white/80">
-                        Team members
+                        Knowledge Units/month
                       </td>
                       {tiers.map((tier) => (
                         <td
                           key={tier.id}
                           className="py-4 px-4 text-center text-white/60"
                         >
-                          {tier.features.teamMembers}
-                        </td>
-                      ))}
-                    </tr>
-
-                    <tr className="border-b border-white/10">
-                      <td className="py-4 px-6 font-medium text-white/80">
-                        File storage
-                      </td>
-                      {tiers.map((tier) => (
-                        <td
-                          key={tier.id}
-                          className="py-4 px-4 text-center text-white/60"
-                        >
-                          {tier.features.fileStorage}
+                          {tier.features.monthlyIngestionTokens}
                         </td>
                       ))}
                     </tr>
