@@ -230,176 +230,101 @@ function NoChatContent() {
     <>
       {/* Content */}
       <div className="flex-1 flex items-center justify-center overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-4">
-        <div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto text-center p-8">
-          <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center shadow-lg shadow-amber-400/20">
-            <Sparkles className="w-12 h-12 text-white" />
-          </div>
-          <div className="w-full">
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-sans font-normal text-zinc-900 dark:text-white mb-4 w-full">
-              Ready to build something amazing?
-            </h2>
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
-              Upload documents, ask questions, and watch your knowledge graph
-              come to life.
-            </p>
-            <div className="flex flex-col gap-4 items-center">
-              {chatLimits && !chatLimits.canCreateMore ? (
-                <div className="text-center space-y-4">
-                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                    <p className="text-amber-800 dark:text-amber-200 font-medium">
-                      Chat Limit Reached
-                    </p>
-                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                      You've used {chatLimits.currentChatCount} of{" "}
-                      {chatLimits.chatLimit} chat
-                      {chatLimits.chatLimit > 1 ? "s" : ""} on the{" "}
-                      {chatLimits.tierName} plan
-                    </p>
-                  </div>
-                  <div className="flex gap-3">
-                    {(() => {
-                      const nextTier = getNextTier(chatLimits.tierName);
-                      return (
-                        <Button
-                          onClick={() => {
-                            if (nextTier.id === "enterprise") {
-                              window.open(
-                                "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
-                                "_blank",
-                              );
-                            } else {
-                              handleUpgrade(nextTier.priceId!, nextTier.name);
-                            }
-                          }}
-                          disabled={isUpgrading}
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                        >
-                          {isUpgrading ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                              Processing...
-                            </>
-                          ) : nextTier.id === "enterprise" ? (
-                            <>
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Contact Sales
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Upgrade to {nextTier.name}
-                            </>
-                          )}
-                        </Button>
-                      );
-                    })()}
-                    <Button
-                      onClick={() => window.open("/dashboard/manage", "_blank")}
-                      variant="outline"
-                      className="px-6 py-3 rounded-xl font-semibold border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/30"
-                    >
-                      Archive Chats
-                    </Button>
+        <div className="flex flex-col items-center w-full max-w-2xl mx-auto text-center p-8">
+          {/* Visual Illustration */}
+          <div className="mb-8 relative">
+            {/* Two overlapping frames */}
+            <div className="relative w-48 h-48 mx-auto">
+              {/* Back frame */}
+              <div className="absolute inset-0 border-2 border-blue-200 dark:border-blue-800 rounded-lg transform rotate-[-5deg] opacity-60"></div>
+              {/* Front frame */}
+              <div className="absolute inset-0 border-2 border-blue-300 dark:border-blue-700 rounded-lg transform rotate-[2deg] shadow-lg">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                    <MessageSquare className="w-12 h-12 text-white" />
                   </div>
                 </div>
-              ) : (
-                <Button
-                  onClick={onCreate}
-                  disabled={isCreating || !chatLimits}
-                  className="bg-amber-400 hover:bg-amber-400/90 disabled:bg-amber-400/50 disabled:cursor-not-allowed text-white px-8 py-4 text-lg rounded-xl font-semibold shadow-xl hover:shadow-2xl hover:shadow-amber-400/25 transition-all duration-300 flex items-center gap-3"
-                >
-                  {isCreating ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Creating Chat...
-                    </>
-                  ) : !chatLimits ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <PlusCircle className="h-5 w-5" />
-                      Create Your First Chat
-                    </>
-                  )}
-                </Button>
-              )}
-
-              {/* Upgrade CTA - only show if not at limit */}
-              {(!chatLimits || chatLimits.canCreateMore) && (
-                <div className="text-center">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                    Or start with more powerful features
-                  </p>
-                  <div className="flex gap-3">
-                    {(() => {
-                      const nextTier = getNextTier(
-                        chatLimits?.tierName || "free",
-                      );
-                      return (
-                        <Button
-                          onClick={() => {
-                            if (nextTier.id === "enterprise") {
-                              window.open(
-                                "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
-                                "_blank",
-                              );
-                            } else {
-                              handleUpgrade(nextTier.priceId!, nextTier.name);
-                            }
-                          }}
-                          disabled={isUpgrading}
-                          variant="outline"
-                          className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-white transition-all duration-300"
-                        >
-                          {isUpgrading ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
-                              Processing...
-                            </>
-                          ) : nextTier.id === "enterprise" ? (
-                            <>
-                              <Sparkles className="w-4 h-4 mr-2" />
-                              Contact Sales
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-4 h-4 mr-2" />
-                              Start {nextTier.name} - $
-                              {typeof nextTier.price === "number"
-                                ? nextTier.price
-                                : "Custom"}
-                              /mo
-                            </>
-                          )}
-                        </Button>
-                      );
-                    })()}
-                    <Button
-                      onClick={() => window.open("/billing", "_blank")}
-                      variant="ghost"
-                      className="text-zinc-600 hover:text-amber-400"
-                    >
-                      View All Plans
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Feedback CTA */}
-              <div className="mt-8 pt-8 border-t border-zinc-200 dark:border-zinc-800 w-full">
-                <Button
-                  onClick={() => setIsFeedbackOpen(true)}
-                  variant="ghost"
-                  className="text-zinc-600 dark:text-zinc-400 hover:text-amber-400 dark:hover:text-amber-400 transition-colors"
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Share Feedback
-                </Button>
               </div>
+              {/* Dashed lines extending from frames */}
+              <div className="absolute -left-8 top-1/2 w-8 border-t-2 border-dashed border-blue-200 dark:border-blue-800 opacity-50"></div>
+              <div className="absolute -right-8 top-1/2 w-8 border-t-2 border-dashed border-blue-200 dark:border-blue-800 opacity-50"></div>
             </div>
+          </div>
+
+          {/* Text Content */}
+          <div className="mb-8">
+            <h2 className="text-2xl md:text-3xl font-medium text-zinc-900 dark:text-white mb-3">
+              Looks like there are no chats here.
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {chatLimits && !chatLimits.canCreateMore
+                ? `You've used all ${chatLimits.chatLimit} chat${chatLimits.chatLimit > 1 ? "s" : ""} on your ${chatLimits.tierName} plan. Upgrade to create more.`
+                : "Create your first chat to start building something amazing."}
+            </p>
+          </div>
+
+          {/* Button */}
+          <div className="w-full max-w-xs">
+            {chatLimits && !chatLimits.canCreateMore ? (
+              <Button
+                onClick={() => {
+                  const nextTier = getNextTier(chatLimits.tierName);
+                  if (nextTier.id === "enterprise") {
+                    window.open(
+                      "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
+                      "_blank",
+                    );
+                  } else {
+                    handleUpgrade(nextTier.priceId!, nextTier.name);
+                  }
+                }}
+                disabled={isUpgrading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                {isUpgrading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2 inline-block" />
+                    Processing...
+                  </>
+                ) : nextTier.id === "enterprise" ? (
+                  "Contact Sales"
+                ) : (
+                  `Upgrade to ${getNextTier(chatLimits.tierName).name}`
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={onCreate}
+                disabled={isCreating || !chatLimits}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                {isCreating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2 inline-block" />
+                    Creating Chat...
+                  </>
+                ) : !chatLimits ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2 inline-block" />
+                    Loading...
+                  </>
+                ) : (
+                  "Create Chat"
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Feedback CTA - subtle */}
+          <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800 w-full">
+            <Button
+              onClick={() => setIsFeedbackOpen(true)}
+              variant="ghost"
+              className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+            >
+              <MessageSquare className="h-3 w-3 mr-1.5" />
+              Share Feedback
+            </Button>
           </div>
         </div>
       </div>
