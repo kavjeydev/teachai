@@ -320,7 +320,11 @@ export const getCurrentTokenIngestion = query({
       )
       .first();
 
-    const tokensIngested = ingestion?.tokensIngested || 0;
+    // Ensure we always have a valid number, defaulting to 0 for new users
+    const tokensIngested =
+      (typeof ingestion?.tokensIngested === 'number' && !isNaN(ingestion.tokensIngested))
+        ? ingestion.tokensIngested
+        : 0;
     const knowledgeUnitsIngested = tokensToKnowledgeUnits(tokensIngested);
 
     return {
@@ -611,7 +615,11 @@ export const getStorageStats = query({
       )
       .first();
 
-    const currentTokensIngested = currentIngestion?.tokensIngested || 0;
+    // Ensure we always have a valid number, defaulting to 0 for new users
+    const currentTokensIngested =
+      (typeof currentIngestion?.tokensIngested === 'number' && !isNaN(currentIngestion.tokensIngested))
+        ? currentIngestion.tokensIngested
+        : 0;
     const currentKnowledgeUnits = tokensToKnowledgeUnits(currentTokensIngested);
 
     // Debug logging (can be removed in production)
@@ -666,13 +674,23 @@ export const getStorageStats = query({
       totalFileCount += metadata.totalFiles || 0;
     }
 
+    // Ensure all values are valid numbers
+    const validCurrentKnowledgeUnits =
+      (typeof currentKnowledgeUnits === 'number' && !isNaN(currentKnowledgeUnits))
+        ? currentKnowledgeUnits
+        : 0;
+    const validUsagePercentage =
+      (typeof usagePercentage === 'number' && !isNaN(usagePercentage))
+        ? usagePercentage
+        : 0;
+
     return {
-      currentKnowledgeUnits,
+      currentKnowledgeUnits: validCurrentKnowledgeUnits,
       maxKnowledgeUnits,
       currentTokensIngested,
       maxMonthlyTokens,
       fileCount: totalFileCount,
-      usagePercentage,
+      usagePercentage: validUsagePercentage,
       tierName,
       totalChats: userChats.length,
       // Keep legacy fields for backward compatibility (deprecated)

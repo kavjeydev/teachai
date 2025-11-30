@@ -30,23 +30,25 @@ export function StorageUsageIndicator({
   }
 
   const {
-    currentKnowledgeUnits,
-    maxKnowledgeUnits,
-    fileCount,
-    usagePercentage,
-    tierName,
+    currentKnowledgeUnits = 0,
+    maxKnowledgeUnits = 200,
+    fileCount = 0,
+    usagePercentage = 0,
+    tierName = "free",
   } = storageStats;
 
   const isNearLimit = usagePercentage >= 80;
   const isOverLimit = usagePercentage >= 100;
 
-  const formatKnowledgeUnits = (ku: number) => {
-    if (ku >= 1000000) {
-      return `${(ku / 1000000).toFixed(1)}M KU`;
-    } else if (ku >= 1000) {
-      return `${(ku / 1000).toFixed(1)}K KU`;
+  const formatKnowledgeUnits = (ku: number | undefined) => {
+    // Ensure we always have a valid number
+    const validKu = typeof ku === 'number' && !isNaN(ku) ? ku : 0;
+    if (validKu >= 1000000) {
+      return `${(validKu / 1000000).toFixed(1)}M KU`;
+    } else if (validKu >= 1000) {
+      return `${(validKu / 1000).toFixed(1)}K KU`;
     }
-    return `${ku} KU`;
+    return `${validKu} KU`;
   };
 
   const getProgressColor = () => {
