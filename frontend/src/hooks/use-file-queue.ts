@@ -222,7 +222,32 @@ export function useFileQueue({
 
         // Check if already cancelled before starting
         if (abortController.signal.aborted || cancelledFiles.has(fileKey)) {
+          return;
+        }
 
+        // CRITICAL: Only process files that passed validation (have convexFileId)
+        // This prevents processing files that failed size/storage validation
+        if (!queuedFile.convexFileId) {
+          console.warn(`Skipping file ${queuedFile.fileName} - no convexFileId (validation may have failed)`);
+          setActiveQueues((prev) => {
+            const updated = new Map(prev);
+            const queue = updated.get(queueId);
+            if (queue) {
+              const fileIndex = queue.files.findIndex(
+                (f) => f.id === queuedFile.id,
+              );
+              if (fileIndex !== -1) {
+                queue.files[fileIndex] = {
+                  ...queue.files[fileIndex],
+                  status: "cancelled",
+                  error: "File validation failed - file not processed",
+                };
+                queue.failedFiles += 1;
+                updated.set(queueId, { ...queue });
+              }
+            }
+            return updated;
+          });
           return;
         }
 
@@ -588,11 +613,13 @@ export function useFileQueue({
       for (const file of queue.files) {
         const fileKey = `${queue.queueId}-${file.id}`;
 
-        // Only process files that have the File object (QueuedFile type)
+        // Only process files that have the File object (QueuedFile type) AND passed validation (have convexFileId)
         if (
           file.status === "processing" &&
           !cancelledFiles.has(fileKey) &&
-          "file" in file // Type guard to ensure it's a QueuedFile
+          "file" in file && // Type guard to ensure it's a QueuedFile
+          "convexFileId" in file && // Only process files that passed validation
+          file.convexFileId // Ensure convexFileId exists
         ) {
           await processFile(file as QueuedFile, queue.queueId, chatId);
           // Small delay between files to prevent rate limiting
@@ -672,21 +699,41 @@ export function useFileQueue({
 
         setActiveQueues((prev) => new Map(prev.set(queueId, newQueue)));
 
-        const convexFileIds = await addFilesToQueue({
-          queueId,
-          chatId,
-          files: queuedFiles.map((f) => ({
-            fileName: f.fileName,
-            fileSize: f.fileSize,
-            fileType: f.fileType,
-            filePath: f.filePath,
-          })),
-        });
+        let convexFileIds;
+        try {
+          convexFileIds = await addFilesToQueue({
+            queueId,
+            chatId,
+            files: queuedFiles.map((f) => ({
+              fileName: f.fileName,
+              fileSize: f.fileSize,
+              fileType: f.fileType,
+              filePath: f.filePath,
+            })),
+          });
+        } catch (error) {
+          // Validation failed - clean up local state
+          setActiveQueues((prev) => {
+            const updated = new Map(prev);
+            updated.delete(queueId);
+            return updated;
+          });
 
+          const errorMessage = error instanceof Error ? error.message : "File validation failed";
+          toast.error(errorMessage);
+          console.error("File validation failed:", error);
+          return null;
+        }
 
         // Validate the response from Convex
         if (!convexFileIds || !Array.isArray(convexFileIds)) {
           console.error("Invalid Convex file IDs response:", convexFileIds);
+          // Clean up local state
+          setActiveQueues((prev) => {
+            const updated = new Map(prev);
+            updated.delete(queueId);
+            return updated;
+          });
           toast.error(
             "Failed to initialize file processing - invalid server response",
           );
@@ -703,6 +750,12 @@ export function useFileQueue({
               convexFileIds,
             },
           );
+          // Clean up local state
+          setActiveQueues((prev) => {
+            const updated = new Map(prev);
+            updated.delete(queueId);
+            return updated;
+          });
           toast.error(
             `File processing initialization incomplete - expected ${fileArray.length} files, got ${convexFileIds.length} IDs`,
           );
