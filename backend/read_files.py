@@ -4080,6 +4080,37 @@ RESPOND IN MARKDOWN FORMAT"""
                         {"role": "user", "content": f"Question: {question}"}
                     ]
 
+                # Check credits BEFORE making expensive OpenAI call
+                # Get developer ID from chat for proper credit checking
+                developer_id = await get_developer_id_from_chat(chat_id)
+
+                try:
+                    # Estimate tokens for credit validation (rough estimate)
+                    estimated_tokens = len(question) // 4 + max_tokens  # Prompt + max response
+                    required_credits = calculate_credits_used(estimated_tokens, selected_model)
+
+                    # Check if developer has sufficient credits
+                    credit_info = await check_user_credits(developer_id, required_credits)
+                    if not credit_info["has_sufficient"]:
+                        logger.error(f"💳 Insufficient credits: need {required_credits}, have {credit_info['remaining']}")
+                        raise InsufficientCreditsError(required_credits, credit_info["remaining"])
+
+                    logger.info(f"💳 Credit check passed: {credit_info['remaining']} credits available, need ~{required_credits}")
+                except InsufficientCreditsError as e:
+                    # Convert to HTTPException for proper API error response
+                    logger.error(f"💳 Insufficient credits: need {e.required}, have {e.available}")
+                    raise HTTPException(
+                        status_code=402,
+                        detail=f"Insufficient credits. Required: {e.required:.2f}, Available: {e.available:.2f}. Please add credits to continue."
+                    )
+                except Exception as e:
+                    logger.error(f"💳 Error checking credits: {e}")
+                    # For API calls, we should fail if we can't check credits (security)
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Failed to verify credit balance. Please try again."
+                    )
+
                 # Call OpenAI API or Grok API based on unhinged mode
                 if unhinged_mode:
                     # Create a separate OpenAI client for Grok (xAI)
@@ -4117,6 +4148,26 @@ RESPOND IN MARKDOWN FORMAT"""
                     )
 
                 answer = response.choices[0].message.content
+
+                # Consume credits based on actual usage (developer_id already retrieved above)
+                try:
+                    credits_consumed = await consume_credits_for_actual_usage(
+                        user_id=developer_id,
+                        model=selected_model,
+                        question=question,
+                        response=answer,
+                        chat_id=chat_id
+                    )
+                    logger.info(f"💳 Consumed {credits_consumed} credits for {selected_model} based on actual usage (chat: {chat_id}, developer: {developer_id})")
+                except InsufficientCreditsError as e:
+                    # This should be very rare since we checked before the call
+                    # But handle gracefully - return answer but log the issue
+                    logger.error(f"💳 CREDIT ERROR after API call: need {e.required}, have {e.available}")
+                    logger.warning(f"💳 Allowing response despite insufficient credits - this should be monitored")
+                except Exception as e:
+                    logger.error(f"💳 Error consuming credits: {e}")
+                    # Still return the answer even if credit consumption fails
+                    logger.warning(f"💳 Allowing response despite credit consumption error")
 
                 # Format context for response
                 formatted_context = [
@@ -4650,6 +4701,37 @@ RESPOND IN MARKDOWN FORMAT"""
                     {"role": "user", "content": user_content}
                 ]
 
+                # Check credits BEFORE making expensive OpenAI call
+                # Get developer ID from chat for proper credit checking
+                developer_id = await get_developer_id_from_chat(chat_id)
+
+                try:
+                    # Estimate tokens for credit validation (rough estimate)
+                    estimated_tokens = len(question) // 4 + max_tokens  # Prompt + max response
+                    required_credits = calculate_credits_used(estimated_tokens, selected_model)
+
+                    # Check if developer has sufficient credits
+                    credit_info = await check_user_credits(developer_id, required_credits)
+                    if not credit_info["has_sufficient"]:
+                        logger.error(f"💳 Insufficient credits for streaming: need {required_credits}, have {credit_info['remaining']}")
+                        raise InsufficientCreditsError(required_credits, credit_info["remaining"])
+
+                    logger.info(f"💳 Credit check passed for streaming: {credit_info['remaining']} credits available, need ~{required_credits}")
+                except InsufficientCreditsError as e:
+                    # Convert to HTTPException for proper API error response
+                    logger.error(f"💳 Insufficient credits for streaming: need {e.required}, have {e.available}")
+                    raise HTTPException(
+                        status_code=402,
+                        detail=f"Insufficient credits. Required: {e.required:.2f}, Available: {e.available:.2f}. Please add credits to continue."
+                    )
+                except Exception as e:
+                    logger.error(f"💳 Error checking credits for streaming: {e}")
+                    # For API calls, we should fail if we can't check credits (security)
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Failed to verify credit balance. Please try again."
+                    )
+
                 # Stream response from OpenAI or Grok based on unhinged mode
                 if unhinged_mode:
                     # Create a separate OpenAI client for Grok (xAI)
@@ -4698,6 +4780,7 @@ RESPOND IN MARKDOWN FORMAT"""
                 async def generate():
                     try:
                         chunk_count = 0
+                        full_response_content = []  # Collect all content for credit consumption
                         logger.info(f"🚀 Starting to iterate over stream...")
                         logger.info(f"📝 Messages being sent: {len(messages)} messages")
                         logger.info(f"📝 First message preview: {str(messages[0])[:100] if messages else 'No messages'}")
@@ -4739,6 +4822,7 @@ RESPOND IN MARKDOWN FORMAT"""
 
                                     content = chunk.choices[0].delta.content
                                     chunk_count += 1
+                                    full_response_content.append(content)  # Collect for credit calculation
                                     json_data = json.dumps({"type": "content", "data": content})
                                     logger.info(f"📤 Streaming chunk {chunk_count}: {content[:50]}...")
                                     yield f"data: {json_data}\n\n"
@@ -4759,6 +4843,28 @@ RESPOND IN MARKDOWN FORMAT"""
                             # Send an error message if no chunks were received
                             error_json = json.dumps({"type": "error", "data": "No content was generated from the stream. Please check your query and try again."})
                             yield f"data: {error_json}\n\n"
+
+                        # Consume credits based on actual usage after streaming completes
+                        # Note: developer_id is captured from outer scope
+                        try:
+                            full_answer = "".join(full_response_content)
+                            if full_answer:  # Only consume credits if we got content
+                                credits_consumed = await consume_credits_for_actual_usage(
+                                    user_id=developer_id,
+                                    model=selected_model,
+                                    question=question,
+                                    response=full_answer,
+                                    chat_id=chat_id
+                                )
+                                logger.info(f"💳 Consumed {credits_consumed} credits for {selected_model} streaming response (chat: {chat_id}, developer: {developer_id})")
+                        except InsufficientCreditsError as e:
+                            # This should be very rare since we checked before the call
+                            logger.error(f"💳 CREDIT ERROR after streaming: need {e.required}, have {e.available}")
+                            logger.warning(f"💳 Allowing response despite insufficient credits - this should be monitored")
+                        except Exception as e:
+                            logger.error(f"💳 Error consuming credits for streaming: {e}")
+                            logger.warning(f"💳 Allowing response despite credit consumption error")
+
                         yield "data: [DONE]\n\n"
                     except Exception as e:
                         import traceback
