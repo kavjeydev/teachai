@@ -258,7 +258,7 @@ def build_scope_where_clause(scope_filters: Dict[str, Union[str, int, bool]],
 async def get_scope_config(chat_id: str) -> Optional[AppScopeConfig]:
     """Get scope configuration for a chat from Convex"""
     try:
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         async with httpx.AsyncClient() as client:
             # For V1 subchats, extract app_id and get scope config from parent app
             if chat_id.startswith("subchat_app_"):
@@ -369,7 +369,7 @@ async def save_scope_config(chat_id: str, scope_config: AppScopeConfig) -> bool:
         SCOPE_CONFIGS[chat_id] = scope_config
 
         # Also update in Convex
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{convex_url}/api/run/chats/updateChatScopeConfig",
@@ -649,7 +649,7 @@ def derive_v1_user_identity(token_claims: Dict[str, Any], app_id: str) -> Dict[s
 async def get_app_config_from_convex(app_id: str) -> Optional[V1AppConfig]:
     """Get app configuration from Convex system for V1 auth"""
     try:
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         logger.info(f"🔍 Checking Convex for app {app_id} at {convex_url}")
 
         async with httpx.AsyncClient() as client:
@@ -703,7 +703,7 @@ async def get_app_config_from_convex(app_id: str) -> Optional[V1AppConfig]:
 async def get_parent_chat_id_from_app(app_id: str) -> Optional[str]:
     """Get parent chat ID from app ID"""
     try:
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -779,7 +779,7 @@ async def verify_app_secret(api_key: str) -> Dict[str, Any]:
 
     # Verify with Convex apps table
     try:
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
         # Query Convex to verify app secret
         async with httpx.AsyncClient() as client:
@@ -871,7 +871,7 @@ def generate_scoped_token(app_id: str, end_user_id: str, chat_id: str, capabilit
 
 async def get_or_create_user_subchat(app_id: str, end_user_id: str) -> Dict[str, Any]:
     """Get or create a private sub-chat for a user under an app"""
-    convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+    convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
     try:
         # First, check if user already has a subchat for this app
@@ -996,7 +996,7 @@ async def track_subchat_creation(app_id: str, end_user_id: str, chat_id: str):
     try:
         # In production, this would call Convex to update chat metadata
         # For demonstration, we'll call a Convex function to track this
-        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_base_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         convex_url = f"{convex_base_url}/api/run/chat_analytics/trackSubchatCreation"
 
         async with httpx.AsyncClient() as client:
@@ -1021,7 +1021,7 @@ async def track_file_upload(app_id: str, end_user_id: str, filename: str, file_s
     """Track file upload for analytics"""
     try:
         # Call Convex to update metadata
-        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_base_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         convex_url = f"{convex_base_url}/api/run/chat_analytics/trackFileUpload"
 
         args = {
@@ -1054,7 +1054,7 @@ async def track_file_deletion(app_id: str, end_user_id: str, filename: str, file
     """Track file deletion for analytics"""
     try:
         # Call Convex to update metadata and decrease storage counts
-        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_base_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         convex_url = f"{convex_base_url}/api/run/chat_analytics/trackFileDeletion"
 
         args = {
@@ -1093,7 +1093,7 @@ async def track_upload_analytics(chat_id: str, filename: str, pdf_text: str, act
             logger.info(f"📏 Estimated file size from text: {format_bytes(file_size)}")
 
         # Check if this is a sub-chat by querying Convex
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         logger.info(f"🌐 Querying Convex at: {convex_url}")
 
         async with httpx.AsyncClient() as client:
@@ -1153,7 +1153,7 @@ async def track_api_query(app_id: str, end_user_id: str, response_time: float, s
     """Track API query for performance analytics"""
     try:
         # Call Convex to update metadata
-        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_base_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         convex_url = f"{convex_base_url}/api/run/chat_analytics/trackApiQuery"
 
         async with httpx.AsyncClient() as client:
@@ -1555,7 +1555,7 @@ def get_convex_url():
     )
 
     # Use environment variable for Convex URL
-    convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+    convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
     if is_local:
         logger.info(f"🔧 Using Convex deployment (local environment detected): {convex_url}")
@@ -1620,7 +1620,7 @@ async def check_user_credits(user_id: str, required_credits: float) -> dict:
         logger.info(f"💳 Checking credits for user {user_id}: need {required_credits}")
 
         # Use backend-safe credit checking function
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -1687,7 +1687,7 @@ async def consume_user_credits(
         logger.info(f"   Model: {model}, Tokens: {tokens_used}, Chat: {chat_id}")
 
         # Use the backend-safe updateUserCredits function to consume credits
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
         async with httpx.AsyncClient() as client:
             # First get current credits by querying user_credits table directly
@@ -1748,7 +1748,7 @@ async def get_developer_id_from_chat(chat_id: str) -> str:
     """
     try:
         logger.info(f"🔍 Looking up developer ID for chat {chat_id}")
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
         async with httpx.AsyncClient() as client:
             # First get the chat data
@@ -1930,7 +1930,7 @@ async def consume_credits_for_actual_usage(
 async def ensure_developer_has_credits(developer_user_id: str, min_credits: int = 1000):
     """Ensure developer has credits, initialize with default amount if needed"""
     try:
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
         async with httpx.AsyncClient() as client:
             # Check current credits
@@ -2405,7 +2405,7 @@ async def v1_user_query(
         if app_config_from_convex:
             try:
                 # Get the app data to find the parent chat ID
-                convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+                convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
                 async with httpx.AsyncClient() as client:
                     app_response = await client.post(
                         f"{convex_url}/api/run/app_management/getAppWithSettings",
@@ -2631,7 +2631,7 @@ async def v1_user_file_upload(
         try:
             parent_chat_id = await get_parent_chat_id_from_app(user_identity["app_id"])
             if parent_chat_id:
-                convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+                convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
                         f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
@@ -2894,7 +2894,7 @@ async def v1_user_bulk_file_upload(
             try:
                 parent_chat_id = await get_parent_chat_id_from_app(user_identity["app_id"])
                 if parent_chat_id:
-                    convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+                    convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
                     async with httpx.AsyncClient() as client:
                         response = await client.post(
                             f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
@@ -3255,7 +3255,7 @@ async def api_answer_question(
         async with httpx.AsyncClient() as client:
             # First get published settings
             published_response = await client.post(
-                f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getPublishedSettings",
+                f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/getPublishedSettings",
                 json={
                     "args": {"chatId": chat_id},
                     "format": "json"
@@ -3265,7 +3265,7 @@ async def api_answer_question(
 
             # Also get chat content for conversation history
             chat_response = await client.post(
-                f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getChatByIdExposed",
+                f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/getChatByIdExposed",
                 json={
                     "args": {"id": chat_id},
                     "format": "json"
@@ -3412,7 +3412,7 @@ async def api_answer_question_stream(
         async with httpx.AsyncClient() as client:
             # First get published settings
             published_response = await client.post(
-                f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getPublishedSettings",
+                f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/getPublishedSettings",
                 json={
                     "args": {"chatId": chat_id},
                     "format": "json"
@@ -3422,7 +3422,7 @@ async def api_answer_question_stream(
 
             # Also get chat content for conversation history
             chat_response = await client.post(
-                f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getChatByIdExposed",
+                f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/getChatByIdExposed",
                 json={
                     "args": {"id": chat_id},
                     "format": "json"
@@ -4111,7 +4111,7 @@ RESPOND IN MARKDOWN FORMAT"""
                 try:
                     async with httpx.AsyncClient() as client:
                         chat_response = await client.post(
-                            f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getChatByIdExposed",
+                            f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/getChatByIdExposed",
                             json={"args": {"id": chat_id}, "format": "json"},
                             headers={"Content-Type": "application/json"}
                         )
@@ -4753,7 +4753,7 @@ RESPOND IN MARKDOWN FORMAT"""
                 try:
                     async with httpx.AsyncClient() as client:
                         chat_response = await client.post(
-                            f"{os.getenv('CONVEX_URL', 'https://colorless-finch-681.convex.cloud')}/api/run/chats/getChatByIdExposed",
+                            f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/getChatByIdExposed",
                             json={"args": {"id": chat_id}, "format": "json"},
                             headers={"Content-Type": "application/json"}
                         )
@@ -5973,7 +5973,7 @@ async def exchange_oauth_code(
 
     try:
         # Create user's private authentication token via Convex
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
         async with httpx.AsyncClient() as client:
             # Create user auth token in Convex
@@ -6044,7 +6044,7 @@ async def user_private_query(
 
     try:
         # Verify user auth token with Convex
-        convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
 
         async with httpx.AsyncClient() as client:
             # Verify token and get user's chat access
@@ -6122,7 +6122,7 @@ async def secure_chat_query(
 
     # Verify user auth token with Convex
     try:
-        convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+        convex_base_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
         convex_url = f"{convex_base_url}/api/run/user_auth_system/verifyUserAuthToken"
 
         async with httpx.AsyncClient() as client:
@@ -6403,7 +6403,7 @@ async def privacy_first_query(
         developer_user_id = claims.app_id
 
         try:
-            convex_base_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+            convex_base_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
             async with httpx.AsyncClient() as client:
                 app_response = await client.post(
                     f"{convex_base_url}/api/run/app_management/getAppWithSettings",
@@ -7399,7 +7399,7 @@ async def _process_file_background(
 
         # Add file to chat's context so it's automatically published
         try:
-            convex_url = os.getenv("CONVEX_URL", "https://colorless-finch-681.convex.cloud")
+            convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
