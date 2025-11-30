@@ -266,32 +266,36 @@ function NoChatContent() {
           {/* Button */}
           <div className="w-full max-w-xs">
             {chatLimits && !chatLimits.canCreateMore ? (
-              <Button
-                onClick={() => {
-                  const nextTier = getNextTier(chatLimits.tierName);
-                  if (nextTier.id === "enterprise") {
-                    window.open(
-                      "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
-                      "_blank",
-                    );
-                  } else {
-                    handleUpgrade(nextTier.priceId!, nextTier.name);
-                  }
-                }}
-                disabled={isUpgrading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-              >
-                {isUpgrading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2 inline-block" />
-                    Processing...
-                  </>
-                ) : nextTier.id === "enterprise" ? (
-                  "Contact Sales"
-                ) : (
-                  `Upgrade to ${getNextTier(chatLimits.tierName).name}`
-                )}
-              </Button>
+              (() => {
+                const nextTier = getNextTier(chatLimits.tierName);
+                return (
+                  <Button
+                    onClick={() => {
+                      if (nextTier.id === "enterprise") {
+                        window.open(
+                          "mailto:kavin11205@gmail.com?subject=Enterprise%20Inquiry",
+                          "_blank",
+                        );
+                      } else {
+                        handleUpgrade(nextTier.priceId!, nextTier.name);
+                      }
+                    }}
+                    disabled={isUpgrading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    {isUpgrading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2 inline-block" />
+                        Processing...
+                      </>
+                    ) : nextTier.id === "enterprise" ? (
+                      "Contact Sales"
+                    ) : (
+                      `Upgrade to ${nextTier.name}`
+                    )}
+                  </Button>
+                );
+              })()
             ) : (
               <Button
                 onClick={onCreate}
