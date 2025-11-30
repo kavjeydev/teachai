@@ -17,7 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export function OrganizationRequired({ children }: { children: React.ReactNode }) {
+export function OrganizationRequired({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const {
     currentOrganizationId,
     organizations,
@@ -66,24 +70,48 @@ export function OrganizationRequired({ children }: { children: React.ReactNode }
   if (!organizations || organizations.length === 0) {
     return (
       <>
-        <div className="h-screen w-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
-          <div className="text-center max-w-md mx-auto p-8">
-            <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center shadow-lg shadow-amber-400/20 mx-auto mb-6">
-              <Building2 className="w-12 h-12 text-white" />
+        {/* Content */}
+        <div className="flex-1 flex items-center justify-center overflow-y-auto relative border rounded-3xl border-zinc-200 dark:border-zinc-800 p-4">
+          <div className="flex flex-col items-center w-full max-w-2xl mx-auto text-center p-8">
+            {/* Visual Illustration */}
+            <div className="mb-8 relative">
+              {/* Two overlapping frames */}
+              <div className="relative w-48 h-48 mx-auto">
+                {/* Back frame */}
+                <div className="absolute inset-0 border-2 border-amber-200 dark:border-amber-800 rounded-lg transform rotate-[-5deg] opacity-60"></div>
+                {/* Front frame */}
+                <div className="absolute inset-0 border-2 border-amber-300 dark:border-amber-700 rounded-lg transform rotate-[2deg] shadow-lg">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-400/30">
+                      <Building2 className="w-12 h-12 text-white" />
+                    </div>
+                  </div>
+                </div>
+                {/* Dashed lines extending from frames */}
+                <div className="absolute -left-8 top-1/2 w-8 border-t-2 border-dashed border-amber-200 dark:border-amber-800 opacity-50"></div>
+                <div className="absolute -right-8 top-1/2 w-8 border-t-2 border-dashed border-amber-200 dark:border-amber-800 opacity-50"></div>
+              </div>
             </div>
-            <h2 className="text-3xl md:text-4xl font-sans font-normal text-zinc-900 dark:text-white mb-4">
-              Create Your First Organization
-            </h2>
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
-              Organizations help you organize your chats. Create an organization
-              to get started.
-            </p>
-            <Button
-              onClick={() => setIsCreateDialogOpen(true)}
-              className="bg-amber-400 hover:bg-amber-400/90 text-white px-8 py-4 text-lg rounded-xl font-semibold shadow-xl hover:shadow-2xl hover:shadow-amber-400/25 transition-all duration-300"
-            >
-              Create Organization
-            </Button>
+
+            {/* Text Content */}
+            <div className="mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tighter text-amber-600 dark:text-amber-400 mb-3">
+                Create Your First Organization
+              </h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Organize your chats and collaborate with your team.
+              </p>
+            </div>
+
+            {/* Button */}
+            <div className="w-full max-w-xs">
+              <Button
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="w-full bg-black dark:bg-white hover:bg-black/90 dark:hover:bg-white/90 text-white dark:text-black px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Create Organization
+              </Button>
+            </div>
           </div>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
