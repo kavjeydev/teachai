@@ -1279,7 +1279,9 @@ request_counts = {}
 RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX = 60  # requests per window
 
-MAX_FILE_SIZE = 5 * 1024 * 1024
+# Increased to 500MB to match highest tier limit (scale/enterprise)
+# Frontend enforces tier-specific limits (50MB free, 200MB pro, 500MB scale/enterprise)
+MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
 PEEK_BYTES = 1024  # Larger peek window for better type detection
 EXTRACT_SEM = asyncio.Semaphore(8)  # Module-level semaphore for backpressure
 
@@ -1480,7 +1482,7 @@ async def extract_text_endpoint(
     if content_length:
         try:
             if int(content_length) > MAX_FILE_SIZE:
-                raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
+                raise HTTPException(status_code=413, detail=f"File too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB).")
         except (ValueError, TypeError):
             pass
 
@@ -1509,7 +1511,7 @@ async def extract_text_endpoint(
             break
         size += len(chunk)
         if size > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
+            raise HTTPException(status_code=413, detail=f"File too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB).")
         hasher.update(chunk)
 
     file_hash = hasher.hexdigest()
@@ -2626,12 +2628,12 @@ async def v1_user_file_upload(
         file_size = len(text_content.encode('utf-8'))
 
         if file_size > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="Text content too large (max 5 MB)")
+            raise HTTPException(status_code=413, detail=f"Text content too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB)")
     else:
         # File upload mode
         file_size = read_files.get_file_size(file)
         if file_size > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
+            raise HTTPException(status_code=413, detail=f"File too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB)")
         if not file.filename:
             raise HTTPException(status_code=400, detail="No file uploaded")
 
@@ -2883,7 +2885,7 @@ async def v1_user_bulk_file_upload(
                 # Calculate size
                 file_size = len(text_content.encode('utf-8'))
                 if file_size > MAX_FILE_SIZE:
-                    file_result["error"] = f"Text content too large (max 5 MB), got {file_size} bytes"
+                    file_result["error"] = f"Text content too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB), got {file_size} bytes"
                     file_result["size_bytes"] = file_size
                     results.append(file_result)
                     continue
@@ -2898,7 +2900,7 @@ async def v1_user_bulk_file_upload(
                 # Validate individual file
                 file_size = read_files.get_file_size(file)
                 if file_size > MAX_FILE_SIZE:
-                    file_result["error"] = f"File too large (max 5 MB), got {file_size} bytes"
+                    file_result["error"] = f"File too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB), got {file_size} bytes"
                     results.append(file_result)
                     continue
 
@@ -7559,8 +7561,8 @@ async def upload_file_with_scopes(
         file_size = file.file.tell()
         file.file.seek(0)  # Reset to beginning
 
-        if file_size > 5 * 1024 * 1024:  # 5 MB limit
-            raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail=f"File too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB)")
 
         # Extract text from file
         file_content = await file.read()

@@ -83,45 +83,119 @@ export const addFilesToQueue = mutation({
       0,
     );
 
-    // For each file, check if it would exceed limits
+    // For each file, check file size limits only (hard cap)
+    // Token/KU limits will be checked AFTER text extraction in processFile
+    // We skip token limit checks here to avoid false rejections based on estimates
     for (const file of args.files) {
-      // Use the updated checkUploadLimits function that reads from chat metadata
-      const limitCheck = await ctx.runQuery(api.fileStorage.checkUploadLimits, {
-        fileSize: file.fileSize,
-        fileName: file.fileName,
-        chatId: args.chatId,
-      });
-
-      if (!limitCheck.canUpload) {
-        // Throw the first error we encounter
-        const firstError =
-          limitCheck.errors.fileSizeError ||
-          limitCheck.errors.tokenIngestionError ||
-          limitCheck.errors.fileCountError ||
-          "Upload not allowed";
-        throw new Error(firstError);
+      // Get user's subscription to determine file size hard cap
+      const chat = await ctx.db.get(args.chatId);
+      if (!chat) {
+        throw new Error("Chat not found.");
       }
+
+      // Determine target user for limit checks (handle subchats)
+      let targetUserId = userId;
+      if (chat.chatType === "app_subchat") {
+        let parentChat = null;
+        if (chat.parentChatId) {
+          parentChat = await ctx.db
+            .query("chats")
+            .filter((q) => q.eq(q.field("chatId"), chat.parentChatId))
+            .first();
+        } else if (chat.parentAppId) {
+          parentChat = await ctx.db
+            .query("chats")
+            .filter((q) => q.eq(q.field("chatId"), chat.parentAppId))
+            .first();
+        }
+        if (parentChat) {
+          targetUserId = parentChat.userId;
+        }
+      }
+
+      // Get subscription to determine file size limits
+      const subscription = await ctx.db
+        .query("subscriptions")
+        .withIndex("by_user", (q) => q.eq("userId", targetUserId))
+        .first();
+
+      // Determine file size hard cap based on tier
+      let maxFileSizeMB = 50; // Free tier default
+      if (subscription && subscription.status === "active") {
+        switch (subscription.tier) {
+          case "pro":
+            maxFileSizeMB = 200;
+            break;
+          case "scale":
+          case "enterprise":
+            maxFileSizeMB = 500;
+            break;
+        }
+      }
+
+      const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
+
+      // Only check file size (hard cap) - skip token limits
+      if (file.fileSize > maxFileSizeBytes) {
+        throw new Error(
+          `File size (${Math.round((file.fileSize / (1024 * 1024)) * 100) / 100}MB) exceeds hard cap of ${maxFileSizeMB}MB for ${subscription?.tier || "free"} tier`,
+        );
+      }
+      // Note: Token ingestion limits will be checked after text extraction with actual tokens
     }
 
-    // Also check if the total batch would exceed limits
+    // Also check if the total batch would exceed file size limits (hard cap only)
+    // Token limits will be checked after extraction for each file individually
     if (args.files.length > 1) {
-      const batchLimitCheck = await ctx.runQuery(
-        api.fileStorage.checkUploadLimits,
-        {
-          fileSize: totalUploadSize,
-          fileName: `Batch of ${args.files.length} files`,
-          chatId: args.chatId,
-        },
-      );
+      // Get chat to determine file size limits (reuse logic from above)
+      const chat = await ctx.db.get(args.chatId);
+      if (chat) {
+        let targetUserId = userId;
+        if (chat.chatType === "app_subchat") {
+          let parentChat = null;
+          if (chat.parentChatId) {
+            parentChat = await ctx.db
+              .query("chats")
+              .filter((q) => q.eq(q.field("chatId"), chat.parentChatId))
+              .first();
+          } else if (chat.parentAppId) {
+            parentChat = await ctx.db
+              .query("chats")
+              .filter((q) => q.eq(q.field("chatId"), chat.parentAppId))
+              .first();
+          }
+          if (parentChat) {
+            targetUserId = parentChat.userId;
+          }
+        }
 
-      if (!batchLimitCheck.canUpload) {
-        const firstError =
-          batchLimitCheck.errors.fileSizeError ||
-          batchLimitCheck.errors.tokenIngestionError ||
-          batchLimitCheck.errors.fileCountError ||
-          "Batch upload would exceed limits";
-        throw new Error(firstError);
+        const subscription = await ctx.db
+          .query("subscriptions")
+          .withIndex("by_user", (q) => q.eq("userId", targetUserId))
+          .first();
+
+        let maxFileSizeMB = 50;
+        if (subscription && subscription.status === "active") {
+          switch (subscription.tier) {
+            case "pro":
+              maxFileSizeMB = 200;
+              break;
+            case "scale":
+            case "enterprise":
+              maxFileSizeMB = 500;
+              break;
+          }
+        }
+
+        const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
+
+        if (totalUploadSize > maxFileSizeBytes) {
+          throw new Error(
+            `Batch upload total size (${Math.round((totalUploadSize / (1024 * 1024)) * 100) / 100}MB) exceeds hard cap of ${maxFileSizeMB}MB for ${subscription?.tier || "free"} tier`,
+          );
+        }
       }
+      // Note: Token ingestion limits will be checked after extraction for each file
     }
 
     // Add files to queue

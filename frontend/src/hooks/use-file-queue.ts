@@ -143,6 +143,9 @@ export function useFileQueue({
   const updateFileProgress = useMutation(api.fileQueue.updateFileProgress);
   const cancelQueue = useMutation(api.fileQueue.cancelQueue);
   const addTokenIngestion = useMutation(api.fileStorage.addTokenIngestion);
+  const checkUploadLimitsWithTokens = useMutation(
+    api.fileStorage.checkUploadLimitsWithTokens,
+  );
 
   // Get chat to retrieve userId for token tracking
   const currentChat = useQuery(
@@ -335,6 +338,71 @@ export function useFileQueue({
         // Formula: tokens = Math.ceil(text.length / 4), KU = Math.ceil(tokens / 500)
         const actualTokens = Math.ceil(extractedTextLength / 4);
         const actualKnowledgeUnits = Math.ceil(actualTokens / 500);
+
+        // NOW check limits based on ACTUAL extracted text tokens (not estimated from file size)
+        // This ensures we only reject files that actually exceed limits
+        if (chatId) {
+          try {
+            const limitCheck = await checkUploadLimitsWithTokens({
+              chatId: chatId,
+              actualTokens: actualTokens,
+              fileName: queuedFile.fileName,
+            });
+
+            if (!limitCheck.canUpload) {
+              // File exceeds limits based on actual extracted text
+              const errorMessage =
+                limitCheck.error ||
+                "Upload would exceed your monthly ingestion limit";
+
+              // Mark file as cancelled with error
+              setActiveQueues((prev) => {
+                const updated = new Map(prev);
+                const queue = updated.get(queueId);
+                if (queue) {
+                  const fileIndex = queue.files.findIndex(
+                    (f) => f.id === queuedFile.id,
+                  );
+                  if (fileIndex !== -1) {
+                    queue.files[fileIndex] = {
+                      ...queue.files[fileIndex],
+                      status: "cancelled",
+                      error: errorMessage,
+                    };
+                    queue.failedFiles += 1;
+                    updated.set(queueId, { ...queue });
+                  }
+                }
+                return updated;
+              });
+
+              // Update Convex database
+              if (queuedFile.convexFileId) {
+                try {
+                  await updateFileProgress({
+                    fileId: queuedFile.convexFileId,
+                    status: "failed",
+                    progress: 0,
+                    error: errorMessage,
+                  });
+                } catch (error) {
+                  console.error("Failed to update file status:", error);
+                }
+              }
+
+              toast.error(
+                `${queuedFile.fileName}: ${errorMessage}. Actual KU: ${actualKnowledgeUnits}`,
+              );
+              return; // Stop processing
+            }
+          } catch (limitError) {
+            // If limit check fails, log but continue processing (backend will also check)
+            console.warn(
+              "Failed to check upload limits (non-fatal):",
+              limitError,
+            );
+          }
+        }
 
         // Check if cancelled before second step
         if (abortController.signal.aborted || cancelledFiles.has(fileKey)) {
@@ -649,6 +717,8 @@ export function useFileQueue({
       cancelledFiles,
       currentChat?.userId,
       addTokenIngestion,
+      checkUploadLimitsWithTokens,
+      updateFileProgress,
     ],
   );
 

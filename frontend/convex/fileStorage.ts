@@ -334,6 +334,107 @@ export const getCurrentTokenIngestion = query({
   },
 });
 
+// Check if user can upload based on actual tokens (called after text extraction)
+export const checkUploadLimitsWithTokens = mutation({
+  args: {
+    chatId: v.id("chats"),
+    actualTokens: v.number(), // Actual tokens from extracted text
+    fileName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Get the chat to determine storage tracking
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found.");
+    }
+
+    // Determine which chat's storage to check for limits
+    let targetChat = chat;
+    let targetUserId = userId;
+    let parentChat = null;
+
+    // If this is a subchat, we need to check against the parent chat's aggregated limits
+    if (chat.chatType === "app_subchat") {
+      if (chat.parentChatId) {
+        parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), chat.parentChatId))
+          .first();
+      } else if (chat.parentAppId) {
+        parentChat = await ctx.db
+          .query("chats")
+          .filter((q) => q.eq(q.field("chatId"), chat.parentAppId))
+          .first();
+      }
+
+      if (parentChat) {
+        targetChat = parentChat;
+        targetUserId = parentChat.userId;
+      }
+    }
+
+    // Get user's subscription to determine tier
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
+      .first();
+
+    // Determine tier limits
+    let maxMonthlyTokens = 100000; // Free: 100k tokens/month = 200 KU
+    let tierName = "free";
+
+    if (subscription && subscription.status === "active") {
+      tierName = subscription.tier;
+      switch (subscription.tier) {
+        case "pro":
+          maxMonthlyTokens = 2000000; // Pro: 2M tokens/month = 4K KU
+          break;
+        case "scale":
+          maxMonthlyTokens = 10000000; // Scale: 10M tokens/month = 20K KU
+          break;
+        case "enterprise":
+          maxMonthlyTokens = 50000000; // Enterprise: 50M tokens/month = 100K KU
+          break;
+      }
+    }
+
+    // Get current month's token ingestion
+    const monthYear = getCurrentMonthYear();
+    const currentIngestion = await ctx.db
+      .query("token_ingestion")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", targetUserId).eq("monthYear", monthYear),
+      )
+      .first();
+
+    const currentTokensIngested = currentIngestion?.tokensIngested || 0;
+    const actualKU = tokensToKnowledgeUnits(args.actualTokens);
+    const currentKU = tokensToKnowledgeUnits(currentTokensIngested);
+    const maxMonthlyKU = tokensToKnowledgeUnits(maxMonthlyTokens);
+
+    // Check if adding these tokens would exceed limit
+    const wouldExceedLimit =
+      currentTokensIngested + args.actualTokens > maxMonthlyTokens;
+
+    return {
+      canUpload: !wouldExceedLimit,
+      error: wouldExceedLimit
+        ? `Upload would exceed monthly ingestion limit of ${formatKnowledgeUnits(maxMonthlyKU)} for ${tierName} tier. Current usage: ${formatKnowledgeUnits(currentKU)}, this file: ${formatKnowledgeUnits(actualKU)}`
+        : null,
+      currentTokensIngested,
+      actualTokens: args.actualTokens,
+      maxMonthlyTokens,
+    };
+  },
+});
+
 // Check if user can upload a file based on their tier limits
 // Now uses token-based ingestion limits instead of storage size
 export const checkUploadLimits = query({
