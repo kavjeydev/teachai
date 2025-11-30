@@ -2110,6 +2110,14 @@ async def get_verified_chat_access(
 
     return credentials
 
+async def get_optional_chat_access(
+    authorization: Optional[str] = Header(None),
+) -> Optional[str]:
+    """Optional authentication dependency that doesn't fail if header is missing"""
+    if authorization and authorization.startswith("Bearer "):
+        return authorization[7:]  # Return the token without "Bearer " prefix
+    return None
+
 # ==============================================================================
 # Existing Helper Functions
 # ==============================================================================
@@ -4110,21 +4118,6 @@ RESPOND IN MARKDOWN FORMAT"""
 
                 answer = response.choices[0].message.content
 
-                # Deduct credits based on actual usage
-                try:
-                    developer_id = await get_developer_id_from_chat(chat_id)
-                    credits_consumed = await consume_credits_for_actual_usage(
-                        user_id=developer_id,
-                        model=selected_model,
-                        question=question,
-                        response=answer,
-                        chat_id=chat_id
-                    )
-                    logger.info(f"💳 Consumed {credits_consumed} credits for API query (developer: {developer_id}, chat: {chat_id})")
-                except Exception as credit_error:
-                    # Log error but don't fail the request - credits deduction failure shouldn't break API calls
-                    logger.error(f"⚠️ Failed to deduct credits for chat {chat_id}: {str(credit_error)}")
-
                 # Format context for response
                 formatted_context = [
                     ChunkScore(
@@ -4705,7 +4698,6 @@ RESPOND IN MARKDOWN FORMAT"""
                 async def generate():
                     try:
                         chunk_count = 0
-                        full_response = ""  # Collect full response for credit deduction
                         logger.info(f"🚀 Starting to iterate over stream...")
                         logger.info(f"📝 Messages being sent: {len(messages)} messages")
                         logger.info(f"📝 First message preview: {str(messages[0])[:100] if messages else 'No messages'}")
@@ -4746,7 +4738,6 @@ RESPOND IN MARKDOWN FORMAT"""
                                     chunk.choices[0].delta.content is not None):
 
                                     content = chunk.choices[0].delta.content
-                                    full_response += content  # Accumulate for credit deduction
                                     chunk_count += 1
                                     json_data = json.dumps({"type": "content", "data": content})
                                     logger.info(f"📤 Streaming chunk {chunk_count}: {content[:50]}...")
@@ -4768,23 +4759,6 @@ RESPOND IN MARKDOWN FORMAT"""
                             # Send an error message if no chunks were received
                             error_json = json.dumps({"type": "error", "data": "No content was generated from the stream. Please check your query and try again."})
                             yield f"data: {error_json}\n\n"
-
-                        # Deduct credits based on actual usage after streaming completes
-                        if full_response:
-                            try:
-                                developer_id = await get_developer_id_from_chat(chat_id)
-                                credits_consumed = await consume_credits_for_actual_usage(
-                                    user_id=developer_id,
-                                    model=selected_model,
-                                    question=question,
-                                    response=full_response,
-                                    chat_id=chat_id
-                                )
-                                logger.info(f"💳 Consumed {credits_consumed} credits for API streaming query (developer: {developer_id}, chat: {chat_id})")
-                            except Exception as credit_error:
-                                # Log error but don't fail the request - credits deduction failure shouldn't break API calls
-                                logger.error(f"⚠️ Failed to deduct credits for streaming chat {chat_id}: {str(credit_error)}")
-
                         yield "data: [DONE]\n\n"
                     except Exception as e:
                         import traceback
@@ -5093,35 +5067,16 @@ async def answer_question_stream(payload: QuestionRequest):
                             stream=True
                         )
 
-                    # Collect full response for credit deduction
-                    full_response = ""
                     for chunk in stream:
                         if chunk.choices[0].delta.content is not None:
-                            content = chunk.choices[0].delta.content
-                            full_response += content
                             content_data = {
                                 "type": "content",
-                                "data": content
+                                "data": chunk.choices[0].delta.content
                             }
-                            print(f"🔥 Streaming chunk: {content}")
+                            print(f"🔥 Streaming chunk: {chunk.choices[0].delta.content}")
                             yield f"data: {json.dumps(content_data)}\n\n"
                             # Small delay to ensure chunks are processed individually
                             await asyncio.sleep(0.01)
-
-                    # Deduct credits based on actual usage after streaming completes
-                    try:
-                        developer_id = await get_developer_id_from_chat(chat_id)
-                        credits_consumed = await consume_credits_for_actual_usage(
-                            user_id=developer_id,
-                            model=selected_model,
-                            question=question,
-                            response=full_response,
-                            chat_id=chat_id
-                        )
-                        logger.info(f"💳 Consumed {credits_consumed} credits for API streaming query (developer: {developer_id}, chat: {chat_id})")
-                    except Exception as credit_error:
-                        # Log error but don't fail the request - credits deduction failure shouldn't break API calls
-                        logger.error(f"⚠️ Failed to deduct credits for streaming chat {chat_id}: {str(credit_error)}")
 
                     # Send end signal
                     end_data = {'type': 'end'}
@@ -7433,7 +7388,7 @@ async def upload_file_with_scopes(
 async def get_file_status(
     chat_id: str,
     file_id: str,
-    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access)
+    api_key: Optional[str] = Depends(get_optional_chat_access)
 ):
     """
     Get the processing status of a file.
@@ -7448,10 +7403,7 @@ async def get_file_status(
         }
     """
     try:
-        # Verify API key and chat access
-        api_key = credentials.credentials
-
-        # Sanitize chat_id and file_id
+        # Sanitize chat_id and file_id first
         sanitized_chat_id = sanitize_chat_id(chat_id)
         if not sanitized_chat_id:
             raise HTTPException(status_code=400, detail="Invalid chat_id format")
@@ -7460,14 +7412,15 @@ async def get_file_status(
         if not sanitized_file_id:
             raise HTTPException(status_code=400, detail="Invalid file_id format")
 
-        # Verify API key and chat access
-        is_valid = await verify_api_key_and_chat(api_key, sanitized_chat_id)
+        # Verify API key and chat access if credentials are provided
+        if api_key:
+            is_valid = await verify_api_key_and_chat(api_key, sanitized_chat_id)
 
-        if not is_valid:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid API key or chat not accessible."
-            )
+            if not is_valid:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Invalid API key or chat not accessible."
+                )
 
         # Check if file exists in Neo4j first (most reliable, works across workers)
         # This is the source of truth - if file is in Neo4j with chunks, it's ready
