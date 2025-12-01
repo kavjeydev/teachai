@@ -14,6 +14,61 @@ const uid = (): string => {
 // Global set to track files currently being processed to prevent duplicates
 const globalProcessingFiles = new Set<string>();
 
+// Helper function to create a fetch request with a longer timeout for file uploads
+// Default timeout is 30 minutes (1800000ms) to handle large file uploads
+const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = 30 * 60 * 1000, // 30 minutes default
+): Promise<Response> => {
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+  try {
+    // If there's already a signal, we need to respect both
+    // Create a merged signal that aborts if either signal aborts
+    let signal = timeoutController.signal;
+
+    if (options.signal) {
+      const mergedController = new AbortController();
+      const originalSignal = options.signal;
+
+      // If original signal aborts, abort merged
+      originalSignal.addEventListener("abort", () => {
+        mergedController.abort();
+      });
+
+      // If timeout aborts, abort merged
+      timeoutController.signal.addEventListener("abort", () => {
+        mergedController.abort();
+      });
+
+      signal = mergedController.signal;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      signal,
+    });
+
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    // If it's a timeout error and wasn't from user cancellation, provide a clearer message
+    if (
+      error instanceof Error &&
+      error.name === "AbortError" &&
+      (!options.signal || !options.signal.aborted)
+    ) {
+      throw new Error(
+        `Request timed out after ${timeoutMs / 1000 / 60} minutes. The file may still be processing on the server.`,
+      );
+    }
+    throw error;
+  }
+};
+
 // Utility function to format relative time
 export const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now();
@@ -308,11 +363,15 @@ export function useFileQueue({
           return updated;
         });
 
-        const extractResponse = await fetch(baseUrl + "extract-pdf-text", {
-          method: "POST",
-          body: formData,
-          signal: abortController.signal,
-        });
+        const extractResponse = await fetchWithTimeout(
+          baseUrl + "extract-pdf-text",
+          {
+            method: "POST",
+            body: formData,
+            signal: abortController.signal,
+          },
+          30 * 60 * 1000, // 30 minutes timeout for large file extraction
+        );
 
         // Check if cancelled after first request
         if (abortController.signal.aborted || cancelledFiles.has(fileKey)) {
@@ -487,7 +546,7 @@ export function useFileQueue({
           filename: queuedFile.fileName,
         };
 
-        const nodesResponse = await fetch(
+        const nodesResponse = await fetchWithTimeout(
           baseUrl + "create_nodes_and_embeddings",
           {
             method: "POST",
@@ -497,6 +556,7 @@ export function useFileQueue({
             body: JSON.stringify(embeddingsPayload),
             signal: abortController.signal,
           },
+          30 * 60 * 1000, // 30 minutes timeout for large file processing
         );
 
         // Check if cancelled after second request
@@ -641,10 +701,38 @@ export function useFileQueue({
       } catch (error) {
         // Handle AbortError (cancellation) silently
         if (error instanceof Error && error.name === "AbortError") {
+          // Check if this was a user cancellation or a timeout
+          if (abortController.signal.aborted && !cancelledFiles.has(fileKey)) {
+            // This was likely a timeout - the file may still be processing
+            console.warn(
+              `Request timeout for ${queuedFile.fileName}. The file may still be processing on the server.`,
+            );
+            // Don't mark as failed immediately - the file might complete on the backend
+            // Instead, show a warning toast
+            toast.warning(
+              `Upload timeout for ${queuedFile.fileName}. The file may still be processing - please check back in a few minutes.`,
+              { duration: 10000 },
+            );
+            return;
+          }
           return;
         }
 
         console.error("Error processing file:", error);
+
+        // Check if this is a timeout error
+        const isTimeoutError =
+          error instanceof Error &&
+          (error.message.includes("timed out") ||
+            error.message.includes("timeout") ||
+            error.message.includes("network") ||
+            error.name === "NetworkError");
+
+        const errorMessage = isTimeoutError
+          ? `Upload timed out. The file may still be processing on the server - please check back in a few minutes.`
+          : error instanceof Error
+            ? error.message
+            : "Processing failed";
 
         // Update Convex database to persist the failure
         if (queuedFile.convexFileId) {
@@ -653,8 +741,7 @@ export function useFileQueue({
               fileId: queuedFile.convexFileId,
               status: "failed", // Use 'failed' to match database schema
               progress: 0,
-              error:
-                error instanceof Error ? error.message : "Processing failed",
+              error: errorMessage,
             });
           } catch (convexError) {
             console.error(
@@ -675,8 +762,7 @@ export function useFileQueue({
               queue.files[fileIndex] = {
                 ...queue.files[fileIndex],
                 status: "cancelled",
-                error:
-                  error instanceof Error ? error.message : "Processing failed",
+                error: errorMessage,
               };
               queue.failedFiles += 1;
 
@@ -695,9 +781,16 @@ export function useFileQueue({
           return updated;
         });
 
-        toast.error(
-          `Failed to process ${queuedFile.fileName}: ${error instanceof Error ? error.message : "Unknown error"}`,
-        );
+        // Show appropriate toast based on error type
+        if (isTimeoutError) {
+          toast.warning(`${queuedFile.fileName}: ${errorMessage}`, {
+            duration: 10000,
+          });
+        } else {
+          toast.error(
+            `Failed to process ${queuedFile.fileName}: ${errorMessage}`,
+          );
+        }
       } finally {
         // Cleanup: Remove abort controller and global processing lock
         setAbortControllers((prev) => {
