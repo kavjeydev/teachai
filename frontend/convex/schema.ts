@@ -508,4 +508,17 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_created", ["createdAt"]),
+
+  // Shadow account email mappings
+  shadow_accounts: defineTable({
+    shadowUserId: v.string(), // The shadow account userId
+    email: v.string(), // Email address associated with the shadow account
+    createdAt: v.number(), // When shadow account was created
+    migrated: v.optional(v.boolean()), // Whether this shadow account has been migrated
+    migratedAt: v.optional(v.number()), // When it was migrated
+    migratedToUserId: v.optional(v.string()), // The authenticated userId it was migrated to
+  })
+    .index("by_email", ["email"])
+    .index("by_shadow_user", ["shadowUserId"])
+    .index("by_migrated", ["migrated"]),
 });

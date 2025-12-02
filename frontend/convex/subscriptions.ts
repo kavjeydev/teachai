@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // Get user's current subscription
 export const getUserSubscription = query({
@@ -494,8 +495,11 @@ export const logBillingEvent = mutation({
 
 // Initialize user credits (called when user first uses the app)
 export const initializeUserCredits = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    shadowUserId: v.optional(v.string()), // Optional shadow account userId to migrate
+    email: v.optional(v.string()), // Optional email to check for shadow account
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
@@ -508,8 +512,106 @@ export const initializeUserCredits = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
+    // Try to get email from identity if not provided
+    // Clerk JWT may include email in claims
+    let emailToCheck = args.email;
+    if (!emailToCheck && (identity as any).email) {
+      emailToCheck = (identity as any).email;
+    }
+    // Also try emailAddresses array if available
+    if (
+      !emailToCheck &&
+      (identity as any).emailAddresses &&
+      Array.isArray((identity as any).emailAddresses) &&
+      (identity as any).emailAddresses.length > 0
+    ) {
+      emailToCheck = (identity as any).emailAddresses[0].emailAddress;
+    }
+
+    // Try to migrate shadow account by email first (if we have an email and no existing credits)
+    if (emailToCheck && !existing) {
+      try {
+        // Find shadow account by email
+        const shadowAccount = await ctx.db
+          .query("shadow_accounts")
+          .withIndex("by_email", (q) =>
+            q.eq("email", emailToCheck!.toLowerCase()),
+          )
+          .filter((q) => q.eq(q.field("migrated"), false))
+          .first();
+
+        if (shadowAccount) {
+          // Call migration function
+          const migrationResult = await (ctx as any).runMutation(
+            "shadow_accounts/migrateShadowAccountToUser",
+            {
+              shadowUserId: shadowAccount.shadowUserId,
+            },
+          );
+
+          if (migrationResult?.success) {
+            // Re-fetch credits after migration
+            const migratedCredits = await ctx.db
+              .query("user_credits")
+              .withIndex("by_user", (q) => q.eq("userId", userId))
+              .first();
+            if (migratedCredits) {
+              return migratedCredits;
+            }
+          }
+        }
+      } catch (error) {
+        // Migration failed, continue with normal initialization
+        console.error("Failed to migrate shadow account by email:", error);
+      }
+    }
+
     if (existing) {
+      // If shadowUserId is provided, try to migrate shadow account
+      if (args.shadowUserId) {
+        try {
+          await (ctx as any).runMutation(
+            "shadow_accounts/migrateShadowAccountToUser",
+            {
+              shadowUserId: args.shadowUserId,
+            },
+          );
+          // Re-fetch credits after migration
+          const updatedCredits = await ctx.db
+            .query("user_credits")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .first();
+          return updatedCredits || existing;
+        } catch (error) {
+          // Migration failed, return existing credits
+          console.error("Failed to migrate shadow account:", error);
+          return existing;
+        }
+      }
       return existing; // Already initialized
+    }
+
+    // If shadowUserId is provided, try to migrate shadow account first
+    if (args.shadowUserId) {
+      try {
+        await (ctx as any).runMutation(
+          "shadow_accounts/migrateShadowAccountToUser",
+          {
+            shadowUserId: args.shadowUserId,
+          },
+        );
+        // Re-fetch credits after migration
+        const migratedCredits = await ctx.db
+          .query("user_credits")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .first();
+        if (migratedCredits) {
+          return migratedCredits;
+        }
+      } catch (error) {
+        // Migration failed, continue with normal initialization
+        console.error("Failed to migrate shadow account:", error);
+      }
     }
 
     // Initialize free tier credits
