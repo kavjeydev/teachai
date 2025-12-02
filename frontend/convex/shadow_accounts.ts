@@ -689,3 +689,169 @@ export const checkAndMigrateShadowAccount = mutation({
   },
 });
 
+/**
+ * Add template purchase to existing user account
+ * This is used when a user who already has a Trainly account buys a template
+ * Instead of creating a shadow account, we add the template to their existing account
+ */
+export const addTemplatePurchaseToUser = mutation({
+  args: {
+    userId: v.string(), // The existing user's Clerk userId
+    credits: v.number(), // Number of credits to add (500 or 10000)
+  },
+  handler: async (ctx, args) => {
+    const userId = args.userId;
+    const creditsToAdd = args.credits;
+    const now = Date.now();
+
+    // 1. Add credits to existing user's credit pool
+    const existingCredits = await ctx.db
+      .query("user_credits")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existingCredits) {
+      // Add credits to existing pool
+      await ctx.db.patch(existingCredits._id, {
+        totalCredits: existingCredits.totalCredits + creditsToAdd,
+        updatedAt: now,
+      });
+    } else {
+      // User doesn't have credits yet, create new record
+      const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+      await ctx.db.insert("user_credits", {
+        userId: userId,
+        totalCredits: creditsToAdd,
+        usedCredits: 0,
+        periodStart: now,
+        periodEnd: periodEnd,
+        lastResetAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // 2. Create organization "Default" for the template
+    const timestamp = Date.now().toString(36);
+    const randomPart = Math.random().toString(36).substr(2, 8);
+    const uniqueOrgId = `org_${timestamp}_${randomPart}`;
+
+    const organizationId = await ctx.db.insert("organizations", {
+      organizationId: uniqueOrgId,
+      name: "Default",
+      userId: userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // 3. Create chat "Default App" under that org
+    const chatTimestamp = Date.now().toString(36);
+    const chatRandomPart = Math.random().toString(36).substr(2, 8);
+    const uniqueChatId = `chat_${chatTimestamp}_${chatRandomPart}`;
+
+    // Generate API key for the chat
+    const apiKey = generateApiKey();
+
+    const chatId = await ctx.db.insert("chats", {
+      chatId: uniqueChatId,
+      title: "Default App",
+      userId: userId,
+      organizationId: organizationId,
+      isArchived: false,
+      content: [],
+      apiInfo: {
+        visibility: "protected",
+      },
+      apiKey: apiKey,
+      apiKeyDisabled: false,
+      hasApiAccess: true,
+      visibility: "private",
+      // Initialize metadata
+      metadata: {
+        totalSubchats: 0,
+        activeUsers: 0,
+        totalUsers: 0,
+        totalFiles: 0,
+        totalStorageBytes: 0,
+        totalQueries: 0,
+        queriesLast7Days: 0,
+        lastActivityAt: now,
+        userActivitySummary: [],
+        fileTypeStats: {
+          pdf: 0,
+          docx: 0,
+          txt: 0,
+          images: 0,
+          other: 0,
+        },
+        privacyMode: "privacy_first",
+        lastMetadataUpdate: now,
+        complianceFlags: {
+          gdprCompliant: true,
+          ccpaCompliant: true,
+          auditLogEnabled: true,
+        },
+      },
+    });
+
+    // 4. Create app for that chat with API key
+    const appId = generateAppId();
+    const appSecret = generateAppSecret();
+    const jwtSecret = generateJwtSecret();
+
+    const defaultSettings = {
+      allowDirectUploads: true,
+      maxUsersPerApp: 10000,
+      allowedCapabilities: ["ask", "upload"],
+    };
+
+    // Ensure chat has published settings
+    await ctx.db.patch(chatId, {
+      publishedSettings: {
+        selectedModel: "gpt-4o-mini",
+        customPrompt: undefined,
+        temperature: 0.7,
+        maxTokens: 1000,
+        conversationHistoryLimit: 10,
+        context: [],
+        publishedAt: now,
+        publishedBy: userId,
+      },
+      hasUnpublishedChanges: false,
+    });
+
+    const app = await ctx.db.insert("apps", {
+      appId,
+      name: "Default App",
+      description: "Default app created for template purchase",
+      developerId: userId,
+      appSecret,
+      jwtSecret,
+      parentChatId: chatId,
+      isActive: true,
+      isApiDisabled: false,
+      createdAt: now,
+      status: "live",
+      publishedAt: now,
+      publishedBy: userId,
+      settings: defaultSettings,
+      publishedSettings: defaultSettings,
+    });
+
+    // Return all required information
+    return {
+      userId,
+      organizationId: uniqueOrgId, // String organizationId
+      organizationConvexId: organizationId, // Convex document ID
+      organizationName: "Default",
+      chatId: uniqueChatId, // String chatId
+      chatConvexId: chatId, // Convex document ID
+      chatTitle: "Default App",
+      appId,
+      appSecret, // App secret (API key for the app)
+      jwtSecret,
+      apiKey, // API key for the chat
+      credits: creditsToAdd,
+    };
+  },
+});
+

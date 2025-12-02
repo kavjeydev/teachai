@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyBackendApiKey } from "@/lib/api-auth";
+import { clerkClient } from "@clerk/nextjs/server";
 
 // Use direct HTTP calls to Convex for server-side operations
 const CONVEX_SITE_URL = process.env.NEXT_PUBLIC_CONVEX_URL!;
@@ -73,11 +74,71 @@ export async function POST(req: NextRequest) {
     const userId = body.userId; // Optional
     const email = body.email; // Optional
 
-    // Call Convex mutation to create shadow account with 10k credits
-    const result = await callConvexMutation("shadow_accounts/createShadowAccount10k", {
-      userId: userId,
-      email: email,
-    });
+    let result;
+
+    // If email is provided, check if user already exists in Clerk
+    if (email) {
+      try {
+        const clerk = await clerkClient();
+        // Search for user by email address
+        // Clerk's getUserList supports query parameter for searching
+        let matchingUser = null;
+        let hasMore = true;
+        let offset = 0;
+        const limit = 100;
+
+        // Search through users with pagination until we find a match or exhaust all users
+        while (hasMore && !matchingUser) {
+          const users = await clerk.users.getUserList({
+            limit,
+            offset,
+          });
+
+          // Find user with matching email
+          matchingUser = users.data.find((user) =>
+            user.emailAddresses.some(
+              (addr) => addr.emailAddress.toLowerCase() === email.toLowerCase()
+            )
+          );
+
+          hasMore = users.data.length === limit;
+          offset += limit;
+
+          // Safety limit: don't search more than 1000 users
+          if (offset >= 1000) {
+            break;
+          }
+        }
+
+        if (matchingUser) {
+          // User exists - add template purchase to their existing account
+          const existingUserId = matchingUser.id;
+          result = await callConvexMutation("shadow_accounts/addTemplatePurchaseToUser", {
+            userId: existingUserId,
+            credits: 10000,
+          });
+        } else {
+          // User doesn't exist - create shadow account
+          result = await callConvexMutation("shadow_accounts/createShadowAccount10k", {
+            userId: userId,
+            email: email,
+          });
+        }
+      } catch (clerkError) {
+        console.error("❌ Clerk API error:", clerkError);
+        // If Clerk check fails, fall back to creating shadow account
+        result = await callConvexMutation("shadow_accounts/createShadowAccount10k", {
+          userId: userId,
+          email: email,
+        });
+      }
+    } else {
+      // No email provided - create shadow account
+      result = await callConvexMutation("shadow_accounts/createShadowAccount10k", {
+        userId: userId,
+        email: email,
+      });
+    }
 
     // Return the result with all required information
     return NextResponse.json({
