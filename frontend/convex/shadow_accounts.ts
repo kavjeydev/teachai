@@ -35,6 +35,82 @@ function generateUserId(): string {
   return `shadow_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 12)}`;
 }
 
+// Add credits to existing shadow account
+export const addCreditsToShadowAccount = mutation({
+  args: {
+    shadowUserId: v.string(), // The shadow account userId
+    credits: v.number(), // Number of credits to add
+  },
+  handler: async (ctx, args) => {
+    const shadowUserId = args.shadowUserId;
+    const creditsToAdd = args.credits;
+    const now = Date.now();
+
+    // Get existing credits for shadow account
+    const existingCredits = await ctx.db
+      .query("user_credits")
+      .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+      .first();
+
+    if (existingCredits) {
+      // Add credits to existing pool
+      await ctx.db.patch(existingCredits._id, {
+        totalCredits: existingCredits.totalCredits + creditsToAdd,
+        updatedAt: now,
+      });
+    } else {
+      // Create credits record if it doesn't exist
+      const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+      await ctx.db.insert("user_credits", {
+        userId: shadowUserId,
+        totalCredits: creditsToAdd,
+        usedCredits: 0,
+        periodStart: now,
+        periodEnd: periodEnd,
+        lastResetAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // Get the first organization and chat for this shadow account to return
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+      .first();
+
+    const chat = org
+      ? await ctx.db
+          .query("chats")
+          .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+          .filter((q) => q.eq(q.field("organizationId"), org._id))
+          .first()
+      : null;
+
+    const app = chat
+      ? await ctx.db
+          .query("apps")
+          .withIndex("by_developer", (q) => q.eq("developerId", shadowUserId))
+          .filter((q) => q.eq(q.field("parentChatId"), chat._id))
+          .first()
+      : null;
+
+    return {
+      userId: shadowUserId,
+      organizationId: org?.organizationId || "",
+      organizationConvexId: org?._id || "",
+      organizationName: org?.name || "Default",
+      chatId: chat?.chatId || "",
+      chatConvexId: chat?._id || "",
+      chatTitle: chat?.title || "Default App",
+      appId: app?.appId || "",
+      appSecret: app?.appSecret || "",
+      jwtSecret: app?.jwtSecret || "",
+      apiKey: chat?.apiKey || "",
+      credits: creditsToAdd,
+    };
+  },
+});
+
 // Create a shadow account
 export const createShadowAccount = mutation({
   args: {
@@ -54,7 +130,73 @@ export const createShadowAccount = mutation({
         .first();
 
       if (existingShadowAccount) {
-        throw new Error("Shadow account already exists for this email address");
+        // Shadow account exists - just add credits instead of creating new one
+        const shadowUserId = existingShadowAccount.shadowUserId;
+        const creditsToAdd = 500;
+        const now = Date.now();
+
+        // Get existing credits for shadow account
+        const existingCredits = await ctx.db
+          .query("user_credits")
+          .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+          .first();
+
+        if (existingCredits) {
+          // Add credits to existing pool
+          await ctx.db.patch(existingCredits._id, {
+            totalCredits: existingCredits.totalCredits + creditsToAdd,
+            updatedAt: now,
+          });
+        } else {
+          // Create credits record if it doesn't exist
+          const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+          await ctx.db.insert("user_credits", {
+            userId: shadowUserId,
+            totalCredits: creditsToAdd,
+            usedCredits: 0,
+            periodStart: now,
+            periodEnd: periodEnd,
+            lastResetAt: now,
+            updatedAt: now,
+          });
+        }
+
+        // Get the first organization and chat for this shadow account to return
+        const org = await ctx.db
+          .query("organizations")
+          .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+          .first();
+
+        const chat = org
+          ? await ctx.db
+              .query("chats")
+              .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+              .filter((q) => q.eq(q.field("organizationId"), org._id))
+              .first()
+          : null;
+
+        const app = chat
+          ? await ctx.db
+              .query("apps")
+              .withIndex("by_developer", (q) => q.eq("developerId", shadowUserId))
+              .filter((q) => q.eq(q.field("parentChatId"), chat._id))
+              .first()
+          : null;
+
+        return {
+          userId: shadowUserId,
+          organizationId: org?.organizationId || "",
+          organizationConvexId: org?._id || "",
+          organizationName: org?.name || "Default",
+          chatId: chat?.chatId || "",
+          chatConvexId: chat?._id || "",
+          chatTitle: chat?.title || "Default App",
+          appId: app?.appId || "",
+          appSecret: app?.appSecret || "",
+          jwtSecret: app?.jwtSecret || "",
+          apiKey: chat?.apiKey || "",
+          credits: creditsToAdd,
+        };
       }
     }
 
@@ -226,7 +368,73 @@ export const createShadowAccount10k = mutation({
         .first();
 
       if (existingShadowAccount) {
-        throw new Error("Shadow account already exists for this email address");
+        // Shadow account exists - just add credits instead of creating new one
+        const shadowUserId = existingShadowAccount.shadowUserId;
+        const creditsToAdd = 10000;
+        const now = Date.now();
+
+        // Get existing credits for shadow account
+        const existingCredits = await ctx.db
+          .query("user_credits")
+          .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+          .first();
+
+        if (existingCredits) {
+          // Add credits to existing pool
+          await ctx.db.patch(existingCredits._id, {
+            totalCredits: existingCredits.totalCredits + creditsToAdd,
+            updatedAt: now,
+          });
+        } else {
+          // Create credits record if it doesn't exist
+          const periodEnd = now + 30 * 24 * 60 * 60 * 1000; // 30 days
+          await ctx.db.insert("user_credits", {
+            userId: shadowUserId,
+            totalCredits: creditsToAdd,
+            usedCredits: 0,
+            periodStart: now,
+            periodEnd: periodEnd,
+            lastResetAt: now,
+            updatedAt: now,
+          });
+        }
+
+        // Get the first organization and chat for this shadow account to return
+        const org = await ctx.db
+          .query("organizations")
+          .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+          .first();
+
+        const chat = org
+          ? await ctx.db
+              .query("chats")
+              .withIndex("by_user", (q) => q.eq("userId", shadowUserId))
+              .filter((q) => q.eq(q.field("organizationId"), org._id))
+              .first()
+          : null;
+
+        const app = chat
+          ? await ctx.db
+              .query("apps")
+              .withIndex("by_developer", (q) => q.eq("developerId", shadowUserId))
+              .filter((q) => q.eq(q.field("parentChatId"), chat._id))
+              .first()
+          : null;
+
+        return {
+          userId: shadowUserId,
+          organizationId: org?.organizationId || "",
+          organizationConvexId: org?._id || "",
+          organizationName: org?.name || "Default",
+          chatId: chat?.chatId || "",
+          chatConvexId: chat?._id || "",
+          chatTitle: chat?.title || "Default App",
+          appId: app?.appId || "",
+          appSecret: app?.appSecret || "",
+          jwtSecret: app?.jwtSecret || "",
+          apiKey: chat?.apiKey || "",
+          credits: creditsToAdd,
+        };
       }
     }
 

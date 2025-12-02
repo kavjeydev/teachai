@@ -140,21 +140,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Extract the value from the result (Convex returns { value: ... } or just the value)
+    const resultValue = result.value || result;
+
     // Return the result with all required information
     return NextResponse.json({
       success: true,
-      userId: result.value.userId,
-      organizationId: result.value.organizationId, // String organizationId
-      organizationConvexId: result.value.organizationConvexId, // Convex document ID
-      organizationName: result.value.organizationName,
-      chatId: result.value.chatId, // String chatId (this is what the user requested)
-      chatConvexId: result.value.chatConvexId, // Convex document ID
-      chatTitle: result.value.chatTitle,
-      appId: result.value.appId,
-      appSecret: result.value.appSecret, // App secret (API key for the app)
-      jwtSecret: result.value.jwtSecret,
-      apiKey: result.value.apiKey, // API key for the chat
-      credits: result.value.credits,
+      userId: resultValue.userId,
+      organizationId: resultValue.organizationId, // String organizationId
+      organizationConvexId: resultValue.organizationConvexId, // Convex document ID
+      organizationName: resultValue.organizationName,
+      chatId: resultValue.chatId, // String chatId (this is what the user requested)
+      chatConvexId: resultValue.chatConvexId, // Convex document ID
+      chatTitle: resultValue.chatTitle,
+      appId: resultValue.appId,
+      appSecret: resultValue.appSecret, // App secret (API key for the app)
+      jwtSecret: resultValue.jwtSecret,
+      apiKey: resultValue.apiKey, // API key for the chat
+      credits: resultValue.credits,
     });
   } catch (error) {
     console.error("❌ Shadow account creation failed:", error);
