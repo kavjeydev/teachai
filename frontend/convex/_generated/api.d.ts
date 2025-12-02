@@ -20,6 +20,7 @@ import type * as fileQueue from "../fileQueue.js";
 import type * as fileStorage from "../fileStorage.js";
 import type * as initialize_metadata from "../initialize_metadata.js";
 import type * as organizations from "../organizations.js";
+import type * as shadow_accounts from "../shadow_accounts.js";
 import type * as simple_api from "../simple_api.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as user_auth_system from "../user_auth_system.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   fileStorage: typeof fileStorage;
   initialize_metadata: typeof initialize_metadata;
   organizations: typeof organizations;
+  shadow_accounts: typeof shadow_accounts;
   simple_api: typeof simple_api;
   subscriptions: typeof subscriptions;
   user_auth_system: typeof user_auth_system;
