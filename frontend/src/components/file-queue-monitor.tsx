@@ -4,13 +4,23 @@ import React from "react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Loader2, File } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Loader2,
+  File,
+  Clock,
+  FileText,
+  Brain,
+  AlertCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   UploadQueue,
   QueuedFile,
   PersistedFile,
   formatRelativeTime,
+  FileStatus,
 } from "@/hooks/use-file-queue";
 
 interface FileQueueMonitorProps {
@@ -22,30 +32,84 @@ interface FileItemProps {
   file: QueuedFile | PersistedFile;
 }
 
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case "uploaded":
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
-    case "processing":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
-    case "cancelled":
-      return <XCircle className="h-4 w-4 text-red-500" />;
-    default:
-      return <File className="h-4 w-4 text-zinc-400" />;
+// Status configuration aligned with backend queue system
+const STATUS_CONFIG: Record<
+  FileStatus,
+  {
+    icon: React.ReactNode;
+    color: string;
+    label: string;
+    description: string;
   }
+> = {
+  queued: {
+    icon: <Clock className="h-4 w-4 text-amber-500" />,
+    color:
+      "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    label: "Queued",
+    description: "Waiting for worker",
+  },
+  extracting: {
+    icon: <FileText className="h-4 w-4 text-purple-500 animate-pulse" />,
+    color:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    label: "Extracting",
+    description: "Extracting text",
+  },
+  processing: {
+    icon: <Brain className="h-4 w-4 text-blue-500 animate-pulse" />,
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    label: "Processing",
+    description: "Creating embeddings",
+  },
+  ready: {
+    icon: <CheckCircle className="h-4 w-4 text-green-500" />,
+    color:
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    label: "Ready",
+    description: "Available for queries",
+  },
+  failed: {
+    icon: <AlertCircle className="h-4 w-4 text-red-500" />,
+    color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+    label: "Failed",
+    description: "Processing failed",
+  },
+  cancelled: {
+    icon: <XCircle className="h-4 w-4 text-zinc-500" />,
+    color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+    label: "Cancelled",
+    description: "Upload cancelled",
+  },
+  deleted: {
+    icon: <XCircle className="h-4 w-4 text-zinc-400" />,
+    color: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500",
+    label: "Deleted",
+    description: "File removed",
+  },
+};
+
+const getStatusIcon = (status: string) => {
+  const config = STATUS_CONFIG[status as FileStatus];
+  return config?.icon || <File className="h-4 w-4 text-zinc-400" />;
 };
 
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case "uploaded":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-    case "processing":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-    case "cancelled":
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-    default:
-      return "bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-300";
-  }
+  const config = STATUS_CONFIG[status as FileStatus];
+  return (
+    config?.color ||
+    "bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+  );
+};
+
+const getStatusLabel = (status: string) => {
+  const config = STATUS_CONFIG[status as FileStatus];
+  return config?.label || status;
+};
+
+const getStatusDescription = (status: string) => {
+  const config = STATUS_CONFIG[status as FileStatus];
+  return config?.description || "";
 };
 
 // Format Knowledge Units for display
@@ -78,8 +142,28 @@ const formatFileSize = (bytes: number) => {
 };
 
 const FileItem = React.memo<FileItemProps>(({ file }) => {
+  const isActiveProcessing = ["queued", "extracting", "processing"].includes(
+    file.status,
+  );
+  const isCompleted = file.status === "ready";
+  const isFailed = file.status === "failed";
+
   return (
-    <div className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+    <div
+      className={cn(
+        "flex items-center justify-between p-3 rounded-lg border transition-all duration-200",
+        isActiveProcessing &&
+          "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800",
+        isCompleted &&
+          "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700",
+        isFailed &&
+          "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-800",
+        !isActiveProcessing &&
+          !isCompleted &&
+          !isFailed &&
+          "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700",
+      )}
+    >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className="flex-shrink-0">{getStatusIcon(file.status)}</div>
         <div className="flex-1 min-w-0">
@@ -88,23 +172,45 @@ const FileItem = React.memo<FileItemProps>(({ file }) => {
               {file.fileName}
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {/* Knowledge Units / File size info */}
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
               {file.knowledgeUnits !== undefined
                 ? formatKnowledgeUnits(file.knowledgeUnits)
-                : file.status === "processing"
-                  ? "Processing..."
+                : isActiveProcessing
+                  ? getStatusDescription(file.status)
                   : `~${formatKnowledgeUnits(estimateKnowledgeUnitsFromFileSize(file.fileSize))}`}
             </span>
-            {file.uploadedAt && file.status === "uploaded" && (
+
+            {/* Chunks created for ready files */}
+            {isCompleted && file.chunksCreated && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                • {file.chunksCreated} chunks
+              </span>
+            )}
+
+            {/* Timestamp for ready files */}
+            {file.uploadedAt && isCompleted && (
               <span className="text-xs text-zinc-500 dark:text-zinc-400">
                 • {formatRelativeTime(file.uploadedAt)}
               </span>
             )}
-            {file.status === "processing" && (
+
+            {/* Error message for failed files */}
+            {isFailed && file.error && (
+              <span
+                className="text-xs text-red-500 dark:text-red-400 truncate max-w-[200px]"
+                title={file.error}
+              >
+                • {file.error}
+              </span>
+            )}
+
+            {/* Progress bar for active processing */}
+            {isActiveProcessing && file.progress > 0 && (
               <>
-                <Progress value={file.progress} className="w-24 h-1" />
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                <Progress value={file.progress} className="w-20 h-1.5" />
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
                   {file.progress}%
                 </span>
               </>
@@ -113,12 +219,12 @@ const FileItem = React.memo<FileItemProps>(({ file }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
         <Badge
           variant="outline"
-          className={cn("text-xs", getStatusColor(file.status))}
+          className={cn("text-xs font-medium", getStatusColor(file.status))}
         >
-          {file.status}
+          {getStatusLabel(file.status)}
         </Badge>
       </div>
     </div>
@@ -126,6 +232,17 @@ const FileItem = React.memo<FileItemProps>(({ file }) => {
 });
 
 FileItem.displayName = "FileItem";
+
+// Priority order for sorting (lower = higher priority)
+const STATUS_PRIORITY: Record<string, number> = {
+  processing: 0,
+  extracting: 1,
+  queued: 2,
+  failed: 3,
+  ready: 4,
+  cancelled: 5,
+  deleted: 6,
+};
 
 export const FileQueueMonitor: React.FC<FileQueueMonitorProps> = ({
   queues,
@@ -145,14 +262,19 @@ export const FileQueueMonitor: React.FC<FileQueueMonitorProps> = ({
       return [];
     }
 
-    // Sort files: processing first, then by upload time (newest first)
+    // Sort files: active processing first, then failed, then completed (newest first)
     return [...allFiles].sort((a, b) => {
-      if (a.status === "processing" && b.status !== "processing") return -1;
-      if (b.status === "processing" && a.status !== "processing") return 1;
+      const priorityA = STATUS_PRIORITY[a.status] ?? 99;
+      const priorityB = STATUS_PRIORITY[b.status] ?? 99;
 
-      // For uploaded files, sort by upload timestamp if available
+      // Sort by status priority first
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // Within same status, sort by upload timestamp if available (newest first)
       if (a.uploadedAt && b.uploadedAt) {
-        return b.uploadedAt - a.uploadedAt; // Newer uploads first
+        return b.uploadedAt - a.uploadedAt;
       }
 
       // Fallback to queue ID (which includes timestamp)

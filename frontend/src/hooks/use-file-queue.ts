@@ -92,18 +92,40 @@ export const formatRelativeTime = (timestamp: number): string => {
   }
 };
 
+// File processing status types aligned with backend queue system
+// - queued: File uploaded, waiting for worker to pick it up
+// - extracting: Worker is extracting text from file
+// - processing: Worker is chunking and creating embeddings
+// - ready: File successfully processed and queryable
+// - failed: Processing failed
+// - cancelled: Upload was cancelled by user
+
+export type FileStatus =
+  | "queued"
+  | "extracting"
+  | "processing"
+  | "ready"
+  | "failed"
+  | "cancelled"
+  | "deleted";
+
 // Map database status to UI status
-const mapDatabaseStatusToUI = (
-  dbStatus: string,
-): "processing" | "uploaded" | "cancelled" | "deleted" => {
+const mapDatabaseStatusToUI = (dbStatus: string): FileStatus => {
   switch (dbStatus) {
     case "completed":
-      return "uploaded";
+    case "ready":
+      return "ready";
     case "failed":
+      return "failed";
     case "cancelled":
       return "cancelled";
     case "deleted":
       return "deleted";
+    case "queued":
+    case "pending":
+      return "queued";
+    case "extracting":
+      return "extracting";
     case "processing":
     default:
       return "processing";
@@ -111,14 +133,17 @@ const mapDatabaseStatusToUI = (
 };
 
 // Map UI status to database status
-const mapUIStatusToDatabase = (
-  uiStatus: "processing" | "uploaded" | "cancelled",
-): string => {
+const mapUIStatusToDatabase = (uiStatus: FileStatus): string => {
   switch (uiStatus) {
-    case "uploaded":
+    case "ready":
       return "completed";
+    case "failed":
     case "cancelled":
       return "failed";
+    case "queued":
+      return "pending";
+    case "extracting":
+      return "extracting";
     case "processing":
     default:
       return "processing";
@@ -131,15 +156,17 @@ export interface QueuedFile {
   fileSize: number;
   fileType: string;
   filePath?: string;
-  status: "processing" | "uploaded" | "cancelled" | "deleted";
+  status: FileStatus;
   progress: number;
   error?: string;
   fileId?: string;
+  jobId?: string; // Redis job ID for tracking
   convexFileId?: Id<"file_upload_queue">; // Convex document ID for updates
   id: string;
   uploadedAt?: number; // Unix timestamp in milliseconds
   extractedTextLength?: number; // Length of extracted text (for accurate KU calculation)
   knowledgeUnits?: number; // Actual Knowledge Units consumed (calculated from extracted text)
+  chunksCreated?: number; // Number of chunks created in Neo4j
 }
 
 // Interface for persisted file data (without File object)
@@ -149,14 +176,16 @@ export interface PersistedFile {
   fileSize: number;
   fileType: string;
   filePath?: string;
-  status: "processing" | "uploaded" | "cancelled" | "deleted";
+  status: FileStatus;
   progress: number;
   error?: string;
   fileId?: string;
+  jobId?: string; // Redis job ID for tracking
   convexFileId?: Id<"file_upload_queue">;
   uploadedAt?: number; // Unix timestamp in milliseconds
   extractedTextLength?: number; // Length of extracted text (for accurate KU calculation)
   knowledgeUnits?: number; // Actual Knowledge Units consumed (calculated from extracted text)
+  chunksCreated?: number; // Number of chunks created in Neo4j
 }
 
 export interface UploadQueue {
@@ -165,7 +194,7 @@ export interface UploadQueue {
   totalFiles: number;
   completedFiles: number;
   failedFiles: number;
-  status: "processing" | "uploaded" | "cancelled" | "deleted";
+  status: FileStatus;
   isFolder: boolean;
   files: QueuedFile[] | PersistedFile[]; // Can be either active or persisted files
   createdAt: number;
@@ -519,7 +548,7 @@ export function useFileQueue({
               if (fileIndex !== -1) {
                 queue.files[fileIndex] = {
                   ...queue.files[fileIndex],
-                  status: "uploaded",
+                  status: "ready",
                   progress: 100,
                   uploadedAt: Date.now(),
                   fileId: `subchat_${queuedFile.fileName}_${Date.now()}`, // Generate a simple file ID
@@ -623,7 +652,7 @@ export function useFileQueue({
             if (fileIndex !== -1) {
               queue.files[fileIndex] = {
                 ...queue.files[fileIndex],
-                status: "uploaded",
+                status: "ready",
                 progress: 100,
                 fileId: uniqueFileId,
                 uploadedAt: extractData.uploaded_at || Date.now(),
@@ -637,7 +666,7 @@ export function useFileQueue({
                 queue.completedFiles + queue.failedFiles >=
                 queue.totalFiles
               ) {
-                queue.status = queue.failedFiles > 0 ? "cancelled" : "uploaded";
+                queue.status = queue.failedFiles > 0 ? "failed" : "ready";
                 onQueueComplete?.(queueId);
               }
 
@@ -653,7 +682,7 @@ export function useFileQueue({
 
           for (const [qId, q] of updated) {
             q.files.forEach((file) => {
-              if (file.status === "uploaded" && file.uploadedAt) {
+              if (file.status === "ready" && file.uploadedAt) {
                 allUploadedFiles.push({ file, queueId: qId });
               }
             });
@@ -771,7 +800,7 @@ export function useFileQueue({
                 queue.completedFiles + queue.failedFiles >=
                 queue.totalFiles
               ) {
-                queue.status = queue.failedFiles > 0 ? "cancelled" : "uploaded";
+                queue.status = queue.failedFiles > 0 ? "failed" : "ready";
                 onQueueComplete?.(queueId);
               }
 

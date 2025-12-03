@@ -347,12 +347,14 @@ export default function FileIngestionPage() {
 
   const activeQueues = fileQueue.activeQueues || [];
   const allQueues = fileQueue.allQueues || [];
-  // Note: UI status "uploaded" corresponds to database status "completed"
+  // Note: UI status "ready" corresponds to database status "completed"
   // The status is already mapped to UI status by useFileQueue hook
   const completedQueues = allQueues.filter(
-    (q) => q.status === "uploaded" || (q as any).status === "completed",
+    (q) => q.status === "ready" || (q as any).status === "completed",
   );
-  const processingQueues = allQueues.filter((q) => q.status === "processing");
+  const processingQueues = allQueues.filter((q) =>
+    ["processing", "queued", "extracting"].includes(q.status),
+  );
   const deletedQueues = allQueues.filter((q) => q.status === "deleted");
 
   // Format relative time
@@ -652,9 +654,13 @@ export default function FileIngestionPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                   {filteredQueues.map((queue) => {
-                    // Check for both UI status "uploaded" and database status "completed"
-                    const isProcessing = queue.status === "processing";
-                    const isCompleted = queue.status === "uploaded";
+                    // Check for both UI status "ready" and database status "completed"
+                    const isProcessing = [
+                      "processing",
+                      "queued",
+                      "extracting",
+                    ].includes(queue.status);
+                    const isCompleted = queue.status === "ready";
                     const isDeleted = queue.status === "deleted";
                     const progress =
                       queue.totalFiles > 0
@@ -843,7 +849,7 @@ export default function FileIngestionPage() {
                     ? "completed"
                     : activeTab === "deleted"
                       ? "deleted"
-                      : "uploaded"}
+                      : "ready"}
               </h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
                 {activeTab === "all"
