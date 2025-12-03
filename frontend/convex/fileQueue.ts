@@ -384,6 +384,114 @@ export const updateFileProgress = mutation({
   },
 });
 
+// Update file progress by queue ID (for backend worker without auth)
+// This is called by the Python backend worker via HTTP
+export const updateFileProgressByQueueId = mutation({
+  args: {
+    fileQueueId: v.string(), // The queue ID string (e.g., "fq_v1_user123_file.pdf_1234567890")
+    status: v.string(),
+    progress: v.number(),
+    error: v.optional(v.string()),
+    extractedTextLength: v.optional(v.number()),
+    knowledgeUnits: v.optional(v.number()),
+    nodesCreated: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Note: This mutation doesn't require auth because it's called by the backend worker
+    // The worker has already validated the request through API key authentication
+
+    // Find the file by its queue ID
+    // The fileQueueId follows the pattern: "fq_{file_id}"
+    const fileId = args.fileQueueId.startsWith("fq_")
+      ? args.fileQueueId.slice(3)  // Remove "fq_" prefix
+      : args.fileQueueId;
+
+    // Try to find by queueId field first
+    let file = await ctx.db
+      .query("file_upload_queue")
+      .withIndex("by_queue", (q) => q.eq("queueId", args.fileQueueId))
+      .first();
+
+    if (!file) {
+      // Try without the prefix
+      file = await ctx.db
+        .query("file_upload_queue")
+        .withIndex("by_queue", (q) => q.eq("queueId", fileId))
+        .first();
+    }
+
+    if (!file) {
+      // Log but don't throw - the file might have been processed through a different path
+      console.log(`⚠️ File not found in Convex queue: ${args.fileQueueId} - this is OK if using direct upload`);
+      return null;
+    }
+
+    const updateData: Record<string, unknown> = {
+      status: args.status,
+      progress: args.progress,
+    };
+
+    if (args.error) updateData.error = args.error;
+    if (args.extractedTextLength !== undefined) {
+      updateData.extractedTextLength = args.extractedTextLength;
+    }
+    if (args.knowledgeUnits !== undefined) {
+      updateData.knowledgeUnits = args.knowledgeUnits;
+    }
+    if (args.nodesCreated !== undefined) {
+      updateData.nodesCreated = args.nodesCreated;
+    }
+
+    if (args.status === "processing" && !file.startedAt) {
+      updateData.startedAt = Date.now();
+    }
+
+    if (
+      args.status === "completed" ||
+      args.status === "failed" ||
+      args.status === "cancelled"
+    ) {
+      updateData.completedAt = Date.now();
+
+      // Update queue counters if this file is part of a queue
+      if (file.queueId) {
+        const queue = await ctx.db
+          .query("upload_queues")
+          .withIndex("by_queue_id", (q) => q.eq("queueId", file.queueId))
+          .first();
+
+        if (queue) {
+          const newCompletedFiles =
+            args.status === "completed"
+              ? queue.completedFiles + 1
+              : queue.completedFiles;
+          const newFailedFiles =
+            args.status === "failed" || args.status === "cancelled"
+              ? queue.failedFiles + 1
+              : queue.failedFiles;
+
+          await ctx.db.patch(queue._id, {
+            completedFiles: newCompletedFiles,
+            failedFiles: newFailedFiles,
+          });
+
+          // Check if queue is complete
+          if (newCompletedFiles + newFailedFiles >= queue.totalFiles) {
+            await ctx.db.patch(queue._id, {
+              status: newFailedFiles > 0 ? "failed" : "completed",
+              completedAt: Date.now(),
+            });
+          }
+        }
+      }
+    }
+
+    await ctx.db.patch(file._id, updateData);
+    console.log(`📊 Updated file status via worker: ${args.fileQueueId} -> ${args.status} (${args.progress}%)`);
+    return file._id;
+  },
+});
+
 // Get queue status
 export const getQueueStatus = query({
   args: {

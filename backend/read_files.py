@@ -24,6 +24,7 @@ import httpx
 import time
 import logging
 import hashlib
+import sys
 from collections import defaultdict
 from sanitization import (
     sanitize_user_message, sanitize_chat_id, sanitize_api_key,
@@ -31,6 +32,71 @@ from sanitization import (
     SanitizedChatId, SanitizedApiKey, sanitize_request_data,
     sanitize_with_xss_detection, detect_xss, sanitize_filename
 )
+
+# ==============================================================================
+# Redis Queue Setup for Background File Processing
+# ==============================================================================
+try:
+    from redis import Redis
+    from rq import Queue, Worker
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    print("⚠️ Redis/RQ not installed. Background processing disabled. Install with: pip install redis rq")
+
+# Load environment variables early for Redis setup
+load_dotenv()
+
+# Redis connection setup
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL")
+UPSTASH_REDIS_REST_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN")
+
+# Initialize Redis connection
+redis_conn = None
+file_queue = None
+
+def get_redis_connection():
+    """Get Redis connection, creating it if needed"""
+    global redis_conn
+    if redis_conn is not None:
+        return redis_conn
+
+    if not REDIS_AVAILABLE:
+        return None
+
+    try:
+        redis_url = REDIS_URL
+
+        # For Upstash and other TLS Redis, convert redis:// to rediss:// for SSL
+        if redis_url and "upstash.io" in redis_url and redis_url.startswith("redis://"):
+            redis_url = redis_url.replace("redis://", "rediss://", 1)
+            print(f"🔒 Using TLS connection for Upstash Redis")
+
+        if redis_url:
+            redis_conn = Redis.from_url(redis_url)
+        else:
+            redis_conn = Redis(host='localhost', port=6379)
+
+        # Test connection
+        redis_conn.ping()
+        print(f"✅ Redis connected successfully")
+        return redis_conn
+    except Exception as e:
+        print(f"⚠️ Redis connection failed: {e}")
+        return None
+
+def get_file_queue():
+    """Get the file processing queue"""
+    global file_queue
+    if file_queue is not None:
+        return file_queue
+
+    conn = get_redis_connection()
+    if conn:
+        file_queue = Queue("file_ingestion", connection=conn, default_timeout=1800)  # 30 min timeout
+        return file_queue
+    return None
 
 # Secure Privacy-First API Models
 class AppAuthorizationRequest(BaseModel):
@@ -2051,7 +2117,20 @@ def sanitize_for_neo4j(text: str) -> str:
     safe_text = safe_text.replace('\r', '\\r')
     return safe_text
 
-def chunk_text(full_text: str, max_chars: int = 500) -> List[str]:
+def chunk_text(full_text: str, max_chars: int = 2000) -> List[str]:
+    """
+    Chunk text into pieces for embedding.
+
+    PERFORMANCE OPTIMIZATION: Increased from 500 to 2000 chars.
+    This reduces thousands of embedding calls to hundreds for large files.
+
+    Args:
+        full_text: The full text to chunk
+        max_chars: Maximum characters per chunk (default 2000, was 500)
+
+    Returns:
+        List of text chunks
+    """
     chunks = []
     start = 0
     while start < len(full_text):
@@ -2059,19 +2138,439 @@ def chunk_text(full_text: str, max_chars: int = 500) -> List[str]:
         if end > len(full_text):
             chunks.append(full_text[start:])
             break
+
+        # Try to break at sentence boundary for better semantic coherence
+        # Look back up to 200 chars for a period, question mark, or exclamation
+        if end < len(full_text):
+            best_break = end
+            for i in range(end, max(start + max_chars - 200, start), -1):
+                if full_text[i-1] in '.!?\n':
+                    best_break = i
+                    break
+            end = best_break
+
         chunks.append(full_text[start:end])
         start = end
     return chunks
 
 def get_embedding(text: str) -> List[float]:
+    """Get embedding for a single text. Use get_embeddings_batch for multiple texts."""
     response = openai.embeddings.create(
         model="text-embedding-3-small",
         input=text
     )
     return response.data[0].embedding
 
+def get_embeddings_batch(texts: List[str], batch_size: int = 32) -> List[List[float]]:
+    """
+    Get embeddings for multiple texts in batches.
+
+    PERFORMANCE OPTIMIZATION: Batches embedding calls instead of one-by-one.
+    Reduces API overhead dramatically - e.g., 1000 chunks becomes ~32 API calls
+    instead of 1000.
+
+    Args:
+        texts: List of texts to embed
+        batch_size: Number of texts per API call (default 32, max ~100 for OpenAI)
+
+    Returns:
+        List of embeddings in the same order as input texts
+    """
+    all_embeddings = []
+
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        try:
+            response = openai.embeddings.create(
+                model="text-embedding-3-small",
+                input=batch
+            )
+            # Embeddings come back in order
+            batch_embeddings = [item.embedding for item in response.data]
+            all_embeddings.extend(batch_embeddings)
+
+            # Log progress for large batches
+            if len(texts) > batch_size:
+                logger.info(f"📊 Embedded batch {i//batch_size + 1}/{(len(texts) + batch_size - 1)//batch_size}")
+        except Exception as e:
+            logger.error(f"Batch embedding failed at index {i}: {e}")
+            # Fallback to individual calls for this batch
+            for text in batch:
+                try:
+                    embedding = get_embedding(text)
+                    all_embeddings.append(embedding)
+                except Exception as inner_e:
+                    logger.error(f"Individual embedding failed: {inner_e}")
+                    # Return zeros as fallback (better than crashing)
+                    all_embeddings.append([0.0] * 1536)
+
+    return all_embeddings
+
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+# ==============================================================================
+# Queue-Based File Processing System
+# ==============================================================================
+
+async def update_convex_file_status(
+    file_queue_id: str,
+    status: str,
+    progress: int = 0,
+    error: Optional[str] = None,
+    extracted_text_length: Optional[int] = None,
+    knowledge_units: Optional[float] = None,
+    nodes_created: Optional[int] = None
+):
+    """
+    Update file processing status in Convex database.
+    This provides persistent status tracking across workers and restarts.
+    """
+    try:
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
+
+        # Build the update payload
+        update_args = {
+            "fileQueueId": file_queue_id,
+            "status": status,
+            "progress": progress,
+        }
+
+        if error:
+            update_args["error"] = error
+        if extracted_text_length is not None:
+            update_args["extractedTextLength"] = extracted_text_length
+        if knowledge_units is not None:
+            update_args["knowledgeUnits"] = knowledge_units
+        if nodes_created is not None:
+            update_args["nodesCreated"] = nodes_created
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{convex_url}/api/mutation",
+                json={
+                    "path": "fileQueue:updateFileProgressByQueueId",
+                    "args": update_args,
+                    "format": "json"
+                },
+                headers={"Content-Type": "application/json"},
+                timeout=10.0
+            )
+
+            if response.status_code == 200:
+                logger.info(f"📊 Updated Convex file status: {file_queue_id} -> {status} ({progress}%)")
+            else:
+                logger.warning(f"⚠️ Failed to update Convex status: {response.status_code}")
+
+    except Exception as e:
+        logger.error(f"❌ Error updating Convex file status: {e}")
+
+def update_convex_file_status_sync(
+    file_queue_id: str,
+    status: str,
+    progress: int = 0,
+    error: Optional[str] = None,
+    extracted_text_length: Optional[int] = None,
+    knowledge_units: Optional[float] = None,
+    nodes_created: Optional[int] = None
+):
+    """
+    Synchronous version of update_convex_file_status for use in RQ workers.
+    """
+    import requests
+
+    try:
+        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
+
+        update_args = {
+            "fileQueueId": file_queue_id,
+            "status": status,
+            "progress": progress,
+        }
+
+        if error:
+            update_args["error"] = error
+        if extracted_text_length is not None:
+            update_args["extractedTextLength"] = extracted_text_length
+        if knowledge_units is not None:
+            update_args["knowledgeUnits"] = knowledge_units
+        if nodes_created is not None:
+            update_args["nodesCreated"] = nodes_created
+
+        response = requests.post(
+            f"{convex_url}/api/mutation",
+            json={
+                "path": "fileQueue:updateFileProgressByQueueId",
+                "args": update_args,
+                "format": "json"
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=10.0
+        )
+
+        if response.status_code == 200:
+            print(f"📊 Updated Convex file status: {file_queue_id} -> {status} ({progress}%)")
+        else:
+            print(f"⚠️ Failed to update Convex status: {response.status_code}")
+
+    except Exception as e:
+        print(f"❌ Error updating Convex file status: {e}")
+
+def process_file_job(
+    file_queue_id: str,
+    chat_id: str,
+    filename: str,
+    text_content: str,
+    file_size: int,
+    scope_values: Optional[Dict[str, Union[str, int, bool]]] = None,
+    file_id: Optional[str] = None
+):
+    """
+    Pure processor function for file ingestion - called by RQ worker.
+
+    This function:
+    1. Updates status to PROCESSING
+    2. Chunks the text
+    3. Gets embeddings in batches
+    4. Creates nodes in Neo4j
+    5. Updates status to READY or FAILED
+
+    Args:
+        file_queue_id: The Convex file_upload_queue document ID for status updates
+        chat_id: The chat this file belongs to
+        filename: The filename
+        text_content: The extracted text content
+        file_size: The file size in bytes
+        scope_values: Optional custom scope values for the file
+        file_id: Optional pre-generated file ID (if not provided, will be generated)
+    """
+    import time as time_module
+    start_time = time_module.time()
+
+    # Load environment variables for worker process
+    load_dotenv()
+
+    # Initialize OpenAI and Neo4j from environment
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    neo4j_uri_local = os.getenv("NEO4J_URI")
+    neo4j_user_local = os.getenv("NEO4J_USER")
+    neo4j_password_local = os.getenv("NEO4J_PASSWORD")
+
+    print(f"🔄 Processing file job: {filename} for chat {chat_id}")
+    print(f"   Text length: {len(text_content)} chars, File size: {file_size} bytes")
+
+    # Generate file ID if not provided
+    if not file_id:
+        file_id = f"{chat_id}_{filename}_{int(time_module.time())}"
+
+    try:
+        # Step 1: Update status to PROCESSING
+        update_convex_file_status_sync(file_queue_id, "processing", 10)
+
+        # Step 2: Chunk the text (with larger chunk size for performance)
+        print(f"📄 Chunking text...")
+        chunks = chunk_text(text_content, max_chars=2000)  # Increased from 500!
+        num_chunks = len(chunks)
+        print(f"   Created {num_chunks} chunks (2000 chars each)")
+
+        update_convex_file_status_sync(file_queue_id, "processing", 20)
+
+        # Step 3: Get embeddings in batches (major performance improvement!)
+        print(f"🧠 Getting embeddings in batches...")
+        embeddings = get_embeddings_batch(chunks, batch_size=32)
+        print(f"   Got {len(embeddings)} embeddings")
+
+        update_convex_file_status_sync(file_queue_id, "processing", 50)
+
+        # Step 4: Create nodes in Neo4j
+        print(f"📊 Creating nodes in Neo4j...")
+
+        # Build scope properties if provided
+        scope_props_set = ""
+        scope_props_create = ""
+        scope_params = {}
+        if scope_values:
+            for key, value in scope_values.items():
+                safe_key = key.replace(" ", "_").replace("-", "_")[:50]
+                param_name = f"scope_{safe_key}"
+                scope_props_set += f", d.{safe_key} = ${param_name}"
+                scope_props_create += f", {safe_key}: ${param_name}"
+                scope_params[param_name] = value
+
+        with GraphDatabase.driver(neo4j_uri_local, auth=(neo4j_user_local, neo4j_password_local)) as driver:
+            with driver.session() as session:
+                # Check for duplicate processing
+                check_query = """
+                MATCH (d:Document {id: $pdf_id})
+                OPTIONAL MATCH (d)-[:HAS_CHUNK]->(c:Chunk)
+                RETURN d, count(c) as chunk_count
+                """
+                check_result = session.run(check_query, pdf_id=file_id)
+                existing_doc = check_result.single()
+
+                if existing_doc and existing_doc['d'] and existing_doc['chunk_count'] > 0:
+                    print(f"⚠️ Document {file_id} already exists - skipping duplicate")
+                    update_convex_file_status_sync(
+                        file_queue_id, "completed", 100,
+                        extracted_text_length=len(text_content),
+                        nodes_created=existing_doc['chunk_count']
+                    )
+                    return {"status": "success", "duplicate": True}
+
+                # Create document node
+                current_timestamp = int(time_module.time() * 1000)
+                text_size_bytes = len(text_content.encode('utf-8'))
+
+                doc_query = f"""
+                MERGE (d:Document {{id: $pdf_id}})
+                SET d.chatId = $chat_id,
+                    d.filename = $filename,
+                    d.uploadDate = $upload_date,
+                    d.sizeBytes = $size_bytes{scope_props_set}
+                RETURN d
+                """
+
+                doc_params = {
+                    "pdf_id": file_id,
+                    "chat_id": chat_id,
+                    "filename": filename,
+                    "upload_date": current_timestamp,
+                    "size_bytes": text_size_bytes,
+                    **scope_params
+                }
+
+                session.run(doc_query, **doc_params)
+                print(f"   Created document node: {file_id}")
+
+                update_convex_file_status_sync(file_queue_id, "processing", 60)
+
+                # Create chunk nodes with embeddings
+                for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+                    chunk_id = f"{file_id}-{i}"
+
+                    chunk_query = f"""
+                    MATCH (d:Document {{id: $pdf_id}})
+                    CREATE (c:Chunk {{
+                        id: $chunk_id,
+                        text: $text,
+                        embedding: $embedding,
+                        chatId: $chat_id{scope_props_create}
+                    }})
+                    CREATE (d)-[:HAS_CHUNK {{order: $order}}]->(c)
+                    RETURN c
+                    """
+
+                    chunk_params = {
+                        "pdf_id": file_id,
+                        "chunk_id": chunk_id,
+                        "text": chunk,
+                        "embedding": embedding,
+                        "chat_id": chat_id,
+                        "order": i,
+                        **scope_params
+                    }
+
+                    session.run(chunk_query, **chunk_params)
+
+                    # Update progress periodically
+                    if i % 10 == 0:
+                        progress = 60 + int((i / num_chunks) * 30)
+                        update_convex_file_status_sync(file_queue_id, "processing", progress)
+
+                print(f"   Created {num_chunks} chunk nodes")
+
+                # Step 5: Create sequential relationships (simplified for performance)
+                if num_chunks > 1:
+                    print(f"🔗 Creating sequential relationships...")
+                    for i in range(num_chunks - 1):
+                        link_query = """
+                        MATCH (c1:Chunk {id: $chunk1_id})
+                        MATCH (c2:Chunk {id: $chunk2_id})
+                        CREATE (c1)-[:NEXT {order: $order}]->(c2)
+                        """
+                        session.run(link_query,
+                            chunk1_id=f"{file_id}-{i}",
+                            chunk2_id=f"{file_id}-{i+1}",
+                            order=i
+                        )
+                    print(f"   Created {num_chunks - 1} NEXT relationships")
+
+        # Step 6: Calculate knowledge units (tokens from extracted text)
+        # Rough estimate: 1 token ≈ 4 characters for English text
+        estimated_tokens = len(text_content) // 4
+        knowledge_units = estimated_tokens / 1000  # 1 KU = 1000 tokens
+
+        # Step 7: Update status to COMPLETED
+        elapsed = time_module.time() - start_time
+        print(f"✅ File processing completed in {elapsed:.2f}s")
+        print(f"   Chunks: {num_chunks}, KU: {knowledge_units:.2f}")
+
+        update_convex_file_status_sync(
+            file_queue_id, "completed", 100,
+            extracted_text_length=len(text_content),
+            knowledge_units=knowledge_units,
+            nodes_created=num_chunks
+        )
+
+        return {
+            "status": "success",
+            "file_id": file_id,
+            "chunks_created": num_chunks,
+            "knowledge_units": knowledge_units,
+            "elapsed_seconds": elapsed
+        }
+
+    except Exception as e:
+        print(f"❌ File processing failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+        update_convex_file_status_sync(
+            file_queue_id, "failed", 0,
+            error=str(e)[:500]  # Truncate error message
+        )
+
+        return {"status": "failed", "error": str(e)}
+
+def enqueue_file_processing(
+    file_queue_id: str,
+    chat_id: str,
+    filename: str,
+    text_content: str,
+    file_size: int,
+    scope_values: Optional[Dict[str, Union[str, int, bool]]] = None,
+    file_id: Optional[str] = None
+) -> Optional[str]:
+    """
+    Enqueue a file for background processing.
+
+    Returns the job ID if queued successfully, None if Redis unavailable
+    (in which case caller should fall back to sync processing).
+    """
+    queue = get_file_queue()
+
+    if queue is None:
+        logger.warning("⚠️ Redis queue not available, cannot enqueue job")
+        return None
+
+    try:
+        job = queue.enqueue(
+            process_file_job,
+            file_queue_id,
+            chat_id,
+            filename,
+            text_content,
+            file_size,
+            scope_values,
+            file_id,
+            job_timeout=1800,  # 30 minute timeout
+            result_ttl=86400,  # Keep result for 24 hours
+        )
+        logger.info(f"📤 Enqueued file processing job: {job.id} for {filename}")
+        return job.id
+    except Exception as e:
+        logger.error(f"❌ Failed to enqueue job: {e}")
+        return None
 
 # ==============================================================================
 # API Authentication Functions
@@ -2579,6 +3078,12 @@ async def v1_user_file_upload(
     """
     V1 File Upload: User uploads files OR text content to their permanent subchat
 
+    PERFORMANCE OPTIMIZED:
+    - Text extraction happens immediately (fast)
+    - Heavy processing (chunking, embedding, Neo4j) is queued for background workers
+    - Returns immediately with processing status
+    - Poll GET /v1/me/chats/files/{file_id}/status for completion
+
     Supports two modes:
     1. File upload: Provide 'file' parameter
     2. Text upload: Provide 'text_content' and 'content_name' parameters
@@ -2652,7 +3157,7 @@ async def v1_user_file_upload(
             user_identity["external_user_id"]
         )
 
-        # Extract text from file or use provided text
+        # Extract text from file or use provided text (this is fast, keep inline)
         if is_text_upload:
             # Text already assigned above
             pass
@@ -2681,24 +3186,100 @@ async def v1_user_file_upload(
                 "duplicate_prevented": True
             }
 
-        # Create embeddings in the user's permanent subchat
+        # Generate file ID
         pdf_id = f"v1_{user_identity['user_id']}_{sanitized_filename}_{int(time.time())}"
+
+        # Create a unique queue ID for status tracking
+        file_queue_id = f"fq_{pdf_id}"
+
+        # Try to enqueue for background processing (PERFORMANCE OPTIMIZATION)
+        queue = get_file_queue()
+
+        if queue is not None:
+            # Queue is available - use async processing
+            logger.info(f"📤 Enqueueing file for background processing: {sanitized_filename}")
+
+            try:
+                job = queue.enqueue(
+                    process_file_job,
+                    file_queue_id,
+                    subchat["chatStringId"],
+                    sanitized_filename,
+                    sanitized_text,
+                    file_size,
+                    parsed_scope_values,
+                    pdf_id,
+                    job_timeout=1800,  # 30 minute timeout
+                    result_ttl=86400,  # Keep result for 24 hours
+                )
+
+                logger.info(f"✅ Job enqueued: {job.id} for {sanitized_filename}")
+
+                # Add file to parent chat's context (async, don't block)
+                try:
+                    parent_chat_id = await get_parent_chat_id_from_app(user_identity["app_id"])
+                    if parent_chat_id:
+                        convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
+                        async with httpx.AsyncClient() as client:
+                            await client.post(
+                                f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
+                                json={
+                                    "args": {
+                                        "chatId": parent_chat_id,
+                                        "filename": sanitized_filename,
+                                        "fileId": pdf_id,
+                                    },
+                                    "format": "json"
+                                },
+                                headers={"Content-Type": "application/json"},
+                                timeout=5.0
+                            )
+                except Exception as e:
+                    logger.warning(f"⚠️ Context update failed (non-fatal): {e}")
+
+                # Return immediately - file will be processed in background
+                return {
+                    "success": True,
+                    "filename": sanitized_filename,
+                    "file_id": pdf_id,
+                    "file_queue_id": file_queue_id,
+                    "job_id": job.id,
+                    "chat_id": subchat["chatStringId"],
+                    "user_id": user_identity["user_id"],
+                    "size_bytes": file_size,
+                    "processing_status": "queued",
+                    "status_endpoint": f"/v1/me/chats/files/{pdf_id}/status",
+                    "privacy_guarantee": {
+                        "permanent_storage": True,
+                        "user_private_subchat": True,
+                        "developer_cannot_access": True,
+                        "oauth_validated": True
+                    },
+                    "message": "File uploaded and queued for processing. Poll status endpoint for completion."
+                }
+
+            except Exception as e:
+                logger.warning(f"⚠️ Queue enqueue failed, falling back to sync: {e}")
+                # Fall through to synchronous processing
+
+        # Fallback: Synchronous processing (when Redis unavailable)
+        logger.info(f"⚠️ Processing file synchronously (Redis unavailable): {sanitized_filename}")
 
         create_payload = CreateNodesAndEmbeddingsRequest(
             pdf_text=sanitized_text,
             pdf_id=pdf_id,
-            chat_id=subchat["chatStringId"],  # Store in permanent subchat
+            chat_id=subchat["chatStringId"],
             filename=sanitized_filename,
-            scope_values=parsed_scope_values  # Add scope values
+            scope_values=parsed_scope_values
         )
 
-        # Process the file with analytics (analytics will be tracked after successful processing)
+        # Process the file with analytics
         await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
 
         if parsed_scope_values:
             logger.info(f"📊 File uploaded with scopes: {parsed_scope_values}")
 
-        # Add file to parent chat's context so it's automatically published
+        # Add file to parent chat's context
         try:
             parent_chat_id = await get_parent_chat_id_from_app(user_identity["app_id"])
             if parent_chat_id:
@@ -2718,13 +3299,10 @@ async def v1_user_file_upload(
                         timeout=5.0
                     )
                     if response.status_code == 200:
-                        logger.info(f"✅ File {sanitized_filename} added to parent chat {parent_chat_id} context (published by default)")
+                        logger.info(f"✅ File {sanitized_filename} added to parent chat {parent_chat_id} context")
                     else:
-                        logger.warning(f"⚠️ Failed to add file to parent chat context: {response.status_code} - {response.text}")
-            else:
-                logger.info(f"ℹ️ No parent chat found for app {user_identity['app_id']}, skipping context update")
+                        logger.warning(f"⚠️ Failed to add file to parent chat context: {response.status_code}")
         except Exception as e:
-            # Don't fail the upload if context update fails
             logger.warning(f"⚠️ Failed to add file to parent chat context (non-fatal): {e}")
 
         logger.info(f"V1 File uploaded for user {user_identity['user_id']} to subchat {subchat['chatStringId']}")
@@ -3797,13 +4375,17 @@ async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_
                 print(f"Created document node with scopes: {result.single()}")
 
                 # Create chunks and embeddings
-                chunks = chunk_text(pdf_text)
+                chunks = chunk_text(pdf_text)  # Now uses 2000 chars (was 500)
                 print(f"Creating {len(chunks)} chunks for document {pdf_id}")
 
-                # First, create all chunks with custom scopes
+                # PERFORMANCE OPTIMIZATION: Get all embeddings in batches
+                print(f"🧠 Getting embeddings in batches...")
+                embeddings = get_embeddings_batch(chunks, batch_size=32)
+                print(f"   Got {len(embeddings)} embeddings")
+
+                # Create all chunks with their pre-computed embeddings
                 chunk_ids = []
-                for i, chunk in enumerate(chunks):
-                    embedding = get_embedding(chunk)
+                for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                     chunk_id = f"{pdf_id}-{i}"
                     chunk_ids.append(chunk_id)
 
@@ -3834,7 +4416,8 @@ async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_
 
                     chunk_result = result.single()
                     if chunk_result:
-                        print(f"Created chunk {i} with scopes: {chunk_result['c']['id']}")
+                        if i % 10 == 0:  # Log every 10th chunk to reduce noise
+                            print(f"Created chunk {i}/{len(chunks)}")
                     else:
                         print(f"Failed to create chunk {i}")
                         raise Exception(f"Failed to create chunk {i}")
@@ -7525,9 +8108,11 @@ async def upload_file_with_scopes(
     """
     Upload a file with custom scope values.
 
-    This endpoint allows you to upload a file and tag it with custom scope values.
-    For example, if you've configured a playlist_id scope, you can specify which
-    playlist this file belongs to.
+    PERFORMANCE OPTIMIZED:
+    - Text extraction happens immediately (fast)
+    - Heavy processing (chunking, embedding, Neo4j) is queued for background workers
+    - Returns immediately with processing status
+    - Poll GET /v1/{chat_id}/files/{file_id}/status for completion
 
     Example scope_values:
     {
@@ -7564,7 +8149,7 @@ async def upload_file_with_scopes(
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(status_code=413, detail=f"File too large (max {MAX_FILE_SIZE // (1024 * 1024)} MB)")
 
-        # Extract text from file
+        # Extract text from file (this is fast, keep inline)
         file_content = await file.read()
         file_obj = io.BytesIO(file_content)
 
@@ -7595,8 +8180,52 @@ async def upload_file_with_scopes(
 
         # Create file ID
         pdf_id = f"{sanitized_chat_id}_{sanitized_filename}_{int(time.time())}"
+        file_queue_id = f"fq_{pdf_id}"
 
-        # Add background task to process file
+        # Try to enqueue for background processing (PERFORMANCE OPTIMIZATION)
+        queue = get_file_queue()
+
+        if queue is not None:
+            # Queue is available - use async processing via Redis
+            logger.info(f"📤 Enqueueing file for background processing: {sanitized_filename}")
+
+            try:
+                job = queue.enqueue(
+                    process_file_job,
+                    file_queue_id,
+                    sanitized_chat_id,
+                    sanitized_filename,
+                    sanitized_text,
+                    file_size,
+                    parsed_scope_values,
+                    pdf_id,
+                    job_timeout=1800,  # 30 minute timeout
+                    result_ttl=86400,  # Keep result for 24 hours
+                )
+
+                logger.info(f"✅ Job enqueued: {job.id} for {sanitized_filename}")
+
+                return {
+                    "success": True,
+                    "file_id": pdf_id,
+                    "file_queue_id": file_queue_id,
+                    "job_id": job.id,
+                    "status": "queued",
+                    "filename": sanitized_filename,
+                    "chat_id": sanitized_chat_id,
+                    "scope_values": parsed_scope_values,
+                    "size_bytes": file_size,
+                    "status_endpoint": f"/v1/{sanitized_chat_id}/files/{pdf_id}/status",
+                    "message": "File uploaded and queued for processing. Poll status endpoint for completion."
+                }
+
+            except Exception as e:
+                logger.warning(f"⚠️ Queue enqueue failed, falling back to background task: {e}")
+                # Fall through to BackgroundTasks fallback
+
+        # Fallback: Use FastAPI BackgroundTasks (when Redis unavailable)
+        logger.info(f"⚠️ Using BackgroundTasks fallback for: {sanitized_filename}")
+
         background_tasks.add_task(
             _process_file_background,
             pdf_id,
@@ -7904,25 +8533,150 @@ async def api_delete_file(
         logger.error(f"Failed to delete file {file_id} from chat {chat_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
 
+def run_worker():
+    """
+    Run the RQ worker for background file processing.
+
+    Usage:
+        python read_files.py worker
+
+    This starts a worker that processes file ingestion jobs from the Redis queue.
+    Scale by running multiple worker processes.
+    """
+    if not REDIS_AVAILABLE:
+        print("❌ Redis/RQ not installed. Install with: pip install redis rq")
+        sys.exit(1)
+
+    conn = get_redis_connection()
+    if conn is None:
+        print("❌ Could not connect to Redis. Check REDIS_URL environment variable.")
+        sys.exit(1)
+
+    print("🚀 Starting Trainly File Processing Worker...")
+    print(f"📡 Connected to Redis: {REDIS_URL[:50]}...")
+    print("📋 Listening on queue: file_ingestion")
+    print("⏱️  Job timeout: 30 minutes")
+    print("💡 Press Ctrl+C to stop")
+    print("")
+
+    try:
+        from rq import Worker
+        worker = Worker(
+            queues=['file_ingestion'],
+            connection=conn,
+            name=f"trainly_worker_{os.getpid()}"
+        )
+        worker.work(with_scheduler=False)
+    except KeyboardInterrupt:
+        print("\n👋 Worker stopped gracefully")
+    except Exception as e:
+        print(f"❌ Worker error: {e}")
+        sys.exit(1)
+
+def show_queue_status():
+    """Show the current status of the file processing queue."""
+    if not REDIS_AVAILABLE:
+        print("❌ Redis/RQ not installed")
+        return
+
+    conn = get_redis_connection()
+    if conn is None:
+        print("❌ Could not connect to Redis")
+        return
+
+    from rq import Queue
+    from rq.job import Job
+
+    queue = Queue("file_ingestion", connection=conn)
+
+    print("📊 File Ingestion Queue Status")
+    print("=" * 40)
+    print(f"Pending jobs:    {len(queue)}")
+    print(f"Failed jobs:     {queue.failed_job_registry.count}")
+    print(f"Finished jobs:   {queue.finished_job_registry.count}")
+    print(f"Started jobs:    {queue.started_job_registry.count}")
+    print(f"Deferred jobs:   {queue.deferred_job_registry.count}")
+    print("")
+
+    # Show recent jobs
+    if len(queue) > 0:
+        print("📋 Pending Jobs:")
+        for job_id in queue.job_ids[:10]:  # Show first 10
+            try:
+                job = Job.fetch(job_id, connection=conn)
+                print(f"  - {job_id[:20]}... | {job.func_name} | queued at {job.enqueued_at}")
+            except Exception as e:
+                print(f"  - {job_id[:20]}... | error: {e}")
+
 if __name__ == "__main__":
-    import uvicorn
+    # Check for CLI commands
+    if len(sys.argv) > 1:
+        command = sys.argv[1].lower()
 
-    print("🚀 Starting TeachAI GraphRAG API with Privacy-First Architecture...")
-    print("📡 Internal endpoints: http://localhost:8000")
-    print("🌐 Legacy API endpoints:")
-    print("   POST /v1/{chat_id}/answer_question")
-    print("   POST /v1/{chat_id}/answer_question_stream")
-    print("   GET  /v1/{chat_id}/info")
-    print("   GET  /v1/health")
-    print("🔒 Trainly OAuth API endpoints:")
-    print("   GET  /oauth/authorize                  (OAuth authorization)")
-    print("   POST /oauth/token                      (Token exchange)")
-    print("   POST /me/chats/query                   (User-controlled queries)")
-    print("   POST /me/chats/files/presign           (Private file uploads)")
-    print("   GET  /v1/privacy/health                (API health status)")
-    print("📚 API Documentation: http://localhost:8000/docs")
-    print("🔐 Authentication: Trainly OAuth 2.0 (User-controlled tokens)")
-    print("🛡️  Privacy Guarantee: Citations filtered, no raw file access for developers")
-    print("💡 Simple OAuth: Lightweight implementation, complete privacy control")
+        if command == "worker":
+            run_worker()
+        elif command == "status":
+            show_queue_status()
+        elif command == "help":
+            print("""
+Trainly Backend CLI
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+Usage:
+    python read_files.py              Start the FastAPI server
+    python read_files.py worker       Start a background worker
+    python read_files.py status       Show queue status
+    python read_files.py help         Show this help message
+
+Environment Variables:
+    REDIS_URL                         Redis connection URL (required for workers)
+    OPENAI_API_KEY                    OpenAI API key
+    NEO4J_URI                         Neo4j database URI
+    NEO4J_USER                        Neo4j username
+    NEO4J_PASSWORD                    Neo4j password
+    CONVEX_URL                        Convex deployment URL
+
+Example:
+    # Terminal 1: Start the API server
+    python read_files.py
+
+    # Terminal 2: Start a worker (can run multiple)
+    python read_files.py worker
+""")
+        else:
+            print(f"Unknown command: {command}")
+            print("Run 'python read_files.py help' for usage")
+            sys.exit(1)
+    else:
+        # Default: run the FastAPI server
+        import uvicorn
+
+        print("🚀 Starting TeachAI GraphRAG API with Privacy-First Architecture...")
+        print("📡 Internal endpoints: http://localhost:8000")
+        print("🌐 Legacy API endpoints:")
+        print("   POST /v1/{chat_id}/answer_question")
+        print("   POST /v1/{chat_id}/answer_question_stream")
+        print("   GET  /v1/{chat_id}/info")
+        print("   GET  /v1/health")
+        print("🔒 Trainly OAuth API endpoints:")
+        print("   GET  /oauth/authorize                  (OAuth authorization)")
+        print("   POST /oauth/token                      (Token exchange)")
+        print("   POST /me/chats/query                   (User-controlled queries)")
+        print("   POST /me/chats/files/presign           (Private file uploads)")
+        print("   GET  /v1/privacy/health                (API health status)")
+        print("📚 API Documentation: http://localhost:8000/docs")
+        print("🔐 Authentication: Trainly OAuth 2.0 (User-controlled tokens)")
+        print("🛡️  Privacy Guarantee: Citations filtered, no raw file access for developers")
+        print("💡 Simple OAuth: Lightweight implementation, complete privacy control")
+
+        # Check Redis connection status
+        if REDIS_AVAILABLE:
+            conn = get_redis_connection()
+            if conn:
+                print("✅ Redis connected - background file processing enabled")
+                print("💡 Run 'python read_files.py worker' in another terminal to start processing")
+            else:
+                print("⚠️ Redis not connected - files will process synchronously")
+        else:
+            print("⚠️ Redis not installed - files will process synchronously")
+
+        uvicorn.run(app, host="0.0.0.0", port=8000)
