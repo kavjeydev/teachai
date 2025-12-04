@@ -56,6 +56,7 @@ export function ContextList({
   }, []);
 
   const eraseContent = useMutation(api.chats.eraseContext);
+  const markFileDeleted = useMutation(api.fileQueue.markFileDeleted);
   const currentChat = useQuery(api.chats.getChatById, {
     id: chatId,
   });
@@ -72,37 +73,57 @@ export function ContextList({
   };
 
   const handleErase = async (chatId: Id<"chats">, fileId: string) => {
+    console.log(`🗑️ Starting delete for file: ${fileId}`);
 
-
+    // First update Convex to remove from context list
     onErase(chatId, fileId);
 
-    const modusResponse = await fetch(
-      (process.env.NEXT_PUBLIC_BASE_URL as string) + `remove_context/${fileId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          // Authorization: `Bearer ${process.env.NEXT_PUBLIC_HYPERMODE_API_KEY}`,
+    // Then delete from Neo4j
+    try {
+      console.log(`📤 Sending DELETE request to backend for: ${fileId}`);
+      const modusResponse = await fetch(
+        (process.env.NEXT_PUBLIC_BASE_URL as string) +
+          `remove_context/${fileId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      },
-    );
+      );
 
-    if (!modusResponse.ok) {
-      const errorData = await modusResponse.json();
-      console.error("❌ Failed to delete context from Neo4j:", errorData);
-      console.error("❌ Response status:", modusResponse.status);
-      console.error("❌ Response details:", errorData);
-      throw new Error(errorData.detail || "Failed to write nodes to neo4j.");
+      const responseData = await modusResponse.json();
+      console.log(`📥 Backend response:`, responseData);
+
+      if (!modusResponse.ok) {
+        console.error("❌ Failed to delete context from Neo4j:", responseData);
+        throw new Error(responseData.detail || "Failed to delete from Neo4j.");
+      }
+
+      console.log(`✅ Successfully deleted from Neo4j: ${fileId}`);
+    } catch (error) {
+      console.error(`❌ Error deleting from Neo4j:`, error);
+      // Don't throw - the file is already removed from Convex context
     }
 
-    const responseData = await modusResponse.json();
+    // Mark file as deleted in Convex queue
+    try {
+      await markFileDeleted({
+        fileId: fileId,
+        chatId: chatId,
+      });
+      console.log(`🗑️ File marked as deleted in Convex queue: ${fileId}`);
+    } catch (error) {
+      // Non-fatal - file might not exist in queue (e.g., old files)
+      console.warn(
+        "Could not mark file as deleted in queue (non-fatal):",
+        error,
+      );
+    }
 
     // Trigger graph refresh after successful deletion
     if (onContextDeleted) {
-      // Triggering graph refresh after context deletion
       onContextDeleted();
-    } else {
-      // No onContextDeleted callback provided
     }
   };
 

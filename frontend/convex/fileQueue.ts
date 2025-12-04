@@ -403,7 +403,7 @@ export const updateFileProgressByQueueId = mutation({
     // Find the file by its queue ID
     // The fileQueueId follows the pattern: "fq_{file_id}"
     const fileId = args.fileQueueId.startsWith("fq_")
-      ? args.fileQueueId.slice(3)  // Remove "fq_" prefix
+      ? args.fileQueueId.slice(3) // Remove "fq_" prefix
       : args.fileQueueId;
 
     // Try to find by queueId field first
@@ -422,7 +422,9 @@ export const updateFileProgressByQueueId = mutation({
 
     if (!file) {
       // Log but don't throw - the file might have been processed through a different path
-      console.log(`⚠️ File not found in Convex queue: ${args.fileQueueId} - this is OK if using direct upload`);
+      console.log(
+        `⚠️ File not found in Convex queue: ${args.fileQueueId} - this is OK if using direct upload`,
+      );
       return null;
     }
 
@@ -487,7 +489,77 @@ export const updateFileProgressByQueueId = mutation({
     }
 
     await ctx.db.patch(file._id, updateData);
-    console.log(`📊 Updated file status via worker: ${args.fileQueueId} -> ${args.status} (${args.progress}%)`);
+    console.log(
+      `📊 Updated file status via worker: ${args.fileQueueId} -> ${args.status} (${args.progress}%)`,
+    );
+    return file._id;
+  },
+});
+
+// Mark a file as deleted by its string fileId (not Convex ID)
+// Used when deleting files from the context list
+export const markFileDeleted = mutation({
+  args: {
+    fileId: v.string(), // The file ID string (e.g., "file_xxx_pdf_123456")
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated.");
+    }
+
+    const userId = identity.subject;
+
+    // Find the file by its fileId string
+    // First try by queueId field
+    let file = await ctx.db
+      .query("file_upload_queue")
+      .withIndex("by_queue", (q) => q.eq("queueId", args.fileId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    if (!file) {
+      // Try with fq_ prefix
+      file = await ctx.db
+        .query("file_upload_queue")
+        .withIndex("by_queue", (q) => q.eq("queueId", `fq_${args.fileId}`))
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .first();
+    }
+
+    if (!file) {
+      // Try searching by filename pattern in the fileId
+      // File IDs are like: file_Updated_resume_V27_4_pdf_246496_1764792199453
+      const files = await ctx.db
+        .query("file_upload_queue")
+        .withIndex("by_chat", (q) => q.eq("chatId", args.chatId))
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .collect();
+
+      // Find by matching the fileId string
+      file =
+        files.find(
+          (f) =>
+            f.queueId === args.fileId ||
+            f.queueId === `fq_${args.fileId}` ||
+            args.fileId.includes(f.fileName?.replace(/\./g, "_") || ""),
+        ) || null;
+    }
+
+    if (!file) {
+      console.log(
+        `⚠️ File not found for deletion status update: ${args.fileId}`,
+      );
+      return null;
+    }
+
+    await ctx.db.patch(file._id, {
+      status: "deleted",
+      completedAt: Date.now(),
+    });
+
+    console.log(`🗑️ Marked file as deleted: ${args.fileId}`);
     return file._id;
   },
 });

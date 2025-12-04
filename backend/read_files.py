@@ -69,12 +69,18 @@ def get_redis_connection():
         redis_url = REDIS_URL
 
         # For Upstash and other TLS Redis, convert redis:// to rediss:// for SSL
-        if redis_url and "upstash.io" in redis_url and redis_url.startswith("redis://"):
+        is_upstash = redis_url and "upstash.io" in redis_url
+        if is_upstash and redis_url.startswith("redis://"):
             redis_url = redis_url.replace("redis://", "rediss://", 1)
             print(f"🔒 Using TLS connection for Upstash Redis")
 
         if redis_url:
-            redis_conn = Redis.from_url(redis_url)
+            # Use ssl_cert_reqs=None for Upstash/TLS connections to avoid cert verification issues
+            if is_upstash or redis_url.startswith("rediss://"):
+                import ssl
+                redis_conn = Redis.from_url(redis_url, ssl_cert_reqs=None)
+            else:
+                redis_conn = Redis.from_url(redis_url)
         else:
             redis_conn = Redis(host='localhost', port=6379)
 
@@ -470,48 +476,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory cache to prevent duplicate processing within a short time window
-_upload_cache = {}
-_cache_cleanup_time = 0
-CACHE_DURATION = 30  # seconds
-
-def _cleanup_upload_cache():
-    """Clean up old entries from the upload cache"""
-    global _cache_cleanup_time
-    current_time = time.time()
-
-    # Only cleanup every 60 seconds to avoid overhead
-    if current_time - _cache_cleanup_time < 60:
-        return
-
-    _cache_cleanup_time = current_time
-    expired_keys = [
-        key for key, timestamp in _upload_cache.items()
-        if current_time - timestamp > CACHE_DURATION
-    ]
-
-    for key in expired_keys:
-        del _upload_cache[key]
-
-    if expired_keys:
-        logger.info(f"🧹 Cleaned up {len(expired_keys)} expired upload cache entries")
-
-def _check_recent_upload(chat_id: str, filename: str, file_content_hash: str) -> bool:
-    """Check if this file was recently uploaded to prevent duplicates"""
-    _cleanup_upload_cache()
-
-    cache_key = f"{chat_id}:{filename}:{file_content_hash}"
-    current_time = time.time()
-
-    if cache_key in _upload_cache:
-        time_diff = current_time - _upload_cache[cache_key]
-        if time_diff < CACHE_DURATION:
-            logger.info(f"🚫 Duplicate upload detected for {filename} in chat {chat_id[:20]}... (within {time_diff:.1f}s)")
-            return True
-
-    # Mark this upload in cache
-    _upload_cache[cache_key] = current_time
-    return False
+# NOTE: Duplicate detection removed - users can upload the same file multiple times
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -2399,68 +2364,59 @@ def process_file_job(
 
         with GraphDatabase.driver(neo4j_uri_local, auth=(neo4j_user_local, neo4j_password_local)) as driver:
             with driver.session() as session:
-                # Check for duplicate processing
-                check_query = """
-                MATCH (d:Document {id: $pdf_id})
-                OPTIONAL MATCH (d)-[:HAS_CHUNK]->(c:Chunk)
-                RETURN d, count(c) as chunk_count
-                """
-                check_result = session.run(check_query, pdf_id=file_id)
-                existing_doc = check_result.single()
-
-                if existing_doc and existing_doc['d'] and existing_doc['chunk_count'] > 0:
-                    print(f"⚠️ Document {file_id} already exists - skipping duplicate")
-                    update_convex_file_status_sync(
-                        file_queue_id, "completed", 100,
-                        extracted_text_length=len(text_content),
-                        nodes_created=existing_doc['chunk_count']
-                    )
-                    return {"status": "success", "duplicate": True}
-
-                # Create document node
+                # Create document node using explicit write transaction
                 current_timestamp = int(time_module.time() * 1000)
                 text_size_bytes = len(text_content.encode('utf-8'))
 
-                doc_query = f"""
-                MERGE (d:Document {{id: $pdf_id}})
-                SET d.chatId = $chat_id,
-                    d.filename = $filename,
-                    d.uploadDate = $upload_date,
-                    d.sizeBytes = $size_bytes{scope_props_set}
-                RETURN d
-                """
+                def create_document_tx(tx):
+                    doc_query = f"""
+                    MERGE (d:Document {{id: $pdf_id}})
+                    SET d.chatId = $chat_id,
+                        d.filename = $filename,
+                        d.uploadDate = $upload_date,
+                        d.sizeBytes = $size_bytes{scope_props_set}
+                    RETURN d
+                    """
+                    result = tx.run(doc_query,
+                        pdf_id=file_id,
+                        chat_id=chat_id,
+                        filename=filename,
+                        upload_date=current_timestamp,
+                        size_bytes=text_size_bytes,
+                        **scope_params
+                    )
+                    return result.single()
 
-                doc_params = {
-                    "pdf_id": file_id,
-                    "chat_id": chat_id,
-                    "filename": filename,
-                    "upload_date": current_timestamp,
-                    "size_bytes": text_size_bytes,
-                    **scope_params
-                }
-
-                session.run(doc_query, **doc_params)
-                print(f"   Created document node: {file_id}")
+                doc_result = session.execute_write(create_document_tx)
+                print(f"   Created document node: {file_id} (confirmed: {doc_result is not None})")
 
                 update_convex_file_status_sync(file_queue_id, "processing", 60)
 
-                # Create chunk nodes with embeddings
+                # Create chunk nodes with embeddings using explicit write transactions
+                def create_chunks_tx(tx, chunks_data):
+                    """Create all chunks in a single transaction"""
+                    created_count = 0
+                    for chunk_data in chunks_data:
+                        chunk_query = f"""
+                        MATCH (d:Document {{id: $pdf_id}})
+                        CREATE (c:Chunk {{
+                            id: $chunk_id,
+                            text: $text,
+                            embedding: $embedding,
+                            chatId: $chat_id{scope_props_create}
+                        }})
+                        CREATE (d)-[:HAS_CHUNK {{order: $order}}]->(c)
+                        RETURN c
+                        """
+                        tx.run(chunk_query, **chunk_data)
+                        created_count += 1
+                    return created_count
+
+                # Prepare chunk data
+                chunks_data = []
                 for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                     chunk_id = f"{file_id}-{i}"
-
-                    chunk_query = f"""
-                    MATCH (d:Document {{id: $pdf_id}})
-                    CREATE (c:Chunk {{
-                        id: $chunk_id,
-                        text: $text,
-                        embedding: $embedding,
-                        chatId: $chat_id{scope_props_create}
-                    }})
-                    CREATE (d)-[:HAS_CHUNK {{order: $order}}]->(c)
-                    RETURN c
-                    """
-
-                    chunk_params = {
+                    chunks_data.append({
                         "pdf_id": file_id,
                         "chunk_id": chunk_id,
                         "text": chunk,
@@ -2468,32 +2424,32 @@ def process_file_job(
                         "chat_id": chat_id,
                         "order": i,
                         **scope_params
-                    }
+                    })
 
-                    session.run(chunk_query, **chunk_params)
+                # Execute in write transaction
+                created_count = session.execute_write(create_chunks_tx, chunks_data)
+                print(f"   Created {created_count} chunk nodes (confirmed)")
 
-                    # Update progress periodically
-                    if i % 10 == 0:
-                        progress = 60 + int((i / num_chunks) * 30)
-                        update_convex_file_status_sync(file_queue_id, "processing", progress)
-
-                print(f"   Created {num_chunks} chunk nodes")
-
-                # Step 5: Create sequential relationships (simplified for performance)
+                # Step 5: Create sequential relationships using explicit transaction
                 if num_chunks > 1:
                     print(f"🔗 Creating sequential relationships...")
-                    for i in range(num_chunks - 1):
-                        link_query = """
-                        MATCH (c1:Chunk {id: $chunk1_id})
-                        MATCH (c2:Chunk {id: $chunk2_id})
-                        CREATE (c1)-[:NEXT {order: $order}]->(c2)
-                        """
-                        session.run(link_query,
-                            chunk1_id=f"{file_id}-{i}",
-                            chunk2_id=f"{file_id}-{i+1}",
-                            order=i
-                        )
-                    print(f"   Created {num_chunks - 1} NEXT relationships")
+
+                    def create_relationships_tx(tx, file_id, num_chunks):
+                        for i in range(num_chunks - 1):
+                            link_query = """
+                            MATCH (c1:Chunk {id: $chunk1_id})
+                            MATCH (c2:Chunk {id: $chunk2_id})
+                            CREATE (c1)-[:NEXT {order: $order}]->(c2)
+                            """
+                            tx.run(link_query,
+                                chunk1_id=f"{file_id}-{i}",
+                                chunk2_id=f"{file_id}-{i+1}",
+                                order=i
+                            )
+                        return num_chunks - 1
+
+                    rels_created = session.execute_write(create_relationships_tx, file_id, num_chunks)
+                    print(f"   Created {rels_created} NEXT relationships")
 
         # Step 6: Calculate knowledge units (tokens from extracted text)
         # Rough estimate: 1 token ≈ 4 characters for English text
@@ -3175,17 +3131,6 @@ async def v1_user_file_upload(
         if not sanitized_text and text:
             raise HTTPException(status_code=400, detail="File contains potentially malicious content")
 
-        # Check for recent duplicate uploads using file content hash
-        file_content_hash = hashlib.md5(sanitized_text.encode()).hexdigest()[:16]
-        if _check_recent_upload(subchat["chatStringId"], sanitized_filename, file_content_hash):
-            logger.info(f"🔄 Duplicate upload request detected for {sanitized_filename} - returning success without processing")
-            return {
-                "success": True,
-                "filename": sanitized_filename,
-                "message": "File already processed recently",
-                "duplicate_prevented": True
-            }
-
         # Generate file ID
         pdf_id = f"v1_{user_identity['user_id']}_{sanitized_filename}_{int(time.time())}"
 
@@ -3259,70 +3204,18 @@ async def v1_user_file_upload(
                 }
 
             except Exception as e:
-                logger.warning(f"⚠️ Queue enqueue failed, falling back to sync: {e}")
-                # Fall through to synchronous processing
+                logger.error(f"❌ Queue enqueue failed: {e}")
+                raise HTTPException(
+                    status_code=503,
+                    detail="File processing queue unavailable. Please try again later."
+                )
 
-        # Fallback: Synchronous processing (when Redis unavailable)
-        logger.info(f"⚠️ Processing file synchronously (Redis unavailable): {sanitized_filename}")
-
-        create_payload = CreateNodesAndEmbeddingsRequest(
-            pdf_text=sanitized_text,
-            pdf_id=pdf_id,
-            chat_id=subchat["chatStringId"],
-            filename=sanitized_filename,
-            scope_values=parsed_scope_values
+        # Redis queue is required for production - no fallback to blocking processing
+        logger.error("❌ Redis queue not available - cannot process file")
+        raise HTTPException(
+            status_code=503,
+            detail="File processing service is not available. Please contact support."
         )
-
-        # Process the file with analytics
-        await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
-
-        if parsed_scope_values:
-            logger.info(f"📊 File uploaded with scopes: {parsed_scope_values}")
-
-        # Add file to parent chat's context
-        try:
-            parent_chat_id = await get_parent_chat_id_from_app(user_identity["app_id"])
-            if parent_chat_id:
-                convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(
-                        f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
-                        json={
-                            "args": {
-                                "chatId": parent_chat_id,
-                                "filename": sanitized_filename,
-                                "fileId": pdf_id,
-                            },
-                            "format": "json"
-                        },
-                        headers={"Content-Type": "application/json"},
-                        timeout=5.0
-                    )
-                    if response.status_code == 200:
-                        logger.info(f"✅ File {sanitized_filename} added to parent chat {parent_chat_id} context")
-                    else:
-                        logger.warning(f"⚠️ Failed to add file to parent chat context: {response.status_code}")
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to add file to parent chat context (non-fatal): {e}")
-
-        logger.info(f"V1 File uploaded for user {user_identity['user_id']} to subchat {subchat['chatStringId']}")
-
-        return {
-            "success": True,
-            "filename": sanitized_filename,
-            "file_id": pdf_id,
-            "chat_id": subchat["chatStringId"],
-            "user_id": user_identity["user_id"],
-            "size_bytes": file_size,
-            "processing_status": "completed",
-            "privacy_guarantee": {
-                "permanent_storage": True,
-                "user_private_subchat": True,
-                "developer_cannot_access": True,
-                "oauth_validated": True
-            },
-            "message": "File uploaded and processed in your permanent private subchat"
-        }
 
     except HTTPException:
         raise
@@ -3343,14 +3236,17 @@ async def v1_user_bulk_file_upload(
     """
     V1 Bulk File Upload: User uploads multiple files OR text content to their permanent subchat
 
+    PERFORMANCE OPTIMIZED:
+    - Text extraction happens immediately per file (fast)
+    - Heavy processing (chunking, embedding, Neo4j) is queued for background workers
+    - Returns immediately with processing status for each file
+    - Poll individual file status endpoints for completion
+
     Supports two modes:
     1. File upload: Provide 'files' parameter (list of files)
     2. Text upload: Provide 'text_contents' and 'content_names' parameters (JSON arrays)
 
-    Upload multiple files/content at once. All are processed and stored in the user's
-    permanent subchat, making them available for all future queries.
-
-    Returns detailed results for each file/content, including successes and failures.
+    Returns detailed results for each file/content, including job IDs for tracking.
 
     Optional scope_values parameter applies the same scopes to all uploaded files/content
     (e.g., {"playlist_id": "playlist_123"})
@@ -3425,6 +3321,14 @@ async def v1_user_bulk_file_upload(
         user_identity["external_user_id"]
     )
 
+    # Check if queue is available for async processing
+    queue = get_file_queue()
+    if queue is None:
+        raise HTTPException(
+            status_code=503,
+            detail="File processing service is not available. Please try again later."
+        )
+
     results = []
     total_size = 0
     successful_uploads = 0
@@ -3435,6 +3339,8 @@ async def v1_user_bulk_file_upload(
             "success": False,
             "error": None,
             "file_id": None,
+            "file_queue_id": None,
+            "job_id": None,
             "size_bytes": 0,
             "processing_status": "failed"
         }
@@ -3498,7 +3404,7 @@ async def v1_user_bulk_file_upload(
                 file_result["filename"] = sanitized_filename
                 file_result["size_bytes"] = file_size
 
-                # Extract text from file
+                # Extract text from file (this is fast, keep inline)
                 text = read_files.extract_text(file)
 
             # Sanitize extracted text
@@ -3514,38 +3420,47 @@ async def v1_user_bulk_file_upload(
                 results.append(file_result)
                 continue
 
-            # Check for recent duplicate uploads
-            file_content_hash = hashlib.md5(sanitized_text.encode()).hexdigest()[:16]
-            if _check_recent_upload(subchat["chatStringId"], sanitized_filename, file_content_hash):
-                file_result["success"] = True
-                file_result["processing_status"] = "duplicate_skipped"
-                file_result["message"] = "File already processed recently"
-                results.append(file_result)
-                successful_uploads += 1
-                continue
-
-            # Create embeddings in the user's permanent subchat
+            # Generate IDs
             pdf_id = f"v1_{user_identity['user_id']}_{sanitized_filename}_{int(time.time())}"
+            file_queue_id = f"fq_{pdf_id}"
             file_result["file_id"] = pdf_id
+            file_result["file_queue_id"] = file_queue_id
 
-            create_payload = CreateNodesAndEmbeddingsRequest(
-                pdf_text=sanitized_text,
-                pdf_id=pdf_id,
-                chat_id=subchat["chatStringId"],
-                filename=sanitized_filename,
-                scope_values=parsed_scope_values  # Add scope values
-            )
+            # ENQUEUE for background processing instead of inline processing
+            try:
+                job = queue.enqueue(
+                    process_file_job,
+                    file_queue_id,
+                    subchat["chatStringId"],
+                    sanitized_filename,
+                    sanitized_text,
+                    file_size,
+                    parsed_scope_values,
+                    pdf_id,
+                    job_timeout=1800,  # 30 minute timeout
+                    result_ttl=86400,  # Keep result for 24 hours
+                )
 
-            # Process the file with analytics
-            await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
+                file_result["job_id"] = job.id
+                file_result["success"] = True
+                file_result["processing_status"] = "queued"
+                file_result["message"] = "File queued for processing"
+                total_size += file_size
+                successful_uploads += 1
 
-            # Add file to parent chat's context so it's automatically published
+                logger.info(f"📤 Bulk upload: Enqueued {sanitized_filename} as job {job.id}")
+
+            except Exception as enqueue_error:
+                file_result["error"] = f"Failed to queue file: {str(enqueue_error)}"
+                logger.error(f"Failed to enqueue {sanitized_filename}: {enqueue_error}")
+
+            # Add file to parent chat's context (async, non-blocking)
             try:
                 parent_chat_id = await get_parent_chat_id_from_app(user_identity["app_id"])
                 if parent_chat_id:
                     convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
                     async with httpx.AsyncClient() as client:
-                        response = await client.post(
+                        await client.post(
                             f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
                             json={
                                 "args": {
@@ -3558,22 +3473,9 @@ async def v1_user_bulk_file_upload(
                             headers={"Content-Type": "application/json"},
                             timeout=5.0
                         )
-                        if response.status_code == 200:
-                            logger.info(f"✅ File {sanitized_filename} added to parent chat {parent_chat_id} context (published by default)")
-                        else:
-                            logger.warning(f"⚠️ Failed to add file to parent chat context: {response.status_code} - {response.text}")
-                else:
-                    logger.info(f"ℹ️ No parent chat found for app {user_identity['app_id']}, skipping context update")
             except Exception as e:
                 # Don't fail the upload if context update fails
                 logger.warning(f"⚠️ Failed to add file to parent chat context (non-fatal): {e}")
-
-            # Success!
-            file_result["success"] = True
-            file_result["processing_status"] = "completed"
-            file_result["message"] = "File uploaded and processed successfully"
-            total_size += file_size
-            successful_uploads += 1
 
         except Exception as e:
             file_result["error"] = str(e)
@@ -3581,15 +3483,15 @@ async def v1_user_bulk_file_upload(
 
         results.append(file_result)
 
-    logger.info(f"V1 Bulk upload completed for user {user_identity['user_id']}: {successful_uploads}/{len(files)} successful")
+    logger.info(f"V1 Bulk upload queued for user {user_identity['user_id']}: {successful_uploads}/{len(items_to_process)} queued")
     if parsed_scope_values:
         logger.info(f"📊 Bulk upload used scopes: {parsed_scope_values}")
 
     return {
         "success": successful_uploads > 0,
-        "total_files": len(files),
-        "successful_uploads": successful_uploads,
-        "failed_uploads": len(files) - successful_uploads,
+        "total_files": len(items_to_process),
+        "queued_files": successful_uploads,
+        "failed_files": len(items_to_process) - successful_uploads,
         "total_size_bytes": total_size,
         "chat_id": subchat["chatStringId"],
         "user_id": user_identity["user_id"],
@@ -3600,7 +3502,7 @@ async def v1_user_bulk_file_upload(
             "developer_cannot_access": True,
             "oauth_validated": True
         },
-        "message": f"Bulk upload completed: {successful_uploads}/{len(files)} files processed successfully"
+        "message": f"Bulk upload queued: {successful_uploads}/{len(items_to_process)} files queued for processing. Poll individual file status endpoints for completion."
     }
 
 @app.get("/v1/me/profile")
@@ -4285,8 +4187,79 @@ async def create_nodes_and_embeddings_with_analytics(payload: CreateNodesAndEmbe
 
 @app.post("/create_nodes_and_embeddings")
 async def create_nodes_and_embeddings(payload: CreateNodesAndEmbeddingsRequest):
-    """Public endpoint - calls internal function without file size"""
-    return await create_nodes_and_embeddings_with_analytics(payload, None)
+    """
+    Public endpoint for creating nodes and embeddings.
+
+    PERFORMANCE OPTIMIZED:
+    - Enqueues the heavy processing to Redis queue
+    - Returns immediately with job status
+    - Poll file status endpoint for completion
+    """
+    # Sanitize inputs early
+    sanitized_text = sanitize_with_xss_detection(
+        payload.pdf_text,
+        allow_html=False,
+        max_length=1000000,
+        context="create_nodes_embeddings"
+    )
+    sanitized_pdf_id = sanitize_text(payload.pdf_id) if payload.pdf_id else None
+    sanitized_chat_id = sanitize_chat_id(payload.chat_id)
+    sanitized_filename = sanitize_filename(payload.filename)
+
+    if not sanitized_text or not sanitized_chat_id or not sanitized_filename:
+        raise HTTPException(status_code=400, detail="Invalid or missing required fields")
+
+    # Generate file ID if not provided
+    if not sanitized_pdf_id:
+        sanitized_pdf_id = f"file_{sanitized_filename.replace('.', '_')}_{int(time.time())}"
+
+    file_queue_id = f"fq_{sanitized_pdf_id}"
+    file_size = len(sanitized_text.encode('utf-8'))
+    scope_values = payload.scope_values if hasattr(payload, 'scope_values') else {}
+
+    # Try to enqueue for background processing
+    queue = get_file_queue()
+
+    if queue is not None:
+        try:
+            job = queue.enqueue(
+                process_file_job,
+                file_queue_id,
+                sanitized_chat_id,
+                sanitized_filename,
+                sanitized_text,
+                file_size,
+                scope_values,
+                sanitized_pdf_id,
+                job_timeout=1800,  # 30 minute timeout
+                result_ttl=86400,  # Keep result for 24 hours
+            )
+
+            logger.info(f"📤 Enqueued job {job.id} for {sanitized_filename}")
+
+            return {
+                "status": "queued",
+                "message": f"File queued for processing",
+                "file_id": sanitized_pdf_id,
+                "file_queue_id": file_queue_id,
+                "job_id": job.id,
+                "chat_id": sanitized_chat_id,
+                "filename": sanitized_filename
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Failed to enqueue job: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="File processing queue unavailable. Please try again later."
+            )
+
+    # Queue not available
+    logger.error("❌ Redis queue not available")
+    raise HTTPException(
+        status_code=503,
+        detail="File processing service is not available. Please contact support."
+    )
 
 async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_id: str, filename: str,
                                                scope_values: Optional[Dict[str, Union[str, int, bool]]] = None):
@@ -4332,21 +4305,7 @@ async def create_nodes_and_embeddings_internal(pdf_text: str, pdf_id: str, chat_
     try:
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
-                # Check if document with this exact pdf_id already exists to prevent duplicate processing
-                # This prevents the same request from being processed twice
-                check_query = """
-                MATCH (d:Document {id: $pdf_id})
-                OPTIONAL MATCH (d)-[:HAS_CHUNK]->(c:Chunk)
-                RETURN d, count(c) as chunk_count
-                """
-                check_result = session.run(check_query, pdf_id=pdf_id)
-                existing_doc = check_result.single()
-                if existing_doc and existing_doc['d'] and existing_doc['chunk_count'] > 0:
-                    logger.info(f"⚠️  Document {pdf_id} already exists with {existing_doc['chunk_count']} chunks - skipping duplicate processing")
-                    print(f"⚠️  Document {pdf_id} already exists with {existing_doc['chunk_count']} chunks - skipping duplicate processing")
-                    return {"status": "success", "message": "Document already processed", "duplicate_skipped": True}
-
-                print(f"✅ Creating new document: {pdf_id} ({filename}) in chat {chat_id}")
+                print(f"✅ Creating document: {pdf_id} ({filename}) in chat {chat_id}")
 
                 # Create Document node with metadata and custom scopes
                 current_timestamp = int(time.time() * 1000)  # Unix timestamp in milliseconds
@@ -5925,31 +5884,135 @@ async def answer_question_stream(payload: QuestionRequest):
 
 @app.delete("/remove_context/{file_id}")
 async def remove_context(file_id: str): # TODO: add auth to this endpoint
+    """
+    Delete a document and its chunks from Neo4j.
+
+    Handles cases where:
+    - File exists in Neo4j (normal delete)
+    - File is still being processed (cancels job if possible)
+    - File doesn't exist (returns success - idempotent)
+    """
+    nodes_deleted = 0
+    job_cancelled = False
+
     try:
+        # First, try to delete from Neo4j
         with GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password)) as driver:
             with driver.session() as session:
-                # Delete Document and its Chunks
-                query = """
-                MATCH (d:Document {id: $file_id})-[r:HAS_CHUNK]->(c:Chunk)
-                DETACH DELETE d, c
+                # Debug: Check if document exists first
+                check_query = """
+                MATCH (d:Document {id: $file_id})
+                OPTIONAL MATCH (d)-[:HAS_CHUNK]->(c:Chunk)
+                RETURN d.id as doc_id, d.filename as filename, count(c) as chunk_count
                 """
-                result = session.run(query, file_id=file_id)
+                check_result = session.run(check_query, file_id=file_id)
+                check_record = check_result.single()
 
-                # Check if anything was deleted
-                summary = result.consume()
-                if summary.counters.nodes_deleted == 0:
-                    print(f"No nodes found for file_id: {file_id}")
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"No document found with id: {file_id}"
-                    )
+                if check_record:
+                    print(f"📋 Found document: {check_record['doc_id']} ({check_record['filename']}) with {check_record['chunk_count']} chunks")
+                else:
+                    print(f"⚠️ No document found with id: {file_id}")
+                    # Try partial match to help debug
+                    partial_query = """
+                    MATCH (d:Document)
+                    WHERE d.id CONTAINS $partial_id
+                    RETURN d.id as doc_id, d.filename as filename LIMIT 5
+                    """
+                    # Use last part of file_id for partial match
+                    partial_id = file_id.split('_')[-2] if '_' in file_id else file_id[:20]
+                    partial_result = session.run(partial_query, partial_id=partial_id)
+                    similar_docs = [r for r in partial_result]
+                    if similar_docs:
+                        print(f"📋 Similar documents found: {[(r['doc_id'], r['filename']) for r in similar_docs]}")
 
-                return {
-                    "status": "success",
-                    "message": f"Document {file_id} and its chunks deleted",
-                    "nodes_deleted": summary.counters.nodes_deleted
-                }
+                # Use explicit transaction to delete everything
+                def delete_document_tx(tx, file_id):
+                    # First, delete all chunks and their relationships
+                    chunk_result = tx.run("""
+                        MATCH (d:Document {id: $file_id})-[:HAS_CHUNK]->(c:Chunk)
+                        WITH c
+                        DETACH DELETE c
+                        RETURN count(*) as chunks_deleted
+                    """, file_id=file_id)
+                    chunk_record = chunk_result.single()
+                    chunks_deleted = chunk_record["chunks_deleted"] if chunk_record else 0
 
+                    # Then delete the document
+                    doc_result = tx.run("""
+                        MATCH (d:Document {id: $file_id})
+                        DETACH DELETE d
+                        RETURN count(*) as docs_deleted
+                    """, file_id=file_id)
+                    doc_record = doc_result.single()
+                    docs_deleted = doc_record["docs_deleted"] if doc_record else 0
+
+                    return chunks_deleted + docs_deleted
+
+                # Execute in a write transaction
+                total_deleted = session.execute_write(delete_document_tx, file_id)
+                nodes_deleted = total_deleted
+
+                print(f"🗑️ Deleted {nodes_deleted} nodes for file_id: {file_id}")
+
+        # If nothing in Neo4j, check if it's still in the processing queue
+        if nodes_deleted == 0:
+            queue = get_file_queue()
+            if queue is not None:
+                try:
+                    from rq.job import Job
+                    file_queue_id = f"fq_{file_id}"
+
+                    # Check all registries for jobs with this file
+                    for registry_name, registry in [
+                        ("queued", queue),
+                        ("started", queue.started_job_registry),
+                        ("failed", queue.failed_job_registry),
+                    ]:
+                        if registry_name == "queued":
+                            job_ids = queue.get_job_ids()
+                        else:
+                            job_ids = registry.get_job_ids()
+
+                        for job_id in job_ids:
+                            try:
+                                job = Job.fetch(job_id, connection=queue.connection)
+                                if job.args and len(job.args) >= 1:
+                                    # Check if this job is for our file
+                                    if job.args[0] == file_queue_id or (len(job.args) >= 7 and job.args[6] == file_id):
+                                        # Cancel/delete the job
+                                        job.cancel()
+                                        job.delete()
+                                        job_cancelled = True
+                                        print(f"🗑️ Cancelled queued job for file: {file_id}")
+                                        break
+                            except Exception as e:
+                                print(f"Could not check job {job_id}: {e}")
+
+                        if job_cancelled:
+                            break
+
+                except Exception as e:
+                    print(f"Could not check queue for file {file_id}: {e}")
+
+        # Return success even if nothing was deleted (idempotent)
+        if nodes_deleted == 0 and not job_cancelled:
+            print(f"No nodes found for file_id: {file_id} (may not have been processed yet)")
+            return {
+                "status": "success",
+                "message": f"Document {file_id} not found in database (may still be processing or already deleted)",
+                "nodes_deleted": 0,
+                "note": "Delete request acknowledged - file will not be queryable"
+            }
+
+        return {
+            "status": "success",
+            "message": f"Document {file_id} deleted",
+            "nodes_deleted": nodes_deleted,
+            "job_cancelled": job_cancelled
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Failed to delete document: {str(e)}")
         raise HTTPException(
@@ -7296,9 +7359,15 @@ async def privacy_upload_process(
     """
     🔒 PRIVACY-FIRST: Complete file upload processing
 
+    PERFORMANCE OPTIMIZED:
+    - Text extraction happens immediately (fast)
+    - Heavy processing (chunking, embedding, Neo4j) is queued for background workers
+    - Returns immediately with processing status
+    - Poll file status endpoint for completion
+
     This endpoint:
     1. Extracts text from uploaded files
-    2. Creates embeddings and associates them with the user's sub-chat
+    2. Queues embeddings creation for the user's sub-chat
     3. Ensures complete privacy isolation
     """
 
@@ -7323,7 +7392,7 @@ async def privacy_upload_process(
         raise HTTPException(status_code=400, detail="Invalid input parameters")
 
     try:
-        # Step 1: Extract text from file
+        # Step 1: Extract text from file (this is fast, keep inline)
         text = read_files.extract_text(file)
 
         # Sanitize extracted text
@@ -7337,30 +7406,55 @@ async def privacy_upload_process(
         if not sanitized_text and text:
             raise HTTPException(status_code=400, detail="File contains potentially malicious content.")
 
-        # Step 2: Create embeddings and nodes for the user's sub-chat
-        # Generate unique PDF ID for this upload
+        # Step 2: Generate IDs and enqueue for background processing
         pdf_id = f"{sanitized_user_id}_{sanitized_filename}_{int(time.time())}"
+        file_queue_id = f"fq_{pdf_id}"
 
-        # Create embeddings using the same logic as the regular flow
-        # but scoped to the user's sub-chat
-        create_payload = CreateNodesAndEmbeddingsRequest(
-            pdf_text=sanitized_text,
-            pdf_id=pdf_id,
-            chat_id=sanitized_chat_id,  # This is the user's sub-chat ID
-            filename=sanitized_filename
-        )
+        # Check if queue is available
+        queue = get_file_queue()
 
-        # Call the existing embeddings creation function with actual file size for analytics
-        await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
+        if queue is not None:
+            # Enqueue for background processing
+            try:
+                job = queue.enqueue(
+                    process_file_job,
+                    file_queue_id,
+                    sanitized_chat_id,
+                    sanitized_filename,
+                    sanitized_text,
+                    file_size,
+                    {},  # No scope values for privacy uploads
+                    pdf_id,
+                    job_timeout=1800,  # 30 minute timeout
+                    result_ttl=86400,  # Keep result for 24 hours
+                )
 
-        return {
-            "success": True,
-            "message": "File uploaded and processed successfully",
-            "filename": sanitized_filename,
-            "chat_id": sanitized_chat_id,
-            "pdf_id": pdf_id,
-            "privacy_note": "File processed and stored in your isolated workspace"
-        }
+                logger.info(f"📤 Privacy upload: Enqueued {sanitized_filename} as job {job.id}")
+
+                return {
+                    "success": True,
+                    "message": "File uploaded and queued for processing",
+                    "filename": sanitized_filename,
+                    "chat_id": sanitized_chat_id,
+                    "file_id": pdf_id,
+                    "file_queue_id": file_queue_id,
+                    "job_id": job.id,
+                    "processing_status": "queued",
+                    "privacy_note": "File will be processed and stored in your isolated workspace"
+                }
+
+            except Exception as enqueue_error:
+                logger.error(f"Failed to enqueue privacy upload: {enqueue_error}")
+                raise HTTPException(
+                    status_code=503,
+                    detail="File processing queue unavailable. Please try again later."
+                )
+        else:
+            # Queue not available - return error (no fallback to sync processing)
+            raise HTTPException(
+                status_code=503,
+                detail="File processing service is not available. Please contact support."
+            )
 
     except HTTPException as http_exc:
         raise http_exc
@@ -8024,78 +8118,9 @@ async def delete_scopes(
         logger.error(f"Failed to delete scopes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# File processing status store (in-memory)
-# Format: {file_id: {"status": "processing"|"ready"|"failed", "filename": str, "size_bytes": int, "error": str}}
-FILE_PROCESSING_STATUS = {}
-
-async def _process_file_background(
-    file_id: str,
-    sanitized_chat_id: str,
-    sanitized_filename: str,
-    sanitized_text: str,
-    parsed_scope_values: dict,
-    file_size: int
-):
-    """Background task to process file and create embeddings"""
-    try:
-        FILE_PROCESSING_STATUS[file_id] = {"status": "processing", "filename": sanitized_filename, "size_bytes": file_size}
-
-        create_payload = CreateNodesAndEmbeddingsRequest(
-            pdf_text=sanitized_text,
-            pdf_id=file_id,
-            chat_id=sanitized_chat_id,
-            filename=sanitized_filename,
-            scope_values=parsed_scope_values
-        )
-
-        # Process the file
-        await create_nodes_and_embeddings_with_analytics(create_payload, file_size)
-
-        # Add file to chat's context so it's automatically published
-        try:
-            convex_url = os.getenv("CONVEX_URL", "https://agile-ermine-199.convex.cloud")
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{convex_url}/api/run/chats/addFileToChatContextByChatId",
-                    json={
-                        "args": {
-                            "chatId": sanitized_chat_id,
-                            "filename": sanitized_filename,
-                            "fileId": file_id,
-                        },
-                        "format": "json"
-                    },
-                    headers={"Content-Type": "application/json"},
-                    timeout=5.0
-                )
-                if response.status_code == 200:
-                    logger.info(f"✅ File {sanitized_filename} added to chat {sanitized_chat_id} context (published by default)")
-                else:
-                    logger.warning(f"⚠️ Failed to add file to chat context: {response.status_code} - {response.text}")
-        except Exception as e:
-            # Don't fail the upload if context update fails
-            logger.warning(f"⚠️ Failed to add file to chat context (non-fatal): {e}")
-
-        # Update status to ready
-        FILE_PROCESSING_STATUS[file_id] = {
-            "status": "ready",
-            "filename": sanitized_filename,
-            "size_bytes": file_size,
-            "file_id": file_id,
-            "chat_id": sanitized_chat_id,
-            "scope_values": parsed_scope_values
-        }
-
-        logger.info(f"✅ File processing completed for {file_id}")
-    except Exception as e:
-        # Update status to failed
-        FILE_PROCESSING_STATUS[file_id] = {
-            "status": "failed",
-            "filename": sanitized_filename,
-            "size_bytes": file_size,
-            "error": str(e)
-        }
-        logger.error(f"❌ File processing failed for {file_id}: {e}")
+# NOTE: FILE_PROCESSING_STATUS and _process_file_background have been removed.
+# All file processing now goes through the Redis job queue (process_file_job).
+# Status is tracked in Convex via the file_upload_queue table.
 
 @app.post("/v1/{chat_id}/upload_with_scopes")
 async def upload_file_with_scopes(
@@ -8220,34 +8245,18 @@ async def upload_file_with_scopes(
                 }
 
             except Exception as e:
-                logger.warning(f"⚠️ Queue enqueue failed, falling back to background task: {e}")
-                # Fall through to BackgroundTasks fallback
+                logger.error(f"❌ Queue enqueue failed: {e}")
+                raise HTTPException(
+                    status_code=503,
+                    detail="File processing queue unavailable. Please try again later."
+                )
 
-        # Fallback: Use FastAPI BackgroundTasks (when Redis unavailable)
-        logger.info(f"⚠️ Using BackgroundTasks fallback for: {sanitized_filename}")
-
-        background_tasks.add_task(
-            _process_file_background,
-            pdf_id,
-            sanitized_chat_id,
-            sanitized_filename,
-            sanitized_text,
-            parsed_scope_values,
-            file_size
+        # Redis queue is required for production - no fallback to blocking processing
+        logger.error("❌ Redis queue not available - cannot process file")
+        raise HTTPException(
+            status_code=503,
+            detail="File processing service is not available. Please contact support."
         )
-
-        logger.info(f"📤 File upload initiated for chat {sanitized_chat_id}: {sanitized_filename}")
-
-        return {
-            "success": True,
-            "file_id": pdf_id,
-            "status": "processing",
-            "filename": sanitized_filename,
-            "chat_id": sanitized_chat_id,
-            "scope_values": parsed_scope_values,
-            "size_bytes": file_size,
-            "message": "File upload initiated, processing in background"
-        }
 
     except HTTPException:
         raise
@@ -8332,16 +8341,59 @@ async def get_file_status(
                     "message": "File is being processed"
                 }
 
-        # Check in-memory status as last resort (may not work across workers)
-        # Only use this if file_id doesn't match expected pattern
-        if sanitized_file_id in FILE_PROCESSING_STATUS:
-            status_info = FILE_PROCESSING_STATUS[sanitized_file_id].copy()
-            status_info["file_id"] = sanitized_file_id
-            # If status says ready but Neo4j doesn't have it, it's still processing
-            if status_info.get("status") == "ready":
-                status_info["status"] = "processing"
-                status_info["message"] = "File processing nearly complete"
-            return status_info
+        # Check Redis queue for job status
+        queue = get_file_queue()
+        if queue is not None:
+            try:
+                from rq.job import Job
+                # Try to find job by checking if file_queue_id exists
+                file_queue_id = f"fq_{sanitized_file_id}"
+
+                # Check registries for job status
+                started_jobs = queue.started_job_registry.get_job_ids()
+                for job_id in started_jobs:
+                    try:
+                        job = Job.fetch(job_id, connection=queue.connection)
+                        if job.args and len(job.args) >= 1 and job.args[0] == file_queue_id:
+                            return {
+                                "file_id": sanitized_file_id,
+                                "status": "processing",
+                                "message": "File is being processed by worker"
+                            }
+                    except Exception:
+                        pass
+
+                # Check if job is queued
+                queued_job_ids = queue.get_job_ids()
+                for job_id in queued_job_ids:
+                    try:
+                        job = Job.fetch(job_id, connection=queue.connection)
+                        if job.args and len(job.args) >= 1 and job.args[0] == file_queue_id:
+                            return {
+                                "file_id": sanitized_file_id,
+                                "status": "queued",
+                                "message": "File is queued for processing"
+                            }
+                    except Exception:
+                        pass
+
+                # Check failed jobs
+                failed_jobs = queue.failed_job_registry.get_job_ids()
+                for job_id in failed_jobs:
+                    try:
+                        job = Job.fetch(job_id, connection=queue.connection)
+                        if job.args and len(job.args) >= 1 and job.args[0] == file_queue_id:
+                            return {
+                                "file_id": sanitized_file_id,
+                                "status": "failed",
+                                "error": str(job.exc_info) if job.exc_info else "Processing failed",
+                                "message": "File processing failed"
+                            }
+                    except Exception:
+                        pass
+
+            except Exception as e:
+                logger.warning(f"Could not check queue status: {e}")
 
         # File not found and doesn't match expected pattern
         raise HTTPException(status_code=404, detail=f"File {sanitized_file_id} not found")
@@ -8560,12 +8612,24 @@ def run_worker():
     print("")
 
     try:
-        from rq import Worker
-        worker = Worker(
-            queues=['file_ingestion'],
-            connection=conn,
-            name=f"trainly_worker_{os.getpid()}"
-        )
+        import platform
+        from rq import Worker, SimpleWorker
+
+        # Use SimpleWorker on macOS to avoid fork() issues with Objective-C runtime
+        if platform.system() == "Darwin":
+            print("🍎 macOS detected - using SimpleWorker (no forking)")
+            worker = SimpleWorker(
+                queues=['file_ingestion'],
+                connection=conn,
+                name=f"trainly_worker_{os.getpid()}"
+            )
+        else:
+            worker = Worker(
+                queues=['file_ingestion'],
+                connection=conn,
+                name=f"trainly_worker_{os.getpid()}"
+            )
+
         worker.work(with_scheduler=False)
     except KeyboardInterrupt:
         print("\n👋 Worker stopped gracefully")

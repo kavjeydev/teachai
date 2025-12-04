@@ -255,27 +255,43 @@ export function useFileQueue({
         // Find corresponding persisted queue
         const persistedQueue = queues.find((q) => q.queueId === queueId);
 
-        if (persistedQueue && activeQueue.status !== "processing") {
-          // Check if all files in the active queue have been persisted with correct status
-          const allFilesPersisted = activeQueue.files.every(
-            (activeFile: any) => {
-              const persistedFile = persistedQueue.files?.find(
-                (pf: any) =>
-                  pf.id === activeFile.convexFileId ||
-                  pf._id === activeFile.convexFileId,
-              );
-              // Compare using mapped status (database status mapped to UI status)
-              return (
-                persistedFile &&
-                mapDatabaseStatusToUI(persistedFile.status) ===
-                  activeFile.status
-              );
-            },
-          );
+        if (persistedQueue) {
+          const convexStatus = mapDatabaseStatusToUI(persistedQueue.status);
 
-          if (allFilesPersisted) {
+          // Remove from activeQueues if Convex shows a terminal state
+          // Terminal states (deleted, failed, cancelled) are managed externally
+          // and local state should be cleared to avoid stale data
+          const isTerminalState = ["deleted", "cancelled", "failed"].includes(convexStatus);
+
+          if (isTerminalState) {
             updated.delete(queueId);
             hasChanges = true;
+            continue;
+          }
+
+          // For non-terminal states, check if processing is complete
+          if (activeQueue.status !== "processing") {
+            // Check if all files in the active queue have been persisted with correct status
+            const allFilesPersisted = activeQueue.files.every(
+              (activeFile: any) => {
+                const persistedFile = persistedQueue.files?.find(
+                  (pf: any) =>
+                    pf.id === activeFile.convexFileId ||
+                    pf._id === activeFile.convexFileId,
+                );
+                // Compare using mapped status (database status mapped to UI status)
+                return (
+                  persistedFile &&
+                  mapDatabaseStatusToUI(persistedFile.status) ===
+                    activeFile.status
+                );
+              },
+            );
+
+            if (allFilesPersisted) {
+              updated.delete(queueId);
+              hasChanges = true;
+            }
           }
         }
       }
@@ -585,7 +601,7 @@ export function useFileQueue({
             body: JSON.stringify(embeddingsPayload),
             signal: abortController.signal,
           },
-          30 * 60 * 1000, // 30 minutes timeout for large file processing
+          60 * 1000, // 60 seconds timeout - should be fast now (just enqueues)
         );
 
         // Check if cancelled after second request
@@ -600,48 +616,254 @@ export function useFileQueue({
           );
         }
 
-        if (queuedFile.convexFileId) {
-          try {
-            const result = await updateFileProgress({
-              fileId: queuedFile.convexFileId,
-              status: "completed", // Use 'completed' to match database schema
-              progress: 100,
-              extractedTextLength: extractedTextLength,
-              knowledgeUnits: actualKnowledgeUnits,
-            });
+        const nodesData = await nodesResponse.json();
 
-            // Also update token ingestion directly to ensure navbar updates
-            // This is a backup in case the backend call fails silently
-            if (currentChat?.userId) {
-              try {
-                await addTokenIngestion({
-                  userId: currentChat.userId,
-                  tokens: actualTokens,
-                });
-                console.log(
-                  `✅ Token ingestion updated in frontend: ${actualTokens} tokens (${actualKnowledgeUnits} KU)`,
-                );
-              } catch (tokenError) {
-                // Don't fail the upload if token tracking fails - backend should handle it
-                console.warn(
-                  "Failed to update token ingestion from frontend (non-fatal):",
-                  tokenError,
-                );
+        // Handle async queue-based processing
+        if (nodesData.status === "queued" && nodesData.file_id) {
+          console.log(
+            `📤 File ${queuedFile.fileName} queued for processing (job: ${nodesData.job_id})`,
+          );
+
+          // Update Convex to "processing" status
+          if (queuedFile.convexFileId) {
+            try {
+              await updateFileProgress({
+                fileId: queuedFile.convexFileId,
+                status: "processing",
+                progress: 30,
+                extractedTextLength: extractedTextLength,
+                knowledgeUnits: actualKnowledgeUnits,
+              });
+            } catch (error) {
+              console.warn(
+                "Failed to update initial processing status:",
+                error,
+              );
+            }
+          }
+
+          // Update local state to "processing"
+          setActiveQueues((prev) => {
+            const updated = new Map(prev);
+            const queue = updated.get(queueId);
+            if (queue) {
+              const fileIndex = queue.files.findIndex(
+                (f) => f.id === queuedFile.id,
+              );
+              if (fileIndex !== -1) {
+                queue.files[fileIndex] = {
+                  ...queue.files[fileIndex],
+                  status: "processing",
+                  progress: 30,
+                  fileId: nodesData.file_id,
+                  jobId: nodesData.job_id,
+                };
+                updated.set(queueId, { ...queue });
               }
             }
-          } catch (error) {
-            console.error("Failed to update file progress in Convex:", error);
-            console.error("Error details:", {
-              fileId: queuedFile.convexFileId,
-              fileName: queuedFile.fileName,
-              error: error,
-            });
+            return updated;
+          });
+
+          // Poll for completion status
+          const pollForCompletion = async (
+            fileId: string,
+            maxAttempts = 360,
+            intervalMs = 5000,
+          ) => {
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+              // Check if cancelled
+              if (
+                abortController.signal.aborted ||
+                cancelledFiles.has(fileKey)
+              ) {
+                console.log(`Polling cancelled for ${fileId}`);
+                return { status: "cancelled" };
+              }
+
+              try {
+                const statusResponse = await fetch(
+                  `${baseUrl}v1/${actualChatId}/files/${fileId}/status`,
+                  { signal: abortController.signal },
+                );
+
+                if (statusResponse.ok) {
+                  const statusData = await statusResponse.json();
+
+                  // Update progress in local state
+                  setActiveQueues((prev) => {
+                    const updated = new Map(prev);
+                    const queue = updated.get(queueId);
+                    if (queue) {
+                      const fileIndex = queue.files.findIndex(
+                        (f) => f.id === queuedFile.id,
+                      );
+                      if (fileIndex !== -1) {
+                        const progress =
+                          statusData.status === "ready"
+                            ? 100
+                            : statusData.status === "processing"
+                              ? 50 + (attempt % 40)
+                              : 30;
+                        queue.files[fileIndex] = {
+                          ...queue.files[fileIndex],
+                          progress: progress,
+                        };
+                        updated.set(queueId, { ...queue });
+                      }
+                    }
+                    return updated;
+                  });
+
+                  if (statusData.status === "ready") {
+                    console.log(`✅ File ${fileId} processing complete`);
+                    return statusData;
+                  } else if (statusData.status === "failed") {
+                    console.error(
+                      `❌ File ${fileId} processing failed:`,
+                      statusData.error,
+                    );
+                    return statusData;
+                  }
+                  // Still processing/queued - continue polling
+                }
+              } catch (pollError) {
+                if (abortController.signal.aborted) {
+                  return { status: "cancelled" };
+                }
+                console.warn(
+                  `Polling attempt ${attempt + 1} failed:`,
+                  pollError,
+                );
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, intervalMs));
+            }
+
+            return {
+              status: "failed",
+              error: "Polling timeout - file may still be processing",
+            };
+          };
+
+          // Start polling in background
+          const finalStatus = await pollForCompletion(nodesData.file_id);
+
+          if (finalStatus.status === "cancelled") {
+            return; // Already handled
           }
+
+          if (finalStatus.status !== "ready") {
+            throw new Error(finalStatus.error || "File processing failed");
+          }
+
+          // Processing complete - update final status
+          if (queuedFile.convexFileId) {
+            try {
+              await updateFileProgress({
+                fileId: queuedFile.convexFileId,
+                status: "completed",
+                progress: 100,
+                extractedTextLength: extractedTextLength,
+                knowledgeUnits: actualKnowledgeUnits,
+                nodesCreated: finalStatus.chunk_count,
+              });
+
+              if (currentChat?.userId) {
+                try {
+                  await addTokenIngestion({
+                    userId: currentChat.userId,
+                    tokens: actualTokens,
+                  });
+                  console.log(
+                    `✅ Token ingestion updated in frontend: ${actualTokens} tokens (${actualKnowledgeUnits} KU)`,
+                  );
+                } catch (tokenError) {
+                  console.warn(
+                    "Failed to update token ingestion from frontend (non-fatal):",
+                    tokenError,
+                  );
+                }
+              }
+            } catch (error) {
+              console.error("Failed to update file progress in Convex:", error);
+            }
+          }
+
+          // Mark as completed in local state (after polling completed)
+          setActiveQueues((prev) => {
+            const updated = new Map(prev);
+            const queue = updated.get(queueId);
+            if (queue) {
+              const fileIndex = queue.files.findIndex(
+                (f) => f.id === queuedFile.id,
+              );
+              if (fileIndex !== -1) {
+                queue.files[fileIndex] = {
+                  ...queue.files[fileIndex],
+                  status: "ready",
+                  progress: 100,
+                  fileId: nodesData.file_id,
+                  uploadedAt: Date.now(),
+                  extractedTextLength: extractedTextLength,
+                  knowledgeUnits: actualKnowledgeUnits,
+                };
+                queue.completedFiles += 1;
+                if (
+                  queue.completedFiles + queue.failedFiles >=
+                  queue.totalFiles
+                ) {
+                  queue.status = queue.failedFiles > 0 ? "failed" : "ready";
+                  onQueueComplete?.(queueId);
+                }
+                updated.set(queueId, { ...queue });
+              }
+            }
+            return updated;
+          });
+
+          // Call onFileProcessed callback
+          onFileProcessed?.(nodesData.file_id, queuedFile.fileName);
+          return; // Exit early - async path complete
         } else {
-          console.error("No convexFileId found for file:", queuedFile.fileName);
+          // Legacy synchronous response handling (fallback)
+          if (queuedFile.convexFileId) {
+            try {
+              await updateFileProgress({
+                fileId: queuedFile.convexFileId,
+                status: "completed",
+                progress: 100,
+                extractedTextLength: extractedTextLength,
+                knowledgeUnits: actualKnowledgeUnits,
+              });
+
+              if (currentChat?.userId) {
+                try {
+                  await addTokenIngestion({
+                    userId: currentChat.userId,
+                    tokens: actualTokens,
+                  });
+                  console.log(
+                    `✅ Token ingestion updated in frontend: ${actualTokens} tokens (${actualKnowledgeUnits} KU)`,
+                  );
+                } catch (tokenError) {
+                  console.warn(
+                    "Failed to update token ingestion from frontend (non-fatal):",
+                    tokenError,
+                  );
+                }
+              }
+            } catch (error) {
+              console.error("Failed to update file progress in Convex:", error);
+            }
+          } else {
+            console.error(
+              "No convexFileId found for file:",
+              queuedFile.fileName,
+            );
+          }
         }
 
-        // Mark as completed and cleanup old files
+        // Mark as completed and cleanup old files (legacy sync path only)
         setActiveQueues((prev) => {
           const updated = new Map(prev);
           const queue = updated.get(queueId);
@@ -1134,17 +1356,23 @@ export function useFileQueue({
   // Merge with active queues to get real-time updates for processing files
   const allQueuesWithFiles = (queues || []).map((convexQueue) => {
     const activeQueue = activeQueues.get(convexQueue.queueId);
+    const convexStatus = mapDatabaseStatusToUI(convexQueue.status);
 
-    if (activeQueue) {
-      // Always use active queue data when available (for real-time updates)
+    // Prioritize Convex data for terminal states (deleted, cancelled, failed)
+    // These states are set externally (e.g., via deletion UI) and may not update local activeQueues
+    const isTerminalState = ["deleted", "cancelled", "failed"].includes(convexStatus);
+
+    if (activeQueue && !isTerminalState) {
+      // Use active queue data when available (for real-time updates during processing)
       // This ensures we see status changes immediately, even before DB propagation
       return activeQueue;
     } else {
       // Use Convex data for queues without active state (persistent)
+      // OR when the Convex state is a terminal state (deleted/cancelled/failed)
       // Transform to PersistedFile format (no File objects)
       return {
         ...convexQueue,
-        status: mapDatabaseStatusToUI(convexQueue.status),
+        status: convexStatus,
         files: (convexQueue.files || []).map(
           (file: any): PersistedFile => ({
             id: file.id || file._id,
