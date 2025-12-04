@@ -694,8 +694,8 @@ export const ChatNavbar = ({ chatId }: ChatNavbarProps) => {
           </div>
         )}
 
-        {/* Publish Status - Show for paid users with selected chat */}
-        {chatId && subscription?.tier !== "free" && (
+        {/* Publish Status - Show for all users with selected chat */}
+        {chatId && (
           <NavbarPublishStatus
             chatId={chatId}
             hasUnpublishedChanges={currentChat?.hasUnpublishedChanges}

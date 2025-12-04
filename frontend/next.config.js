@@ -1,10 +1,20 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Set the output file tracing root to the frontend directory
+  outputFileTracingRoot: path.join(__dirname),
+
   // External packages for server components
   serverExternalPackages: [
     "@neo4j-nvl/base",
     "@neo4j-nvl/interaction-handlers",
+    "bcrypt",
+    "validator",
   ],
+
+  // Transpile packages that cause issues
+  transpilePackages: ["react-remove-scroll"],
 
   // Enable compression
   compress: true,
@@ -31,14 +41,16 @@ const nextConfig = {
 };
 
 // Conditionally apply bundle analyzer only if installed and ANALYZE env var is set
-if (process.env.ANALYZE === 'true') {
+if (process.env.ANALYZE === "true") {
   try {
-    const withBundleAnalyzer = require('@next/bundle-analyzer')({
+    const withBundleAnalyzer = require("@next/bundle-analyzer")({
       enabled: true,
     });
     module.exports = withBundleAnalyzer(nextConfig);
   } catch (error) {
-    console.warn('@next/bundle-analyzer not installed. Run: npm install --save-dev @next/bundle-analyzer');
+    console.warn(
+      "@next/bundle-analyzer not installed. Run: npm install --save-dev @next/bundle-analyzer",
+    );
     module.exports = nextConfig;
   }
 } else {
