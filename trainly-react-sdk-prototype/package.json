@@ -1,6 +1,6 @@
 {
   "name": "@trainly/react",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Dead simple RAG integration for React apps with OAuth authentication and custom scopes",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

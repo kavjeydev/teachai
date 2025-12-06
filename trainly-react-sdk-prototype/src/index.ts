@@ -2,6 +2,9 @@
 export { TrainlyProvider } from "./TrainlyProvider";
 export { useTrainly } from "./useTrainly";
 
+// Core client (for non-React usage)
+export { TrainlyClient } from "./api/TrainlyClient";
+
 // Pre-built components
 export { TrainlyChat } from "./components/TrainlyChat";
 export { TrainlyUpload } from "./components/TrainlyUpload";
