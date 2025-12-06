@@ -143,8 +143,6 @@ export function ApiKeysComparison({
       setAppName("");
       setAppDescription("");
 
-      // Show the new app secret
-      setShowAppSecret(true);
     } catch (error: any) {
       toast.error(error.message || "Failed to create app");
     } finally {
