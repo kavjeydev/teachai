@@ -32,12 +32,59 @@ interface ApiKeysComparisonProps {
   chatTitle: string;
 }
 
+interface AppSecretDisplayProps {
+  appId: string;
+  onCopy: (text: string, label: string) => void;
+}
+
+function AppSecretDisplay({ appId, onCopy }: AppSecretDisplayProps) {
+  const [showSecret, setShowSecret] = useState(false);
+
+  const appSecretQuery = useQuery(
+    api.app_management.getAppSecret,
+    showSecret ? { appId } : "skip",
+  );
+
+  const secretValue =
+    showSecret && appSecretQuery
+      ? appSecretQuery.appSecret
+      : "as_" + "•".repeat(32);
+
+  return (
+    <div className="flex items-center gap-2">
+      <Input value={secretValue} readOnly className="font-mono text-sm" />
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowSecret(!showSecret)}
+      >
+        {showSecret ? (
+          <EyeOff className="w-4 h-4" />
+        ) : (
+          <Eye className="w-4 h-4" />
+        )}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() =>
+          showSecret && appSecretQuery
+            ? onCopy(appSecretQuery.appSecret, "App Secret")
+            : toast.error("Please reveal the secret first")
+        }
+        disabled={!showSecret || !appSecretQuery}
+      >
+        <Copy className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
+
 export function ApiKeysComparison({
   chatId,
   chatTitle,
 }: ApiKeysComparisonProps) {
   const [showChatApiKey, setShowChatApiKey] = useState(false);
-  const [showAppSecret, setShowAppSecret] = useState(false);
   const [isGeneratingChatKey, setIsGeneratingChatKey] = useState(false);
   const [isCreatingApp, setIsCreatingApp] = useState(false);
   const [showCreateAppForm, setShowCreateAppForm] = useState(false);
@@ -293,40 +340,10 @@ export function ApiKeysComparison({
                         {app.description}
                       </p>
 
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={
-                            showAppSecret
-                              ? `as_${app.appId}_secret_here`
-                              : "as_" + "•".repeat(32)
-                          }
-                          readOnly
-                          className="font-mono text-sm"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowAppSecret(!showAppSecret)}
-                        >
-                          {showAppSecret ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              `as_${app.appId}_secret`,
-                              "App Secret",
-                            )
-                          }
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <AppSecretDisplay
+                        appId={app.appId}
+                        onCopy={copyToClipboard}
+                      />
 
                       <div className="text-xs text-zinc-600 mt-1">
                         <strong>App ID:</strong> {app.appId}

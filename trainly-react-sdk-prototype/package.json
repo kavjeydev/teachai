@@ -9,7 +9,8 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "node test_package.js",
+    "test:package": "node test_package.js"
   },
   "keywords": [
     "rag",
