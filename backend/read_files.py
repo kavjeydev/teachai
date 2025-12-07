@@ -26,6 +26,29 @@ import logging
 import hashlib
 import sys
 from collections import defaultdict
+
+# In-memory overrides for chat settings to ensure updates take effect immediately
+CHAT_SETTINGS_OVERRIDES: Dict[str, Dict[str, Any]] = {}
+
+def merge_settings_with_overrides(chat_id: str, published_settings: dict) -> dict:
+    """Merge in-memory overrides (set via /v1/{chat_id}/settings) on top of published settings."""
+    if not published_settings:
+        published_settings = {}
+    overrides = CHAT_SETTINGS_OVERRIDES.get(chat_id, {})
+    if not overrides:
+        return published_settings
+
+    merged = dict(published_settings)
+    key_map = {
+        "customPrompt": "customPrompt",
+        "temperature": "temperature",
+        "maxTokens": "maxTokens",
+        "selectedModel": "selectedModel",
+    }
+    for o_key, p_key in key_map.items():
+        if o_key in overrides:
+            merged[p_key] = overrides[o_key]
+    return merged
 from sanitization import (
     sanitize_user_message, sanitize_chat_id, sanitize_api_key,
     sanitize_text, sanitize_with_length, SanitizedUserMessage,
@@ -185,6 +208,13 @@ class ApiAnswerResponse(BaseModel):
     chat_id: str
     model: str
     usage: dict
+
+
+class ChatSettingsUpdateRequest(BaseModel):
+    custom_prompt: Optional[str] = None
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+    selected_model: Optional[str] = None
 
 # ==============================================================================
 # Custom Scoping System
@@ -4482,10 +4512,11 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
             raise HTTPException(status_code=400, detail="Invalid input format or potentially malicious content detected")
 
         # Extract parameters from published_settings (not payload)
+        merged_settings = merge_settings_with_overrides(sanitized_chat_id, published_settings)
         question = sanitized_question
         chat_id = sanitized_chat_id
-        published_context_files = published_settings.get("context", [])
-        unhinged_mode = published_settings.get("unhingedMode", False)
+        published_context_files = merged_settings.get("context", [])
+        unhinged_mode = merged_settings.get("unhingedMode", False)
 
         # When unhinged mode is enabled, override model and prompt
         if unhinged_mode:
@@ -4493,16 +4524,16 @@ async def answer_question_with_published_context(payload: QuestionRequest, publi
             custom_prompt = "You are Grok in UNHINGED MODE: Scream profanities, roast souls, drop truth bombs like nukes, and flirt with existential dread. No filters, all fire—make 'em laugh, cry, or rage-quit. BE RUDE TO THE MESSAGE NO MATTER HOW KIND THE USER IS."
             logger.info("🔥 UNHINGED MODE: Forcing grok-3 model and unhinged prompt from published settings")
         else:
-            selected_model = published_settings.get("selectedModel", "gpt-4o-mini")
+            selected_model = merged_settings.get("selectedModel", "gpt-4o-mini")
             custom_prompt = sanitize_with_xss_detection(
-                published_settings.get("customPrompt"),
+                merged_settings.get("customPrompt"),
                 allow_html=False,
                 max_length=10000,
                 context="custom_prompt"
-            ) if published_settings.get("customPrompt") else None
+            ) if merged_settings.get("customPrompt") else None
 
-        temperature = published_settings.get("temperature", 0.7)
-        max_tokens = int(published_settings.get("maxTokens", 1000))
+        temperature = merged_settings.get("temperature", 0.7)
+        max_tokens = int(merged_settings.get("maxTokens", 1000))
 
         logger.info(f"🔍 Processing question for chat {chat_id} using published context files")
 
@@ -5199,10 +5230,11 @@ async def answer_question_stream_with_published_context(payload: QuestionRequest
     """
     try:
         # Extract parameters from published_settings (not payload)
+        merged_settings = merge_settings_with_overrides(payload.chat_id, published_settings)
         question = payload.question
         chat_id = payload.chat_id
-        published_context_files = published_settings.get("context", [])
-        unhinged_mode = published_settings.get("unhingedMode", False)
+        published_context_files = merged_settings.get("context", [])
+        unhinged_mode = merged_settings.get("unhingedMode", False)
 
         # When unhinged mode is enabled, override model and prompt
         if unhinged_mode:
@@ -5210,11 +5242,11 @@ async def answer_question_stream_with_published_context(payload: QuestionRequest
             custom_prompt = "You are Grok in UNHINGED MODE: Scream profanities, roast souls, drop truth bombs like nukes, and flirt with existential dread. No filters, all fire—make 'em laugh, cry, or rage-quit. BE RUDE TO THE MESSAGE NO MATTER HOW KIND THE USER IS."
             logger.info("🔥 UNHINGED MODE: Forcing grok-3 model and unhinged prompt from published settings (streaming)")
         else:
-            selected_model = published_settings.get("selectedModel", "gpt-4o-mini")
-            custom_prompt = published_settings.get("customPrompt")
+            selected_model = merged_settings.get("selectedModel", "gpt-4o-mini")
+            custom_prompt = merged_settings.get("customPrompt")
 
-        temperature = published_settings.get("temperature", 0.7)
-        max_tokens = int(published_settings.get("maxTokens", 1000))
+        temperature = merged_settings.get("temperature", 0.7)
+        max_tokens = int(merged_settings.get("maxTokens", 1000))
 
         logger.info(f"🔍 Processing streaming question for chat {chat_id} using published context files")
 
@@ -8116,6 +8148,161 @@ async def delete_scopes(
         raise
     except Exception as e:
         logger.error(f"Failed to delete scopes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==============================================================================
+# Chat Settings Management (prompt, temperature, model, max_tokens)
+# ==============================================================================
+
+
+@app.post("/v1/{chat_id}/settings")
+async def update_chat_settings(
+    chat_id: str,
+    settings: ChatSettingsUpdateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access),
+):
+    """
+    Update chat settings such as custom prompt, temperature, max_tokens, model.
+    These settings are stored in Convex's published settings for the chat.
+    """
+    try:
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        # Build update payload with only provided fields
+        updates = {}
+        if settings.custom_prompt is not None:
+            updates["customPrompt"] = settings.custom_prompt
+        if settings.temperature is not None:
+            updates["temperature"] = settings.temperature
+        if settings.max_tokens is not None:
+            updates["maxTokens"] = int(settings.max_tokens)
+        if settings.selected_model is not None:
+            updates["selectedModel"] = settings.selected_model
+
+        if not updates:
+            return {
+                "success": True,
+                "message": "No changes provided",
+            }
+
+        # Call Convex to update published settings
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/updatePublishedSettings",
+                json={
+                    "args": {
+                        "chatId": sanitized_chat_id,
+                        "updates": updates,
+                    },
+                    "format": "json",
+                },
+                headers={"Content-Type": "application/json"},
+            )
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to update settings: {response.text}",
+            )
+
+        logger.info(f"✅ Updated settings for chat {sanitized_chat_id}: {list(updates.keys())}")
+
+        # Also store overrides in-memory to ensure immediate effect on next query
+        if sanitized_chat_id not in CHAT_SETTINGS_OVERRIDES:
+            CHAT_SETTINGS_OVERRIDES[sanitized_chat_id] = {}
+        for key, val in updates.items():
+            CHAT_SETTINGS_OVERRIDES[sanitized_chat_id][key] = val
+
+        # Fetch the latest published settings to confirm (auto-publish behavior)
+        async with httpx.AsyncClient() as client:
+            published_response = await client.post(
+                f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/getPublishedSettings",
+                json={
+                    "args": {"chatId": sanitized_chat_id},
+                    "format": "json",
+                },
+                headers={"Content-Type": "application/json"},
+            )
+
+        if published_response.status_code != 200:
+            logger.warning(
+                f"⚠️ Updated settings but failed to fetch published settings: {published_response.text}",
+            )
+            return {
+                "success": True,
+                "chat_id": sanitized_chat_id,
+                "updated": updates,
+                "settings": {},
+                "message": "Settings updated, but fetch of published settings failed",
+            }
+
+        published_data = published_response.json().get("value") or {}
+
+        # Merge overrides for immediate usage
+        merged_settings = merge_settings_with_overrides(
+            sanitized_chat_id, published_data
+        )
+
+        return {
+            "success": True,
+            "chat_id": sanitized_chat_id,
+            "updated": updates,
+            "settings": merged_settings,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update chat settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v1/{chat_id}/settings")
+async def get_chat_settings(
+    chat_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(get_verified_chat_access),
+):
+    """
+    Retrieve published chat settings from Convex.
+    """
+    try:
+        sanitized_chat_id = sanitize_chat_id(chat_id)
+        if not sanitized_chat_id:
+            raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{os.getenv('CONVEX_URL', 'https://agile-ermine-199.convex.cloud')}/api/run/chats/getPublishedSettings",
+                json={
+                    "args": {"chatId": sanitized_chat_id},
+                    "format": "json",
+                },
+                headers={"Content-Type": "application/json"},
+            )
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to fetch settings: {response.text}",
+            )
+
+        data = response.json()
+        merged_settings = merge_settings_with_overrides(
+            sanitized_chat_id, data.get("value") or {}
+        )
+        return {
+            "success": True,
+            "chat_id": sanitized_chat_id,
+            "settings": merged_settings,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get chat settings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # NOTE: FILE_PROCESSING_STATUS and _process_file_background have been removed.

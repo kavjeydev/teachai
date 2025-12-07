@@ -585,6 +585,49 @@ export function TrainlyProvider({
   const reconnect = () => connect();
   const clearMessages = () => setMessages([]);
 
+  const getChatSettings = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await client.getChatSettings();
+      return res;
+    } catch (err) {
+      const error: TrainlyError = {
+        code: "GET_CHAT_SETTINGS_FAILED",
+        message: "Failed to fetch chat settings",
+        details: err,
+      };
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateChatSettings = async (settings: {
+    custom_prompt?: string;
+    temperature?: number;
+    max_tokens?: number;
+    selected_model?: string;
+  }) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await client.updateChatSettings(settings);
+      return res;
+    } catch (err) {
+      const error: TrainlyError = {
+        code: "UPDATE_CHAT_SETTINGS_FAILED",
+        message: "Failed to update chat settings",
+        details: err,
+      };
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value: TrainlyContextValue = {
     ask,
     askWithCitations, // Deprecated - kept for backward compatibility
@@ -594,6 +637,8 @@ export function TrainlyProvider({
     bulkUploadText, // NEW: Bulk text content upload
     listFiles, // NEW: File management methods
     deleteFile,
+    getChatSettings,
+    updateChatSettings,
     connectWithOAuthToken, // NEW: V1 OAuth connection method
     isLoading,
     isConnected,

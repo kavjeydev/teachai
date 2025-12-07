@@ -880,6 +880,86 @@ export class TrainlyClient {
     return this.extractChatId();
   }
 
+  // === Chat settings management ===
+  async getChatSettings(): Promise<{
+    success: boolean;
+    chat_id?: string;
+    settings?: any;
+  }> {
+    if (!this.config.apiKey) {
+      throw new Error("API key required to get chat settings");
+    }
+
+    const response = await fetch(
+      `${this.config.baseUrl}/v1/${this.getChatId()}/settings`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(
+        "[TrainlyClient] getChatSettings failed",
+        response.status,
+        response.statusText,
+        text,
+      );
+      throw new Error(
+        `Failed to fetch chat settings: ${response.status} ${response.statusText} - ${text}`,
+      );
+    }
+
+    return await response.json();
+  }
+
+  async updateChatSettings(settings: {
+    custom_prompt?: string;
+    temperature?: number;
+    max_tokens?: number;
+    selected_model?: string;
+  }): Promise<{
+    success: boolean;
+    chat_id?: string;
+    updated?: any;
+    settings?: any;
+    message?: string;
+  }> {
+    if (!this.config.apiKey) {
+      throw new Error("API key required to update chat settings");
+    }
+
+    const response = await fetch(
+      `${this.config.baseUrl}/v1/${this.getChatId()}/settings`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.apiKey}`,
+        },
+        body: JSON.stringify(settings),
+      },
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(
+        "[TrainlyClient] updateChatSettings failed",
+        response.status,
+        response.statusText,
+        text,
+      );
+      throw new Error(
+        `Failed to update chat settings: ${response.status} ${response.statusText} - ${text}`,
+      );
+    }
+
+    return await response.json();
+  }
+
   private extractChatId(): string {
     if (!this.config.apiKey) {
       throw new Error("API key not provided");

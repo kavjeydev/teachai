@@ -141,6 +141,24 @@ export interface TrainlyContextValue {
     scopeValues?: Record<string, string | number | boolean>,
   ) => Promise<BulkUploadResult>;
 
+  // NEW: Chat settings management
+  getChatSettings: () => Promise<{
+    success: boolean;
+    chat_id?: string;
+    settings?: any;
+  }>;
+  updateChatSettings: (settings: {
+    custom_prompt?: string;
+    temperature?: number;
+    max_tokens?: number;
+    selected_model?: string;
+  }) => Promise<{
+    success: boolean;
+    chat_id?: string;
+    updated?: any;
+    message?: string;
+  }>;
+
   // NEW: V1 Authentication
   connectWithOAuthToken: (idToken: string) => Promise<void>;
 
