@@ -3,6 +3,7 @@
 export interface TrainlyConfig {
   appSecret?: string;
   apiKey?: string;
+  chatId?: string;
   appId?: string; // NEW: For V1 Trusted Issuer authentication
   baseUrl?: string;
   userId?: string;
