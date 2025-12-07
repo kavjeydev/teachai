@@ -113,6 +113,8 @@ export class TrainlyClient {
       scope_filters?: Record<string, string | number | boolean>;
     } = {},
   ): Promise<QueryResponse> {
+    const includeCitations = options.includeCitations !== false;
+
     if (!this.scopedToken) {
       throw new Error(
         "Not connected. Call connect() or connectWithOAuthToken() first.",
@@ -154,7 +156,7 @@ export class TrainlyClient {
       const data = await response.json();
       return {
         answer: data.answer,
-        citations: data.citations || [],
+        citations: includeCitations ? data.citations || [] : [],
       };
     }
 
@@ -194,7 +196,7 @@ export class TrainlyClient {
 
     return {
       answer: data.answer,
-      citations: data.citations || [],
+      citations: includeCitations ? data.citations || [] : [],
     };
   }
 
